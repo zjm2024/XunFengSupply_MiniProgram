@@ -1,0 +1,181 @@
+/**
+ * 响应式设计系统 V2 - 三档断点 + 稳定尺寸
+ *
+ * 断点定义（与 useResponsive.js 保持一致）：
+ *   Compact  : < 600px  → 手机单栏，100% 宽度
+ *   Medium   : 600-839px → iPad 竖屏，内容居中 max-width 720px
+ *   Expanded : >= 840px → iPad 横屏/大屏，max-width 1120px
+ *
+ * V2 核心原则：
+ *   - 标题/正文/按钮高度使用稳定的 px 或 token 值
+ *   - rpx 只用于有限的流式间距（gap/margin/padding）
+ *   - 禁止在 iPad 上简单放大所有 rpx 字号
+ *   - 使用 CSS 变量而非硬编码值
+ */
+
+// ==================== 响应式断点（与 JS 端一致）====================
+
+$breakpoint-compact: 600px;
+$breakpoint-medium: 840px;
+
+// ==================== 内容最大宽度 ====================
+
+$content-max-width-portrait: 720px;    // iPad 竖屏
+$content-max-width-landscape: 1120px;   // iPad 横屏/大屏
+
+// ==================== Mixins ====================
+
+/**
+ * 响应式容器：限制最大宽度并居中
+ * 用于页面内容区的外层容器
+ */
+@mixin responsive-container {
+  width: 100%;
+  margin: 0 auto;
+
+  @media screen and (min-width: $breakpoint-medium) {
+    max-width: $content-max-width-landscape;
+    padding-left: 24px;
+    padding-right: 24px;
+    box-sizing: border-box;
+  }
+
+  @media screen and (min-width: $breakpoint-compact) and (max-width: #{$breakpoint-medium - 1}) {
+    max-width: $content-max-width-portrait;
+    padding-left: 20px;
+    padding-right: 20px;
+    box-sizing: border-box;
+  }
+}
+
+/**
+ * 页面内容区内边距
+ * 手机端 16px，平板端 24px
+ */
+@mixin content-padding {
+  padding-left: 16px;
+  padding-right: 16px;
+
+  @media screen and (min-width: $breakpoint-compact) {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+// ==================== 已废弃的 Mixins（保留向后兼容，标记 deprecated）====================
+
+/**
+ * @deprecated 使用 responsive-container 替代
+ */
+@mixin ipad-container {
+  @include responsive-container;
+}
+
+/**
+ * @deprecated 使用 content-padding 替代
+ */
+@mixin ipad-padding($horizontal: 32rpx, $vertical: 24rpx) {
+  padding: $vertical $horizontal;
+}
+
+/**
+ * @deprecated V2 禁止在 iPad 上放大字号，使用稳定 px 值
+ */
+@mixin ipad-font-size($size) {
+  font-size: $size;
+}
+
+/**
+ * @deprecated 使用 responsive-container 替代
+ */
+@mixin max-width-ipad($max-width: 700rpx) {
+  max-width: $max-width;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/**
+ * @deprecated
+ */
+@mixin flex-center-ipad {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  @media screen and (min-width: $breakpoint-medium) {
+    justify-content: flex-start;
+  }
+}
+
+// ==================== 全局响应式工具类 ====================
+
+/** 页面容器 - 响应式适配 */
+.page-container {
+  @include responsive-container;
+}
+
+/** 卡片容器 */
+.card-container {
+  @include responsive-container;
+}
+
+// ==================== 安全区域适配 ====================
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .fixed-bottom-bar {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
+  }
+}
+
+@supports (padding-left: env(safe-area-inset-left)) {
+  .safe-area-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .fixed-left-bar {
+    padding-left: calc(env(safe-area-inset-left) + 12px);
+  }
+}
+
+// ==================== 横屏模式适配 ====================
+
+@media screen and (orientation: landscape) and (min-width: $breakpoint-compact) {
+  .login-header {
+    padding-top: 30px !important;
+    padding-bottom: 15px !important;
+  }
+
+  .login-form {
+    justify-content: center;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .login-footer {
+    padding-bottom: 15px;
+  }
+}
+
+// ==================== 大屏模式（V2：不再放大字号）====================
+
+@media screen and (min-width: $breakpoint-medium) {
+  /* V2: 不再全局放大 font-size，保持稳定字号 */
+
+  /** 输入框更宽但字号不变 */
+  .input-group .input {
+    height: 54px; /* 稳定 px */
+    font-size: 17px; /* iOS 标准字号 */
+    padding: 0 18px;
+  }
+
+  /** 按钮触控区域更大但字号不变 */
+  .login-btn {
+    height: 52px; /* 稳定 px */
+    font-size: 17px; /* iOS 标准字号 */
+    border-radius: 26px;
+  }
+}

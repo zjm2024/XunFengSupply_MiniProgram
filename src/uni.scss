@@ -1,0 +1,133 @@
+/* ============================================
+ * 薰风经销商下单系统 - Design Tokens
+ * 基于 DESIGN_SYSTEM.md 统一视觉规范
+ * ============================================ */
+
+/* ---------- 品牌色 Brand ---------- */
+$color-brand-50: #FFF1F2;
+$color-brand-100: #FFE0E3;
+$color-brand-300: #F58A93;
+$color-brand-500: #D7192D;
+$color-brand-600: #B91224;
+$color-brand-700: #970E1D;
+
+/* ---------- 中性色 Neutral ---------- */
+$color-gray-0: #FFFFFF;
+$color-gray-25: #FCFCFD;
+$color-gray-50: #F7F7F8;
+$color-gray-100: #EFEFF1;
+$color-gray-200: #DEDFE3;
+$color-gray-300: #C7C9CE;
+$color-gray-400: #989BA3;
+$color-gray-600: #5E626B;
+$color-gray-800: #26282D;
+$color-gray-950: #111216;
+
+/* ---------- 语义色 Semantic ---------- */
+$color-success: #168A52;
+$color-success-bg: #EAF7F0;
+$color-warning: #B76500;
+$color-warning-bg: #FFF4E5;
+$color-error: #B42318;
+$color-error-bg: #FDECEA;
+$color-info: #246BCE;
+$color-info-bg: #EAF2FF;
+
+/* ---------- 语义别名 Aliases ---------- */
+$color-bg-page: $color-gray-50;
+$color-bg-card: $color-gray-0;
+$color-text-primary: $color-gray-950;
+$color-text-secondary: $color-gray-600;
+$color-text-disabled: $color-gray-400;
+$color-border-default: $color-gray-200;
+$color-action-primary: $color-brand-500;
+$color-action-primary-pressed: $color-brand-600;
+
+/* ---------- 圆角 Radius ---------- */
+$radius-tag: 12rpx;        /* 6px */
+$radius-control: 20rpx;    /* 10px */
+$radius-card: 24rpx;       /* 12px */
+$radius-feature: 32rpx;    /* 16px */
+$radius-full: 999rpx;      /* 圆形 */
+
+/* ---------- 间距 Spacing (4px 基础单位) ---------- */
+$space-1: 8rpx;            /* 4px */
+$space-2: 16rpx;           /* 8px */
+$space-3: 24rpx;           /* 12px */
+$space-4: 32rpx;           /* 16px */
+$space-5: 40rpx;           /* 20px */
+$space-6: 48rpx;           /* 24px */
+$space-8: 64rpx;           /* 32px */
+$space-10: 80rpx;          /* 40px */
+$space-12: 96rpx;          /* 48px */
+$space-16: 128rpx;         /* 64px */
+
+/* ---------- 页面边距 ---------- */
+$page-padding-mobile: 32rpx;   /* 手机左右边距 16px */
+$page-padding-tablet: 48rpx;   /* 平板左右边距 24px */
+
+/* ---------- 尺寸 Dimensions ---------- */
+$control-height: 96rpx;                    /* 主按钮/输入框高度 48px */
+$control-height-compact: 80rpx;            /* 紧凑按钮高度 40px */
+$touch-target-min: 88rpx;                  /* 最小触控区域 44px */
+$content-max-width: 2240rpx;               /* 内容最大宽度约 1120px */
+
+/* ---------- 字体 Typography ---------- */
+$font-sans: 'Inter', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+
+$font-size-display: 56rpx;    /* 28px - 首页关键金额 */
+$font-size-h1: 48rpx;         /* 24px - 页面标题 */
+$font-size-h2: 40rpx;         /* 20px - 区域标题 */
+$font-size-h3: 36rpx;         /* 18px - 卡片标题 */
+$font-size-body-l: 32rpx;     /* 16px - 主正文 */
+$font-size-body-m: 28rpx;     /* 14px - 普通正文 */
+$font-size-caption: 24rpx;    /* 12px - 辅助文字 */
+$font-size-micro: 22rpx;      /* 11px - 角标 */
+
+$line-height-display: 72rpx;
+$line-height-h1: 64rpx;
+$line-height-h2: 56rpx;
+$line-height-h3: 52rpx;
+$line-height-body-l: 48rpx;
+$line-height-body-m: 44rpx;
+$line-height-caption: 36rpx;
+$line-height-micro: 32rpx;
+
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+$font-weight-extrabold: 800;
+
+/* ---------- 阴影 Shadows ---------- */
+$shadow-float: 0rpx 24rpx 64rpx rgba(17, 18, 22, 0.14);
+$shadow-bottom-bar: 0rpx -8rpx 32rpx rgba(17, 18, 22, 0.07);
+
+/* ---------- 动画 Animation ---------- */
+$duration-fast: 120ms;
+$duration-normal: 200ms;
+$easing-standard: cubic-bezier(0.2, 0, 0, 1);
+
+/* ---------- 兼容 uni-app 内置变量 ---------- */
+$uni-primary: $color-brand-500;
+$uni-primary-disable: $color-brand-300;
+$uni-primary-light: rgba(215, 25, 45, 0.1);
+$uni-success: $color-success;
+$uni-warning: $color-warning;
+$uni-error: $color-error;
+$uni-text-color: $color-gray-950;
+$uni-text-color-grey: $color-gray-600;
+$uni-text-color-placeholder: $color-gray-400;
+$uni-text-color-disable: $color-gray-400;
+$uni-bg-color: $color-bg-card;
+$uni-bg-color-grey: $color-bg-page;
+$uni-bg-color-hover: $color-gray-25;
+$uni-bg-color-mask: rgba(0, 0, 0, 0.4);
+$uni-border-color: $color-border-default;
+$uni-border-radius-sm: $radius-tag;
+$uni-border-radius-base: $radius-card;
+$uni-border-radius-lg: $radius-feature;
+$uni-border-radius-circle: $radius-full;
+$uni-spacing-sm: $space-2;
+$uni-spacing-base: $space-4;
+$uni-spacing-lg: $space-6;

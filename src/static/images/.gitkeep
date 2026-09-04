@@ -1,0 +1,8 @@
+/* 静态图片资源目录 */
+/* 
+  建议存放：
+  - logo.png          应用Logo
+  - default-avatar.png 默认头像
+  - empty-cart.png    空购物车图
+  - empty-order.png   空订单图
+*/

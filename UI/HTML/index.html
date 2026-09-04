@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="薰风经销商下单系统手机与平板响应式 HTML 原型">
+  <title>薰风经销商下单系统 · HTML 原型</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="prototype-shell">
+    <main id="app" class="app" aria-live="polite">
+      <!-- 首页 -->
+      <section class="view is-active" data-view="home" aria-labelledby="home-title">
+        <header class="brand-bar">
+          <button class="wordmark" data-action="home" aria-label="返回首页">薰风</button>
+          <div class="bar-actions">
+            <button class="icon-button" data-action="messages" aria-label="消息中心">
+              <span class="message-icon" aria-hidden="true"></span><span class="unread-dot"></span>
+            </button>
+            <button class="language-button" data-action="language">中/EN</button>
+          </div>
+        </header>
+
+        <div class="home-content">
+          <button class="dealer-strip" data-action="center">
+            <span>
+              <strong>华东体育用品经销商</strong>
+              <small>B 类客户 · 账号正常</small>
+            </span>
+            <span class="text-link">经销商中心 <b>→</b></span>
+          </button>
+
+          <h1 id="home-title" class="sr-only">薰风经销商下单系统首页</h1>
+          <div class="home-portals">
+            <button class="portal-card portal-order" data-action="cart">
+              <span class="portal-badge" id="home-cart-badge">12 款</span>
+              <span class="portal-title">商品下单</span>
+              <span class="portal-copy">选商品 · 批量填数 · 统一结算</span>
+              <span class="portal-visual cart-mark" aria-hidden="true"></span>
+              <span class="portal-arrow">→</span>
+            </button>
+
+            <button class="portal-card portal-news" data-action="news">
+              <span class="portal-title">新闻资讯</span>
+              <span class="portal-copy">产品新闻 · 上新 · 产品手册</span>
+              <span class="portal-news-image" aria-hidden="true"></span>
+              <span class="portal-arrow">→</span>
+            </button>
+          </div>
+        </div>
+
+        <footer class="home-footer">服务协议 · V1.0.0</footer>
+      </section>
+
+      <!-- 经销商中心 -->
+      <section class="view" data-view="center" aria-labelledby="center-title">
+        <header class="page-bar">
+          <button class="back-button" data-action="back" aria-label="返回">←</button>
+          <h1 id="center-title">经销商中心</h1>
+          <button class="icon-button" data-action="messages" aria-label="消息中心"><span class="message-icon"></span></button>
+        </header>
+        <div class="page-scroll center-layout">
+          <section class="account-card">
+            <div class="account-head">
+              <div>
+                <h2>华东体育用品经销商</h2>
+                <p>客户编号 XF-310082</p>
+              </div>
+              <span class="status success">账号正常</span>
+            </div>
+            <p class="account-meta">B 类客户 · 主账号</p>
+            <div class="account-metrics">
+              <div><span>可用授信</span><strong>¥168,000</strong></div>
+              <div><span>账户余额</span><strong>¥26,800</strong></div>
+            </div>
+            <button class="subtle-action">账户资料 <span>→</span></button>
+          </section>
+
+          <div class="service-groups">
+            <section class="service-card">
+              <h2>订单与资金</h2>
+              <button data-action="orders"><span class="service-icon">订</span>订单中心 <b>3 个待处理</b><i>→</i></button>
+              <button data-action="service" data-service="recharge"><span class="service-icon">充</span>充值中心 <i>→</i></button>
+              <button data-action="service" data-service="bills"><span class="service-icon">账</span>对账账单 <b>08/25 到期</b><i>→</i></button>
+              <button data-action="service" data-service="flow"><span class="service-icon">流</span>资金流水 <i>→</i></button>
+            </section>
+            <section class="service-card">
+              <h2>服务与凭证</h2>
+              <button data-action="service" data-service="aftersales"><span class="service-icon">售</span>售后服务 <i>→</i></button>
+              <button data-action="service" data-service="invoice"><span class="service-icon">票</span>发票中心 <i>→</i></button>
+              <button data-action="service" data-service="addresses"><span class="service-icon">址</span>收货地址 <i>→</i></button>
+              <button data-action="service" data-service="voucher"><span class="service-icon">凭</span>对公凭证 <i>→</i></button>
+            </section>
+            <section class="service-card">
+              <h2>账号与系统</h2>
+              <button data-action="messages"><span class="service-icon">信</span>消息中心 <b>4 条未读</b><i>→</i></button>
+              <button data-action="service" data-service="subaccounts"><span class="service-icon">子</span>子账号管理 <i>→</i></button>
+              <button data-action="service" data-service="security"><span class="service-icon">安</span>安全设置 <i>→</i></button>
+              <button data-action="language"><span class="service-icon">言</span>语言设置 <i>→</i></button>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <!-- 新闻资讯 -->
+      <section class="view" data-view="news" aria-labelledby="news-title">
+        <header class="page-bar">
+          <button class="back-button" data-action="back" aria-label="返回">←</button>
+          <h1 id="news-title">新闻资讯</h1>
+          <span class="bar-spacer"></span>
+        </header>
+        <div class="page-scroll content-narrow">
+          <div class="segment-tabs" role="tablist">
+            <button class="is-active">全部</button><button>产品新闻</button><button>上新</button><button>政策公告</button><button>产品手册</button>
+          </div>
+          <article class="news-hero">
+            <div class="news-photo"><span>K-900</span></div>
+            <div class="news-body">
+              <span class="eyebrow">产品新闻 · 2026-08-10</span>
+              <h2>2026 秋季新品系列发布</h2>
+              <p>全新比赛级羽毛球与专业装备正式发布，为经销商提供更完整的产品组合。</p>
+              <button>阅读全文 →</button>
+            </div>
+          </article>
+          <div class="news-list">
+            <article><div class="article-thumb red"></div><div><span>产品新闻</span><h3>K-900 比赛级羽毛球正式上市</h3><time>2026-08-05</time></div></article>
+            <article><div class="article-thumb dark"></div><div><span>政策公告</span><h3>全国经销商订货政策更新</h3><time>2026-08-01</time></div></article>
+            <article class="manual-row"><div class="pdf-icon">PDF</div><div><h3>2026 产品电子手册</h3><p>18.6 MB · 更新于 08/10</p></div><button>预览</button></article>
+          </div>
+        </div>
+      </section>
+
+      <!-- 消息 -->
+      <section class="view" data-view="messages" aria-labelledby="messages-title">
+        <header class="page-bar"><button class="back-button" data-action="back">←</button><h1 id="messages-title">消息中心</h1><span class="bar-spacer"></span></header>
+        <div class="page-scroll content-narrow">
+          <div class="segment-tabs compact"><button class="is-active">全部</button><button>订单</button><button>账单</button><button>系统</button></div>
+          <div class="message-list">
+            <article class="unread"><span></span><div><h2>订单审核通过</h2><p>您的订单 PO20250810001 已审核通过。</p></div><time>10:30</time></article>
+            <article class="unread"><span></span><div><h2>待确认发货</h2><p>订单 PO20250809015 待确认发货，请及时处理。</p></div><time>09:15</time></article>
+            <article><span></span><div><h2>8 月对账单已生成</h2><p>请登录查看账单明细及还款日期。</p></div><time>08/10</time></article>
+          </div>
+        </div>
+      </section>
+
+      <!-- 购物车 -->
+      <section class="view" data-view="cart" aria-labelledby="cart-title">
+        <header class="page-bar"><button class="back-button" data-action="back">←</button><h1 id="cart-title">购物车</h1><button class="text-button">管理</button></header>
+        <div class="risk-banner">距离 10 万元上限还可添加 <strong id="remaining-limit">¥71,320</strong></div>
+        <div class="page-scroll cart-page">
+          <div class="cart-toolbar"><span>已选商品</span><button class="outline-small" data-action="catalog">继续选商品</button></div>
+          <article class="cart-product">
+            <div class="product-heading">
+              <label class="check"><input type="checkbox" checked><span></span></label>
+              <img src="assets/jersey-red.png" alt="薰风专业比赛服 T-100 赤焰红">
+              <div><h2>薰风专业比赛服 T-100</h2><p>货号：XF-T100</p><strong>¥168.00 <small>/ 件</small></strong></div>
+              <button class="outline-small" data-action="variants">批量选规格</button>
+            </div>
+            <div id="cart-variant-groups" class="cart-variant-groups"></div>
+          </article>
+          <article class="cart-product simple-product">
+            <label class="check"><input type="checkbox"><span></span></label>
+            <div class="racket-product" aria-hidden="true"></div>
+            <div><h2>薰风疾影 9000 羽毛球拍</h2><p>疾影红 · 1 个规格 · 6 支</p><strong>¥298.00 / 支</strong></div>
+          </article>
+        </div>
+        <div class="bottom-bar cart-bottom">
+          <label class="select-all"><input type="checkbox" checked> 全选</label>
+          <div><span id="cart-count">已选 8 个 SKU · 64 件</span><strong id="cart-total">¥10,752.00</strong></div>
+          <button class="primary" data-action="checkout">去结算</button>
+        </div>
+      </section>
+
+      <!-- 商品目录 -->
+      <section class="view" data-view="catalog" aria-labelledby="catalog-title">
+        <header class="page-bar"><button class="back-button" data-action="back">←</button><h1 id="catalog-title">商品目录</h1><button class="cart-button" data-action="cart">车<sup>12</sup></button></header>
+        <div class="page-scroll content-narrow">
+          <label class="search"><span>⌕</span><input placeholder="搜索商品名称 / SKU / 69码"></label>
+          <div class="category-pills"><button class="is-active">全部</button><button>比赛服</button><button>羽毛球</button><button>羽毛球拍</button><button>配件</button></div>
+          <div class="product-grid">
+            <article class="product-card" data-action="product">
+              <img src="assets/jersey-model.png" alt="薰风专业比赛服 T-100">
+              <div><h2>薰风专业比赛服 T-100</h2><strong>¥168.00</strong><p>有货 · 20 件起订</p><button>查看详情</button></div>
+            </article>
+            <article class="product-card">
+              <div class="product-art shuttle"><span>K-900</span></div>
+              <div><h2>薰风羽毛球 K-900</h2><strong>¥128.00</strong><p>有货 · 20 件起订</p><button>选规格</button></div>
+            </article>
+            <article class="product-card">
+              <div class="product-art racket"></div>
+              <div><h2>薰风疾影 9000 羽毛球拍</h2><strong>¥298.00</strong><p>仅剩 36 支</p><button>选规格</button></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- 商品详情 -->
+      <section class="view" data-view="product" aria-labelledby="product-title">
+        <header class="page-bar transparent-mobile"><button class="back-button" data-action="back">←</button><h1 id="product-title">商品详情</h1><button class="cart-button" data-action="cart">车<sup>12</sup></button></header>
+        <div class="page-scroll product-layout">
+          <section class="product-media">
+            <div class="product-main-image"><img src="assets/jersey-model.png" alt="薰风专业比赛服 T-100 赤焰红正面"><span>1 / 6</span></div>
+            <div class="thumbnail-row">
+              <button class="is-active"><img src="assets/jersey-red.png" alt="赤焰红"></button>
+              <button><img src="assets/jersey-black.png" alt="曜石黑"></button>
+              <button><img src="assets/jersey-white.png" alt="冰川白"></button>
+            </div>
+          </section>
+          <section class="product-info">
+            <div class="product-title-block">
+              <h2>薰风专业比赛服 T-100</h2>
+              <p>货号：XF-T100　69码：6901234567893</p>
+              <strong class="price">¥168.00 <small>/ 件</small></strong>
+              <div class="facts"><span>20 件起订</span><span>有货</span><span>预计 48 小时内发货</span></div>
+            </div>
+            <button class="info-row"><span>运费规则 · 售后说明</span><b>→</b></button>
+            <button class="info-row" data-action="variants"><span>选择颜色 / 尺码 / 数量</span><b>→</b></button>
+            <section class="params">
+              <h3>商品参数</h3>
+              <dl><div><dt>面料</dt><dd>速干聚酯纤维</dd></div><div><dt>版型</dt><dd>标准</dd></div><div><dt>适用</dt><dd>羽毛球训练 / 比赛</dd></div><div><dt>包装</dt><dd>单件袋装</dd></div><div><dt>尺码</dt><dd>S–2XL</dd></div></dl>
+            </section>
+            <section class="detail-section">
+              <h3>图文详情</h3>
+              <img src="assets/jersey-detail.png" alt="面料和正反面细节">
+              <div class="detail-copy"><h4>轻盈速干，为比赛而生</h4><p>高透气纤维与运动剪裁，在高强度训练中保持舒适与灵活。</p></div>
+            </section>
+          </section>
+        </div>
+        <div class="bottom-bar product-bottom"><button class="cart-shortcut" data-action="cart">购物车<sup>12</sup></button><button class="secondary" data-action="variants">加入购物车</button><button class="primary" data-action="variants">批量选规格</button></div>
+      </section>
+
+      <!-- 批量选规格 -->
+      <section class="view" data-view="variants" aria-labelledby="variants-title">
+        <header class="page-bar"><button class="back-button" data-action="back">←</button><h1 id="variants-title">批量选规格</h1><button class="cart-button" data-action="cart">车<sup>12</sup></button></header>
+        <div class="page-scroll variant-layout">
+          <section class="variant-product-summary"><img src="assets/jersey-red.png" alt="商品"><div><h2>薰风专业比赛服 T-100</h2><strong>¥168.00 <small>/ 件</small></strong><p>20 件起订</p></div></section>
+          <section class="variant-panel">
+            <div class="section-heading"><h2>颜色</h2><span>切换颜色会保留已填数量</span></div>
+            <div id="color-options" class="color-options"></div>
+            <div class="section-heading size-heading"><h2 id="size-title">尺码（赤焰红）</h2><div><button class="text-button" data-action="bulk">批量填数</button><button class="text-button" data-action="copy-qty">复制到其他颜色</button></div></div>
+            <div id="size-rows" class="size-rows"></div>
+          </section>
+        </div>
+        <div class="bottom-bar variant-bottom"><div><span id="variant-summary">已选 0 个颜色 · 0 个 SKU · 0 件</span><strong id="variant-amount">¥0.00</strong></div><button id="batch-add" class="primary" data-action="batch-add" disabled>批量加入购物车</button></div>
+      </section>
+
+      <!-- 确认订单 -->
+      <section class="view" data-view="checkout" aria-labelledby="checkout-title">
+        <header class="page-bar"><button class="back-button" data-action="back">←</button><h1 id="checkout-title">确认订单</h1><span class="bar-spacer"></span></header>
+        <div class="page-scroll checkout-layout">
+          <div class="checkout-main">
+            <button class="address-card"><strong>张先生　138 **** 5678</strong><span>江苏省南京市建邺区江东中路 329 号</span><b>→</b></button>
+            <section class="checkout-card"><h2>订单商品 <span>8 个 SKU · 64 件</span></h2><div class="checkout-product"><img src="assets/jersey-red.png" alt="商品"><div><strong>薰风专业比赛服 T-100</strong><p>赤焰红 / 曜石黑 · S–XL</p></div><b>¥10,752.00</b></div></section>
+            <section class="checkout-card settings-list"><button>配送方式 <b>省外物流 →</b></button><button>发货模式 <b>立即备货 →</b></button><button>买赠拆单 <b>未拆分 →</b></button><button>发票 <b>暂不开票 →</b></button></section>
+          </div>
+          <aside class="checkout-summary"><h2>金额明细</h2><p><span>商品金额</span><b>¥10,752.00</b></p><p><span>运费</span><b>待确认</b></p><p><span>余额抵扣</span><b>¥0.00</b></p><hr><p class="payable"><span>应付</span><strong>¥10,752.00</strong></p><label><input type="checkbox" checked> 我已阅读并同意《经销商交易协议》</label><button class="primary full" data-action="submit-order">提交订单</button></aside>
+        </div>
+      </section>
+
+      <!-- 订单中心简版 -->
+      <section class="view" data-view="orders" aria-labelledby="orders-title">
+        <header class="page-bar"><button class="back-button" data-action="back">←</button><h1 id="orders-title">订单中心</h1><span class="bar-spacer"></span></header>
+        <div class="page-scroll content-narrow"><div class="segment-tabs compact"><button class="is-active">全部</button><button>待审核</button><button>待付款</button><button>待发货</button><button>售后</button></div><div class="order-list"><article><header><span>PO20260810001</span><b>待品牌审核</b></header><div><img src="assets/jersey-red.png" alt="比赛服"><p>薰风专业比赛服 T-100<br><small>8 个 SKU · 64 件</small></p><strong>¥10,752.00</strong></div><footer><button>查看详情</button><button>取消订单</button></footer></article><article><header><span>PO20260809015</span><b>待付款</b></header><div><div class="racket-product"></div><p>薰风疾影 9000 羽毛球拍<br><small>2 个规格 · 6 支</small></p><strong>¥1,788.00</strong></div><footer><button>查看详情</button><button class="primary small">去付款</button></footer></article></div></div>
+      </section>
+
+      <!-- 经销商中心通用业务页面 -->
+      <section class="view" data-view="service" aria-labelledby="service-title">
+        <header class="page-bar"><button class="back-button" data-action="back">←</button><h1 id="service-title">业务服务</h1><span class="bar-spacer"></span></header>
+        <div id="service-content" class="page-scroll content-narrow service-detail"></div>
+      </section>
+
+      <!-- 语言 -->
+      <section class="view" data-view="language" aria-labelledby="language-title">
+        <header class="page-bar"><button class="back-button" data-action="back">←</button><h1 id="language-title">语言设置</h1><span class="bar-spacer"></span></header>
+        <div class="page-scroll content-narrow"><div class="radio-list"><label>简体中文<input type="radio" name="lang" checked></label><label>English<input type="radio" name="lang"></label></div><p class="helper">切换后将保存到当前设备</p><button class="primary full" data-action="save-language">保存设置</button></div>
+      </section>
+
+      <!-- 通用弹层 -->
+      <div id="modal" class="modal" hidden>
+        <button class="modal-backdrop" data-action="close-modal" aria-label="关闭弹窗"></button>
+        <section class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+          <button class="modal-close" data-action="close-modal" aria-label="关闭">×</button>
+          <div id="modal-content"></div>
+        </section>
+      </div>
+      <div id="toast" class="toast" hidden></div>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

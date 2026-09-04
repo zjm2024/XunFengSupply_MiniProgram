@@ -1,0 +1,133 @@
+/**
+ * 全局CSS变量定义 - V2 统一视觉规范
+ *
+ * ⚠️ 此文件已重构为 uni.scss 的代理入口
+ * 品牌色、语义色、中性色等 Design Tokens 已迁移至 src/uni.scss
+ * 此文件保留 CSS 变量（:root）供运行时使用，SCSS 变量已统一到 uni.scss
+ *
+ * 色彩基线：
+ *   品牌主色：#D7192D（非旧版 #C41E3A）
+ *   语义色：success=#168A52, warning=#B76500, error=#B42318, info=#246BCE
+ */
+
+// ==================== 从 uni.scss 导入 SCSS 变量 ====================
+// 这样所有使用 $color-brand-xxx 等变量的文件都能获得统一的 V2 色阶
+
+@use '../uni.scss' as *;
+
+// ==================== CSS 自定义属性（运行时变量） ====================
+
+:root {
+  /* 主色调 - V2 品牌红 #D7192D */
+  --primary-color: #{$color-brand-500};
+  --primary-light: #{$color-brand-300};
+  --primary-lighter: rgba(215, 25, 45, 0.1);
+  --primary-dark: #{$color-brand-600};
+  --primary-gradient: linear-gradient(135deg, #{$color-brand-500} 0%, #{$color-brand-600} 100%);
+
+  /* 功能色 */
+  --success-color: #{$color-success};
+  --success-light: rgba(22, 138, 82, 0.08);
+  --warning-color: #{$color-warning};
+  --warning-light: rgba(183, 101, 0, 0.08);
+  --danger-color: #{$color-error};
+  --danger-light: rgba(180, 35, 24, 0.08);
+  --info-color: #{$color-info};
+  --info-light: rgba(36, 107, 206, 0.08);
+
+  /* 文字颜色 */
+  --text-primary: #{$color-text-primary};
+  --text-secondary: #{$color-text-secondary};
+  --text-placeholder: #{$color-text-disabled};
+  --text-disabled: #{$color-gray-400};
+
+  /* 背景色 */
+  --bg-color: #{$color-bg-page};
+  --bg-white: #{$color-gray-0};
+  --bg-card: #{$color-gray-25};
+
+  /* 边框 */
+  --border-color: #{$color-border-default};
+  --border-color-dark: #{$color-gray-300};
+  --divider-color: #{$color-gray-100};
+
+  /* 阴影 */
+  --shadow-sm: 0 2rpx 8rpx rgba(17, 18, 22, 0.04);
+  --shadow-md: 0 4rpx 20rpx rgba(17, 18, 22, 0.06);
+  --shadow-lg: 0 8rpx 32rpx rgba(17, 18, 22, 0.08);
+  --shadow-primary: 0 4rpx 20rpx rgba(215, 25, 45, 0.10);
+
+  /* 圆角 */
+  --radius-xs: #{$radius-tag};
+  --radius-sm: #{$radius-control};
+  --radius-base: #{$radius-card};
+  --radius-lg: #{$radius-feature};
+  --radius-xl: #{$radius-feature};
+  --radius-full: #{$radius-full};
+
+  /* 间距 */
+  --spacing-xs: #{$space-1};
+  --spacing-sm: #{$space-2};
+  --spacing-base: #{$space-4};
+  --spacing-lg: #{$space-6};
+  --spacing-xl: #{$space-8};
+
+  /* 字号 */
+  --font-size-xs: #{$font-size-micro};
+  --font-size-sm: #{$font-size-caption};
+  --font-size-base: #{$font-size-body-m};
+  --font-size-md: #{$font-size-body-l};
+  --font-size-lg: #{$font-size-h3};
+  --font-size-xl: #{$font-size-h2};
+  --font-size-xxl: #{$font-size-h1};
+
+  /* 行高 */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-loose: 1.75;
+
+  /* 动画 */
+  --transition-fast: #{$duration-fast};
+  --transition-normal: #{$duration-normal};
+  --transition-slow: 350ms;
+
+  /* 层级 */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 400;
+  --z-modal: 500;
+  --z-popover: 600;
+  --z-tooltip: 700;
+  --z-toast: 800;
+  --z-max: 9999;
+}
+
+// ==================== SCSS 变量（向后兼容，标记为 deprecated） ====================
+//
+// ⚠️ 以下 SCSS 变量已废弃，新代码请使用 uni.scss 中的变量：
+//   $color-brand-500 替代 $primary-color
+//   $color-text-primary 替代 $text-primary
+//   $color-bg-page 替代 $bg-color
+//   ...等等
+//
+
+$primary-color: $color-brand-500;        // 废弃：用 $color-brand-500
+$primary-light: $color-brand-300;         // 废弃：用 $color-brand-300
+$primary-dark: $color-brand-600;          // 废弃：用 $color-brand-600
+
+$success-color: $color-success;            // 废弃：用 $color-success
+$warning-color: $color-warning;            // 废弃：用 $color-warning
+$danger-color: $color-error;               // 废弃：用 $color-error
+$info-color: $color-info;                  // 废弃：用 $color-info
+
+$text-primary: $color-text-primary;        // 废弃：用 $color-text-primary
+$text-secondary: $color-text-secondary;    // 废弃：用 $color-text-secondary
+$text-placeholder: $color-text-disabled;   // 废弃：用 $color-text-disabled
+
+$bg-color: $color-bg-page;                // 废弃：用 $color-bg-page
+$border-color: $color-border-default;     // 废弃：用 $color-border-default
+
+$radius-sm: $radius-tag;                  // 废弃：用 $radius-tag
+$radius-base: $radius-card;              // 废弃：用 $radius-card
+$radius-lg: $radius-feature;             // 废弃：用 $radius-feature
