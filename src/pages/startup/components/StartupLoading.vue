@@ -3,7 +3,7 @@
     <!-- Logo（小尺寸） -->
     <image 
       class="loading-logo" 
-      src="/static/images/logo.png" 
+      src="/static/images/logo-v.png" 
       mode="aspectFit"
       alt="薰风logo"
     ></image>

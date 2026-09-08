@@ -153,13 +153,6 @@
              @verify="verifyCaptcha"
            />
 
-           <button
-             v-if="captchaVerified"
-             class="captcha-modal__done"
-             @click="closeCaptchaModal"
-           >
-             验证完成
-           </button>
          </view>
        </view>
      </template>
@@ -341,6 +334,8 @@ async function verifyCaptcha(offsetX) {
     captchaToken.value = result.verificationToken
     captchaVerified.value = true
     formError.value = ''
+    // 验证成功后自动关闭弹框，无需手动点击关闭
+    showCaptchaModal.value = false
   } catch (error) {
     console.error('[Login] 滑块验证失败:', error)
     const errorCode = error?.errorCode || ''
@@ -661,24 +656,6 @@ function goToApply() {
 
 .captcha-modal__close--pressed {
   background: $color-gray-100;
-}
-
-.captcha-modal__done {
-  width: 100%;
-  height: $control-height;
-  margin-top: $space-4;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: $color-gray-0;
-  background: $color-action-primary;
-  border-radius: $radius-control;
-  font-size: $font-size-body-m;
-  font-weight: $font-weight-semibold;
-
-  &::after {
-    border: 0;
-  }
 }
 
 .form-error {

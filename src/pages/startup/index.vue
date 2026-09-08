@@ -709,18 +709,19 @@ onBackPress(({ from }) => {
 .startup-safe-area {
   position: absolute;
   inset: 0;
+  z-index: 1;
   padding:
     env(safe-area-inset-top, 26px)
     env(safe-area-inset-right, 24px)
     env(safe-area-inset-bottom, 24px)
     env(safe-area-inset-left, 24px);
-  z-index: 1;
+  display: grid;
+  place-items: center;
 }
 
 /* 场景容器 - 显隐完全交给 class */
 .scene {
-  position: absolute;
-  inset: 0;
+  grid-area: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -731,6 +732,8 @@ onBackPress(({ from }) => {
     opacity 0.55s ease,
     transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
     visibility 0s linear;
+  width: 100%;
+  height: 100%;
 }
 
 .scene-hidden {
@@ -744,13 +747,5 @@ onBackPress(({ from }) => {
     visibility 0s linear 0.55s;
 }
 
-/* iPad 横屏适配 */
-@media (min-width: 768px) and (orientation: landscape) {
-  .scene-brand,
-  .scene-loading,
-  .scene-error {
-    padding-left: 14vw;
-    justify-content: flex-start;
-  }
-}
+
 </style>

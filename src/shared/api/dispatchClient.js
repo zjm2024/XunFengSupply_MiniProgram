@@ -17,6 +17,7 @@
 
 import { AppError, ErrorKind } from './appError.js'
 import { useUserStore } from '../session/userStore.js'
+import { navigator } from '../../app/navigation/navigator.js'
 
 // ==================== 配置 ====================
 
@@ -63,12 +64,9 @@ let _unauthorizedPromise = null
  * 处理 401 未授权（auto 模式）
  *
  * 处理流程：
- * 当前 XunFeng.Api.Mini 没有 RefreshToken 调度端点。收到 401 后只清理
- * 本地登录态，由路由守卫/页面决定何时进入登录页，禁止请求不存在的
+ * 当前 XunFeng.Api.Mini 没有 RefreshToken 调度端点。收到 401 后清理
+ * 本地登录态，并通过 routeGuard 跳转到登录页，禁止请求不存在的
  * Mini.AuthController.RefreshToken。
- *
- * 注意：此函数不执行 uni.reLaunch，不显示弹窗
- * 路由决策由调用方（页面）决定
  *
  * @returns {Promise<boolean>} 固定返回 false（当前不支持无感续期）
  */
@@ -77,9 +75,16 @@ async function handleUnauthorized() {
 
   _unauthorizedPromise = (async () => {
     try {
-      await useUserStore().logout()
+      // 调用 navigator 的 handleAuthError，会清理登录态并跳转登录页
+      await navigator.handleAuthError()
     } catch (e) {
-      console.error('[Request] 清理失效登录态失败:', e)
+      console.error('[Request] 处理 401 失败:', e)
+      // 兜底：确保登录态被清理
+      try {
+        await useUserStore().logout()
+      } catch (logoutErr) {
+        console.error('[Request] 清理失效登录态失败:', logoutErr)
+      }
     } finally {
       _unauthorizedPromise = null
     }

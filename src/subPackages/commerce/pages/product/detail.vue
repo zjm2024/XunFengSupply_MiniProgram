@@ -474,6 +474,15 @@ async function submitAddToCart() {
 }
 
 async function handleAddToCart() {
+  // 未选择规格时给出明确提示
+  if (!selectedSku.value) {
+    uni.showToast({ title: '请先选择商品规格', icon: 'none' })
+    return
+  }
+  if (!selectedSku.value.canPurchase) {
+    uni.showToast({ title: selectedSku.value.invalidReason || '该规格暂不可购买', icon: 'none' })
+    return
+  }
   const ok = await submitAddToCart()
   if (ok && typeof uni !== 'undefined') {
     uni.showToast({ title: '已加入购物车', icon: 'success' })
@@ -664,19 +673,61 @@ async function goToCart() {
 .cart-entry {
   position: relative;
   flex: 0 0 62px;
-  height: 44px;
+  height: 48px;
   padding: 0 8px;
   border: 0;
-  background: transparent;
+  border-radius: 12px;
+  background: var(--surface-subtle, #F4F5F8);
   color: var(--color-text-secondary);
   font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.cart-entry:active {
+  background: var(--color-border, #ECEEF2);
+  transform: scale(0.96);
 }
 
 .cart-badge { position: absolute; top: -1px; right: 0; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; color: #FFFFFF; background: var(--color-brand); font-size: 10px; line-height: 17px; }
-.action-btn { flex: 1; min-width: 0; height: 44px; border-radius: var(--radius-control); font-size: 14px; font-weight: 650; }
-.action-btn.secondary { color: var(--color-brand); background: var(--color-brand-soft); border: 1px solid var(--color-brand); }
-.action-btn.primary { color: #FFFFFF; background: var(--color-brand); border: 1px solid var(--color-brand); }
-.action-btn[disabled] { color: var(--color-text-disabled); background: var(--surface-muted); border-color: var(--color-border); }
+
+.action-btn {
+  flex: 1;
+  min-width: 0;
+  height: 48px;
+  border-radius: 14px;
+  font-size: 15px;
+  font-weight: 650;
+  transition: all 0.2s ease;
+  letter-spacing: 0.5px;
+}
+
+.action-btn.secondary {
+  color: #fff;
+  background: linear-gradient(135deg, #f2515f 0%, var(--color-brand, #D7192D) 60%, #c91428 100%);
+  box-shadow: 0 4px 14px rgba(215, 25, 45, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.action-btn.secondary:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 8px rgba(215, 25, 45, 0.25);
+}
+
+.action-btn.primary {
+  color: #fff;
+  background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 60%, #1a1a2e 100%);
+  box-shadow: 0 4px 14px rgba(26, 26, 46, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.action-btn.primary:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 8px rgba(26, 26, 46, 0.25);
+}
+
+.action-btn[disabled] {
+  color: rgba(255, 255, 255, 0.7);
+  background: linear-gradient(135deg, #c9c9c9 0%, #a8a8a8 100%);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
 
 @media screen and (min-width: 768px) {
   .detail-layout { max-width: 760px; margin: 0 auto; padding: 20px 24px 28px; box-sizing: border-box; }

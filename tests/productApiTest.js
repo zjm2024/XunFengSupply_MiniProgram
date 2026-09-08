@@ -5,6 +5,62 @@ beforeEach(() => {
 })
 
 describe('Product API adapter', () => {
+  it('分类树应递归映射全部层级', async () => {
+    const dispatchMock = vi.fn().mockResolvedValue([
+      {
+        categoryId: 1,
+        categoryName: '球类',
+        children: [
+          {
+            categoryId: 11,
+            categoryName: '羽毛球',
+            children: [{ categoryId: 111, categoryName: '比赛用球' }],
+          },
+        ],
+      },
+    ])
+
+    vi.doMock('@/shared/api/dispatchClient.js', () => ({ dispatch: dispatchMock }))
+
+    const { getCategoryList } = await import('@/subPackages/commerce/api/productApi.js')
+    const result = await getCategoryList()
+
+    expect(result[0]).toMatchObject({ id: 1, name: '球类' })
+    expect(result[0].children[0]).toMatchObject({ id: 11, name: '羽毛球' })
+    expect(result[0].children[0].children[0]).toMatchObject({ id: 111, name: '比赛用球' })
+  })
+
+  it('商品列表应透传分类、库存和排序参数', async () => {
+    const dispatchMock = vi.fn().mockResolvedValue({ items: [], totalCount: 0 })
+
+    vi.doMock('@/shared/api/dispatchClient.js', () => ({ dispatch: dispatchMock }))
+
+    const { getGoodsList } = await import('@/subPackages/commerce/api/productApi.js')
+    await getGoodsList({
+      pageNum: 2,
+      pageSize: 30,
+      categoryId: 111,
+      stockFilter: 'inStock',
+      sortField: 'price',
+      sortOrder: 'asc',
+    })
+
+    expect(dispatchMock).toHaveBeenCalledWith(
+      'MallProduct',
+      'Mini.ProductController',
+      'GetProductList',
+      expect.objectContaining({
+        pageNum: 2,
+        page: 2,
+        pageSize: 30,
+        categoryId: 111,
+        stockFilter: 'inStock',
+        sortField: 'price',
+        sortOrder: 'asc',
+      }),
+    )
+  })
+
   it('商品详情应保留后台富文本并正确映射 SKU 规格、库存与价格', async () => {
     const dispatchMock = vi.fn().mockResolvedValue({
       productId: 9,

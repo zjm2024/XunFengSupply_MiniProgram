@@ -1,100 +1,125 @@
 ﻿<template>
   <view class="page">
-    <app-header :show-back="true" :title="'商品目录'" :show-cart="true" :cart-count="cartCount" @back="goBack" @cart="goToCart" />
+    <AppCatalogHeader
+      v-model:keyword="keyword"
+      :cart-count="cartCount"
+      :total="total"
+      :sort-key="sortKey"
+      :filter-count="activeFilterCount"
+      :category-label="activeCategoryPath.length ? activeCategoryPath[activeCategoryPath.length - 1].name : '分类'"
+      :category-active="activeCategoryPath.length > 0"
+      :stock-filter-label="activeStockFilterLabel"
+      @back="goBack"
+      @cart="goToCart"
+      @search="handleSearch"
+      @clear-keyword="clearKeyword"
+      @sort="handleQuickSort"
+      @filter="filterDrawerVisible = true"
+      @remove-filter="removeFilter"
+      @clear-filters="clearFilters"
+    />
+
+    <!-- 可滚动区域：商品列表 -->
     <scroll-view class="page-scroll" scroll-y @scrolltolower="loadMore">
-      <view class="content">
-        <!-- 搜索框 -->
-        <view class="search-box">
-          <AppIcon class="search-icon" name="search" :size="19" />
-          <input
-            class="search-input"
-            placeholder="搜索商品名称 / SKU / 69码"
-            v-model="keyword"
-            @confirm="handleSearch"
-            confirm-type="search"
-          />
-        </view>
+      <view class="scroll-inner">
+      <!-- 加载状态 -->
+      <view v-if="loading && products.length === 0" class="loading-state">
+        <view class="loading-spinner"></view>
+        <text class="loading-text">加载中...</text>
+      </view>
 
-        <!-- 分类标签 -->
-        <scroll-view class="category-pills" scroll-x v-if="categories.length > 0">
-          <view
-            v-for="cat in categories"
-            :key="cat.id"
-            class="pill-btn"
-            :class="{ 'is-active': activeCategoryId === cat.id }"
-            @click="handleCategoryChange(cat)"
-          >{{ cat.name }}</view>
-        </scroll-view>
+      <!-- 空状态 -->
+      <view v-else-if="!loading && products.length === 0" class="empty-state">
+        <AppIcon class="empty-icon" name="category" :size="64" />
+        <text class="empty-text">暂无商品</text>
+        <text class="empty-subtext">请尝试其他分类或搜索关键词</text>
+      </view>
 
-        <!-- 加载状态 -->
-        <view v-if="loading && products.length === 0" class="loading-state">
-          <view class="loading-spinner"></view>
-          <text class="loading-text">加载中...</text>
-        </view>
-
-        <!-- 空状态 -->
-        <view v-else-if="!loading && products.length === 0" class="empty-state">
-          <AppIcon class="empty-icon" name="category" :size="64" />
-          <text class="empty-text">暂无商品</text>
-          <text class="empty-subtext">请尝试其他分类或搜索关键词</text>
-        </view>
-
-        <!-- 商品网格 -->
-        <view v-else class="product-grid">
-          <view
-            v-for="item in products"
-            :key="item.productId"
-            class="product-card"
-            @click="goToDetail(item)"
-          >
-            <view class="card-image-wrapper">
-              <image class="card-image" :src="item.image || '/static/images/default-product.png'" mode="aspectFill" />
+      <!-- 商品网格 -->
+      <view v-else class="product-grid">
+        <view
+          v-for="item in products"
+          :key="item.productId"
+          class="product-card"
+          @click="goToDetail(item)"
+        >
+          <view class="card-image-wrapper">
+            <image class="card-image" :src="item.image || '/static/images/default-product.png'" mode="aspectFill" />
+          </view>
+          <view class="card-body">
+            <text class="card-name">{{ item.name }}</text>
+            <text class="card-code" v-if="item.code">{{ item.code }}</text>
+            <view class="card-price-row">
+              <text class="card-price">¥{{ formatPrice(item.price) }}</text>
+              <text class="card-unit">/{{ item.unit || '件' }}</text>
             </view>
-            <view class="card-body">
-              <text class="card-name">{{ item.name }}</text>
-              <text class="card-code" v-if="item.code">{{ item.code }}</text>
-              <view class="card-price-row">
-                <text class="card-price">¥{{ formatPrice(item.price) }}</text>
-                <text class="card-unit">/{{ item.unit || '件' }}</text>
-              </view>
-              <text class="card-stock" :class="getStockClass(item)">
-            {{ getStockText(item) }}<text v-if="item.moq > 0"> · {{ item.moq }}{{ item.unit || '件' }}起订</text>
-          </text>
+            <text class="card-stock" :class="getStockClass(item)">
+              {{ getStockText(item) }}<text v-if="item.moq > 0"> · {{ item.moq }}{{ item.unit || '件' }}起订</text>
+            </text>
+          </view>
         </view>
       </view>
-        </view>
 
-        <!-- 加载更多 -->
-        <view v-if="loading && products.length > 0" class="load-more">
-          <view class="loading-spinner small"></view>
-          <text class="load-more-text">加载更多...</text>
-        </view>
+      <!-- 加载更多 -->
+      <view v-if="loading && products.length > 0" class="load-more">
+        <view class="loading-spinner small"></view>
+        <text class="load-more-text">加载更多...</text>
+      </view>
 
-        <!-- 没有更多了 -->
-        <view v-else-if="!hasMore && products.length > 0" class="no-more">
-          <text class="no-more-text">— 没有更多了 —</text>
-        </view>
+      <!-- 没有更多了 -->
+      <view v-else-if="!hasMore && products.length > 0" class="no-more">
+        <text class="no-more-text">— 没有更多了 —</text>
+      </view>
       </view>
     </scroll-view>
+
+    <ProductFilterDrawer
+      :visible="filterDrawerVisible"
+      :category-tree="categoryTree"
+      :category-path="activeCategoryPath"
+      :stock-filter="stockFilter"
+      :sort-key="sortKey"
+      @close="filterDrawerVisible = false"
+      @apply="applyFilters"
+    />
   </view>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useCart } from '../../composables/useCart.js'
 import { navigator } from '../../../../app/navigation/navigator.js'
 import { routes } from '../../../../app/config/routes.js'
 import { getCategoryList, getGoodsList } from '../../api/productApi.js'
-import appHeader from '../../../../shared/ui/AppHeader/AppHeader.vue'
 import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
+import AppCatalogHeader from '../../../../shared/ui/AppCatalogHeader/AppCatalogHeader.vue'
+import ProductFilterDrawer from '../../components/ProductFilterDrawer/ProductFilterDrawer.vue'
+
+const SORT_QUERY = Object.freeze({
+  default: { field: '', order: '', label: '综合排序' },
+  latest: { field: 'createdAt', order: 'desc', label: '最新上架' },
+  priceAsc: { field: 'price', order: 'asc', label: '价格从低到高' },
+  priceDesc: { field: 'price', order: 'desc', label: '价格从高到低' },
+  stockDesc: { field: 'stock', order: 'desc', label: '库存从高到低' },
+  stockAsc: { field: 'stock', order: 'asc', label: '库存从低到高' },
+})
+
+const STOCK_FILTER_LABELS = Object.freeze({
+  inStock: '仅看有货',
+  lowStock: '库存紧张',
+  outOfStock: '暂时缺货',
+})
 
 const { cartStore, loadCart } = useCart()
 
-// 搜索和分类
 const keyword = ref('')
 const activeCategoryId = ref(null)
-const categories = ref([])
+const categoryTree = ref([])
+const activeCategoryPath = ref([])
+const stockFilter = ref('')
+const sortKey = ref('default')
+const filterDrawerVisible = ref(false)
 
 // 商品列表
 const products = ref([])
@@ -103,15 +128,23 @@ const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 const hasMore = ref(true)
+let productRequestId = 0
 
 // 购物车数量
 const cartCount = computed(() => cartStore.cartBadgeCount)
 
 // 计算是否还有更多
 const canLoadMore = computed(() => hasMore.value && !loading.value)
+const activeSort = computed(() => SORT_QUERY[sortKey.value] || SORT_QUERY.default)
+const activeStockFilterLabel = computed(() => STOCK_FILTER_LABELS[stockFilter.value] || '')
+const activeFilterCount = computed(() => Number(activeCategoryPath.value.length > 0) + Number(Boolean(stockFilter.value)))
+
+onLoad((options = {}) => {
+  keyword.value = decodeRouteValue(options.keyword)
+  activeCategoryId.value = options.categoryId ?? null
+})
 
 onMounted(async () => {
-  // 加载分类和商品
   await Promise.all([
     loadCategories(),
     loadProducts()
@@ -126,51 +159,56 @@ onShow(() => {
 async function loadCategories() {
   try {
     const list = await getCategoryList()
-    // dispatch 已在请求层解包 data；这里直接接收分类数组。
-    categories.value = [
-      { id: null, name: '全部' },
-      ...(Array.isArray(list) ? list : [])
-    ]
+    categoryTree.value = Array.isArray(list) ? list : []
+    activeCategoryPath.value = findCategoryPath(categoryTree.value, activeCategoryId.value) || []
   } catch (err) {
     console.error('[ProductList] 加载分类失败:', err)
-    // 接口失败时使用默认分类
-    categories.value = [
-      { id: null, name: '全部' }
-    ]
+    categoryTree.value = []
+    activeCategoryPath.value = []
   }
 }
 
 // 加载商品列表
 async function loadProducts(isLoadMore = false) {
-  if (loading.value) return
+  if (isLoadMore && loading.value) return
   if (isLoadMore && !hasMore.value) return
 
+  const requestId = ++productRequestId
+  const targetPage = isLoadMore ? page.value + 1 : 1
   loading.value = true
 
   try {
     const params = {
-      pageNum: isLoadMore ? page.value + 1 : 1,
+      pageNum: targetPage,
       pageSize: pageSize.value
     }
 
-    // 分类筛选
-    if (activeCategoryId.value) {
+    if (activeCategoryId.value !== null && activeCategoryId.value !== '') {
       params.categoryId = activeCategoryId.value
     }
 
-    // 搜索关键词
     if (keyword.value.trim()) {
       params.keyword = keyword.value.trim()
     }
 
+    if (stockFilter.value) {
+      params.stockFilter = stockFilter.value
+    }
+
+    if (activeSort.value.field) {
+      params.sortField = activeSort.value.field
+      params.sortOrder = activeSort.value.order
+    }
+
     const res = await getGoodsList(params)
+    if (requestId !== productRequestId) return
 
     if (res) {
       const { items, totalCount } = res
 
       if (isLoadMore) {
         products.value = [...products.value, ...(items || [])]
-        page.value += 1
+        page.value = targetPage
       } else {
         products.value = items || []
         page.value = 1
@@ -180,6 +218,7 @@ async function loadProducts(isLoadMore = false) {
       hasMore.value = products.value.length < total.value
     }
   } catch (err) {
+    if (requestId !== productRequestId) return
     console.error('[ProductList] 加载商品列表失败:', err)
     if (!isLoadMore) {
       products.value = []
@@ -189,7 +228,9 @@ async function loadProducts(isLoadMore = false) {
       icon: 'none'
     })
   } finally {
-    loading.value = false
+    if (requestId === productRequestId) {
+      loading.value = false
+    }
   }
 }
 
@@ -200,18 +241,78 @@ function loadMore() {
   }
 }
 
-// 切换分类
-function handleCategoryChange(cat) {
-  if (activeCategoryId.value === cat.id) return
-  activeCategoryId.value = cat.id
+// 搜索
+function handleSearch() {
+  refreshProducts()
+}
+
+function clearKeyword() {
+  if (!keyword.value) return
+  keyword.value = ''
+  refreshProducts()
+}
+
+function handleQuickSort(type) {
+  if (type === 'price') {
+    sortKey.value = sortKey.value === 'priceAsc' ? 'priceDesc' : 'priceAsc'
+  } else if (type === 'stock') {
+    sortKey.value = sortKey.value === 'stockDesc' ? 'stockAsc' : 'stockDesc'
+  } else {
+    sortKey.value = type
+  }
+  refreshProducts()
+}
+
+function applyFilters(filters) {
+  activeCategoryPath.value = Array.isArray(filters.categoryPath) ? filters.categoryPath : []
+  activeCategoryId.value = activeCategoryPath.value[activeCategoryPath.value.length - 1]?.id ?? null
+  stockFilter.value = filters.stockFilter || ''
+  sortKey.value = SORT_QUERY[filters.sortKey] ? filters.sortKey : 'default'
+  filterDrawerVisible.value = false
+  refreshProducts()
+}
+
+function removeFilter(type) {
+  if (type === 'category') {
+    activeCategoryId.value = null
+    activeCategoryPath.value = []
+  }
+  if (type === 'stock') stockFilter.value = ''
+  if (type === 'sort') sortKey.value = 'default'
+  refreshProducts()
+}
+
+function clearFilters() {
+  activeCategoryId.value = null
+  activeCategoryPath.value = []
+  stockFilter.value = ''
+  refreshProducts()
+}
+
+function refreshProducts() {
+  page.value = 1
   hasMore.value = true
   loadProducts(false)
 }
 
-// 搜索
-function handleSearch() {
-  hasMore.value = true
-  loadProducts(false)
+function findCategoryPath(nodes, targetId, path = []) {
+  if (targetId === null || targetId === undefined || targetId === '') return []
+  for (const category of nodes) {
+    const nextPath = [...path, category]
+    if (String(category.id) === String(targetId)) return nextPath
+    const childPath = findCategoryPath(category.children || [], targetId, nextPath)
+    if (childPath) return childPath
+  }
+  return null
+}
+
+function decodeRouteValue(value) {
+  if (value === undefined || value === null) return ''
+  try {
+    return decodeURIComponent(String(value))
+  } catch (_) {
+    return String(value)
+  }
 }
 
 // 格式化价格
@@ -252,36 +353,113 @@ function goToDetail(item) {
 
 <style lang="scss" scoped>
 .page {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
   background: #f7f8fa;
   display: flex;
   flex-direction: column;
 }
 
+.catalog-header {
+  flex-shrink: 0;
+  border-bottom: 1px solid rgba(17, 18, 22, .045);
+  background: #f4f5f7;
+}
+
+.header-content {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 8px 12px 10px;
+  box-sizing: border-box;
+}
+
 .page-scroll {
   flex: 1;
   min-height: 0;
+  padding: 14px 14px 28px;
+  box-sizing: border-box;
 }
 
-.content {
+.scroll-inner {
   width: 100%;
-  box-sizing: border-box;
   max-width: 1240px;
   margin: 0 auto;
-  padding: 16px 14px 28px;
+}
+
+.search-nav,
+.catalog-back-button,
+.catalog-cart-button,
+.search-clear,
+.search-submit,
+.quick-sort-bar,
+.quick-sort-item,
+.sort-direction,
+.quick-filter-row,
+.active-filter-list,
+.category-filter-chip,
+.active-filter-tag,
+.clear-filter-button {
+  display: flex;
+  align-items: center;
+}
+
+.search-nav {
+  gap: 9px;
+}
+
+.catalog-back-button,
+.catalog-cart-button {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  justify-content: center;
+  border-radius: 50%;
+  color: #22252a;
+  background: #e7e8eb;
+}
+
+.catalog-cart-button {
+  color: #4f545c;
+  background: rgba(231, 232, 235, .78);
+}
+
+.header-button--pressed {
+  opacity: .66;
+  transform: scale(.95);
+}
+
+.cart-count-badge {
+  position: absolute;
+  top: -1px;
+  right: -2px;
+  display: grid;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  place-items: center;
+  border: 2px solid #f4f5f7;
+  border-radius: 9px;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 700;
+  background: #d7192d;
 }
 
 .search-box {
-  height: 46px;
+  min-width: 0;
+  flex: 1;
+  height: 44px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 0 14px;
-  background: rgba(255, 255, 255, 0.98);
-  border: 1px solid rgba(17, 18, 22, 0.06);
-  border-radius: 14px;
-  box-shadow: 0 4px 18px rgba(17, 18, 22, 0.035);
-  margin-bottom: 14px;
+  gap: 9px;
+  padding-left: 14px;
+  overflow: hidden;
+  background: #e7e8eb;
+  border: 1px solid transparent;
+  border-radius: 24px;
   box-sizing: border-box;
 
   .search-icon {
@@ -306,38 +484,187 @@ function goToDetail(item) {
   }
 }
 
-.category-pills {
-  width: 100%;
-  padding-bottom: 18px;
+.search-clear {
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  justify-content: center;
+  border-radius: 50%;
+  color: #777c85;
+  background: rgba(93, 98, 108, .09);
+}
+
+.search-submit {
+  height: 30px;
+  flex-shrink: 0;
+  justify-content: center;
+  padding: 0 15px;
+  border-left: 1px solid rgba(77, 81, 89, .1);
+  color: #24272c;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.search-submit--pressed,
+.quick-sort-item--pressed {
+  opacity: .58;
+}
+
+.quick-sort-bar {
+  height: 48px;
+  justify-content: space-between;
+  margin-top: 5px;
+}
+
+.quick-sort-item {
+  position: relative;
+  height: 100%;
+  min-width: 54px;
+  justify-content: center;
+  gap: 3px;
+  color: #656a72;
+  font-size: 13px;
+}
+
+.quick-sort-item.is-active {
+  color: #17191d;
+  font-weight: 700;
+}
+
+.quick-sort-item.is-active::after {
+  position: absolute;
+  bottom: 3px;
+  left: 50%;
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: #d7192d;
+  content: '';
+  transform: translateX(-50%);
+}
+
+.sort-direction {
+  flex-direction: column;
+  color: #afb2b8;
+  font-size: 6px;
+  line-height: 7px;
+}
+
+.sort-direction .is-active {
+  color: #d7192d;
+}
+
+.filter-entry {
+  gap: 5px;
+}
+
+.filter-entry.is-active {
+  color: #c6192b;
+}
+
+.filter-count {
+  display: grid;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  place-items: center;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 8px;
+  font-weight: 700;
+  background: #d7192d;
+}
+
+.quick-filter-row {
+  min-width: 0;
+  gap: 10px;
+}
+
+.active-filter-scroll {
+  min-width: 0;
+  flex: 1;
   white-space: nowrap;
 }
 
-.pill-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  vertical-align: top;
-  min-height: 34px;
-  padding: 0 16px;
-  margin-right: 9px;
-  box-sizing: border-box;
-  border-radius: 999px;
-  background: #fff;
-  border: 1px solid #e8e9ec;
-  font-size: 14px;
-  font-weight: 500;
-  color: #4b4f57;
-  white-space: nowrap;
-  transition: transform .16s ease, background-color .16s ease, border-color .16s ease;
+.active-filter-list {
+  width: max-content;
+  gap: 8px;
+  padding: 1px 0;
+}
 
-  &.is-active {
-    background: #17191d;
-    color: #fff;
-    border-color: #17191d;
+.category-filter-chip,
+.active-filter-tag {
+  min-height: 32px;
+  box-sizing: border-box;
+  border-radius: 17px;
+  font-size: 11px;
+  background: #e7e8eb;
+}
+
+.category-filter-chip {
+  max-width: 180px;
+  gap: 5px;
+  padding: 0 12px;
+  color: #34373d;
+}
+
+.category-filter-chip text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.active-filter-tag {
+  gap: 5px;
+  padding: 0 11px;
+  border: 1px solid rgba(215, 25, 45, .1);
+  color: #bd1728;
+  background: rgba(215, 25, 45, .065);
+}
+
+.clear-filter-button {
+  min-height: 32px;
+  padding: 0 5px;
+  color: #858a93;
+  font-size: 10px;
+}
+
+.result-count {
+  flex-shrink: 0;
+  color: #969aa2;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+@media screen and (max-width: 380px) {
+  .header-content {
+    padding-right: 9px;
+    padding-left: 9px;
   }
 
-  &:active {
-    transform: scale(.96);
+  .search-nav {
+    gap: 6px;
+  }
+
+  .catalog-back-button,
+  .catalog-cart-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .search-box {
+    height: 40px;
+    padding-left: 11px;
+  }
+
+  .search-submit {
+    padding: 0 11px;
+  }
+
+  .quick-sort-item {
+    min-width: 48px;
+    font-size: 12px;
   }
 }
 
@@ -526,40 +853,71 @@ function goToDetail(item) {
 }
 
 @media screen and (min-width: 768px) {
-  .content {
-    padding: 22px 28px 40px;
+  .header-content {
+    padding: 10px 28px 14px;
+  }
+
+  .page-scroll {
+    padding: 16px 28px 40px;
   }
 
   .search-box {
-    width: min(620px, 100%);
     height: 48px;
-    border-radius: 15px;
-    margin-bottom: 16px;
+    border-radius: 25px;
   }
 
-  .pill-btn {
-    min-height: 36px;
-    padding: 0 18px;
-    margin-right: 10px;
+  .catalog-back-button,
+  .catalog-cart-button {
+    width: 48px;
+    height: 48px;
+  }
+
+  .quick-sort-bar {
+    height: 52px;
+  }
+
+  .quick-sort-item {
+    min-width: 92px;
+    font-size: 14px;
   }
 
   .product-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
   }
 
   .product-card {
+    display: grid;
+    min-height: 190px;
+    grid-template-columns: minmax(132px, 43%) minmax(0, 1fr);
     border-radius: 18px;
   }
 
+  .card-image-wrapper {
+    height: 100%;
+    aspect-ratio: auto;
+    background: #fff;
+  }
+
+  .card-image {
+    object-fit: contain;
+  }
+
   .card-body {
+    display: flex;
     padding: 14px 14px 15px;
+    flex-direction: column;
   }
 
   .card-name {
     min-height: 44px;
     font-size: 15px;
     line-height: 22px;
+  }
+
+  .card-price-row {
+    margin-top: auto;
+    padding-top: 12px;
   }
 
   .card-price {
@@ -569,21 +927,24 @@ function goToDetail(item) {
 }
 
 @media screen and (min-width: 768px) and (orientation: landscape) {
-  .content {
-    max-width: 1180px;
-  }
-
-  .search-box {
-    width: min(560px, 100%);
-  }
-
   .product-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .product-card {
+    min-height: 174px;
+    grid-template-columns: minmax(118px, 42%) minmax(0, 1fr);
   }
 }
 
 @media screen and (min-width: 1180px) {
-  .content {
+  .header-content {
+    padding-left: 36px;
+    padding-right: 36px;
+  }
+
+  .page-scroll {
     padding-left: 36px;
     padding-right: 36px;
   }
