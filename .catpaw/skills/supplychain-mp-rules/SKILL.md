@@ -180,7 +180,7 @@ src/
    // 2. UniApp
    import { onLaunch, onLoad } from '@dcloudio/uni-app'
    // 3. 项目内部（相对路径）
-   import { dispatch } from './api/base.js'
+   import { dispatch } from '../../shared/api/dispatchClient.js'
    import { useUserStore } from './store/modules/user.js'
    ```
 4. **Pinia Store 规范**：
@@ -245,7 +245,10 @@ src/
 
 ## 已知注意事项
 
-1. **`utils/request.js` 已废弃** — 所有请求走 `api/base.js`
+1. **`utils/request.js` 已废弃** — 所有请求走 `shared/api/dispatchClient.js`
+2. **`store/modules/user.js` 已迁移** — 用户会话现位于 `shared/session/userStore.js`
+3. **`config/routes.js` 已迁移** — 路由常量现位于 `app/config/routes.js`
+4. **`utils/routeGuard.js` 已迁移** — 路由守卫现位于 `app/navigation/routeGuard.js`
 2. **`EmptyState` 组件旧版** — 新版在 `components/AppPageState/`
 3. **`checkAccountStatus()` 未实现** — 后端 Login 接口直接返回错误码表示账号异常
 4. **设备免登未实现** — `autoLogin()` 返回 rejected Promise

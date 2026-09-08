@@ -1,1 +1,327 @@
-{"name": "supply-chain-mini", "appid": "", "versionName": "1.0.0", "versionCode": "100", "transformPx": false, "vueVersion": "3", "easycom": {"autoscan": true, "custom": {"^uni-(.*)": "@dcloudio/uni-ui/lib/uni-$1/uni-$1.vue", "^app-page-shell": "@/components/AppPageShell/AppPageShell.vue", "^app-page-state": "@/components/AppPageState/AppPageState.vue", "^app-content": "@/components/AppContent/AppContent.vue", "^app-fixed-footer": "@/components/AppFixedFooter/AppFixedFooter.vue", "^app-header": "@/components/AppHeader/AppHeader.vue", "^app-load-more": "@/components/AppLoadMore/AppLoadMore.vue", "^app-network-banner": "@/components/AppNetworkBanner/AppNetworkBanner.vue", "^batch-checkbox": "@/components/batch-checkbox/batch-checkbox.vue", "^message-popup": "@/components/message-popup/message-popup.vue", "^pay-mode-popup": "@/components/pay-mode-popup/pay-mode-popup.vue", "^quantity-stepper": "@/components/QuantityStepper/QuantityStepper.vue", "^status-tag-new": "@/components/StatusTag/StatusTag.vue", "^upload-file": "@/components/upload-file/upload-file.vue"}}, "networkTimeout": {"request": 30000, "downloadFile": 60000, "uploadFile": 60000, "connectSocket": 60000}, "globalStyle": {"navigationBarTextStyle": "white", "navigationBarTitleText": "薰风经销商下单系统", "navigationBarBackgroundColor": "#D7192D", "backgroundColor": "#F7F7F8"}, "pages": [{"path": "pages/startup/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": "", "navigationBarBackgroundColor": "#ffffff", "backgroundColor": "transparent"}}, {"path": "pages/home/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/dealer-center/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/cart/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/product/list", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/product/detail", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/product/variants", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/checkout/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/order/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/news/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/news/detail", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/manual/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/manual/preview", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/message/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/account/profile", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/recharge/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/bill/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/fund-flow/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/aftersales/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/invoice/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/address/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/voucher/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/sub-account/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/security/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/language/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/help/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "pages/about/index", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}], "subPackages": [{"root": "subPackages/authSub", "name": "authSub", "pages": [{"path": "login", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "applySign", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}]}, {"root": "subPackages/goodsSub", "name": "goodsSub", "pages": [{"path": "goodsDetail", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "replenishList", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}]}, {"root": "subPackages/orderSub", "name": "orderSub", "pages": [{"path": "orderConfirm", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "orderList", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "orderDetail", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}]}, {"root": "subPackages/paySub", "name": "paySub", "pages": [{"path": "payPage", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}]}, {"root": "subPackages/settlementSub", "name": "settlementSub", "pages": [{"path": "billList", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "billDetail", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}]}, {"root": "subPackages/afterSaleSub", "name": "afterSaleSub", "pages": [{"path": "applyAfterSale", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "afterSaleList", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}]}, {"root": "subPackages/systemSub", "name": "systemSub", "pages": [{"path": "messageList", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "agreement", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}]}, {"root": "subPackages/accountSub", "name": "accountSub", "pages": [{"path": "subAccountManage", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}, {"path": "accountStatus", "style": {"navigationStyle": "custom", "navigationBarTitleText": ""}}]}], "preloadRule": {"pages/home/index": {"network": "all", "packages": ["subPackages/authSub"]}}, "condition": {"current": 0, "list": []}}
+﻿{
+    "name": "supply-chain-mini",
+    "appid": "",
+    "versionName": "1.0.0",
+    "versionCode": "100",
+    "transformPx": false,
+    "vueVersion": "3",
+    "easycom": {
+        "autoscan": true,
+        "custom": {
+            "^uni-(.*)": "@dcloudio/uni-ui/lib/uni-$1/uni-$1.vue",
+            "^app-page-shell": "@/shared/ui/AppPageShell/AppPageShell.vue",
+            "^app-page-state": "@/shared/ui/AppPageState/AppPageState.vue",
+            "^app-content": "@/shared/ui/AppContent/AppContent.vue",
+            "^app-header": "@/shared/ui/AppHeader/AppHeader.vue",
+            "^app-load-more": "@/shared/ui/AppLoadMore/AppLoadMore.vue",
+            "^app-network-banner": "@/shared/ui/AppNetworkBanner/AppNetworkBanner.vue",
+            "^status-tag-new": "@/shared/ui/StatusTag/StatusTag.vue"
+        }
+    },
+    "networkTimeout": {
+        "request": 30000,
+        "downloadFile": 60000,
+        "uploadFile": 60000,
+        "connectSocket": 60000
+    },
+    "globalStyle": {
+        "navigationBarTextStyle": "black",
+        "navigationBarTitleText": "",
+        "navigationBarBackgroundColor": "#FFFFFF",
+        "backgroundColor": "#F4F5F8",
+        "navigationStyle": "custom"
+    },
+    "pages": [
+        {
+            "path": "pages/startup/index",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": "",
+                "navigationBarBackgroundColor": "#ffffff",
+                "backgroundColor": "transparent"
+            }
+        },
+        {
+            "path": "pages/home/index",
+            "style": {
+                "navigationStyle": "custom",
+                "navigationBarTitleText": ""
+            }
+        }
+    ],
+    "subPackages": [
+        {
+            "root": "subPackages/auth",
+            "name": "auth",
+            "pages": [
+                {
+                    "path": "pages/login/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/apply-sign/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/agreement/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/account-status/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                }
+            ]
+        },
+        {
+            "root": "subPackages/commerce",
+            "name": "commerce",
+            "pages": [
+                {
+                    "path": "pages/product/list",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/product/detail",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/product/variants",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/cart/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/checkout/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                }
+            ]
+        },
+        {
+            "root": "subPackages/order",
+            "name": "order",
+            "pages": [
+                {
+                    "path": "pages/list/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/detail/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/pay/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/after-sale/apply",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/after-sale/list",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                }
+            ]
+        },
+        {
+            "root": "subPackages/account",
+            "name": "account",
+            "pages": [
+                {
+                    "path": "pages/center/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/profile/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/address/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/sub-account/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/security/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/recharge/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/fund-flow/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/bill/list",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/bill/detail",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/invoice/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/voucher/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/language/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                }
+            ]
+        },
+        {
+            "root": "subPackages/content",
+            "name": "content",
+            "pages": [
+                {
+                    "path": "pages/news/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/news/detail",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/manual/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/manual/preview",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/message/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/help/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/about/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                }
+            ]
+        }
+    ],
+    "preloadRule": {
+        "pages/home/index": {
+            "network": "wifi",
+            "packages": [
+                "subPackages/commerce"
+            ]
+        }
+    },
+    "condition": {
+        "current": 0,
+        "list": []
+    }
+}

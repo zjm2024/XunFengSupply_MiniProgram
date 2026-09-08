@@ -71,9 +71,10 @@ import { onLoad, onReady, onUnload, onBackPress } from '@dcloudio/uni-app'
 import StartupBrand from './components/StartupBrand.vue'
 import StartupLoading from './components/StartupLoading.vue'
 import StartupError from './components/StartupError.vue'
-import { bootstrapOnce, resetBootstrapState } from '../../hooks/useAppBootstrap.js'
-import { STARTUP_CONFIG } from '../../config/startup.js'
-import { LOGIN, APPLY_SIGN, ACCOUNT_STATUS, HOME } from '../../config/routes.js'
+import { bootstrapOnce, resetBootstrapState } from '../../app/bootstrap/appBootstrap.js'
+import { STARTUP_CONFIG } from '../../app/config/startupConfig.js'
+import { sanitizeRedirect, isRegisteredRoute, HOME } from '../../app/config/routes.js'
+import { navigator } from '../../app/navigation/navigator.js'
 
 // ==================== 启动配置 ====================
 
@@ -475,14 +476,15 @@ function handleBootstrapResult(result) {
 /**
  * 执行最终路由跳转（只执行一次）
  */
-function routeOnce(targetUrl) {
+async function routeOnce(targetUrl) {
   if (hasRouted.value || isUnloaded.value) return
 
   hasRouted.value = true
   currentScene.value = 'routing'
 
-  // 校验目标路径：非法 targetUrl 不默认进入 HOME，进入 error
-  if (!targetUrl || targetUrl === '/pages/startup/index') {
+  // 校验目标路径：sanitizeRedirect 校验注册状态与安全
+  const safeUrl = sanitizeRedirect(targetUrl, HOME)
+  if (!safeUrl || !isRegisteredRoute(safeUrl)) {
     log(`invalid target, entering error state`)
     hasRouted.value = false
     currentScene.value = 'error'
@@ -495,26 +497,21 @@ function routeOnce(targetUrl) {
     return
   }
 
-  log(`route once target=${targetUrl}`)
+  log(`route once target=${safeUrl}`)
 
-  uni.reLaunch({
-    url: targetUrl,
-    success: () => {
-      log('route success')
-    },
-    fail: (err) => {
-      log(`route failed: ${err && err.errMsg ? err.errMsg : 'unknown'}`)
-      // 失败后释放锁，展示可重试状态
-      hasRouted.value = false
-      currentScene.value = 'error'
-      errorMode.value = 'error'
-      errorTitle.value = '跳转失败'
-      errorDesc.value = '无法进入目标页面，请重试'
-      errorPrimaryText.value = '重试'
-      errorShowPrimary.value = true
-      errorShowSecondary.value = false
-    }
-  })
+  const success = await navigator.reLaunch(safeUrl)
+  if (!success) {
+    log('route failed')
+    // 失败后释放锁，展示可重试状态
+    hasRouted.value = false
+    currentScene.value = 'error'
+    errorMode.value = 'error'
+    errorTitle.value = '跳转失败'
+    errorDesc.value = '无法进入目标页面，请重试'
+    errorPrimaryText.value = '重试'
+    errorShowPrimary.value = true
+    errorShowSecondary.value = false
+  }
 }
 
 // ==================== 重试 ====================

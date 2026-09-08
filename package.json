@@ -9,7 +9,12 @@
         "dev:weixin": "uni -p mp-weixin",
         "build:h5": "uni build",
         "build:app": "uni build -p app",
-        "build:weixin": "uni build -p mp-weixin"
+        "build:weixin": "uni build -p mp-weixin",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "audit:routes": "node scripts/auditRoutes.js",
+        "audit:size": "node scripts/analyzeMpPackage.js",
+        "audit:all": "npm run audit:routes && npm run audit:size"
     },
     "dependencies": {
         "@dcloudio/uni-app": "3.0.0-4080520251106001",
@@ -27,7 +32,9 @@
         "@dcloudio/uni-cli-shared": "3.0.0-4080520251106001",
         "@dcloudio/uni-stacktracey": "3.0.0-4080520251106001",
         "@dcloudio/vite-plugin-uni": "3.0.0-4080520251106001",
+        "@vue/test-utils": "^2.4.0",
         "sass": "^1.71.1",
-        "vite": "5.4.21"
+        "vite": "5.4.21",
+        "vitest": "^1.6.0"
     }
 }

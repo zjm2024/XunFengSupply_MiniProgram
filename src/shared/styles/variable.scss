@@ -1,0 +1,191 @@
+/**
+ * 全局CSS变量定义 - V2 统一视觉规范
+ *
+ * ⚠️ 此文件已重构为 uni.scss 的代理入口
+ * 品牌色、语义色、中性色等 Design Tokens 已迁移至 src/uni.scss
+ * 此文件保留 CSS 变量（:root）供运行时使用，SCSS 变量已统一到 uni.scss
+ *
+ * 色彩基线：
+ *   品牌主色：#D7192D（非旧版 #C41E3A）
+ *   语义色：success=#168A52, warning=#B76500, error=#B42318, info=#246BCE
+ */
+
+// 使用命名空间消费基础 Token，避免 App.vue 自动注入 uni.scss 时变量重名。
+@use '../../uni.scss' as tokens;
+
+// ==================== CSS 自定义属性（运行时变量） ====================
+
+page,
+:root {
+  /* 主色调 - V2 品牌红 #D7192D */
+  --primary-color: #{tokens.$color-brand-500};
+  --primary-light: #{tokens.$color-brand-300};
+  --primary-lighter: rgba(215, 25, 45, 0.1);
+  --primary-dark: #{tokens.$color-brand-600};
+  --primary-gradient: linear-gradient(135deg, #{tokens.$color-brand-500} 0%, #{tokens.$color-brand-600} 100%);
+
+  /* 完整色阶：页面和组件禁止再自建近似色 */
+  --color-brand-50: #{tokens.$color-brand-50};
+  --color-brand-100: #{tokens.$color-brand-100};
+  --color-brand-300: #{tokens.$color-brand-300};
+  --color-brand-500: #{tokens.$color-brand-500};
+  --color-brand-600: #{tokens.$color-brand-600};
+  --color-brand-700: #{tokens.$color-brand-700};
+  --color-brand: #{tokens.$color-brand-500};
+  --color-brand-soft: #{tokens.$color-brand-50};
+
+  /* 功能色 */
+  --success-color: #{tokens.$color-success};
+  --success-light: rgba(22, 138, 82, 0.08);
+  --warning-color: #{tokens.$color-warning};
+  --warning-light: rgba(183, 101, 0, 0.08);
+  --danger-color: #{tokens.$color-error};
+  --danger-light: rgba(180, 35, 24, 0.08);
+  --info-color: #{tokens.$color-info};
+  --info-light: rgba(36, 107, 206, 0.08);
+
+  /* 文字颜色 */
+  --text-primary: #{tokens.$color-text-primary};
+  --text-secondary: #{tokens.$color-text-secondary};
+  --text-tertiary: #{tokens.$color-gray-400};
+  --text-placeholder: #{tokens.$color-text-disabled};
+  --text-disabled: #{tokens.$color-gray-400};
+  --text-inverse: #{tokens.$color-gray-0};
+  --color-text-primary: #{tokens.$color-text-primary};
+  --color-text-secondary: #{tokens.$color-text-secondary};
+  --color-text-tertiary: #{tokens.$color-gray-400};
+  --color-text-disabled: #{tokens.$color-text-disabled};
+
+  /* 背景色 */
+  --bg-color: #{tokens.$color-bg-page};
+  --bg-white: #{tokens.$color-gray-0};
+  --bg-card: #{tokens.$color-bg-card};
+  --bg-subtle: #{tokens.$color-bg-subtle};
+  --bg-pressed: #{tokens.$color-bg-pressed};
+  --surface-page: #{tokens.$color-bg-page};
+  --surface-card: #{tokens.$color-bg-card};
+  --surface-subtle: #{tokens.$color-bg-subtle};
+  --surface-muted: #{tokens.$color-bg-subtle};
+
+  /* 边框 */
+  --border-color: #{tokens.$color-border-default};
+  --border-color-dark: #{tokens.$color-gray-300};
+  --divider-color: #{tokens.$color-gray-100};
+  --icon-primary: #{tokens.$color-gray-800};
+  --icon-secondary: #{tokens.$color-gray-600};
+  --icon-muted: #{tokens.$color-gray-400};
+  --color-border: #{tokens.$color-border-default};
+  --color-border-strong: #{tokens.$color-gray-300};
+  --color-divider: #{tokens.$color-gray-100};
+
+  /* 阴影 */
+  --shadow-sm: #{tokens.$shadow-card};
+  --shadow-md: 0 4px 16px rgba(17, 18, 22, 0.06);
+  --shadow-lg: #{tokens.$shadow-float};
+  --shadow-primary: 0 4px 16px rgba(215, 25, 45, 0.10);
+  --shadow-bottom-bar: #{tokens.$shadow-bottom-bar};
+
+  /* 圆角 */
+  --radius-xs: #{tokens.$radius-tag};
+  --radius-sm: #{tokens.$radius-control};
+  --radius-base: #{tokens.$radius-card};
+  --radius-lg: #{tokens.$radius-feature};
+  --radius-xl: #{tokens.$radius-feature};
+  --radius-full: #{tokens.$radius-full};
+  --radius-control: #{tokens.$radius-control};
+  --radius-card: #{tokens.$radius-card};
+  --radius-feature: #{tokens.$radius-feature};
+
+  /* 间距 */
+  --spacing-xs: #{tokens.$space-1};
+  --spacing-sm: #{tokens.$space-2};
+  --spacing-md: #{tokens.$space-3};
+  --spacing-base: #{tokens.$space-4};
+  --spacing-section: #{tokens.$space-5};
+  --spacing-lg: #{tokens.$space-6};
+  --spacing-xl: #{tokens.$space-8};
+  --page-padding-x: #{tokens.$page-padding-mobile};
+  --page-padding-x-tablet: #{tokens.$page-padding-tablet};
+
+  /* 字号 */
+  --font-size-xs: #{tokens.$font-size-micro};
+  --font-size-sm: #{tokens.$font-size-caption};
+  --font-size-base: #{tokens.$font-size-body-m};
+  --font-size-md: #{tokens.$font-size-body-l};
+  --font-size-lg: #{tokens.$font-size-h3};
+  --font-size-xl: #{tokens.$font-size-h2};
+  --font-size-xxl: #{tokens.$font-size-h1};
+  --font-size-display: #{tokens.$font-size-display};
+
+  /* 字重 */
+  --font-weight-regular: #{tokens.$font-weight-regular};
+  --font-weight-medium: #{tokens.$font-weight-medium};
+  --font-weight-semibold: #{tokens.$font-weight-semibold};
+  --font-weight-bold: #{tokens.$font-weight-bold};
+
+  /* 行高 */
+  --line-height-tight: 1.25;
+  --line-height-normal: 1.5;
+  --line-height-loose: 1.7;
+
+  /* 组件尺寸：手机与 iPad 保持稳定，不使用 rpx 等比放大 */
+  --touch-target-min: #{tokens.$touch-target-min};
+  --control-height: #{tokens.$control-height};
+  --control-height-compact: #{tokens.$control-height-compact};
+  --list-item-height: #{tokens.$list-item-height};
+  --header-content-height: #{tokens.$header-content-height};
+  --content-reading-width: #{tokens.$content-reading-width};
+  --content-max-width: #{tokens.$content-max-width};
+
+  /* 动画 */
+  --transition-fast: #{tokens.$duration-fast};
+  --transition-normal: #{tokens.$duration-normal};
+  --transition-slow: 350ms;
+
+  /* 层级 */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-fixed: 300;
+  --z-modal-backdrop: 400;
+  --z-modal: 500;
+  --z-popover: 600;
+  --z-tooltip: 700;
+  --z-toast: 800;
+  --z-max: 9999;
+}
+
+@media screen and (min-width: 600px) {
+  page,
+  :root {
+    --page-padding-x: #{tokens.$page-padding-tablet};
+  }
+}
+
+// ==================== SCSS 变量（向后兼容，标记为 deprecated） ====================
+//
+// ⚠️ 以下 SCSS 变量已废弃，新代码请使用 uni.scss 中的变量：
+//   $color-brand-500 替代 $primary-color
+//   $color-text-primary 替代 $text-primary
+//   $color-bg-page 替代 $bg-color
+//   ...等等
+//
+
+$primary-color: tokens.$color-brand-500;        // 废弃：用 $color-brand-500
+$primary-light: tokens.$color-brand-300;         // 废弃：用 $color-brand-300
+$primary-dark: tokens.$color-brand-600;          // 废弃：用 $color-brand-600
+
+$success-color: tokens.$color-success;            // 废弃：用 $color-success
+$warning-color: tokens.$color-warning;            // 废弃：用 $color-warning
+$danger-color: tokens.$color-error;               // 废弃：用 $color-error
+$info-color: tokens.$color-info;                  // 废弃：用 $color-info
+
+$text-primary: tokens.$color-text-primary;        // 废弃：用 $color-text-primary
+$text-secondary: tokens.$color-text-secondary;    // 废弃：用 $color-text-secondary
+$text-placeholder: tokens.$color-text-disabled;   // 废弃：用 $color-text-disabled
+
+$bg-color: tokens.$color-bg-page;                // 废弃：用 $color-bg-page
+$border-color: tokens.$color-border-default;     // 废弃：用 $color-border-default
+
+$radius-sm: tokens.$radius-tag;                  // 废弃：用 $radius-tag
+$radius-base: tokens.$radius-card;              // 废弃：用 $radius-card
+$radius-lg: tokens.$radius-feature;             // 废弃：用 $radius-feature

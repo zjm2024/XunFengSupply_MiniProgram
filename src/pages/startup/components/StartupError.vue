@@ -3,26 +3,7 @@
     <!-- 图标 -->
     <view class="error-icon" :class="`icon-${mode}`">
       <view class="icon-svg">
-        <!-- 错误图标 -->
-        <svg v-if="mode === 'error'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-        <!-- 离线图标 -->
-        <svg v-else-if="mode === 'offline'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="1" y1="1" x2="23" y2="23"/>
-          <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"/>
-          <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"/>
-          <path d="M10.71 5.05A16 16 0 0 1 22.56 9"/>
-          <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"/>
-          <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
-          <line x1="12" y1="20" x2="12.01" y2="20"/>
-        </svg>
-        <!-- 强制更新图标 -->
-        <svg v-else-if="mode === 'force-update'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M21 21l-6-6m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"/>
-        </svg>
+        <AppIcon :name="modeIcon" size="56rpx" />
       </view>
     </view>
     
@@ -57,6 +38,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import AppIcon from '../../../shared/ui/AppIcon/AppIcon.vue'
 
 /**
  * StartupError - 启动错误/离线/强制更新组件
@@ -84,6 +66,12 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['retry', 'update', 'secondary'])
+
+const modeIcon = computed(() => ({
+  error: 'error',
+  offline: 'offline',
+  'force-update': 'tools',
+}[props.mode] || 'error'))
 
 /**
  * 主按钮点击处理
@@ -161,10 +149,6 @@ const displayDesc = computed(() => {
     width: 56rpx;
     height: 56rpx;
     
-    svg {
-      width: 100%;
-      height: 100%;
-    }
   }
 }
 

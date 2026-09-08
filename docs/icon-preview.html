@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>薰风商城图标系统</title>
+    <style>
+      :root {
+        color: #17181d;
+        background: #f4f5f8;
+        font-family: Inter, "PingFang SC", "Microsoft YaHei", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 48px; }
+      main { width: min(1120px, 100%); margin: 0 auto; }
+      header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+      h1 { margin: 0; font-size: 30px; letter-spacing: -.03em; }
+      p { margin: 8px 0 0; color: #6e737c; }
+      .brand { color: #d7192d; font-size: 13px; font-weight: 700; letter-spacing: .16em; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(154px, 1fr)); gap: 14px; }
+      .item { min-height: 144px; padding: 20px; border: 1px solid rgba(17,18,22,.06); border-radius: 18px; background: rgba(255,255,255,.92); box-shadow: 0 8px 24px rgba(17,18,22,.04); }
+      .icon-box { display: grid; place-items: center; width: 54px; height: 54px; margin-bottom: 18px; border-radius: 16px; color: #d7192d; background: #fff1f3; }
+      svg { width: 28px; height: 28px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      .name { font-size: 13px; font-weight: 650; }
+      .size { margin-top: 4px; color: #9a9ea6; font-size: 11px; }
+
+      @media (max-width: 640px) {
+        body { padding: 24px 16px; }
+        header { align-items: start; flex-direction: column; }
+        .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <div class="brand">XUNFENG ICON SYSTEM</div>
+          <h1>薰风商城业务图标</h1>
+          <p>24 × 24 · Rounded Outline · Stroke 1.8</p>
+        </div>
+        <p id="count"></p>
+      </header>
+      <section id="grid" class="grid"></section>
+    </main>
+
+    <script type="module">
+      import { xunfengCoreIconNames, xunfengIconMap } from '../src/shared/ui/AppIcon/xunfengIconSet.js'
+
+      document.querySelector('#count').textContent = `${xunfengCoreIconNames.length} icons`
+      document.querySelector('#grid').innerHTML = xunfengCoreIconNames.map((name) => `
+        <article class="item">
+          <div class="icon-box">
+            <svg viewBox="0 0 24 24" aria-hidden="true">${xunfengIconMap[name]}</svg>
+          </div>
+          <div class="name">${name}</div>
+          <div class="size">24px / currentColor</div>
+        </article>
+      `).join('')
+    </script>
+  </body>
+</html>

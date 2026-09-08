@@ -1,526 +1,617 @@
 <template>
-  <AppPageShell>
-    <!-- 自定义顶部栏 -->
+  <AppPageShell class="home-shell">
     <template #header>
-      <AppStatusBarSpacer />
-      <view class="custom-header">
-        <!-- 左侧：自有 Logo 图片 -->
-        <view class="header-left">
-          <image src="/static/images/logo.png" mode="aspectFit" class="logo-img"></image>
-        </view>
-
-        <!-- 右侧：图标入口 + 汉堡按钮 -->
-        <view class="header-right">
-          <!-- 消息图标入口 -->
-          <view class="icon-btn" @click="goToMessages">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-            </svg>
-            <!-- 红点提示 -->
-            <view class="red-dot" v-if="unreadCount > 0"></view>
+      <view class="home-header-wrap">
+        <AppStatusBarSpacer />
+        <view class="home-header">
+          <view class="brand-block">
+            <view class="brand-mark">
+              <image class="brand-logo" src="/static/images/logo-v.png" mode="aspectFit" />
+            </view>
+            <view class="brand-title-row">
+              <text class="brand-title">薰风商城</text>
+              <view class="brand-dot"></view>
+            </view>
           </view>
 
-          <!-- 用户图标入口 -->
-          <view class="icon-btn" @click="goToSupplier">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
+          <view class="header-actions">
+            <view
+              class="header-action glass-btn"
+              hover-class="glass-btn--pressed"
+              hover-stay-time="80"
+              aria-label="消息中心"
+              @click="goToMessages"
+            >
+              <AppIcon name="message" :size="22" :stroke-width="1.8" />
+              <view v-if="hasUnread" class="unread-dot" />
+            </view>
+            <view
+              class="header-action glass-btn"
+              hover-class="glass-btn--pressed"
+              hover-stay-time="80"
+              aria-label="经销商中心"
+              @click="goToAccount"
+            >
+              <AppIcon name="user" :size="22" :stroke-width="1.8" />
+            </view>
           </view>
-
         </view>
       </view>
     </template>
 
-    <!-- 内容区 -->
     <template #content>
-      <view class="home-content">
-        <!-- 主功能区域 -->
-        <view class="main-actions">
-          <!-- 商品下单 - 主入口 -->
-          <view class="action-card action-primary" @click="goToCart">
-            <view class="action-content">
-              <view class="action-text">
-                <text class="action-title">商品下单</text>
-                <text class="action-subtitle">快速选择商品，加入订货清单</text>
-              </view>
-              <view class="action-icon-box">
-                <svg class="icon-cart" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/>
-                  <line x1="3" y1="6" x2="21" y2="6"/>
-                  <path d="M16 10a4 4 0 01-8 0"/>
-                </svg>
-              </view>
-            </view>
-            <view class="action-arrow">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-            </view>
-            <!-- 装饰图形 -->
-            <view class="deco-box deco-box-1"></view>
-            <view class="deco-box deco-box-2"></view>
-          </view>
+      <AppContent padding="0" :no-max-width="true">
+        <view class="home-canvas">
+          <view class="home-inner">
 
-          <!-- 新闻资讯 - 次入口 -->
-          <view class="action-card action-secondary" @click="goToNews">
-            <view class="action-content">
-              <view class="action-text">
-                <text class="action-title">新闻资讯</text>
-                <text class="action-subtitle">查看品牌动态与最新资讯</text>
+            <view class="entry-grid">
+              <view
+                class="entry-card order-card"
+                hover-class="entry-card--pressed"
+                hover-stay-time="80"
+                @click="goToProducts"
+              >
+                <view class="entry-card-glow"></view>
+                <view class="entry-heading">
+                  <text class="entry-heading-title">商品下单</text>
+                  <view class="entry-heading-icon">
+                    <AppIcon name="package" :size="22" />
+                  </view>
+                </view>
+
+                <view class="entry-divider"></view>
+
+                <view class="entry-body">
+                  <view class="entry-visual order-visual">
+                    <view class="visual-ring visual-ring-large"></view>
+                    <view class="visual-ring visual-ring-small"></view>
+                    <view class="visual-icon order-icon">
+                      <AppIcon name="package" :size="52" />
+                    </view>
+                  </view>
+
+                  <view class="entry-content">
+                    <text class="entry-description">浏览商品目录，完成单品或批量采购。</text>
+                    <view class="entry-button entry-button-primary">
+                      <text>立即下单</text>
+                      <AppIcon name="arrow-right" :size="17" />
+                    </view>
+                  </view>
+                </view>
               </view>
-              <view class="action-icon-box">
-                <svg class="icon-news" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v12a2 2 0 002 2z"/>
-                  <path d="M7 8h10M7 12h10M7 16h6"/>
-                </svg>
+
+              <view
+                class="entry-card news-card"
+                hover-class="entry-card--pressed"
+                hover-stay-time="80"
+                @click="goToNews"
+              >
+                <view class="entry-card-glow"></view>
+                <view class="entry-heading">
+                  <text class="entry-heading-title">新闻资讯</text>
+                  <view class="entry-heading-icon entry-heading-icon--muted">
+                    <AppIcon name="news" :size="22" />
+                  </view>
+                </view>
+
+                <view class="entry-divider"></view>
+
+                <view class="entry-body">
+                  <view class="entry-visual news-visual">
+                    <view class="visual-ring visual-ring-large"></view>
+                    <view class="visual-icon news-icon">
+                      <AppIcon name="news" :size="52" />
+                    </view>
+                  </view>
+
+                  <view class="entry-content">
+                    <text class="entry-description">查看品牌公告、政策通知和行业动态。</text>
+                    <view class="entry-button entry-button-secondary">
+                      <text>查看资讯</text>
+                      <AppIcon name="arrow-right" :size="17" />
+                    </view>
+                  </view>
+                </view>
               </view>
-            </view>
-            <view class="action-arrow secondary">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
             </view>
           </view>
         </view>
-
-        <!-- 底部留白 -->
-        <view class="home-footer">
-          <text class="footer-text">服务协议 · V1.0.0</text>
-        </view>
-      </view>
+      </AppContent>
     </template>
-
-    <!-- 抽屉组件 -->
-    <view class="drawer-overlay" :class="{ 'show': isDrawerOpen }" @click="closeDrawer"></view>
-    <view class="drawer" :class="{ 'open': isDrawerOpen }">
-      <view class="drawer-close" @click="closeDrawer">&times;</view>
-      <!-- 抽屉里只有两个居中的按钮 -->
-      <view class="drawer-btn" @click="goToCart(); closeDrawer()">商品下单</view>
-      <view class="drawer-btn" @click="goToNews(); closeDrawer()">新闻资讯</view>
-    </view>
   </AppPageShell>
 </template>
 
 <script setup>
-  import { ref } from 'vue'
-  import { safeNavigateTo } from '@/utils/routeGuard.js'
-  import AppPageShell from '@/components/AppPageShell/AppPageShell.vue'
-  import AppStatusBarSpacer from '@/components/AppStatusBarSpacer.vue'
+import { computed } from 'vue'
+import { navigator } from '@/app/navigation/navigator.js'
+import { routes } from '@/app/config/routes.js'
+import { useUserStore } from '@/shared/session/userStore.js'
+import { useMessageStore } from '@/subPackages/content/model/messageStore.js'
+import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
+import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import AppStatusBarSpacer from '@/shared/ui/AppStatusBarSpacer/AppStatusBarSpacer.vue'
 
-// 控制抽屉展开关闭的状态
-  const isDrawerOpen = ref(false)
-  const unreadCount = ref(3)
+const userStore = useUserStore()
+const messageStore = useMessageStore()
+const userDisplayName = computed(() => userStore.displayName || userStore.realName || '经销商')
+const userInitial = computed(() => userDisplayName.value.trim().slice(0, 1) || '经')
+const hasUnread = computed(() => messageStore.hasUnread)
 
-const openDrawer = () => { isDrawerOpen.value = true }
-const closeDrawer = () => { isDrawerOpen.value = false }
+async function goToProducts() {
+  await navigator.navigateTo(routes.commerce.productList())
+}
 
-function goToCart() { safeNavigateTo('/pages/product/list') }
-function goToNews() { safeNavigateTo('/pages/news/index') }
-function goToMessages() { safeNavigateTo('/pages/message/index') }
-function goToSupplier() { safeNavigateTo('/pages/dealer-center/index') }
+async function goToNews() {
+  await navigator.navigateTo(routes.content.news())
+}
+
+async function goToMessages() {
+  await navigator.navigateTo(routes.content.messages())
+}
+
+async function goToAccount() {
+  await navigator.navigateTo(routes.account.center())
+}
 </script>
 
 <style lang="scss" scoped>
-/* 全局背景渐变，消除头部和页面割裂感 */
-page {
-  background: linear-gradient(180deg, #fff8f6 0%, #ffffff 100%);
-  min-height: 100%;
+.home-shell {
+  --home-page-background: linear-gradient(155deg, #fffdfd 0%, #fff5f6 42%, #f5f6f8 100%);
+  --surface-page: transparent;
+  background: var(--home-page-background);
 }
 
-/* ========== 自定义顶部栏样式 ========== */
-.custom-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: $space-4 $page-padding-mobile;
-  /* 去掉原来的背景色，改为透明，融入页面渐变 */
-  background: transparent; 
-  position: relative;
-  z-index: 10;
-  /* 适配刘海屏和灵动岛 */
-
-  .header-left {
-    .logo-img {
-      width: 120rpx; /* 根据你的实际Logo比例调整宽度 */
-      height: 60rpx;
-    }
-  }
-
-  .header-right {
-    display: flex;
-    align-items: center;
-    gap: $space-4;
-
-    .icon-btn {
-      width: 40rpx;
-      height: 40rpx;
-      color: $color-text-primary;
-      position: relative;
-      cursor: pointer;
-
-      .icon {
-        width: 100%;
-        height: 100%;
-      }
-
-      .red-dot {
-        position: absolute;
-        top: -4rpx;
-        right: -4rpx;
-        width: 16rpx;
-        height: 16rpx;
-        background: $color-brand-500;
-        border-radius: 50%;
-        border: 2rpx solid white;
-      }
-    }
-
-    /* 汉堡按钮 */
-    .hamburger-wrap {
-      display: flex;
-      cursor: pointer;
-    }
-
-    .hamburger-icon {
-      width: 40rpx;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 6rpx;
-
-      .line {
-        width: 100%;
-        height: 4rpx;
-        background-color: $color-text-primary;
-        border-radius: 4rpx;
-      }
-    }
-  }
+.home-shell :deep(.shell-header),
+.home-shell :deep(.shell-content-wrapper),
+.home-shell :deep(.app-content),
+.home-shell :deep(.content-inner),
+.home-shell :deep(.content-scroll),
+.home-shell :deep(.content-body),
+.home-shell :deep(.shell-safe-area-bottom) {
+  background: transparent;
 }
 
-/* 平板及以上隐藏汉堡按钮和抽屉 */
-@media screen and (min-width: 768px) {
-  .custom-header .hamburger-wrap {
-    display: none;
-  }
-  .drawer {
-    display: none;
-  }
-  .drawer-overlay {
-    display: none;
-  }
+.home-header-wrap {
+  background: transparent;
 }
 
-/* ========== 基础布局（移动端居中） ========== */
-.home-content {
-  min-height: 100%;
-  padding: $space-6 $page-padding-mobile;
-  display: flex;
-  flex-direction: column;
-  max-width: 750rpx;
-  margin: 0 auto;
-  background: transparent; /* 与顶层渐变保持一致 */
-
-  /* iPad 及以上大屏：放宽宽度并居中，使用px防止rpx被放大 */
-  @media screen and (min-width: 768px) {
-    padding: 40px;
-    max-width: 1200px;
-    margin: 0 auto;
-  }
-}
-
-/* ========== 主功能区域 ========== */
-.main-actions {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: $space-4;
-
-  /* iPad 大屏改为双列 Grid 布局 */
-  @media screen and (min-width: 768px) {
-    display: grid;
-    grid-template-columns: 1.2fr 1fr; /* 左侧稍宽，右侧稍窄 */
-    grid-template-rows: 1fr;
-    gap: 24px;
-    padding-top: 40px;
-    align-items: stretch;
-  }
-}
-
-/* ========== 通用卡片样式 ========== */
-.action-card {
-  position: relative;
-  border-radius: 40rpx;
-  padding: $space-6;
-  overflow: hidden;
-  transition: all $duration-normal $easing-standard;
-  cursor: pointer;
-
-  &:active {
-    transform: scale(0.98);
-    opacity: 0.95;
-  }
-
-  /* iPad 使用 px 防止内边距过大 */
-  @media screen and (min-width: 768px) {
-    padding: 40px;
-    min-height: 400px;
-    border-radius: 24px;
-  }
-}
-
-.action-content {
-  position: relative;
-  z-index: 2;
+.home-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 100%;
-}
-
-.action-text {
-  flex: 1;
-  padding-right: 20px; /* 防止文字压到图标 */
-}
-
-.action-title {
-  display: block;
-  font-size: $font-size-h1;
-  font-weight: $font-weight-bold;
-  color: $color-text-primary;
-  line-height: 1.2;
-  margin-bottom: $space-2;
-
-  /* iPad 强行指定 px 防止字体放大到离谱 */
-  @media screen and (min-width: 768px) {
-    font-size: 36px;
-    margin-bottom: 12px;
-    white-space: normal; /* 允许正常换行 */
-  }
-}
-
-.action-subtitle {
-  display: block;
-  font-size: $font-size-body-m;
-  color: $color-text-secondary;
-  line-height: 1.5;
-
-  /* iPad 强制使用 px */
-  @media screen and (min-width: 768px) {
-    font-size: 16px;
-    max-width: 80%; /* 限制换行宽度 */
-  }
-}
-
-.action-icon-box {
-  width: 88rpx;
-  height: 88rpx;
-  border-radius: $radius-control;
-  display: grid;
-  place-items: center;
-  margin-left: $space-4;
-
-  svg {
-    width: 40rpx;
-    height: 40rpx;
-  }
-
-  /* iPad 图标调整为合理的 px 大小 */
-  @media screen and (min-width: 768px) {
-    width: 64px;
-    height: 64px;
-    
-    svg {
-      width: 32px;
-      height: 32px;
-    }
-  }
-}
-
-.action-arrow {
-  position: absolute;
-  right: $space-6;
-  bottom: $space-6;
-  width: 56rpx;
-  height: 56rpx;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  z-index: 2;
-
-  svg {
-    width: 24rpx;
-    height: 24rpx;
-  }
-
-  /* iPad 箭头位置和大小调整 */
-  @media screen and (min-width: 768px) {
-    width: 48px;
-    height: 48px;
-    right: 40px;
-    bottom: 40px;
-
-    svg {
-      width: 20px;
-      height: 20px;
-    }
-  }
-}
-
-/* ========== 主入口：商品下单 ========== */
-.action-primary {
-  background: $color-brand-50;
-  min-height: 380rpx;
-  box-shadow: 0 4rpx 20rpx rgba(215, 25, 45, 0.04);
-
-  &:active { background: $color-brand-100; }
-  .action-title { color: $color-text-primary; }
-  .action-subtitle { color: $color-text-secondary; }
-  .action-icon-box { background: $color-brand-500; color: $color-gray-0; }
-  .action-arrow { background: $color-brand-500; color: $color-gray-0; }
-
-  @media screen and (min-width: 768px) {
-    min-height: 100%; /* 撑满双列网格 */
-  }
-}
-
-/* 装饰性盒子图形 */
-.deco-box {
-  position: absolute;
-  border-radius: 16rpx;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1rpx solid rgba(215, 25, 45, 0.08);
-}
-
-.deco-box-1 {
-  width: 120rpx;
-  height: 120rpx;
-  right: 100rpx;
-  bottom: -30rpx;
-  transform: rotate(15deg);
-
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 28rpx;
-    background: $color-brand-500;
-    border-radius: 16rpx 16rpx 0 0;
-  }
-}
-
-.deco-box-2 {
-  width: 80rpx;
-  height: 80rpx;
-  right: 40rpx;
-  bottom: 60rpx;
-  transform: rotate(-10deg);
-  opacity: 0.5;
-}
-
-/* ========== 次入口：新闻资讯 ========== */
-.action-secondary {
-  background: $color-gray-0;
-  border: 1rpx solid $color-gray-200;
-  min-height: 360rpx;
-  box-shadow: 0 2rpx 12rpx rgba(17, 18, 22, 0.03);
-
-  &:active { background: $color-gray-25; }
-  .action-title { font-size: $font-size-h2; color: $color-text-primary; }
-  .action-subtitle { color: $color-text-secondary; }
-  .action-icon-box { background: $color-gray-50; color: $color-gray-600; }
-  .action-arrow { background: $color-gray-50; color: $color-gray-600; }
-
-  /* iPad 端：去掉固定高度，改为撑满 Grid */
-  @media screen and (min-width: 768px) {
-    min-height: 100%;
-    .action-title { font-size: 36px; }
-  }
-}
-
-/* ========== 底部 ========== */
-.home-footer {
-  padding: $space-8 0 $space-4;
-  text-align: center;
-}
-
-.footer-text {
-  font-size: $font-size-micro;
-  color: $color-text-disabled;
-}
-
-/* ========== 抽屉式菜单（同色系渐变背景，与页面融为一体） ========== */
-.drawer-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.4);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s;
-  z-index: 999;
-}
-
-.drawer-overlay.show {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.drawer {
-  position: fixed;
-  top: 0;
-  right: -100%;
-  width: 75vw;
-  max-width: 350px;
-  height: 100vh;
-  /* 使用柔和渐变背景，消除生硬纯白 */
-  background: linear-gradient(180deg, #fff8f6 0%, #ffffff 60%, #fdf0e5 100%);
-  box-shadow: -8rpx 0 30rpx rgba(0,0,0,0.08);
-  transition: right 0.3s ease;
-  z-index: 1000;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: $space-5;
-  padding: $space-6;
-}
-
-.drawer.open {
-  right: 0;
-}
-
-.drawer-close {
-  position: absolute;
-  top: $space-8;
-  right: $space-6;
-  font-size: 40rpx;
-  cursor: pointer;
-  color: $color-text-secondary;
-}
-
-/* 抽屉里的两个居中按钮 */
-.drawer-btn {
+  gap: 12px;
   width: 100%;
-  padding: $space-5;
-  background: rgba(255, 255, 255, 0.9); /* 半透明白，适配渐变背景 */
-  border-radius: 40rpx;
-  text-align: center;
-  font-size: $font-size-h2;
-  font-weight: $font-weight-bold;
-  color: $color-brand-500;
-  cursor: pointer;
-  transition: transform 0.2s;
-  box-shadow: 0 4rpx 16rpx rgba(215, 25, 45, 0.05);
+  max-width: 1088px;
+  min-height: 62px;
+  margin: 0 auto;
+  padding: 8px 16px;
+  box-sizing: border-box;
 }
 
-.drawer-btn:active {
-  transform: scale(0.95);
+.brand-block,
+.brand-title-row,
+.header-actions,
+.user-action,
+.entry-heading,
+.entry-button {
+  display: flex;
+  align-items: center;
+}
+
+.brand-block {
+  min-width: 0;
+  gap: 10px;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  border: 1px solid rgba(215, 25, 45, 0.1);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 18px rgba(215, 25, 45, 0.12);
+}
+
+.brand-logo {
+  width: 28px;
+  height: 28px;
+}
+
+.brand-title-row {
+  min-width: 0;
+  gap: 6px;
+}
+
+.brand-title {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 18px;
+  font-weight: 750;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.brand-dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-brand);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.header-action {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.glass-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.55);
+  -webkit-backdrop-filter: blur(16px) saturate(1.2);
+  backdrop-filter: blur(16px) saturate(1.2);
+  box-shadow: 0 4px 16px rgba(30, 32, 38, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.glass-btn .app-icon {
+  color: var(--color-text-primary);
+}
+
+.glass-btn--pressed {
+  transform: scale(0.94);
+  box-shadow: 0 2px 10px rgba(30, 32, 38, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.unread-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-brand);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+}
+
+.home-canvas {
+  min-height: 100%;
+  padding: 22px 16px calc(28px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  background: transparent;
+}
+
+.home-inner {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+}
+
+.welcome-title {
+  display: block;
+  margin: 2px 2px 20px;
+  color: var(--color-text-primary);
+  font-size: 25px;
+  font-weight: 750;
+  line-height: 1.3;
+}
+
+.entry-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.entry-card {
+  position: relative;
+  overflow: hidden;
+  padding: 19px;
+  box-sizing: border-box;
+  border: 1px solid rgba(255, 255, 255, 0.94);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 16px 38px rgba(30, 32, 38, 0.075), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.order-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(255, 239, 242, 0.85));
+}
+
+.news-card {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(249, 250, 252, 0.87));
+}
+
+.entry-card--pressed {
+  opacity: 0.92;
+  transform: scale(0.985);
+  box-shadow: 0 10px 26px rgba(30, 32, 38, 0.08);
+}
+
+.entry-card-glow {
+  position: absolute;
+  top: -76px;
+  right: -64px;
+  width: 174px;
+  height: 174px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 92, 103, 0.17), rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+}
+
+.entry-heading {
+  position: relative;
+  z-index: 1;
+  justify-content: space-between;
+}
+
+.entry-heading-title {
+  color: var(--color-text-primary);
+  font-size: 20px;
+  font-weight: 750;
+}
+
+.entry-heading-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(215, 25, 45, 0.11);
+  border-radius: 13px;
+  color: var(--color-brand);
+  background: rgba(255, 255, 255, 0.74);
+}
+
+.entry-heading-icon--muted {
+  color: var(--color-text-secondary);
+  border-color: rgba(98, 102, 111, 0.11);
+}
+
+.entry-divider {
+  position: relative;
+  z-index: 1;
+  height: 1px;
+  margin: 14px 0 17px;
+  background: linear-gradient(90deg, rgba(215, 25, 45, 0.15), rgba(236, 238, 242, 0.78), rgba(236, 238, 242, 0));
+}
+
+.news-card .entry-divider {
+  background: linear-gradient(90deg, rgba(98, 102, 111, 0.14), rgba(236, 238, 242, 0.78), rgba(236, 238, 242, 0));
+}
+
+.entry-body {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 102px minmax(0, 1fr);
+  align-items: center;
+  gap: 17px;
+}
+
+.entry-visual {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 102px;
+  height: 112px;
+  overflow: hidden;
+  border-radius: 20px;
+}
+
+.order-visual {
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.92), rgba(255, 213, 218, 0.76));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8), 0 10px 24px rgba(215, 25, 45, 0.08);
+}
+
+.news-visual {
+  background: linear-gradient(145deg, #f8f9fb, #edf0f4);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.82);
+}
+
+.visual-ring {
+  position: absolute;
+  border: 1px solid rgba(215, 25, 45, 0.11);
+  border-radius: 50%;
+}
+
+.visual-ring-large {
+  top: -33px;
+  right: -35px;
+  width: 100px;
+  height: 100px;
+}
+
+.visual-ring-small {
+  bottom: -20px;
+  left: -14px;
+  width: 54px;
+  height: 54px;
+}
+
+.visual-icon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 23px;
+}
+
+.order-icon {
+  color: #fff;
+  background: linear-gradient(145deg, #f04a59, var(--color-brand) 60%, #b91224);
+  box-shadow: 0 14px 26px rgba(215, 25, 45, 0.24);
+}
+
+.news-icon {
+  color: var(--color-text-secondary);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 10px 20px rgba(27, 28, 32, 0.08);
+}
+
+.entry-content {
+  min-width: 0;
+}
+
+.entry-description {
+  display: block;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.entry-button {
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 15px;
+  box-sizing: border-box;
+  border-radius: 13px;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.entry-button-primary {
+  color: #fff;
+  background: linear-gradient(100deg, #f2515f 0%, var(--color-brand) 62%, #c91428 100%);
+  box-shadow: 0 11px 22px rgba(215, 25, 45, 0.2);
+}
+
+.entry-button-secondary {
+  color: var(--color-brand);
+  border: 1px solid rgba(215, 25, 45, 0.4);
+  background: rgba(255, 255, 255, 0.68);
+}
+
+@media screen and (max-width: 359px) {
+  .home-header,
+  .home-canvas {
+    padding-right: 12px;
+    padding-left: 12px;
+  }
+
+  .welcome-title {
+    font-size: 23px;
+  }
+
+  .entry-card {
+    padding: 16px;
+  }
+
+  .entry-body {
+    grid-template-columns: 84px minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .entry-visual {
+    width: 84px;
+    height: 100px;
+  }
+
+  .visual-icon {
+    width: 62px;
+    height: 62px;
+  }
+
+  .entry-description {
+    font-size: 12px;
+  }
+}
+
+@media screen and (min-width: 560px) {
+  .user-action {
+    padding-right: 13px;
+  }
+
+  .user-name {
+    display: block;
+  }
+}
+
+@media screen and (min-width: 768px) {
+  .home-header {
+    min-height: 68px;
+    padding-right: 24px;
+    padding-left: 24px;
+  }
+
+  .home-canvas {
+    padding: 34px 24px 36px;
+  }
+
+  .welcome-title {
+    margin-bottom: 26px;
+    font-size: 28px;
+  }
+
+  .entry-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+  }
+
+  .entry-card {
+    min-height: 326px;
+    padding: 25px;
+    border-radius: 26px;
+  }
+
+  .entry-heading-title {
+    font-size: 23px;
+  }
+
+  .entry-divider {
+    margin-top: 18px;
+    margin-bottom: 23px;
+  }
+
+  .entry-body {
+    grid-template-columns: 122px minmax(0, 1fr);
+    gap: 21px;
+  }
+
+  .entry-visual {
+    width: 122px;
+    height: 144px;
+  }
+
+  .visual-icon {
+    width: 82px;
+    height: 82px;
+  }
+
+  .entry-description {
+    min-height: 42px;
+    font-size: 14px;
+  }
+
+  .entry-button {
+    min-height: 48px;
+    margin-top: 20px;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .home-canvas {
+    padding-top: 42px;
+  }
 }
 </style>

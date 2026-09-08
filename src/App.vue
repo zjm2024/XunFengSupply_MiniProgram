@@ -6,7 +6,7 @@
 
 <script setup>
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
-import { STARTUP_CONFIG } from './config/startup.js'
+import { STARTUP_CONFIG } from './app/config/startupConfig.js'
 
 /**
  * App 启动时执行
@@ -44,27 +44,7 @@ onHide(() => {
 
 <style lang="scss">
 /* 全局样式引入 */
-@import './styles/reset.scss';
-/* variable.scss 中的 CSS 变量已内联定义在下方 page {} 中 */
-
-/* 全局主题色变量 - 基于 DESIGN_SYSTEM.md V2 色阶 */
-page {
-  --primary-color: #D7192D;
-  --primary-light: #F58A93;
-  --primary-dark: #B91224;
-  --success-color: #168A52;
-  --warning-color: #B76500;
-  --danger-color: #B42318;
-  --text-primary: #111216;
-  --text-secondary: #5E626B;
-  --text-placeholder: #989BA3;
-  --bg-color: #F7F7F8;
-  --border-color: #DEDFE3;
-  --white: #FFFFFF;
-
-  font-size: 28rpx;
-  color: var(--text-primary);
-  background-color: var(--bg-color);
-  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
-}
+@use './shared/styles/variable.scss';
+@use './shared/styles/reset.scss';
+@use './shared/styles/responsive.scss';
 </style>
