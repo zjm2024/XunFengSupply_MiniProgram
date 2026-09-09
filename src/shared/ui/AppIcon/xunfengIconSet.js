@@ -6,6 +6,8 @@ import tabNewsSvg from '../../assets/illustrations/tab-news.svg?raw'
 import tabNewsActiveSvg from '../../assets/illustrations/tab-news-active.svg?raw'
 import tabCartSvg from '../../assets/illustrations/tab-cart.svg?raw'
 import tabCartActiveSvg from '../../assets/illustrations/tab-cart-active.svg?raw'
+import tabAccountSvg from '../../assets/illustrations/tab-account.svg?raw'
+import tabAccountActiveSvg from '../../assets/illustrations/tab-account-active.svg?raw'
 
 /**
  * 薰风商城图标集。
@@ -79,6 +81,8 @@ const tabIconPaths = Object.freeze({
   'tab-news-active': createSvgAssetIcon(tabNewsActiveSvg),
   'tab-cart': createSvgAssetIcon(tabCartSvg),
   'tab-cart-active': createSvgAssetIcon(tabCartActiveSvg),
+  'tab-account': createSvgAssetIcon(tabAccountSvg),
+  'tab-account-active': createSvgAssetIcon(tabAccountActiveSvg),
 })
 
 export const xunfengIconMap = Object.freeze({
@@ -101,6 +105,8 @@ export const xunfengIconMap = Object.freeze({
   right: coreIconPaths['chevron-right'],
   bottom: coreIconPaths['chevron-down'],
   checkmarkempty: coreIconPaths.check,
+  moon: '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+  trash: '<path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14zM10 11v6M14 11v6"/>',
 })
 
 export const xunfengCoreIconNames = Object.freeze(Object.keys(coreIconPaths))

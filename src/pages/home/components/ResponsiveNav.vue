@@ -47,6 +47,7 @@ const tabItems = Object.freeze([
   { key: 'category', label: '分类', inactive: 'tab-category', active: 'tab-category-active' },
   { key: 'news', label: '资讯', inactive: 'tab-news', active: 'tab-news-active' },
   { key: 'cart', label: '购物车', inactive: 'tab-cart', active: 'tab-cart-active' },
+  { key: 'account', label: '我的', inactive: 'tab-account', active: 'tab-account-active' },
 ])
 
 const sidebarItems = Object.freeze([

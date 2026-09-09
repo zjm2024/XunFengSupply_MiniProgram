@@ -62,6 +62,7 @@ export const BILL_DETAIL = '/subPackages/account/pages/bill/detail'
 export const INVOICE = '/subPackages/account/pages/invoice/index'
 export const VOUCHER = '/subPackages/account/pages/voucher/index'
 export const LANGUAGE = '/subPackages/account/pages/language/index'
+export const SETTINGS = '/subPackages/account/pages/settings/index'
 
 // ==================== content：资讯分包 ====================
 
@@ -81,7 +82,7 @@ export const REGISTERED_ROUTES = Object.freeze([
   PRODUCT_LIST, PRODUCT_DETAIL, PRODUCT_VARIANTS, CART, CHECKOUT,
   ORDER_LIST, ORDER_DETAIL, PAY_PAGE, APPLY_AFTER_SALE, AFTER_SALE_LIST,
   ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, SUB_ACCOUNT, SECURITY,
-  RECHARGE, FUND_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE,
+  RECHARGE, FUND_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS,
   NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MESSAGE, HELP, ABOUT,
 ])
 
@@ -301,6 +302,13 @@ export const ROUTE_META = Object.freeze({
     requireAuth: false,
     requireSign: false,
     allowFrozen: true,
+    owner: null,
+  },
+  [SETTINGS]: {
+    title: '设置',
+    requireAuth: true,
+    requireSign: false,
+    allowFrozen: false,
     owner: null,
   },
 
@@ -563,6 +571,7 @@ export const routes = {
     invoice: () => INVOICE,
     voucher: () => VOUCHER,
     language: () => LANGUAGE,
+    settings: () => SETTINGS,
   },
 
   content: {

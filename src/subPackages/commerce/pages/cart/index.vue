@@ -73,7 +73,7 @@
                   <view class="cart-list">
                     <view v-for="item in cartStore.invalidItems" :key="item.cartItemId" class="cart-card is-invalid">
                       <view class="invalid-tag">失效</view>
-                      <image class="product-image" :src="item.image" mode="aspectFit" />
+                      <AppProductImage class="product-image" :src="item.image" :stock="item.stock" />
                       <view class="product-info">
                         <text class="product-name">{{ item.name || `商品 ${item.productId}` }}</text>
                         <text class="product-code">编号：{{ item.code || item.productId }}</text>
@@ -95,10 +95,10 @@
                     </label>
 
                     <!-- 商品图 -->
-                    <image
+                    <AppProductImage
                       class="product-image"
                       :src="item.image"
-                      mode="aspectFit"
+                      :stock="item.stock"
                       @click="goToDetail(item.productId)"
                     />
 
@@ -231,6 +231,7 @@ import appHeader from '../../../../shared/ui/AppHeader/AppHeader.vue'
 import fixedActionBar from '../../../../shared/ui/FixedActionBar/FixedActionBar.vue'
 import QuantityStepper from '../../components/QuantityStepper/QuantityStepper.vue'
 import ConfirmPopup from '../../../../shared/ui/ConfirmPopup/ConfirmPopup.vue'
+import AppProductImage from '../../../../shared/ui/AppProductImage/AppProductImage.vue'
 import AppSvgIllustration from '../../../../shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import cartEmptySvg from '../../../../shared/assets/illustrations/empty-cart.svg?raw'
 

@@ -51,7 +51,7 @@
               v-for="item in detail.items"
               :key="item.orderItemId"
             >
-              <image class="goods-image" :src="item.imageUrl || '/static/images/jersey-red.png'" mode="aspectFill" />
+              <AppProductImage class="goods-image" :src="item.imageUrl" mode="aspectFill" />
               <view class="goods-info">
                 <text class="goods-name">{{ item.productName }}</text>
                 <text class="sku-name">{{ item.skuName }}</text>
@@ -158,6 +158,7 @@ import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'

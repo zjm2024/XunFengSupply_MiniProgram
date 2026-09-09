@@ -1,6 +1,6 @@
 <template>
-  <view class="topbar">
-    <view class="brand-block">
+  <view class="topbar" :class="{ 'topbar--page': activeTab !== 'home' }">
+    <view v-if="activeTab === 'home'" class="brand-block">
       <view class="brand-mark">
         <image class="brand-logo" src="/static/images/logo-v.png" mode="aspectFit" />
       </view>
@@ -10,7 +10,31 @@
       </view>
     </view>
 
-    <view class="header-actions">
+    <view v-else class="page-title-block">
+      <text class="page-title">{{ currentTitle }}</text>
+    </view>
+
+    <view
+      v-if="activeTab === 'category'"
+      class="category-search"
+      hover-class="glass-btn--pressed"
+      aria-label="搜索商品"
+      @click="$emit('search')"
+    >
+      <AppIcon name="search" :size="20" :stroke-width="1.8" />
+      <text class="category-search-text">搜索商品名称 / SKU / 69码</text>
+    </view>
+
+    <view v-else-if="activeTab === 'account'" class="header-actions">
+      <view
+        class="header-action glass-btn"
+        hover-class="glass-btn--pressed"
+        hover-stay-time="80"
+        aria-label="设置"
+        @click="$emit('settings')"
+      >
+        <AppIcon name="settings" :size="21" :stroke-width="1.8" />
+      </view>
       <view
         class="header-action glass-btn"
         hover-class="glass-btn--pressed"
@@ -18,30 +42,32 @@
         aria-label="消息中心"
         @click="$emit('messages')"
       >
-        <AppIcon name="bell" :size="21  " :stroke-width="1.8" />
+        <AppIcon name="bell" :size="21" :stroke-width="1.8" />
         <view v-if="hasUnread" class="unread-dot" />
-      </view>
-      <view
-        class="header-action glass-btn"
-        hover-class="glass-btn--pressed"
-        hover-stay-time="80"
-        aria-label="经销商中心"
-        @click="$emit('account')"
-      >
-        <AppIcon name="user" :size="22" :stroke-width="1.8" />
       </view>
     </view>
   </view>
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 
-defineProps({
+const props = defineProps({
+  activeTab: { type: String, default: 'home' },
   hasUnread: { type: Boolean, default: false },
 })
 
-defineEmits(['messages', 'account'])
+defineEmits(['messages', 'settings', 'search'])
+
+const tabTitles = Object.freeze({
+  category: '分类',
+  news: '资讯',
+  cart: '购物车',
+  account: '我的',
+})
+
+const currentTitle = computed(() => tabTitles[props.activeTab] || '')
 </script>
 
 <style lang="scss" scoped>
@@ -57,9 +83,28 @@ defineEmits(['messages', 'account'])
 
 .brand-block,
 .brand-title-row,
+.page-title-block,
 .header-actions {
   display: flex;
   align-items: center;
+}
+
+.category-search {
+  display: flex;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+  color: #2f3238;
+  background: #e7e8eb;
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.category-search-text {
+  display: none;
 }
 
 .brand-block {
@@ -105,6 +150,18 @@ defineEmits(['messages', 'account'])
   height: 5px;
   border-radius: 50%;
   background: var(--color-brand, #d7192d);
+}
+
+.page-title-block {
+  min-width: 0;
+  flex: 1;
+}
+
+.page-title {
+  color: var(--color-text-primary, #1b1c20);
+  font-size: 21px;
+  font-weight: 760;
+  line-height: 1.2;
 }
 
 .header-actions {
@@ -171,9 +228,32 @@ defineEmits(['messages', 'account'])
     font-size: 20px;
   }
 
+  .page-title {
+    font-size: 24px;
+  }
+
   .glass-btn {
     width: 46px;
     height: 46px;
+  }
+
+  .category-search {
+    width: clamp(240px, 32vw, 360px);
+    height: 44px;
+    padding: 0 16px;
+    justify-content: flex-start;
+    gap: 9px;
+    box-sizing: border-box;
+    border-radius: 22px;
+    color: #737780;
+  }
+
+  .category-search-text {
+    display: block;
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 

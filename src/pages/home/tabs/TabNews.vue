@@ -1,14 +1,5 @@
 <template>
   <view class="tab-page">
-    <view class="page-heading">
-      <view class="heading-copy">
-        <text class="page-kicker">BRAND INFORMATION</text>
-        <text class="page-title">新闻资讯</text>
-        <text class="page-description">掌握品牌公告、产品动态与经销政策。</text>
-      </view>
-      <view class="heading-icon"><AppIcon name="news" :size="28" /></view>
-    </view>
-
     <view class="filter-row">
       <view v-for="filter in filters" :key="filter.key" class="filter-pill" :class="{ 'is-active': activeFilter === filter.key }" @click="selectFilter(filter.key)">
         {{ filter.label }}

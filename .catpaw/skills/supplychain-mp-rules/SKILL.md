@@ -204,6 +204,55 @@ src/
 
 ---
 
+## 标题栏组件统一规范
+
+项目标题栏组件已统一收敛为以下三类，**禁止**在业务页面中自行组合 `AppBackButton` 或其他标题栏：
+
+| 组件 | 路径 | 使用场景 | 特性 |
+|------|------|---------|------|
+| `AppHeader` | `shared/ui/AppHeader/AppHeader.vue` | 约 30 个标准业务页面 | 支持标题居中、返回按钮、消息入口、购物车、语言切换 |
+| `AppCatalogHeader` | `shared/ui/AppCatalogHeader/AppCatalogHeader.vue` | 商品列表页 | 返回 + 搜索 + 排序 + 筛选 |
+| `HomeTopBar` | `pages/home/components/HomeTopBar.vue` | 主 Tab 首页 | Logo、Tab 标题、设置和消息入口 |
+
+三者内部统一复用唯一的 `AppBackButton` 组件（`shared/ui/AppBackButton/AppBackButton.vue`）。
+
+### 使用规范
+
+1. **标准业务页**（账户、安全、语言、订单、帮助等）→ 使用 `<AppHeader>`
+2. **商品列表页** → 使用 `<AppCatalogHeader>`
+3. **首页 Tab** → 使用 `<HomeTopBar>`
+4. **禁止**在页面中直接使用 `AppBackButton` 自行拼接标题栏
+
+### 返回行为
+
+所有返回操作统一走 `navigator.back()`（`app/navigation/navigator.js`），`AppHeader` 内置该调用，无需页面自行处理。
+
+```vue
+<!-- ✅ 正确：标准业务页使用 AppHeader -->
+<AppHeader title="安全设置" :show-back="true" :show-shadow="true" />
+
+<!-- ❌ 错误：自行使用 AppBackButton 拼接标题栏 -->
+<view class="custom-header">
+  <AppBackButton @click="goBack" />
+  <text>安全设置</text>
+</view>
+```
+
+### AppHeader 常用 Props
+
+| Prop | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `title` | String | `''` | 页面标题（绝对居中） |
+| `showBack` | Boolean | `false` | 显示返回按钮 |
+| `showLogo` | Boolean | `false` | 显示 Logo（首页用） |
+| `showMessage` | Boolean | `false` | 显示消息入口 |
+| `unreadCount` | Number | `0` | 未读数，> 0 显示红点 |
+| `showShadow` | Boolean | `false` | 显示底部分割线 |
+| `transparent` | Boolean | `false` | 透明背景（商品详情等） |
+| `theme` | String | `'dark'` | `dark` / `light`（明暗图标） |
+
+---
+
 ## 后端对接清单
 
 当需要对接新接口时，按以下步骤：

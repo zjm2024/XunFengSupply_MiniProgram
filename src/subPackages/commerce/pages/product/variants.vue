@@ -22,7 +22,7 @@
         >
           <view v-if="product" class="batch-layout">
             <view class="product-card">
-              <image class="product-image" :src="product.image" mode="aspectFit" />
+              <AppProductImage class="product-image" :src="product.image" :stock="product.stock" />
               <view class="product-info">
                 <text class="product-name">{{ product.name }}</text>
                 <text class="product-code">货号：{{ product.code || '-' }}</text>
@@ -116,6 +116,7 @@ import AppContent from '../../../../shared/ui/AppContent/AppContent.vue'
 import AppPageState from '../../../../shared/ui/AppPageState/AppPageState.vue'
 import appHeader from '../../../../shared/ui/AppHeader/AppHeader.vue'
 import fixedActionBar from '../../../../shared/ui/FixedActionBar/FixedActionBar.vue'
+import AppProductImage from '../../../../shared/ui/AppProductImage/AppProductImage.vue'
 import quantityStepper from '../../components/QuantityStepper/QuantityStepper.vue'
 
 const productId = ref(0)

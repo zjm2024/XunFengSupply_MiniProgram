@@ -31,7 +31,7 @@
               </view>
 
               <view v-for="item in checkoutItems" :key="item.cartItemId" class="product-row">
-                <image class="product-image" :src="item.image" mode="aspectFit" />
+                <AppProductImage class="product-image" :src="item.image" :stock="item.stock" />
                 <view class="product-info">
                   <text class="product-name">{{ item.name }}</text>
                   <text class="product-spec">{{ item.code || `商品 ${item.productId}` }} · {{ item.quantity }} {{ item.unit }}</text>
@@ -105,6 +105,7 @@ import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import fixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import confirmPopup from '@/shared/ui/ConfirmPopup/ConfirmPopup.vue'
+import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 

@@ -1,4 +1,4 @@
-﻿<!--
+﻿﻿<!--
   售后进度列表页面（分包：afterSaleSub）
   对应业务流程节点：
   售后闭环 → 查看售后审核进度、退货退款/换货补发结果
@@ -47,7 +47,7 @@
 
                 <!-- 商品信息 -->
                 <view class="goods-info">
-                  <image class="goods-img" :src="item.goodsImage" mode="aspectFill" />
+                  <AppProductImage class="goods-img" :src="item.goodsImage" mode="aspectFill" />
                   <view class="goods-detail">
                     <text class="goods-name">{{ item.goodsName }}</text>
                     <text class="apply-reason">原因: {{ item.reason }}</text>
@@ -108,6 +108,7 @@ import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import noOrderSvg from '../../../../shared/assets/illustrations/no-order.svg?raw'
 

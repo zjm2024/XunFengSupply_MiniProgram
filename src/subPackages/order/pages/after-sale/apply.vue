@@ -22,7 +22,7 @@
 
           <!-- 已选商品展示 -->
           <view class="selected-goods" v-if="selectedGoods">
-            <image class="goods-image" :src="selectedGoods.goodsImage" mode="aspectFill" />
+            <AppProductImage class="goods-image" :src="selectedGoods.goodsImage" mode="aspectFill" />
             <view class="goods-info">
               <text class="goods-name">{{ selectedGoods.goodsName }}</text>
               <text class="sku-name">{{ selectedGoods.skuName }}</text>
@@ -118,6 +118,7 @@ import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'

@@ -31,7 +31,7 @@
                 @change="onSwiperChange"
               >
                 <swiper-item v-for="(image, idx) in displayImages" :key="idx">
-                  <image class="main-image" :src="image" mode="aspectFit" />
+                  <AppProductImage class="main-image" :src="image" :stock="product.stock" />
                 </swiper-item>
               </swiper>
               <text v-if="displayImages.length" class="image-counter">
@@ -223,6 +223,7 @@ import AppPageState from '../../../../shared/ui/AppPageState/AppPageState.vue'
 import appHeader from '../../../../shared/ui/AppHeader/AppHeader.vue'
 import fixedActionBar from '../../../../shared/ui/FixedActionBar/FixedActionBar.vue'
 import statusTag from '../../../../shared/ui/StatusTag/StatusTag.vue'
+import AppProductImage from '../../../../shared/ui/AppProductImage/AppProductImage.vue'
 import quantityStepper from '../../components/QuantityStepper/QuantityStepper.vue'
 
 const productId = ref(0)

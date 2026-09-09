@@ -253,6 +253,13 @@
                         "navigationStyle": "custom",
                         "navigationBarTitleText": ""
                     }
+                },
+                {
+                    "path": "pages/settings/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
                 }
             ]
         },

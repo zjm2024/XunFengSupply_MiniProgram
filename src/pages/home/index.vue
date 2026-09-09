@@ -14,9 +14,11 @@
 
       <view class="home-main">
         <HomeTopBar
+          :active-tab="activeTab"
           :has-unread="hasUnread"
+          @search="goToProductSearch"
           @messages="goToMessages"
-          @account="goToAccount"
+          @settings="goToSettings"
         />
 
         <scroll-view class="home-scroll" scroll-y :show-scrollbar="false" :enable-back-to-top="true">
@@ -29,6 +31,7 @@
             <TabCategory v-show="activeTab === 'category'" :active="activeTab === 'category'" />
             <TabNews v-show="activeTab === 'news'" :active="activeTab === 'news'" />
             <TabCart v-show="activeTab === 'cart'" :active="activeTab === 'cart'" />
+            <TabAccount v-show="activeTab === 'account'" :active="activeTab === 'account'" />
           </view>
         </scroll-view>
       </view>
@@ -58,6 +61,7 @@ import TabHome from './tabs/TabHome.vue'
 import TabCategory from './tabs/TabCategory.vue'
 import TabNews from './tabs/TabNews.vue'
 import TabCart from './tabs/TabCart.vue'
+import TabAccount from './tabs/TabAccount.vue'
 
 const messageStore = useMessageStore()
 const { cartStore, loadCart } = useCart({ autoSchedule: false })
@@ -84,14 +88,6 @@ function checkScreenSize() {
 }
 
 async function selectTab(tabKey) {
-  if (tabKey === 'settings') {
-    await navigator.navigateTo(routes.account.security())
-    return
-  }
-  if (tabKey === 'account') {
-    await navigator.navigateTo(routes.account.center())
-    return
-  }
   activeTab.value = tabKey
 }
 
@@ -99,8 +95,12 @@ async function goToMessages() {
   await navigator.navigateTo(routes.content.messages())
 }
 
-async function goToAccount() {
-  await navigator.navigateTo(routes.account.center())
+async function goToProductSearch() {
+  await navigator.navigateTo(routes.commerce.productList({ mode: 'search' }))
+}
+
+async function goToSettings() {
+  await navigator.navigateTo(routes.account.settings())
 }
 
 onMounted(() => {

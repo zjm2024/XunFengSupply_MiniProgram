@@ -68,30 +68,25 @@
       <!-- 右侧区域：微信端停在胶囊左侧，不进入系统胶囊区域 -->
       <view class="nav-right" :style="rightAreaStyle">
         <!-- 消息入口 -->
-        <view v-if="showMessage" class="icon-btn" hover-class="wechat-press" :hover-start-time="0" :hover-stay-time="80" @tap="handleMessage">
-          <view class="icon-message">
-            <view class="msg-envelope"></view>
-            <view v-if="unreadCount > 0" class="unread-dot"></view>
-          </view>
+        <view v-if="showMessage" class="icon-btn" hover-class="header-button--pressed" :hover-start-time="0" :hover-stay-time="80" @tap="handleMessage">
+          <AppIcon name="bell" :size="21" />
+          <view v-if="unreadCount > 0" class="unread-dot" />
         </view>
         <!-- 供应商入口 -->
-        <view v-if="showSupplier" class="icon-btn supplier-btn" hover-class="wechat-press" :hover-start-time="0" :hover-stay-time="80" @tap="handleSupplier">
+        <view v-if="showSupplier" class="icon-btn supplier-btn" hover-class="header-button--pressed" :hover-start-time="0" :hover-stay-time="80" @tap="handleSupplier">
           <text class="supplier-text">供应商</text>
         </view>
         <!-- 语言切换 -->
-        <view v-if="showLanguage" class="lang-btn" hover-class="wechat-press" :hover-start-time="0" :hover-stay-time="80" @tap="handleLanguage">
+        <view v-if="showLanguage" class="icon-btn lang-btn" hover-class="header-button--pressed" :hover-start-time="0" :hover-stay-time="80" @tap="handleLanguage">
           <text class="lang-text">中/EN</text>
         </view>
         <!-- 购物车 -->
-        <view v-if="showCart && cartCount > 0" class="cart-btn" hover-class="wechat-press" :hover-start-time="0" :hover-stay-time="80" @tap="handleCart">
-          <view class="cart-icon">
-            <view class="cart-body-css"></view>
-            <view class="cart-handle-css"></view>
-          </view>
-          <text class="cart-count">{{ cartCount > 99 ? '99+' : cartCount }}</text>
+        <view v-if="showCart && cartCount > 0" class="icon-btn cart-btn" hover-class="header-button--pressed" :hover-start-time="0" :hover-stay-time="80" @tap="handleCart">
+          <AppIcon name="cart" :size="21" />
+          <text class="cart-count-badge">{{ cartCount > 99 ? '99+' : cartCount }}</text>
         </view>
         <!-- 占位 -->
-        <view v-if="!showMessage && !showLanguage && !(showCart && cartCount > 0)" class="placeholder"></view>
+        <view v-if="!showMessage && !showLanguage && !(showCart && cartCount > 0)" class="placeholder" />
       </view>
     </view>
   </view>
@@ -103,6 +98,7 @@ import { useResponsive } from '../../composables/useResponsive.js'
 import { navigator } from '../../../app/navigation/navigator.js'
 import AppBackButton from '../AppBackButton/AppBackButton.vue'
 import AppStatusBarSpacer from '../AppStatusBarSpacer/AppStatusBarSpacer.vue'
+import AppIcon from '../AppIcon/AppIcon.vue'
 
 const props = defineProps({
   /** 页面标题 */
@@ -203,13 +199,11 @@ const rightAreaStyle = computed(() => {
   // #ifdef MP-WEIXIN
   if (menuButton.value) {
     return {
-      right: `calc(100vw - ${menuButton.value.left}px + 8px)`,
+      marginRight: `calc(100vw - ${menuButton.value.left}px + 8px)`,
     }
   }
   // #endif
-  return {
-    right: '8px',
-  }
+  return {}
 })
 
 /**
@@ -234,7 +228,7 @@ const titleStyle = computed(() => {
 // ==================== 样式对象 ====================
 
 const headerStyle = computed(() => ({
-  backgroundColor: props.transparent ? 'transparent' : 'rgba(255, 255, 255, 0.96)',
+  backgroundColor: props.transparent ? 'transparent' : '#f7f8fa',
 }))
 
 const navBarStyle = computed(() => ({
@@ -301,8 +295,8 @@ onUnmounted(() => {
 .app-header {
   position: relative;
   z-index: 100;
-  color: var(--icon-primary, #303238);
-  background: rgba(255, 255, 255, 0.96);
+  color: #4f545c;
+  background: #f7f8fa;
   flex-shrink: 0;
 
   &.theme-light {
@@ -321,13 +315,20 @@ onUnmounted(() => {
   }
 
   &.has-shadow {
-    border-bottom: 1px solid var(--divider-color, #ECEEF2);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   }
 
-  // 横屏时限制最大宽度
+  // 宽屏时居中并限制最大宽度
   &.is-landscape.breakpoint-expanded .nav-bar {
-    max-width: 1366px;
+    max-width: 1240px;
     margin: 0 auto;
+  }
+
+  @media screen and (min-width: 768px) {
+    .nav-bar {
+      max-width: 1240px;
+      margin: 0 auto;
+    }
   }
 }
 
@@ -336,6 +337,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   width: 100%;
+  padding: 6px 12px;
   box-sizing: border-box;
 }
 
@@ -349,14 +351,13 @@ onUnmounted(() => {
 .nav-left {
   position: relative;
   z-index: 2;
-  padding-left: 4px;
 }
 
 .nav-right {
-  position: absolute;
+  position: relative;
   z-index: 2;
-  top: 0;
-  bottom: 0;
+  margin-left: auto;
+  gap: 4px;
   justify-content: flex-end;
 }
 
@@ -402,133 +403,111 @@ onUnmounted(() => {
 // ==================== 图标按钮通用 ====================
 
 .icon-btn {
-  min-width: 44px;
-  min-height: 44px;
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
+  border-radius: 50%;
+  color: #4f545c;
+  background: rgba(231, 232, 235, 0.78);
+}
+
+.header-button--pressed {
+  opacity: 0.66;
+  transform: scale(0.95);
 }
 
 .placeholder {
-  min-width: 44px;
-}
-
-/*
- * 小程序原生 hover-class 点击态。
- * 比单纯 :active 在微信 WebView / 小程序触摸链路上更稳定。
- */
-.wechat-press {
-  opacity: 0.35;
-}
-
-// ==================== 消息图标（纯 CSS）====================
-
-.icon-message {
-  position: relative;
-  width: 22px;
-  height: 18px;
-}
-
-.msg-envelope {
-  width: 100%;
-  height: 100%;
-  border: 2.5px solid currentColor;
-  border-radius: 3px;
-  position: relative;
-
-  &::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: currentColor;
-    border-bottom: 0;
-  }
+  min-width: 12px;
 }
 
 .unread-dot {
   position: absolute;
-  top: -2px;
-  right: -4px;
-  width: 12px;
-  height: 12px;
-  background: var(--primary-color, #D7192D);
+  top: -1px;
+  right: -2px;
+  width: 14px;
+  height: 14px;
+  background: #d7192d;
   border-radius: 50%;
-  border: 2px solid var(--surface-card, #FFFFFF);
+  border: 2px solid #f7f8fa;
 }
 
 // ==================== 供应商入口 ====================
 
-.supplier-btn {
-  padding: 0 12px;
-}
-
 .supplier-text {
   font-size: 13px;
   font-weight: 500;
-  color: var(--text-secondary, #62666F);
+  color: #4f545c;
 }
 
 // ==================== 语言切换 ====================
 
-.lang-btn {
-  min-height: 44px;
-  padding: 0 8px;
-  display: flex;
-  align-items: center;
-}
-
 .lang-text {
-  font-size: 13px; // 稳定 px
+  font-size: 13px;
   font-weight: 600;
-  color: var(--text-secondary, #62666F);
+  color: #4f545c;
 }
 
-// ==================== 购物车图标（纯 CSS）====================
+// ==================== 购物车数量徽章 ====================
 
 .cart-btn {
-  min-width: 44px;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.cart-icon {
   position: relative;
-  width: 20px;
-  height: 18px;
 }
 
-.cart-body-css {
-  width: 100%;
-  height: 12px;
-  border: 2.5px solid currentColor;
-  border-top: none;
-  border-radius: 0 0 5px 5px;
+.cart-count-badge {
   position: absolute;
-  bottom: 0;
-}
-
-.cart-handle-css {
-  width: 10px;
-  height: 2.5px;
-  background: currentColor;
-  position: absolute;
-  top: 3px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-radius: 1px;
-}
-
-.cart-count {
-  font-size: 11px;
+  top: -1px;
+  right: -2px;
+  display: grid;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  box-sizing: border-box;
+  place-items: center;
+  border: 2px solid #f7f8fa;
+  border-radius: 9px;
+  color: #fff;
+  font-size: 8px;
   font-weight: 700;
-  color: var(--primary-color, #D7192D);
-  min-width: 16px;
-  text-align: center;
+  background: #d7192d;
+}
+
+// ==================== 响应式适配 ====================
+
+@media screen and (max-width: 380px) {
+  .nav-bar {
+    padding: 5px 9px;
+  }
+
+  .icon-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .supplier-text,
+  .lang-text {
+    font-size: 12px;
+  }
+}
+
+@media screen and (min-width: 768px) {
+  .nav-bar {
+    padding: 8px 28px;
+  }
+
+  .icon-btn {
+    width: 48px;
+    height: 48px;
+  }
+}
+
+@media screen and (min-width: 1180px) {
+  .nav-bar {
+    padding-right: 36px;
+    padding-left: 36px;
+  }
 }
 </style>

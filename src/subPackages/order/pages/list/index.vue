@@ -1,4 +1,4 @@
-﻿<!--
+﻿﻿<!--
   全部订单列表页面（分包：orderSub）
   对应业务流程节点：
   订单履约发货 → 查看品牌审核结果、待付款、发货状态等全部订单
@@ -56,7 +56,7 @@
 
                 <!-- 商品信息 -->
                 <view class="goods-preview">
-                  <image
+                  <AppProductImage
                     class="goods-img"
                     :src="order.firstItemImageUrl || ''"
                     mode="aspectFill"
@@ -114,6 +114,7 @@ import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import noOrderSvg from '../../../../shared/assets/illustrations/no-order.svg?raw'
 import { navigator } from '@/app/navigation/navigator.js'

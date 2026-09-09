@@ -6,10 +6,11 @@
     @click="emit('click')"
   >
     <view class="app-product-card__image-wrap">
-      <image
+      <AppProductImage
         class="app-product-card__image"
-        :src="product.image || defaultImage"
-        mode="aspectFit"
+        :src="product.image"
+        :stock="product.stock"
+        :fallback-icon-size="variant === 'compact' ? 24 : 30"
       />
     </view>
 
@@ -19,7 +20,7 @@
 
       <view class="app-product-card__price-row">
         <text class="app-product-card__price">¥{{ formattedPrice }}</text>
-        <text class="app-product-card__unit">/{{ product.unit || '件' }}</text>
+        <text v-if="variant !== 'compact'" class="app-product-card__unit">/{{ product.unit || '件' }}</text>
       </view>
 
       <text
@@ -35,6 +36,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import AppProductImage from '../AppProductImage/AppProductImage.vue'
 
 const props = defineProps({
   product: {
@@ -44,7 +46,7 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'row',
-    validator: value => ['row', 'tile'].includes(value),
+    validator: value => ['row', 'tile', 'compact'].includes(value),
   },
   showCode: {
     type: Boolean,
@@ -57,7 +59,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['click'])
-const defaultImage = '/static/images/default-product.png'
 
 const formattedPrice = computed(() => {
   const price = Number(props.product.price)
@@ -108,6 +109,14 @@ const stockText = computed(() => {
   flex-direction: column;
 }
 
+.app-product-card--compact {
+  display: flex;
+  min-height: 86px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .app-product-card__image-wrap {
   flex-shrink: 0;
   padding: 8px;
@@ -126,6 +135,13 @@ const stockText = computed(() => {
   width: 100%;
   aspect-ratio: 1.18 / 1;
   border-bottom: 1px solid rgba(17, 18, 22, 0.04);
+}
+
+.app-product-card--compact .app-product-card__image-wrap {
+  width: 82px;
+  height: 82px;
+  padding: 5px;
+  align-self: center;
 }
 
 .app-product-card__image {
@@ -151,6 +167,10 @@ const stockText = computed(() => {
   padding: 10px;
 }
 
+.app-product-card--compact .app-product-card__body {
+  padding: 10px 8px 9px 4px;
+}
+
 .app-product-card__name {
   display: -webkit-box;
   overflow: hidden;
@@ -169,6 +189,12 @@ const stockText = computed(() => {
   min-height: 36px;
   font-size: 12px;
   line-height: 18px;
+}
+
+.app-product-card--compact .app-product-card__name {
+  font-size: 12px;
+  line-height: 18px;
+  -webkit-line-clamp: 2;
 }
 
 .app-product-card__code {
@@ -217,6 +243,23 @@ const stockText = computed(() => {
 .app-product-card--tile .app-product-card__price {
   font-size: 16px;
   line-height: 22px;
+}
+
+.app-product-card--compact .app-product-card__price-row {
+  padding-top: 5px;
+}
+
+.app-product-card--compact .app-product-card__price {
+  color: #1f2126;
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.app-product-card--compact :deep(.app-product-image__stock-badge) {
+  top: 2px;
+  right: 2px;
+  padding: 3px 5px;
+  font-size: 7px;
 }
 
 .app-product-card--tile .app-product-card__unit {
@@ -288,6 +331,20 @@ const stockText = computed(() => {
 
   .app-product-card--tile .app-product-card__name {
     font-size: 13px;
+  }
+
+  .app-product-card--compact {
+    min-height: 94px;
+  }
+
+  .app-product-card--compact .app-product-card__image-wrap {
+    width: 90px;
+    height: 90px;
+  }
+
+  .app-product-card--compact .app-product-card__name {
+    font-size: 13px;
+    line-height: 19px;
   }
 }
 </style>

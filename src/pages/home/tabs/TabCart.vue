@@ -1,10 +1,5 @@
 <template>
   <view class="tab-page">
-    <view class="page-heading">
-      <view class="heading-copy"><text class="page-kicker">PURCHASE CART</text><text class="page-title">购物车</text><text class="page-description">确认已选商品数量与金额，进入完整购物车可继续编辑。</text></view>
-      <view class="heading-icon"><AppIcon name="cart" :size="28" /></view>
-    </view>
-
     <view v-if="loading && !cartStore.loaded" class="state-box"><view class="loading-dot"></view><text>正在同步购物车...</text></view>
 
     <view v-else-if="!cartStore.isEmpty">
@@ -18,7 +13,7 @@
         <view class="section-heading"><view><text class="section-title">已选货品</text><text class="section-subtitle">展示最近 {{ previewItems.length }} 项</text></view><text class="item-count">共 {{ cartStore.cartBadgeCount }} 件</text></view>
         <view class="cart-list">
           <view v-for="item in previewItems" :key="item.cartItemId" class="cart-item" @click="openProduct(item)">
-            <view class="item-image-wrap"><image class="item-image" :src="item.image || defaultImage" mode="aspectFit" /></view>
+            <view class="item-image-wrap"><AppProductImage class="item-image" :src="item.image" :stock="item.stock" /></view>
             <view class="item-copy"><text class="item-name">{{ item.name || `商品 ${item.productId}` }}</text><text v-if="item.skuName" class="item-spec">{{ item.skuName }}</text><view class="item-price-row"><text class="item-price">¥{{ formatPrice(item.price) }}</text><text class="item-quantity">× {{ item.quantity }}</text></view></view>
             <AppIcon class="item-arrow" name="chevron-right" :size="17" />
           </view>
@@ -45,12 +40,12 @@ import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { useCart } from '@/subPackages/commerce/composables/useCart.js'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import emptyCartSvg from '../../../shared/assets/illustrations/empty-cart.svg?raw'
 
 const props = defineProps({ active: { type: Boolean, default: false } })
 const { cartStore, loading, loadCart } = useCart({ autoSchedule: false })
-const defaultImage = '/static/images/default-product.png'
 const previewItems = computed(() => cartStore.validItems.slice(0, 4))
 
 watch(() => props.active, active => {

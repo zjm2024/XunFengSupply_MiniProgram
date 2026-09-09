@@ -1,4 +1,4 @@
-﻿﻿<template>
+﻿﻿﻿<template>
   <AppPageShell>
     <template #header>
       <app-header title="收货地址" :show-back="true" />
