@@ -81,7 +81,11 @@
               </view>
             </view>
 
-            <AppPageState v-if="!loading && asList.length === 0" state="empty" title="暂无售后记录" />
+            <AppPageState v-if="!loading && asList.length === 0" state="empty" title="暂无售后记录">
+              <template #illustration>
+                <AppSvgIllustration :svg="noOrderSvg" size="lg" />
+              </template>
+            </AppPageState>
 
             <view class="load-more" v-if="asList.length > 0">
               <text v-if="hasMore">加载中...</text>
@@ -104,6 +108,8 @@ import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
+import noOrderSvg from '../../../../shared/assets/illustrations/no-order.svg?raw'
 
 const statusTabs = reactive([
   { value: 0, label: '待审核' },

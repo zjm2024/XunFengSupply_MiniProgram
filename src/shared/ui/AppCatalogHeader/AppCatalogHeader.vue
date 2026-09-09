@@ -11,28 +11,37 @@
 
     <view class="header-content">
       <view v-if="backOnly" class="minimal-nav">
-        <view class="catalog-back-button" hover-class="header-button--pressed" @click="$emit('back')">
-          <AppIcon name="chevron-left" :size="24" :stroke-width="2.2" />
-        </view>
+        <AppBackButton :transparent="transparent" :theme="theme" @click="$emit('back')" />
       </view>
 
       <template v-else>
         <view class="search-nav">
-          <view class="catalog-back-button" hover-class="header-button--pressed" @click="$emit('back')">
-            <AppIcon name="chevron-left" :size="24" :stroke-width="2.2" />
-          </view>
+          <AppBackButton :transparent="transparent" :theme="theme" @click="$emit('back')" />
 
           <view class="search-box">
             <AppIcon class="search-icon" name="search" :size="19" />
+            <view
+              v-if="keywordCommitted && keyword"
+              class="search-keyword-chip"
+              hover-class="search-keyword-chip--pressed"
+              @click="$emit('edit-keyword')"
+            >
+              <text class="search-keyword-text">{{ keyword }}</text>
+              <view class="search-keyword-close" @click.stop="$emit('clear-keyword')">
+                <AppIcon name="close" :size="12" :stroke-width="2" />
+              </view>
+            </view>
             <input
+              v-else
               class="search-input"
               :value="keyword"
               :placeholder="placeholder"
+              :focus="autoFocus"
               confirm-type="search"
               @input="handleKeywordInput"
               @confirm="$emit('search')"
             />
-            <view v-if="keyword" class="search-clear" @click.stop="$emit('clear-keyword')">
+            <view v-if="keyword && !keywordCommitted" class="search-clear" @click.stop="$emit('clear-keyword')">
               <AppIcon name="close" :size="14" />
             </view>
             <view class="search-submit" hover-class="search-submit--pressed" @click="$emit('search')">
@@ -46,7 +55,7 @@
           </view>
         </view>
 
-        <view class="quick-sort-bar">
+        <view v-if="showTools" class="quick-sort-bar">
           <view
             v-for="item in quickSortItems"
             :key="item.key"
@@ -74,24 +83,6 @@
           </view>
         </view>
 
-        <view class="quick-filter-row">
-          <scroll-view class="active-filter-scroll" scroll-x :show-scrollbar="false">
-            <view class="active-filter-list">
-              <view class="category-filter-chip" :class="{ 'is-active': categoryActive }" @click="$emit('filter')">
-                <text>{{ categoryLabel || '分类' }}</text>
-                <AppIcon name="chevron-down" :size="12" />
-              </view>
-              <view v-if="stockFilterLabel" class="active-filter-tag" @click="$emit('remove-filter', 'stock')">
-                <text>{{ stockFilterLabel }}</text>
-                <AppIcon name="close" :size="11" />
-              </view>
-              <view v-if="categoryActive || stockFilterLabel" class="clear-filter-button" @click="$emit('clear-filters')">
-                <text>清除</text>
-              </view>
-            </view>
-          </scroll-view>
-          <text class="result-count">{{ total }} 件</text>
-        </view>
       </template>
     </view>
   </view>
@@ -99,6 +90,7 @@
 
 <script setup>
 import { onMounted, watch } from 'vue'
+import AppBackButton from '../AppBackButton/AppBackButton.vue'
 import AppIcon from '../AppIcon/AppIcon.vue'
 import AppStatusBarSpacer from '../AppStatusBarSpacer/AppStatusBarSpacer.vue'
 
@@ -109,6 +101,9 @@ const props = defineProps({
   statusBarExtra: { type: Number, default: 8 },
   keyword: { type: String, default: '' },
   placeholder: { type: String, default: '搜索商品名称 / SKU / 69码' },
+  autoFocus: { type: Boolean, default: false },
+  keywordCommitted: { type: Boolean, default: false },
+  showTools: { type: Boolean, default: true },
   showCart: { type: Boolean, default: true },
   cartCount: { type: Number, default: 0 },
   total: { type: Number, default: 0 },
@@ -124,6 +119,7 @@ const emit = defineEmits([
   'update:keyword',
   'search',
   'clear-keyword',
+  'edit-keyword',
   'back',
   'cart',
   'sort',
@@ -171,8 +167,8 @@ watch(() => props.theme, applyStatusBarStyle)
   position: relative;
   z-index: 120;
   flex-shrink: 0;
-  border-bottom: 1px solid rgba(17, 18, 22, .045);
-  background: #f4f5f7;
+  border-bottom: 1px solid transparent;
+  background: #f7f8fa;
 }
 
 .app-catalog-header.is-sticky {
@@ -199,7 +195,6 @@ watch(() => props.theme, applyStatusBarStyle)
 
 .minimal-nav,
 .search-nav,
-.catalog-back-button,
 .catalog-cart-button,
 .search-clear,
 .search-submit,
@@ -223,7 +218,6 @@ watch(() => props.theme, applyStatusBarStyle)
   gap: 9px;
 }
 
-.catalog-back-button,
 .catalog-cart-button {
   position: relative;
   width: 44px;
@@ -233,13 +227,6 @@ watch(() => props.theme, applyStatusBarStyle)
   border-radius: 50%;
   color: #22252a;
   background: #e7e8eb;
-}
-
-.is-transparent .catalog-back-button {
-  border: 1px solid rgba(255, 255, 255, .68);
-  background: rgba(255, 255, 255, .82);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
 }
 
 .catalog-cart-button {
@@ -303,6 +290,44 @@ watch(() => props.theme, applyStatusBarStyle)
   color: #a8adb5;
 }
 
+.search-keyword-chip {
+  min-width: 0;
+  max-width: min(56%, 360px);
+  height: 30px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0 7px 0 12px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  color: #34373d;
+  font-size: 13px;
+  background: rgba(255, 255, 255, .72);
+}
+
+.search-keyword-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-keyword-close {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 50%;
+  color: #767b84;
+  background: rgba(72, 76, 84, .08);
+}
+
+.search-keyword-chip--pressed {
+  opacity: .7;
+}
+
 .search-clear {
   width: 26px;
   height: 26px;
@@ -315,9 +340,12 @@ watch(() => props.theme, applyStatusBarStyle)
 
 .search-submit {
   height: 30px;
+  min-width: 62px;
+  margin-left: auto;
   flex-shrink: 0;
   justify-content: center;
   padding: 0 15px;
+  box-sizing: border-box;
   border-left: 1px solid rgba(77, 81, 89, .1);
   color: #24272c;
   font-size: 13px;
@@ -470,7 +498,6 @@ watch(() => props.theme, applyStatusBarStyle)
     gap: 6px;
   }
 
-  .catalog-back-button,
   .catalog-cart-button {
     width: 40px;
     height: 40px;
@@ -501,7 +528,6 @@ watch(() => props.theme, applyStatusBarStyle)
     border-radius: 25px;
   }
 
-  .catalog-back-button,
   .catalog-cart-button {
     width: 48px;
     height: 48px;

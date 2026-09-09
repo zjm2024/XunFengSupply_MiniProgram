@@ -503,8 +503,8 @@ export const routes = {
   },
 
   commerce: {
-    productList: ({ categoryId, keyword } = {}) =>
-      withQuery(PRODUCT_LIST, { categoryId, keyword }),
+    productList: ({ categoryId, keyword, mode } = {}) =>
+      withQuery(PRODUCT_LIST, { categoryId, keyword, mode }),
     productDetail: (productId) => {
       const id = assertValidId(productId, 'productDetail')
       return withQuery(PRODUCT_DETAIL, { productId: id })

@@ -91,7 +91,11 @@
               </view>
             </view>
 
-            <AppPageState v-if="!loading && billList.length === 0" state="empty" title="暂无账单记录" />
+            <AppPageState v-if="!loading && billList.length === 0" state="empty" title="暂无账单记录">
+              <template #illustration>
+                <AppSvgIllustration :svg="noRevenueSvg" size="lg" />
+              </template>
+            </AppPageState>
 
             <view class="load-more" v-if="billList.length > 0">
               <text v-if="hasMore">加载中...</text>
@@ -114,6 +118,8 @@ import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
+import noRevenueSvg from '../../../../shared/assets/illustrations/no-revenue.svg?raw'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 

@@ -7,7 +7,7 @@
 
     <view v-if="loading && !cartStore.loaded" class="state-box"><view class="loading-dot"></view><text>正在同步购物车...</text></view>
 
-    <template v-else-if="!cartStore.isEmpty">
+    <view v-else-if="!cartStore.isEmpty">
       <view class="summary-grid">
         <view class="summary-card summary-card--primary"><text class="summary-label">已选金额</text><text class="summary-value summary-value--amount">{{ cartStore.formattedTotalAmount }}</text><text class="summary-hint">以服务端实时价格为准</text></view>
         <view class="summary-card"><text class="summary-label">商品种类</text><text class="summary-value">{{ cartStore.summary.productCount }}</text><text class="summary-hint">种商品</text></view>
@@ -26,10 +26,12 @@
       </view>
 
       <view class="cart-action" @click="openCart"><view><text class="action-title">进入购物车</text><text class="action-subtitle">调整数量、勾选商品并提交订单</text></view><view class="action-arrow"><AppIcon name="arrow-right" :size="20" /></view></view>
-    </template>
+    </view>
 
     <view v-else class="empty-cart">
-      <view class="empty-icon"><AppIcon name="cart" :size="50" /></view>
+      <view class="empty-illustration">
+        <AppSvgIllustration :svg="emptyCartSvg" size="lg" />
+      </view>
       <text class="empty-title">购物车还是空的</text>
       <text class="empty-text">前往商品分类，选择需要采购的体育用品。</text>
       <view class="primary-button" @click="openProductList"><text>去选购商品</text><AppIcon name="arrow-right" :size="17" /></view>
@@ -43,6 +45,8 @@ import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { useCart } from '@/subPackages/commerce/composables/useCart.js'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
+import emptyCartSvg from '../../../shared/assets/illustrations/empty-cart.svg?raw'
 
 const props = defineProps({ active: { type: Boolean, default: false } })
 const { cartStore, loading, loadCart } = useCart({ autoSchedule: false })
@@ -102,7 +106,7 @@ async function openProductList() { await navigator.navigateTo(routes.commerce.pr
 .action-arrow { display: grid; place-items: center; width: 38px; height: 38px; flex-shrink: 0; border-radius: 50%; background: rgba(255,255,255,.16); }
 .state-box, .empty-cart { display: flex; min-height: 330px; align-items: center; justify-content: center; flex-direction: column; gap: 10px; color: #94979f; font-size: 12px; }
 .loading-dot { width: 24px; height: 24px; border: 3px solid rgba(215,25,45,.12); border-top-color: var(--color-brand, #d7192d); border-radius: 50%; animation: spin .9s linear infinite; }
-.empty-icon { display: grid; place-items: center; width: 92px; height: 92px; border-radius: 30px; color: #c77c14; background: linear-gradient(145deg, #fffaf0, #f9e9c9); box-shadow: 0 14px 28px rgba(164,105,22,.1); }
+.empty-illustration { margin-bottom: 8px; }
 .empty-title { margin-top: 5px; color: #363840; font-size: 18px; font-weight: 750; }
 .empty-text { max-width: 260px; line-height: 1.6; text-align: center; }
 .primary-button { min-height: 44px; margin-top: 8px; padding: 0 20px; justify-content: center; gap: 7px; border-radius: 15px; color: #fff; font-size: 13px; font-weight: 700; background: linear-gradient(100deg, #ef4555, #d7192d); }

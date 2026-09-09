@@ -1,7 +1,7 @@
 ﻿﻿<template>
   <view class="page">
     <app-header :show-back="true" :title="'账户资料'" @back="goBack" />
-    <scroll-view class="page-scroll" scroll-y :style="{ height: scrollHeight }">
+    <scroll-view class="page-scroll" scroll-y>
       <view class="content">
         <view class="form-card">
           <view class="data-row"><text class="row-label">经销商名称</text><text class="row-value">华东体育用品经销商</text></view>
@@ -18,20 +18,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import statusTagNew from '@/shared/ui/StatusTag/StatusTag.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 
-const scrollHeight = ref('calc(100vh - 100px)')
-onMounted(() => { try { const s = uni.getSystemInfoSync(); scrollHeight.value = `calc(100vh - ${(s.statusBarHeight||44) + 56}px)` } catch(e){} })
 function goBack() { navigator.back() }
 function save() { uni.showToast({ title: '资料已更新', icon: 'success' }) }
 </script>
 
 <style lang="scss" scoped>
-.page { min-height: 100vh; background: #F7F7F8; }
-.page-scroll { flex: 1; }
+.page { height: 100vh; height: 100dvh; display: flex; overflow: hidden; flex-direction: column; background: #F7F7F8; }
+.page-scroll { flex: 1; min-height: 0; }
 .content { padding: 24rpx 32rpx; max-width: 1200rpx; margin: 0 auto; }
 
 .form-card { background: white; border: 2rpx solid #EFEFF1; border-radius: 24rpx; overflow: hidden; }

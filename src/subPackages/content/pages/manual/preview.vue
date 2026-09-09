@@ -1,7 +1,7 @@
 ﻿﻿<template>
   <view class="page">
     <app-header :show-back="true" :title="'手册预览'" @back="goBack" />
-    <scroll-view class="page-scroll" scroll-y :style="{ height: scrollHeight }">
+    <scroll-view class="page-scroll" scroll-y>
       <view class="content">
         <text class="manual-title">2026 产品电子手册</text>
         <text class="manual-meta">PDF · 18.6 MB · 更新于 2026-08-10</text>
@@ -25,17 +25,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 
-const scrollHeight = ref('calc(100vh - 100px)')
 const confirmed = ref(false)
 const needConfirm = ref(true)
-
-onMounted(() => {
-  try { const s = uni.getSystemInfoSync(); scrollHeight.value = `calc(100vh - ${(s.statusBarHeight||44) + 56}px)` } catch(e){}
-})
 
 function goBack() { navigator.back() }
 function download() { uni.showToast({ title: '开始下载', icon: 'success' }) }
@@ -43,8 +38,8 @@ function handleConfirm() { uni.showToast({ title: '已确认阅读', icon: 'succ
 </script>
 
 <style lang="scss" scoped>
-.page { min-height: 100vh; background: #F7F7F8; }
-.page-scroll { flex: 1; }
+.page { height: 100vh; height: 100dvh; display: flex; overflow: hidden; flex-direction: column; background: #F7F7F8; }
+.page-scroll { flex: 1; min-height: 0; }
 .content { padding: 32rpx; max-width: 1200rpx; margin: 0 auto; }
 
 .manual-title { font-size: 40rpx; font-weight: 600; color: #111216; display: block; }

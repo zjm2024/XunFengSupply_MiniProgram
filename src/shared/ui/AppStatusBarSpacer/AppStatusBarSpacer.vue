@@ -5,40 +5,47 @@
   使用方式：
     <AppStatusBarSpacer />
     或
-    <AppStatusBarSpacer :extra="8" />  -- 额外高度（rpx）
+    <AppStatusBarSpacer :extra="8" />  -- 额外高度（px）
 -->
 <template>
   <view class="status-bar-spacer" :style="spacerStyle" aria-hidden="true" />
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { computed } from 'vue'
+import { useResponsive } from '../../composables/useResponsive.js'
 
 const props = defineProps({
-  // 额外高度（rpx）
+  // 额外高度（px）
   extra: {
     type: Number,
     default: 0
   }
 })
 
-const statusBarHeight = ref(20) // 默认状态栏高度
+const { layout, safeArea } = useResponsive()
 
-const spacerStyle = computed(() => ({
-  height: `${statusBarHeight.value + props.extra}rpx`
-}))
+const nativeTopInset = computed(() => {
+  let inset = 0
+  // #ifndef H5
+  inset = Math.max(
+    Number(layout.value.statusBarHeight) || 0,
+    Number(safeArea.value.top) || 0,
+  )
+  // #endif
+  return inset
+})
 
-onMounted(() => {
-  try {
-    const systemInfo = uni.getSystemInfoSync()
-    if (systemInfo.statusBarHeight) {
-      // px 转 rpx (750 / windowWidth * px)
-      const windowWidth = systemInfo.windowWidth || 375
-      statusBarHeight.value = Math.round((systemInfo.statusBarHeight * 750) / windowWidth)
-    }
-  } catch (e) {
-    // 使用默认值
-  }
+const spacerStyle = computed(() => {
+  const extra = Math.max(Number(props.extra) || 0, 0)
+  let height = `${nativeTopInset.value + extra}px`
+
+  // H5 没有原生状态栏，只保留浏览器安全区和调用方要求的额外间距。
+  // #ifdef H5
+  height = `calc(${extra}px + env(safe-area-inset-top))`
+  // #endif
+
+  return { height }
 })
 </script>
 

@@ -32,6 +32,10 @@
             </view>
           </template>
 
+          <template #illustration>
+            <AppSvgIllustration :svg="cartEmptySvg" size="lg" />
+          </template>
+
           <!-- 正常内容 -->
           <template #default>
             <view class="cart-layout">
@@ -227,6 +231,8 @@ import appHeader from '../../../../shared/ui/AppHeader/AppHeader.vue'
 import fixedActionBar from '../../../../shared/ui/FixedActionBar/FixedActionBar.vue'
 import QuantityStepper from '../../components/QuantityStepper/QuantityStepper.vue'
 import ConfirmPopup from '../../../../shared/ui/ConfirmPopup/ConfirmPopup.vue'
+import AppSvgIllustration from '../../../../shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
+import cartEmptySvg from '../../../../shared/assets/illustrations/empty-cart.svg?raw'
 
 // ==================== Cart Hook ====================
 const {

@@ -106,16 +106,21 @@ const svgIconMap = Object.freeze({
   ...xunfengIconMap,
 })
 
-const svgIcon = computed(() => svgIconMap[props.name] || '')
+const svgIcon = computed(() => {
+  const icon = svgIconMap[props.name]
+  if (!icon) return null
+  if (typeof icon === 'string') return { viewBox: '0 0 24 24', content: icon }
+  return icon
+})
 const svgMaskImage = computed(() => {
   if (!svgIcon.value) return ''
 
   const svgMarkup = [
-    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"',
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${svgIcon.value.viewBox}"`,
     ' fill="none" stroke="black"',
     ` stroke-width="${props.strokeWidth}"`,
     ' stroke-linecap="round" stroke-linejoin="round">',
-    svgIcon.value,
+    svgIcon.value.content,
     '</svg>',
   ].join('')
 

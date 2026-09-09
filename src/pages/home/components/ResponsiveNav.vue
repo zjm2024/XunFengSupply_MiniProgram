@@ -1,7 +1,5 @@
 <template>
   <view class="responsive-nav" :class="`responsive-nav--${mode}`">
-
-
     <view class="nav-list">
       <view
         v-for="item in displayItems"
@@ -15,9 +13,10 @@
       >
         <view class="nav-icon-wrap">
           <AppIcon
-            :name="resolveIconName(item)"
-            :size="mode === 'sidebar' ? 22 : 20"
-            :stroke-width="1.9"
+            class="nav-svg-icon"
+            :name="getItemIcon(item)"
+            :size="mode === 'sidebar' ? 24 : 22"
+            :stroke-width="1.8"
           />
           <text v-if="item.key === 'cart' && normalizedCartCount" class="cart-badge">
             {{ normalizedCartCount }}
@@ -44,15 +43,14 @@ const props = defineProps({
 defineEmits(['change'])
 
 const tabItems = Object.freeze([
-  { key: 'home', label: '首页', icon: 'home' },
-  { key: 'category', label: '分类', icon: 'category' },
-  { key: 'news', label: '资讯', icon: 'news' },
-  { key: 'cart', label: '购物车', icon: 'cart' },
+  { key: 'home', label: '首页', inactive: 'tab-home', active: 'tab-home-active' },
+  { key: 'category', label: '分类', inactive: 'tab-category', active: 'tab-category-active' },
+  { key: 'news', label: '资讯', inactive: 'tab-news', active: 'tab-news-active' },
+  { key: 'cart', label: '购物车', inactive: 'tab-cart', active: 'tab-cart-active' },
 ])
 
 const sidebarItems = Object.freeze([
   ...tabItems,
-
 ])
 
 const displayItems = computed(() => (props.mode === 'sidebar' ? sidebarItems : tabItems))
@@ -63,8 +61,8 @@ const normalizedCartCount = computed(() => {
   return count > 99 ? '99+' : String(count)
 })
 
-function resolveIconName(item) {
-  return props.activeTab === item.key ? `tab-${item.key}-active` : item.icon
+function getItemIcon(item) {
+  return props.activeTab === item.key ? item.active : item.inactive
 }
 
 </script>
@@ -172,10 +170,8 @@ function resolveIconName(item) {
   display: none;
 }
 
-.responsive-nav--bottom .nav-icon-wrap :deep(.app-icon) {
-  position: relative;
-  z-index: 1;
-  background: #999;
+.responsive-nav--bottom .nav-svg-icon {
+  flex: 0 0 auto;
 }
 
 .responsive-nav--bottom .nav-item.is-active .nav-icon-wrap {
@@ -188,8 +184,8 @@ function resolveIconName(item) {
   display: none;
 }
 
-.responsive-nav--bottom .nav-item.is-active .nav-icon-wrap :deep(.app-icon) {
-  background: var(--color-brand, #d7192d);
+.responsive-nav--bottom .nav-item.is-active .nav-svg-icon {
+  opacity: 1;
 }
 
 .responsive-nav--bottom .nav-label {
@@ -205,9 +201,9 @@ function resolveIconName(item) {
   position: relative;
   z-index: 110;
   display: flex;
-  width: 80px;
+  width: 100px;
   height: 100%;
-  padding: max(18px, env(safe-area-inset-top)) 10px 18px;
+  padding: 18px 10px;
   flex-direction: column;
   background: transparent;
 }
@@ -264,10 +260,8 @@ function resolveIconName(item) {
   display: none;
 }
 
-.responsive-nav--sidebar .nav-icon-wrap :deep(.app-icon) {
-  position: relative;
-  z-index: 1;
-  background: #999;
+.responsive-nav--sidebar .nav-svg-icon {
+  flex: 0 0 auto;
 }
 
 .responsive-nav--sidebar .nav-item.is-active .nav-icon-wrap {
@@ -280,8 +274,8 @@ function resolveIconName(item) {
   display: none;
 }
 
-.responsive-nav--sidebar .nav-item.is-active .nav-icon-wrap :deep(.app-icon) {
-  background: var(--color-brand, #d7192d);
+.responsive-nav--sidebar .nav-item.is-active .nav-svg-icon {
+  opacity: 1;
 }
 
 .responsive-nav--sidebar .nav-item--pressed {

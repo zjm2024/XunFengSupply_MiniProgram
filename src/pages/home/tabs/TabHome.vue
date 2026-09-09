@@ -1,11 +1,8 @@
 <template>
   <view class="home-tab tab-page">
-    <view class="welcome-banner">
-      <view class="welcome-icon"><AppIcon name="sparkles" :size="24" /></view>
-      <view class="welcome-copy">
-        <text class="welcome-title">欢迎使用薰风 B2B 采购商城</text>
-        <text class="welcome-text">快速完成体育用品批量订货，及时获取品牌公告与供应链行业资讯。</text>
-      </view>
+    <view class="home-search-entry" hover-class="card--pressed" @click="openSearch">
+      <AppIcon name="search" :size="20" :stroke-width="1.8" />
+      <text class="home-search-placeholder">搜索商品名称 / SKU / 69码</text>
     </view>
 
     <view class="entry-grid">
@@ -52,7 +49,7 @@
       </view>
 
       <view v-if="loading" class="product-grid">
-        <view v-for="index in 8" :key="index" class="product-card product-card--skeleton">
+        <view v-for="index in 8" :key="index" class="product-card-skeleton">
           <view class="skeleton-image"></view>
           <view class="skeleton-line skeleton-line--wide"></view>
           <view class="skeleton-line"></view>
@@ -60,27 +57,20 @@
       </view>
 
       <view v-else-if="products.length" class="product-grid">
-        <view
+        <AppProductCard
           v-for="product in products"
           :key="product.productId"
-          class="product-card"
-          hover-class="card--pressed"
+          :product="product"
+          variant="tile"
+          :show-code="false"
           @click="openProduct(product)"
-        >
-          <view class="product-image-wrap">
-            <image class="product-image" :src="product.image || defaultImage" mode="aspectFit" />
-            <view v-if="product.stock > 0" class="stock-dot">有货</view>
-          </view>
-          <text class="product-name">{{ product.name || '薰风精选商品' }}</text>
-          <view class="product-meta">
-            <text class="product-price">¥{{ formatPrice(product.price) }}</text>
-            <text class="product-unit">/{{ product.unit || '件' }}</text>
-          </view>
-        </view>
+        />
       </view>
 
       <view v-else class="empty-recommend">
-        <AppIcon name="product" :size="38" />
+        <view class="empty-illustration">
+          <AppSvgIllustration :svg="noSearchResultSvg" size="lg" />
+        </view>
         <text>推荐商品正在更新</text>
       </view>
 
@@ -100,12 +90,14 @@ import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { getGoodsList } from '@/subPackages/commerce/api/productApi.js'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import AppProductCard from '@/shared/ui/AppProductCard/AppProductCard.vue'
+import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
+import noSearchResultSvg from '../../../shared/assets/illustrations/no-search-result.svg?raw'
 
 const props = defineProps({ active: { type: Boolean, default: false } })
 
 defineEmits(['select-tab'])
 
-const defaultImage = '/static/images/default-product.png'
 const loading = ref(false)
 const loaded = ref(false)
 const products = ref([])
@@ -134,10 +126,6 @@ async function loadRecommendations() {
   }
 }
 
-function formatPrice(price) {
-  return Number(price || 0).toFixed(2)
-}
-
 async function openProduct(product) {
   if (!product?.productId) return
   await navigator.navigateTo(routes.commerce.productDetail(product.productId))
@@ -145,6 +133,10 @@ async function openProduct(product) {
 
 async function openProductList() {
   await navigator.navigateTo(routes.commerce.productList())
+}
+
+async function openSearch() {
+  await navigator.navigateTo(routes.commerce.productList({ mode: 'search' }))
 }
 
 async function openCategoryTab() {
@@ -162,26 +154,33 @@ async function openCategoryTab() {
   box-sizing: border-box;
 }
 
-.welcome-banner,
+.home-search-entry,
 .entry-card,
 .feature-strip,
 .recommend-section {
-  border: 1px solid rgba(255, 255, 255, 0.86);
   background: rgba(255, 255, 255, 0.72);
   box-shadow: 0 16px 42px rgba(51, 39, 42, 0.065), inset 0 1px 0 rgba(255, 255, 255, 0.9);
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
 }
 
-.welcome-banner {
-  display: none;
+.home-search-entry {
+  display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 17px 20px;
-  border-radius: 22px;
+  min-height: 48px;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 0 6px 0 16px;
+  box-sizing: border-box;
+  border-radius: 25px;
+  color: #7e838c;
+  border-color: rgba(39, 42, 48, .035);
+  background: #e6e7e9;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
-.welcome-icon,
 .section-mark {
   display: grid;
   place-items: center;
@@ -190,11 +189,28 @@ async function openCategoryTab() {
   background: rgba(215, 25, 45, 0.08);
 }
 
-.welcome-icon { width: 44px; height: 44px; border-radius: 15px; }
-.welcome-copy, .section-copy { display: flex; min-width: 0; flex-direction: column; }
-.welcome-copy { gap: 3px; }
-.welcome-title { font-size: 16px; font-weight: 750; }
-.welcome-text, .section-subtitle { color: var(--color-text-secondary, #666a73); font-size: 12px; line-height: 1.6; }
+.home-search-placeholder {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-search-action {
+  height: 36px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  border-left: 1px solid rgba(67, 70, 77, .08);
+  color: #24272c;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.section-copy { display: flex; min-width: 0; flex-direction: column; }
+.section-subtitle { color: var(--color-text-secondary, #666a73); font-size: 12px; line-height: 1.6; }
 
 .entry-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 
@@ -291,18 +307,11 @@ async function openCategoryTab() {
 .section-link--mobile { min-height: 42px; margin-top: 16px; border: 1px solid rgba(215, 25, 45, 0.18); border-radius: 13px; background: rgba(255, 255, 255, 0.62); }
 
 .product-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
-.product-card { min-width: 0; padding: 10px; box-sizing: border-box; border: 1px solid rgba(53, 55, 63, 0.06); border-radius: 17px; background: rgba(255, 255, 255, 0.74); transition: transform 160ms ease, opacity 160ms ease; }
-.product-image-wrap { position: relative; width: 100%; aspect-ratio: 1.18; overflow: hidden; border-radius: 13px; background: linear-gradient(145deg, #fafafa, #f0f1f4); }
-.product-image { width: 100%; height: 100%; }
-.stock-dot { position: absolute; top: 7px; right: 7px; padding: 3px 7px; border-radius: 9px; color: #21834b; font-size: 9px; font-weight: 700; background: rgba(235, 251, 241, 0.92); }
-.product-name { display: -webkit-box; min-height: 36px; margin-top: 9px; overflow: hidden; font-size: 12px; font-weight: 650; line-height: 18px; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.product-meta { margin-top: 5px; align-items: baseline; }
-.product-price { color: var(--color-brand, #d7192d); font-size: 15px; font-weight: 760; }
-.product-unit { color: #999ca3; font-size: 10px; }
 .empty-recommend { display: flex; min-height: 150px; align-items: center; justify-content: center; flex-direction: column; gap: 10px; color: #9a9da4; font-size: 13px; }
-.product-card--skeleton { min-height: 166px; }
+.empty-illustration { margin-bottom: 4px; }
+.product-card-skeleton { min-width: 0; min-height: 210px; padding: 10px; box-sizing: border-box; border: 1px solid rgba(17, 18, 22, 0.055); border-radius: 16px; background: #fff; }
 .skeleton-image, .skeleton-line { border-radius: 10px; background: linear-gradient(90deg, #f0f1f3, #fafafa, #f0f1f3); background-size: 200% 100%; animation: shimmer 1.4s infinite linear; }
-.skeleton-image { height: 104px; }
+.skeleton-image { width: 100%; aspect-ratio: 1.18 / 1; }
 .skeleton-line { width: 54%; height: 9px; margin-top: 8px; }
 .skeleton-line--wide { width: 86%; }
 .copyright { padding: 26px 0 2px; color: #a1a2a8; font-size: 11px; text-align: center; }
@@ -311,16 +320,16 @@ async function openCategoryTab() {
 @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
 
 @media screen and (min-width: 800px) {
-  .tab-page { padding: 18px 24px 18px; }
-  .welcome-banner, .feature-strip { display: flex; }
-  .entry-grid { grid-template-columns: minmax(0, 58fr) minmax(0, 38fr); margin-top: 18px; }
+  .tab-page { padding: 18px 10px 18px; }
+  .home-search-entry { min-height: 52px; margin-bottom: 18px; padding-left: 18px; }
+  .feature-strip { display: flex; }
+  .entry-grid { grid-template-columns: minmax(0, 58fr) minmax(0, 38fr); }
   .entry-card { min-height: 230px; padding: 26px; }
   .news-card .entry-copy { max-width: 58%; }
   .product-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
   .recommend-section { padding: 22px; }
   .section-link--desktop { display: flex; }
   .section-link--mobile { display: none; }
-  .product-name { font-size: 13px; }
 }
 
 @media screen and (min-width: 1100px) {

@@ -1,4 +1,4 @@
-﻿<template>
+﻿﻿<template>
   <view class="page">
     <AppCatalogHeader
       v-model:keyword="keyword"
@@ -6,6 +6,10 @@
       :total="total"
       :sort-key="sortKey"
       :filter-count="activeFilterCount"
+      :auto-focus="searchMode"
+      :keyword-committed="keywordCommitted"
+      :show-cart="!searchMode"
+      :show-tools="showCatalogTools"
       :category-label="activeCategoryPath.length ? activeCategoryPath[activeCategoryPath.length - 1].name : '分类'"
       :category-active="activeCategoryPath.length > 0"
       :stock-filter-label="activeStockFilterLabel"
@@ -13,6 +17,7 @@
       @cart="goToCart"
       @search="handleSearch"
       @clear-keyword="clearKeyword"
+      @edit-keyword="startKeywordEditing"
       @sort="handleQuickSort"
       @filter="filterDrawerVisible = true"
       @remove-filter="removeFilter"
@@ -20,8 +25,25 @@
     />
 
     <!-- 可滚动区域：商品列表 -->
-    <scroll-view class="page-scroll" scroll-y @scrolltolower="loadMore">
+    <scroll-view
+      class="page-scroll"
+      scroll-y
+      scroll-with-animation
+      :scroll-top="listScrollTop"
+      @scroll="handleListScroll"
+      @scrolltolower="loadMore"
+      enhanced
+      enable-back-to-top
+    >
       <view class="scroll-inner">
+      <ProductSearchLanding
+        v-if="showSearchLanding"
+        :history="searchHistory"
+        :recommendations="searchRecommendations"
+        @search="runSuggestedSearch"
+        @clear-history="clearSearchHistory"
+      />
+      <template v-else>
       <!-- 加载状态 -->
       <view v-if="loading && products.length === 0" class="loading-state">
         <view class="loading-spinner"></view>
@@ -30,34 +52,23 @@
 
       <!-- 空状态 -->
       <view v-else-if="!loading && products.length === 0" class="empty-state">
-        <AppIcon class="empty-icon" name="category" :size="64" />
-        <text class="empty-text">暂无商品</text>
-        <text class="empty-subtext">请尝试其他分类或搜索关键词</text>
+        <view class="empty-illustration">
+          <AppSvgIllustration :svg="noSearchResultSvg" size="lg" />
+        </view>
+        <text class="empty-text">{{ searchMode ? '未找到相关商品' : '暂无商品' }}</text>
+        <text class="empty-subtext">
+          {{ searchMode ? `没有找到“${keyword}”，请更换关键词后重试` : '请尝试其他分类或搜索关键词' }}
+        </text>
       </view>
 
       <!-- 商品网格 -->
       <view v-else class="product-grid">
-        <view
+        <AppProductCard
           v-for="item in products"
           :key="item.productId"
-          class="product-card"
+          :product="item"
           @click="goToDetail(item)"
-        >
-          <view class="card-image-wrapper">
-            <image class="card-image" :src="item.image || '/static/images/default-product.png'" mode="aspectFill" />
-          </view>
-          <view class="card-body">
-            <text class="card-name">{{ item.name }}</text>
-            <text class="card-code" v-if="item.code">{{ item.code }}</text>
-            <view class="card-price-row">
-              <text class="card-price">¥{{ formatPrice(item.price) }}</text>
-              <text class="card-unit">/{{ item.unit || '件' }}</text>
-            </view>
-            <text class="card-stock" :class="getStockClass(item)">
-              {{ getStockText(item) }}<text v-if="item.moq > 0"> · {{ item.moq }}{{ item.unit || '件' }}起订</text>
-            </text>
-          </view>
-        </view>
+        />
       </view>
 
       <!-- 加载更多 -->
@@ -70,8 +81,19 @@
       <view v-else-if="!hasMore && products.length > 0" class="no-more">
         <text class="no-more-text">— 没有更多了 —</text>
       </view>
+      </template>
       </view>
     </scroll-view>
+
+    <view
+      class="back-to-top"
+      :class="{ 'is-visible': showBackToTop && !showSearchLanding }"
+      hover-class="back-to-top--pressed"
+      @click="scrollToTop"
+    >
+      <AppIcon name="chevron-up" :size="19" :stroke-width="2.2" />
+      <text class="back-to-top-label">顶部</text>
+    </view>
 
     <ProductFilterDrawer
       :visible="filterDrawerVisible"
@@ -86,7 +108,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useCart } from '../../composables/useCart.js'
 import { navigator } from '../../../../app/navigation/navigator.js'
@@ -94,7 +116,11 @@ import { routes } from '../../../../app/config/routes.js'
 import { getCategoryList, getGoodsList } from '../../api/productApi.js'
 import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
 import AppCatalogHeader from '../../../../shared/ui/AppCatalogHeader/AppCatalogHeader.vue'
+import AppProductCard from '../../../../shared/ui/AppProductCard/AppProductCard.vue'
 import ProductFilterDrawer from '../../components/ProductFilterDrawer/ProductFilterDrawer.vue'
+import ProductSearchLanding from '../../components/ProductSearchLanding/ProductSearchLanding.vue'
+import AppSvgIllustration from '../../../../shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
+import noSearchResultSvg from '../../../../shared/assets/illustrations/no-search-result.svg?raw'
 
 const SORT_QUERY = Object.freeze({
   default: { field: '', order: '', label: '综合排序' },
@@ -111,9 +137,27 @@ const STOCK_FILTER_LABELS = Object.freeze({
   outOfStock: '暂时缺货',
 })
 
+const SEARCH_HISTORY_KEY = 'commerce.product.search.history'
+const SEARCH_HISTORY_LIMIT = 10
+const SEARCH_RECOMMENDATIONS = Object.freeze([
+  '羽毛球拍',
+  '比赛羽毛球',
+  '运动服套装',
+  '羽毛球鞋',
+  '训练用球',
+  '球拍线',
+  '羽毛球包',
+  '运动护具',
+  '团队采购',
+])
+
 const { cartStore, loadCart } = useCart()
 
 const keyword = ref('')
+const searchMode = ref(false)
+const hasSearched = ref(false)
+const keywordCommitted = ref(false)
+const searchHistory = ref([])
 const activeCategoryId = ref(null)
 const categoryTree = ref([])
 const activeCategoryPath = ref([])
@@ -128,6 +172,9 @@ const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 const hasMore = ref(true)
+const listScrollTop = ref(0)
+const showBackToTop = ref(false)
+let currentListScrollTop = 0
 let productRequestId = 0
 
 // 购物车数量
@@ -138,13 +185,31 @@ const canLoadMore = computed(() => hasMore.value && !loading.value)
 const activeSort = computed(() => SORT_QUERY[sortKey.value] || SORT_QUERY.default)
 const activeStockFilterLabel = computed(() => STOCK_FILTER_LABELS[stockFilter.value] || '')
 const activeFilterCount = computed(() => Number(activeCategoryPath.value.length > 0) + Number(Boolean(stockFilter.value)))
+const showSearchLanding = computed(() => searchMode.value && !hasSearched.value)
+const showCatalogTools = computed(() => {
+  if (showSearchLanding.value) return false
+  if (!searchMode.value) return true
+  return loading.value || products.value.length > 0
+})
+const searchRecommendations = computed(() => SEARCH_RECOMMENDATIONS)
+
+watch(keyword, value => {
+  if (searchMode.value && hasSearched.value && !value.trim()) {
+    resetSearchLanding()
+  }
+})
 
 onLoad((options = {}) => {
   keyword.value = decodeRouteValue(options.keyword)
+  searchMode.value = options.mode === 'search'
+  hasSearched.value = !searchMode.value || Boolean(keyword.value.trim())
+  keywordCommitted.value = Boolean(keyword.value.trim())
   activeCategoryId.value = options.categoryId ?? null
+  loadSearchHistory()
 })
 
 onMounted(async () => {
+  if (showSearchLanding.value) return
   await Promise.all([
     loadCategories(),
     loadProducts()
@@ -170,6 +235,7 @@ async function loadCategories() {
 
 // 加载商品列表
 async function loadProducts(isLoadMore = false) {
+  if (searchMode.value && !keyword.value.trim()) return
   if (isLoadMore && loading.value) return
   if (isLoadMore && !hasMore.value) return
 
@@ -236,20 +302,100 @@ async function loadProducts(isLoadMore = false) {
 
 // 加载更多
 function loadMore() {
+  if (showSearchLanding.value) return
   if (canLoadMore.value) {
     loadProducts(true)
   }
 }
 
 // 搜索
-function handleSearch() {
+async function handleSearch() {
+  const normalizedKeyword = keyword.value.trim()
+  if (searchMode.value && !normalizedKeyword) {
+    resetSearchLanding()
+    return
+  }
+
+  keyword.value = normalizedKeyword
+  keywordCommitted.value = Boolean(normalizedKeyword)
+  if (searchMode.value) {
+    hasSearched.value = true
+    saveSearchKeyword(normalizedKeyword)
+  }
+
+  if (!categoryTree.value.length) {
+    await loadCategories()
+  }
   refreshProducts()
+}
+
+function handleListScroll(event) {
+  const st = Number(event?.detail?.scrollTop) || 0
+  currentListScrollTop = st
+  showBackToTop.value = st > 300
+}
+
+function scrollToTop() {
+  listScrollTop.value = -1
+  setTimeout(() => {
+    listScrollTop.value = 0
+  }, 0)
 }
 
 function clearKeyword() {
   if (!keyword.value) return
   keyword.value = ''
+  if (searchMode.value) {
+    resetSearchLanding()
+    return
+  }
   refreshProducts()
+}
+
+function startKeywordEditing() {
+  keywordCommitted.value = false
+}
+
+function runSuggestedSearch(value) {
+  keyword.value = String(value || '').trim()
+  handleSearch()
+}
+
+function loadSearchHistory() {
+  try {
+    const stored = uni.getStorageSync(SEARCH_HISTORY_KEY)
+    searchHistory.value = Array.isArray(stored) ? stored.filter(Boolean).slice(0, SEARCH_HISTORY_LIMIT) : []
+  } catch (_) {
+    searchHistory.value = []
+  }
+}
+
+function saveSearchKeyword(value) {
+  if (!value) return
+  const nextHistory = [value, ...searchHistory.value.filter(item => item !== value)].slice(0, SEARCH_HISTORY_LIMIT)
+  searchHistory.value = nextHistory
+  try {
+    uni.setStorageSync(SEARCH_HISTORY_KEY, nextHistory)
+  } catch (_) {}
+}
+
+function clearSearchHistory() {
+  searchHistory.value = []
+  try {
+    uni.removeStorageSync(SEARCH_HISTORY_KEY)
+  } catch (_) {}
+}
+
+function resetSearchLanding() {
+  productRequestId += 1
+  loading.value = false
+  products.value = []
+  total.value = 0
+  page.value = 1
+  hasMore.value = false
+  hasSearched.value = false
+  keywordCommitted.value = false
+  scrollToTop()
 }
 
 function handleQuickSort(type) {
@@ -292,6 +438,7 @@ function clearFilters() {
 function refreshProducts() {
   page.value = 1
   hasMore.value = true
+  scrollToTop()
   loadProducts(false)
 }
 
@@ -313,26 +460,6 @@ function decodeRouteValue(value) {
   } catch (_) {
     return String(value)
   }
-}
-
-// 格式化价格
-function formatPrice(price) {
-  if (typeof price !== 'number') return '0.00'
-  return price.toFixed(2)
-}
-
-// 获取库存文本
-function getStockText(item) {
-  if (item.stock === 0) return '暂无库存'
-  if (item.stock < 50) return `仅剩 ${item.stock} ${item.unit || '件'}`
-  return '有货'
-}
-
-// 获取库存样式类
-function getStockClass(item) {
-  if (item.stock === 0) return 'stock-empty'
-  if (item.stock < 50) return 'stock-low'
-  return 'stock-normal'
 }
 
 // 导航方法
@@ -377,14 +504,58 @@ function goToDetail(item) {
 .page-scroll {
   flex: 1;
   min-height: 0;
-  padding: 14px 14px 28px;
   box-sizing: border-box;
+  background: #f7f8fa;
 }
 
 .scroll-inner {
   width: 100%;
   max-width: 1240px;
   margin: 0 auto;
+  padding: 14px 14px 28px;
+  box-sizing: border-box;
+}
+
+.back-to-top {
+  position: fixed;
+  z-index: 150;
+  right: 18px;
+  bottom: calc(22px + env(safe-area-inset-bottom));
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  box-sizing: border-box;
+  border: 1px solid rgba(215, 25, 45, .14);
+  border-radius: 50%;
+  color: #c51b2c;
+  background: rgba(255, 255, 255, .94);
+  box-shadow: 0 6px 18px rgba(34, 37, 42, .1);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px) scale(.94);
+  transition: opacity .18s ease, transform .18s ease;
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+
+.back-to-top.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) scale(1);
+}
+
+.back-to-top--pressed {
+  opacity: .72;
+  transform: scale(.95);
+}
+
+.back-to-top-label {
+  margin-top: 1px;
+  font-size: 9px;
+  line-height: 11px;
 }
 
 .search-nav,
@@ -475,7 +646,7 @@ function goToDetail(item) {
     height: 100%;
     border: none;
     background: transparent;
-    font-size: 15px;
+    font-size: 13px;
     color: #111216;
 
     &::placeholder {
@@ -670,101 +841,8 @@ function goToDetail(item) {
 
 .product-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(1, minmax(0, 1fr));
   gap: 12px;
-}
-
-.product-card {
-  min-width: 0;
-  background: #fff;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(17, 18, 22, 0.055);
-  box-shadow: 0 5px 20px rgba(17, 18, 22, 0.035);
-  transition: transform .16s ease, box-shadow .16s ease;
-
-  &:active {
-    transform: scale(.985);
-    box-shadow: 0 3px 12px rgba(17, 18, 22, .06);
-  }
-}
-
-.card-image-wrapper {
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  background: #f3f4f6;
-  overflow: hidden;
-}
-
-.card-image {
-  width: 100%;
-  height: 100%;
-  display: block;
-  object-fit: cover;
-  object-position: center;
-}
-
-.card-body {
-  padding: 11px 11px 12px;
-}
-
-.card-name {
-  display: -webkit-box;
-  min-height: 40px;
-  overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 20px;
-  color: #191b1f;
-}
-
-.card-code {
-  display: block;
-  margin-top: 5px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 11px;
-  line-height: 16px;
-  color: #9ca1aa;
-}
-
-.card-price-row {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-
-.card-price {
-  color: #d7192d;
-  font-size: 18px;
-  line-height: 24px;
-  font-weight: 700;
-  letter-spacing: -.2px;
-}
-
-.card-unit {
-  margin-left: 3px;
-  color: #7a7f88;
-  font-size: 11px;
-}
-
-.card-stock {
-  display: block;
-  min-height: 18px;
-  margin-top: 5px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 11px;
-  line-height: 18px;
-
-  &.stock-normal { color: #259b63; }
-  &.stock-low { color: #d58b13; }
-  &.stock-empty { color: #a2a6ad; }
 }
 
 .loading-state,
@@ -801,14 +879,18 @@ function goToDetail(item) {
 }
 
 .empty-state {
-  padding: 52px 0;
+  width: 100%;
+  max-width: 430px;
+  min-height: 260px;
+  margin: 24px auto 0;
+  padding: 42px 28px;
+  box-sizing: border-box;
+  border-radius: 24px;
   text-align: center;
+  background: transparent;
 }
 
-.empty-icon {
-  width: 58px;
-  height: 58px;
-  color: #c9cdd3;
+.empty-illustration {
   margin-bottom: 16px;
 }
 
@@ -848,8 +930,10 @@ function goToDetail(item) {
 
 @media screen and (min-width: 600px) {
   .product-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
     gap: 14px;
   }
+
 }
 
 @media screen and (min-width: 768px) {
@@ -861,9 +945,20 @@ function goToDetail(item) {
     padding: 16px 28px 40px;
   }
 
+  .back-to-top {
+    right: 32px;
+    bottom: calc(30px + env(safe-area-inset-bottom));
+    width: 54px;
+    height: 54px;
+  }
+
   .search-box {
     height: 48px;
     border-radius: 25px;
+
+    .search-input {
+      font-size: 15px;
+    }
   }
 
   .catalog-back-button,
@@ -886,55 +981,12 @@ function goToDetail(item) {
     gap: 18px;
   }
 
-  .product-card {
-    display: grid;
-    min-height: 190px;
-    grid-template-columns: minmax(132px, 43%) minmax(0, 1fr);
-    border-radius: 18px;
-  }
-
-  .card-image-wrapper {
-    height: 100%;
-    aspect-ratio: auto;
-    background: #fff;
-  }
-
-  .card-image {
-    object-fit: contain;
-  }
-
-  .card-body {
-    display: flex;
-    padding: 14px 14px 15px;
-    flex-direction: column;
-  }
-
-  .card-name {
-    min-height: 44px;
-    font-size: 15px;
-    line-height: 22px;
-  }
-
-  .card-price-row {
-    margin-top: auto;
-    padding-top: 12px;
-  }
-
-  .card-price {
-    font-size: 20px;
-    line-height: 26px;
-  }
 }
 
 @media screen and (min-width: 768px) and (orientation: landscape) {
   .product-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 16px;
-  }
-
-  .product-card {
-    min-height: 174px;
-    grid-template-columns: minmax(118px, 42%) minmax(0, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
   }
 }
 
@@ -947,6 +999,10 @@ function goToDetail(item) {
   .page-scroll {
     padding-left: 36px;
     padding-right: 36px;
+  }
+
+  .product-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 </style>

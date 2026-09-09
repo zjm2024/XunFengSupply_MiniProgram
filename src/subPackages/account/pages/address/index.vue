@@ -46,8 +46,11 @@
               state="empty"
               title="暂无收货地址"
               description="请添加您的收货地址"
-              icon-type="address"
-            />
+            >
+              <template #illustration>
+                <AppSvgIllustration :svg="noAddressSvg" size="lg" />
+              </template>
+            </AppPageState>
           </view>
 
           <!-- 添加地址按钮 -->
@@ -70,6 +73,8 @@ import statusTagNew from '@/shared/ui/StatusTag/StatusTag.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
+import noAddressSvg from '../../../../shared/assets/illustrations/no-address.svg?raw'
 import { navigator } from '@/app/navigation/navigator.js'
 
 // TODO: 接入后端地址接口后替换为 store 数据

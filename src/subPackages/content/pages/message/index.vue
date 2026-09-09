@@ -66,7 +66,11 @@
               </view>
             </view>
 
-            <AppPageState v-if="!loading && messageList.length === 0" state="empty" title="暂无消息" icon-type="message" />
+            <AppPageState v-if="!loading && messageList.length === 0" state="empty" title="暂无消息">
+              <template #illustration>
+                <AppSvgIllustration :svg="noMessageSvg" size="lg" />
+              </template>
+            </AppPageState>
 
             <view class="load-more" v-if="messageList.length > 0">
               <text v-if="hasMore">加载中...</text>
@@ -89,6 +93,8 @@ import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
+import noMessageSvg from '../../../../shared/assets/illustrations/no-message.svg?raw'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 

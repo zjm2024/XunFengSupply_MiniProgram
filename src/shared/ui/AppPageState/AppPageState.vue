@@ -346,6 +346,19 @@ export default {
       position: relative;
     }
 
+    // SVG 插图样式（更大尺寸）
+    &.icon-svg {
+      width: 360rpx;
+      height: 360rpx;
+      background: transparent;
+      border-radius: 0;
+
+      .css-icon {
+        width: 100%;
+        height: 100%;
+      }
+    }
+
     // 各状态图标色彩
     &.icon-default { background: $color-gray-50; color: $color-gray-400; }
     &.icon-cart { background: #FDECEA; color: $color-error; }

@@ -46,18 +46,12 @@
       <!-- 左侧区域 -->
       <view class="nav-left">
         <!-- 返回按钮 -->
-        <view
+        <AppBackButton
           v-if="showBack"
-          class="back-btn"
-          hover-class="wechat-press"
-          :hover-start-time="0"
-          :hover-stay-time="80"
-          @tap="handleBack"
-        >
-          <view class="back-icon">
-            <view class="arrow-left"></view>
-          </view>
-        </view>
+          :transparent="transparent"
+          :theme="theme"
+          @click="handleBack"
+        />
         <!-- Logo（首页） -->
         <view v-else-if="showLogo" class="logo-btn" hover-class="wechat-press" :hover-start-time="0" :hover-stay-time="80" @tap="handleHome">
           <text class="logo-text">薰风</text>
@@ -107,6 +101,7 @@
 import { computed, onMounted, onUnmounted, watch } from 'vue'
 import { useResponsive } from '../../composables/useResponsive.js'
 import { navigator } from '../../../app/navigation/navigator.js'
+import AppBackButton from '../AppBackButton/AppBackButton.vue'
 import AppStatusBarSpacer from '../AppStatusBarSpacer/AppStatusBarSpacer.vue'
 
 const props = defineProps({
@@ -363,39 +358,6 @@ onUnmounted(() => {
   top: 0;
   bottom: 0;
   justify-content: flex-end;
-}
-
-// ==================== 返回按钮 ====================
-
-.back-btn {
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.back-icon {
-  width: 24px;
-  height: 24px;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/*
- * 微信原生风格 chevron：
- * 不使用文本字符，避免不同字体/平台字形发生变化。
- * 2px 线宽比原来的 3px 更接近系统返回箭头。
- */
-.arrow-left {
-  width: 10px;
-  height: 10px;
-  border-left: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  transform: rotate(45deg);
-  margin-left: 4px;
 }
 
 // ==================== Logo ====================

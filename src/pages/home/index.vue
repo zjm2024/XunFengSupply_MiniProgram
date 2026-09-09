@@ -1,6 +1,6 @@
 <template>
   <view class="home-page" :class="{ 'is-large-screen': isLargeScreen }">
-    <AppStatusBarSpacer v-if="!isLargeScreen" />
+    <AppStatusBarSpacer />
 
     <view class="home-layout">
       <view v-if="isLargeScreen" class="sidebar-container">
@@ -124,7 +124,7 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .home-page {
-  --home-bg: linear-gradient(155deg, #fffdfd 0%, #fff5f6 42%, #f4f5f8 100%);
+  --home-bg: #f4f5f6;
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -148,7 +148,7 @@ onUnmounted(() => {
 
 .sidebar-container {
   flex-shrink: 0;
-  background: rgba(255, 252, 252, 0.76);
+  background: transparent;
 }
 
 .home-main {
@@ -171,15 +171,8 @@ onUnmounted(() => {
 }
 
 @media screen and (min-width: 800px) {
-  .home-page {
-    background:
-      radial-gradient(circle at 18% 8%, rgba(215, 25, 45, 0.08), transparent 32%),
-      radial-gradient(circle at 92% 78%, rgba(215, 25, 45, 0.04), transparent 30%),
-      #f7f8fa;
-  }
-
   .home-layout {
-    background: rgba(255, 252, 252, 0.76);
+    background: transparent;
   }
 
   .home-main {
@@ -188,7 +181,7 @@ onUnmounted(() => {
   }
 
   .home-scroll {
-    background: rgba(255, 252, 252, 0.76);
+    background: transparent;
   }
 }
 </style>

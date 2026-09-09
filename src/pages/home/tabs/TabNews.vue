@@ -37,7 +37,12 @@
       </view>
     </view>
 
-    <view v-else class="state-box"><AppIcon name="news" :size="46" /><text class="state-title">暂无最新资讯</text><text>品牌动态发布后将在这里展示</text></view>
+    <view v-else class="state-box">
+      <view class="state-illustration">
+        <AppSvgIllustration :svg="noNotificationSvg" size="lg" />
+      </view>
+      <text class="state-title">暂无最新资讯</text><text>品牌动态发布后将在这里展示</text>
+    </view>
 
     <view class="full-page-link" @click="openNewsList"><text>查看更多资讯</text><AppIcon name="arrow-right" :size="17" /></view>
   </view>
@@ -49,6 +54,8 @@ import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { getNewsList } from '@/subPackages/content/api/news.js'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
+import noNotificationSvg from '../../../shared/assets/illustrations/no-notification.svg?raw'
 
 const props = defineProps({ active: { type: Boolean, default: false } })
 const filters = Object.freeze([
@@ -125,6 +132,7 @@ async function openNewsList() {
 .item-title { display: -webkit-box; margin-top: 4px; overflow: hidden; font-size: 13px; font-weight: 680; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .item-arrow { color: #a0a3aa; }
 .state-box { display: flex; min-height: 280px; align-items: center; justify-content: center; flex-direction: column; gap: 9px; color: #94979f; font-size: 12px; }
+.state-illustration { margin-bottom: 4px; }
 .state-title { color: #454850; font-size: 15px; font-weight: 700; }
 .loading-dot { width: 24px; height: 24px; border: 3px solid rgba(215,25,45,.12); border-top-color: var(--color-brand, #d7192d); border-radius: 50%; animation: spin .9s linear infinite; }
 .full-page-link { width: fit-content; min-height: 44px; margin: 18px auto 0; padding: 0 20px; justify-content: center; gap: 7px; border: 1px solid rgba(215,25,45,.18); border-radius: 15px; color: var(--color-brand, #d7192d); font-size: 13px; font-weight: 700; background: rgba(255,255,255,.72); }

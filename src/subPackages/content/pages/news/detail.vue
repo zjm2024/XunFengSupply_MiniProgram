@@ -1,7 +1,7 @@
 ﻿﻿<template>
   <view class="page">
     <app-header :show-back="true" :title="'新闻详情'" @back="goBack" />
-    <scroll-view class="page-scroll" scroll-y :style="{ height: scrollHeight }">
+    <scroll-view class="page-scroll" scroll-y>
       <view class="content">
         <view v-if="loading" class="article-state">加载中...</view>
         <view v-else-if="errorText" class="article-state article-state--error" @click="loadDetail">
@@ -20,13 +20,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import { getNewsDetail } from '../../api/news.js'
 import { navigator } from '@/app/navigation/navigator.js'
 
-const scrollHeight = ref('calc(100vh - 100px)')
 const announcementId = ref(0)
 const loading = ref(false)
 const errorText = ref('')
@@ -35,10 +34,6 @@ const detail = ref(null)
 onLoad((options) => {
   announcementId.value = Number(options?.id || 0)
   loadDetail()
-})
-
-onMounted(() => {
-  try { const s = uni.getSystemInfoSync(); scrollHeight.value = `calc(100vh - ${(s.statusBarHeight||44) + 56}px)` } catch(e){}
 })
 
 async function loadDetail() {
@@ -64,8 +59,8 @@ function goBack() { navigator.back() }
 </script>
 
 <style lang="scss" scoped>
-.page { min-height: 100vh; background: #F7F7F8; }
-.page-scroll { flex: 1; }
+.page { height: 100vh; height: 100dvh; display: flex; overflow: hidden; flex-direction: column; background: #F7F7F8; }
+.page-scroll { flex: 1; min-height: 0; }
 .content { padding: 32rpx; max-width: 1200rpx; margin: 0 auto; background: white; border-radius: 24rpx; margin-top: 24rpx; }
 
 .article-title { font-size: 42rpx; font-weight: 600; color: #111216; display: block; line-height: 1.4; }

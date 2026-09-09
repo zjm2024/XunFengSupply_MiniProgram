@@ -68,8 +68,11 @@
               state="empty"
               title="暂无优惠券"
               description="更多优惠活动敬请期待"
-              icon-type="voucher"
-            />
+            >
+              <template #illustration>
+                <AppSvgIllustration :svg="noCouponSvg" size="lg" />
+              </template>
+            </AppPageState>
           </view>
 
           <!-- 兑换码入口 -->
@@ -102,6 +105,8 @@ import statusTagNew from '@/shared/ui/StatusTag/StatusTag.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
+import noCouponSvg from '../../../../shared/assets/illustrations/no-coupon.svg?raw'
 
 const tabs = [
   { key: 'available', label: '可使用' },

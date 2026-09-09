@@ -339,11 +339,12 @@ describe('Routes - routes 工厂函数', () => {
     expect(routes.commerce.productList()).toBe(PRODUCT_LIST)
   })
 
-  it('commerce.productList({ categoryId, keyword }) 应包含参数', () => {
-    const url = routes.commerce.productList({ categoryId: 5, keyword: 'test' })
+  it('commerce.productList({ categoryId, keyword, mode }) 应包含参数', () => {
+    const url = routes.commerce.productList({ categoryId: 5, keyword: 'test', mode: 'search' })
     expect(url).toContain(PRODUCT_LIST)
     expect(url).toContain('categoryId=5')
     expect(url).toContain('keyword=test')
+    expect(url).toContain('mode=search')
   })
 
   it('commerce.productDetail(id) 应包含 productId 参数', () => {

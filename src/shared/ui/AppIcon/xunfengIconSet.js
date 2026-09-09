@@ -1,3 +1,12 @@
+import tabHomeSvg from '../../assets/illustrations/tab-home.svg?raw'
+import tabHomeActiveSvg from '../../assets/illustrations/tab-home-active.svg?raw'
+import tabCategorySvg from '../../assets/illustrations/tab-category.svg?raw'
+import tabCategoryActiveSvg from '../../assets/illustrations/tab-category-active.svg?raw'
+import tabNewsSvg from '../../assets/illustrations/tab-news.svg?raw'
+import tabNewsActiveSvg from '../../assets/illustrations/tab-news-active.svg?raw'
+import tabCartSvg from '../../assets/illustrations/tab-cart.svg?raw'
+import tabCartActiveSvg from '../../assets/illustrations/tab-cart-active.svg?raw'
+
 /**
  * 薰风商城图标集。
  * 统一规范：24 × 24 画布、圆角线条、默认 1.8px、单色 currentColor。
@@ -53,14 +62,28 @@ const coreIconPaths = Object.freeze({
   globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.3 2.5 3.5 5.5 3.5 9S14.3 18.5 12 21c-2.3-2.5-3.5-5.5-3.5-9S9.7 5.5 12 3z"/>',
   image: '<rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9" r="1.5"/><path d="m5.5 18 4.5-4.5 3 3 2.5-2.5 3 4"/>',
   sparkles: '<path d="M12 2.8c.7 3.4 2.4 5.1 5.8 5.8-3.4.7-5.1 2.4-5.8 5.8-.7-3.4-2.4-5.1-5.8-5.8 3.4-.7 5.1-2.4 5.8-5.8z"/><path d="M18.2 14.2c.4 2 1.4 3 3.4 3.4-2 .4-3 1.4-3.4 3.4-.4-2-1.4-3-3.4-3.4 2-.4 3-1.4 3.4-3.4zM5 14.6c.3 1.4 1 2.1 2.4 2.4-1.4.3-2.1 1-2.4 2.4-.3-1.4-1-2.1-2.4-2.4 1.4-.3 2.1-1 2.4-2.4z"/>',
-  'tab-home-active': '<path fill="black" stroke="none" fill-rule="evenodd" d="M3.5 10.2 12 3l8.5 7.2v9.3A1.5 1.5 0 0 1 19 21H5a1.5 1.5 0 0 1-1.5-1.5zm5.5 4.3V21h6v-6.5z"/>',
-  'tab-category-active': '<rect fill="black" stroke="none" x="3" y="3" width="7" height="7" rx="2"/><rect fill="black" stroke="none" x="14" y="3" width="7" height="7" rx="2"/><rect fill="black" stroke="none" x="3" y="14" width="7" height="7" rx="2"/><path fill="black" stroke="none" d="m17.5 14 3.5 3.5-3.5 3.5-3.5-3.5z"/>',
-  'tab-news-active': '<path fill="black" stroke="none" fill-rule="evenodd" d="M5 4h14a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8h2zm4 4v1.5h8V8zm0 4v1.5h8V12zm0 4v1.5h5V16z"/>',
-  'tab-cart-active': '<path fill="black" stroke="none" d="M3 4h2.2l1.6 10.1a2 2 0 0 0 2 1.7h8.9a2 2 0 0 0 1.9-1.4L21 8H6zm6 14.8a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4zm9 0a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4z"/>',
+})
+
+function createSvgAssetIcon(svg) {
+  const viewBox = svg.match(/\bviewBox=["']([^"']+)["']/i)?.[1] || '0 0 24 24'
+  const content = svg.match(/<svg\b[^>]*>([\s\S]*?)<\/svg>/i)?.[1]?.trim() || ''
+  return Object.freeze({ viewBox, content })
+}
+
+const tabIconPaths = Object.freeze({
+  'tab-home': createSvgAssetIcon(tabHomeSvg),
+  'tab-home-active': createSvgAssetIcon(tabHomeActiveSvg),
+  'tab-category': createSvgAssetIcon(tabCategorySvg),
+  'tab-category-active': createSvgAssetIcon(tabCategoryActiveSvg),
+  'tab-news': createSvgAssetIcon(tabNewsSvg),
+  'tab-news-active': createSvgAssetIcon(tabNewsActiveSvg),
+  'tab-cart': createSvgAssetIcon(tabCartSvg),
+  'tab-cart-active': createSvgAssetIcon(tabCartActiveSvg),
 })
 
 export const xunfengIconMap = Object.freeze({
   ...coreIconPaths,
+  ...tabIconPaths,
   package: coreIconPaths.product,
   box: coreIconPaths.product,
   user: coreIconPaths.account,
