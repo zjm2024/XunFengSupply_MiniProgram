@@ -42,9 +42,10 @@ function getUserSnapshot() {
       isSigned: !!userStore.isSigned,
       isFrozen: !!userStore.isFrozen,
       isMainAccount: !!userStore.isMainAccount,
+      permissions: Array.isArray(userStore.permissions) ? [...userStore.permissions] : [],
     }
   } catch (e) {
-    return { isLogin: false, isSigned: false, isFrozen: false, isMainAccount: false }
+    return { isLogin: false, isSigned: false, isFrozen: false, isMainAccount: false, permissions: [] }
   }
 }
 
@@ -173,22 +174,6 @@ function handleBlocked(method, url, verdict) {
     })
   }
 
-  if (reason === 'NOT_SIGNED') {
-    if (_isHandlingAuth) return Promise.resolve(false)
-    _isHandlingAuth = true
-
-    return new Promise((resolve) => {
-      uni.reLaunch({
-        url: routes.auth.applySign(),
-        complete: () => {
-          setTimeout(() => { _isHandlingAuth = false }, 500)
-        },
-        success: () => resolve(false),
-        fail: () => resolve(false),
-      })
-    })
-  }
-
   if (reason === 'ACCOUNT_FROZEN') {
     return new Promise((resolve) => {
       uni.reLaunch({
@@ -201,6 +186,11 @@ function handleBlocked(method, url, verdict) {
 
   if (reason === 'MAIN_ACCOUNT_ONLY') {
     console.warn('[Navigator] 非主账号，拒绝访问:', { path })
+    return safeBackOrHome().then(() => false)
+  }
+
+  if (reason === 'PERMISSION_DENIED') {
+    uni.showToast({ title: '当前账号没有访问权限', icon: 'none' })
     return safeBackOrHome().then(() => false)
   }
 

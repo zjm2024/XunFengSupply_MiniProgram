@@ -8,7 +8,7 @@
       <AppContent padding="16px var(--page-padding-x, 16px) 28px">
         <view class="address-page">
           <view v-if="selectMode" class="select-notice">
-            <AppIcon name="location" :size="17" color="#D7192D" />
+            <AppIcon name="location" :size="17" color="#4F6475" />
             <text>请选择本次订单的收货地址</text>
           </view>
 
@@ -32,7 +32,7 @@
                   :key="item.id"
                   class="address-card"
                   :class="{ 'is-default': item.isDefault, 'is-selectable': selectMode }"
-                  @click="selectAddress(item)"
+                  @tap="selectAddress(item)"
                 >
                   <view class="address-marker">
                     <AppIcon name="location" :size="21" />
@@ -46,11 +46,9 @@
                     <text class="address-detail">{{ item.fullAddress }}</text>
                   </view>
                   <AppIcon v-if="selectMode" name="chevron-right" :size="18" color="#A2A5AC" />
-                  <view v-else class="card-actions" @click.stop>
-                    <button class="action-btn" @click="openEditForm(item)">编辑</button>
-                    <button v-if="!item.isDefault" class="action-btn" @click="setDefault(item)">设为默认</button>
-                    <button class="action-btn danger" @click="removeAddress(item)">删除</button>
-                  </view>
+                  <button v-else class="manage-btn" aria-label="管理地址" @tap.stop="manageAddress(item)">
+                    <AppIcon name="more-v" :size="20" color="#5F646C" />
+                  </button>
                 </view>
               </view>
             </template>
@@ -60,8 +58,8 @@
     </template>
 
     <template #footer>
-      <FixedActionBar>
-        <button class="add-address-btn" @click="openCreateForm">
+      <FixedActionBar v-if="pageState !== PageStatus.EMPTY">
+        <button class="add-address-btn" @tap="openCreateForm">
           <AppIcon name="plus" :size="18" color="#FFFFFF" />
           <text>新增收货地址</text>
         </button>
@@ -69,14 +67,14 @@
     </template>
   </AppPageShell>
 
-  <view v-if="formVisible" class="form-mask" @click="closeForm">
-    <view class="form-panel" @click.stop>
+  <view v-if="formVisible" class="form-mask" @tap="closeForm">
+    <view class="form-panel" @tap.stop>
       <view class="form-header">
         <view>
           <text class="form-title">{{ editingId ? '编辑收货地址' : '新增收货地址' }}</text>
           <text class="form-subtitle">用于物流配送及订单地址快照</text>
         </view>
-        <button class="close-btn" aria-label="关闭" @click="closeForm">
+        <button class="close-btn" aria-label="关闭" @tap="closeForm">
           <AppIcon name="close" :size="20" />
         </button>
       </view>
@@ -90,7 +88,7 @@
             </label>
             <label class="field-item">
               <text class="field-label">联系电话</text>
-              <input v-model="form.phone" class="field-input" type="number" maxlength="20" placeholder="请输入手机号或座机" />
+              <input v-model="form.phone" class="field-input" type="text" maxlength="20" placeholder="请输入手机号或座机" />
             </label>
           </view>
 
@@ -114,19 +112,20 @@
             />
           </label>
 
-          <view class="default-row" @click="form.isDefault = !form.isDefault">
+          <view class="default-row" @tap="form.isDefault = !form.isDefault">
             <view>
               <text class="default-title">设为默认地址</text>
               <text class="default-desc">结算时优先使用该地址</text>
             </view>
             <switch :checked="form.isDefault" color="#D7192D" @change="form.isDefault = $event.detail.value" />
           </view>
+          <text v-if="formError" class="form-error">{{ formError }}</text>
         </view>
       </scroll-view>
 
       <view class="form-footer">
-        <button class="cancel-btn" :disabled="saving" @click="closeForm">取消</button>
-        <button class="save-btn" :disabled="saving" @click="saveAddress">
+        <button class="cancel-btn" :disabled="saving" @tap="closeForm">取消</button>
+        <button class="save-btn" :disabled="saving" @tap="saveAddress">
           {{ saving ? '保存中…' : '保存地址' }}
         </button>
       </view>
@@ -162,6 +161,7 @@ const selectMode = ref(false)
 const formVisible = ref(false)
 const editingId = ref(0)
 const saving = ref(false)
+const formError = ref('')
 
 const emptyForm = () => ({
   name: '',
@@ -216,6 +216,7 @@ function emitSelectedAddress(item) {
 function resetForm(address = null) {
   Object.assign(form, emptyForm(), address || {})
   editingId.value = Number(address?.id) || 0
+  formError.value = ''
 }
 
 function openCreateForm() {
@@ -238,11 +239,13 @@ function handleRegionChange(event) {
   form.province = values[0] || ''
   form.city = values[1] || ''
   form.district = values[2] || ''
+  formError.value = ''
 }
 
 function validateForm() {
   if (!form.name.trim()) return '请输入收货人姓名'
   if (!form.phone.trim()) return '请输入联系电话'
+  if (!/^[0-9+()\-\s]{6,20}$/.test(form.phone.trim())) return '请输入正确的联系电话'
   if (!hasRegion.value) return '请选择所在地区'
   if (!form.detail.trim()) return '请输入详细地址'
   return ''
@@ -251,29 +254,55 @@ function validateForm() {
 async function saveAddress() {
   const validationMessage = validateForm()
   if (validationMessage) {
+    formError.value = validationMessage
     uni.showToast({ title: validationMessage, icon: 'none' })
     return
   }
 
+  formError.value = ''
   saving.value = true
+  const wasEditing = Boolean(editingId.value)
   try {
+    uni.hideKeyboard?.()
     const payload = { ...form, id: editingId.value }
-    const savedId = editingId.value
+    let savedId = editingId.value
       ? (await updateAddress(payload), editingId.value)
-      : Number(await createAddress(payload))
-    formVisible.value = false
+      : await createAddress(payload)
     await loadAddresses()
-    uni.showToast({ title: editingId.value ? '地址已更新' : '地址已新增', icon: 'success' })
+    if (!savedId) {
+      savedId = addressList.value.find(item => (
+        item.name === form.name.trim()
+        && item.phone === form.phone.trim()
+        && item.detail === form.detail.trim()
+      ))?.id || 0
+    }
+    formVisible.value = false
+    uni.showToast({ title: wasEditing ? '地址已更新' : '地址已新增', icon: 'success' })
 
     if (selectMode.value && savedId) {
       const saved = addressList.value.find(item => item.id === savedId)
       if (saved) emitSelectedAddress(saved)
     }
   } catch (error) {
-    uni.showToast({ title: error?.message || '地址保存失败', icon: 'none' })
+    formError.value = error?.message || '地址保存失败，请检查后重试'
+    uni.showToast({ title: formError.value, icon: 'none' })
   } finally {
     saving.value = false
   }
+}
+
+function manageAddress(item) {
+  const actions = [
+    { label: '编辑地址', handler: () => openEditForm(item) },
+    ...(!item.isDefault
+      ? [{ label: '设为默认地址', handler: () => setDefault(item) }]
+      : []),
+    { label: '删除地址', handler: () => removeAddress(item) },
+  ]
+  uni.showActionSheet({
+    itemList: actions.map(action => action.label),
+    success: result => actions[result.tapIndex]?.handler(),
+  })
 }
 
 async function setDefault(item) {
@@ -317,10 +346,10 @@ function removeAddress(item) {
   gap: 8px;
   margin-bottom: 12px;
   padding: 11px 13px;
-  border: 1px solid #F1D7DB;
+  border: 1px solid #DEE4E9;
   border-radius: 12px;
-  color: #8B2433;
-  background: #FFF7F8;
+  color: #4F6475;
+  background: #F6F8FA;
   font-size: 13px;
 }
 
@@ -332,7 +361,7 @@ function removeAddress(item) {
 
 .address-card {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-columns: 42px minmax(0, 1fr) 36px;
   gap: 12px;
   align-items: center;
   padding: 16px;
@@ -342,7 +371,7 @@ function removeAddress(item) {
   box-sizing: border-box;
 
   &.is-default {
-    border-color: rgba(215, 25, 45, 0.28);
+    border-color: #D7DAE0;
   }
 
   &.is-selectable {
@@ -357,8 +386,8 @@ function removeAddress(item) {
   align-items: center;
   justify-content: center;
   border-radius: 12px;
-  color: #D7192D;
-  background: #FFF1F3;
+  color: #50657A;
+  background: #EEF2F5;
 }
 
 .card-main {
@@ -386,8 +415,8 @@ function removeAddress(item) {
 .default-tag {
   padding: 2px 7px;
   border-radius: 999px;
-  color: #D7192D;
-  background: #FFF0F2;
+  color: #4C6072;
+  background: #EEF2F5;
   font-size: 10px;
 }
 
@@ -399,17 +428,21 @@ function removeAddress(item) {
   line-height: 20px;
 }
 
-.card-actions {
-  grid-column: 1 / -1;
+.manage-btn {
   display: flex;
-  justify-content: flex-end;
-  gap: 6px;
-  margin-top: 2px;
-  padding-top: 12px;
-  border-top: 1px solid #F0F1F3;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: #F4F5F7;
+
+  &::after { border: 0; }
 }
 
-.action-btn,
 .close-btn,
 .cancel-btn,
 .save-btn,
@@ -418,19 +451,6 @@ function removeAddress(item) {
 
   &::after {
     border: 0;
-  }
-}
-
-.action-btn {
-  min-height: 32px;
-  padding: 0 10px;
-  border: 0;
-  color: #62656D;
-  background: transparent;
-  font-size: 12px;
-
-  &.danger {
-    color: #B42318;
   }
 }
 
@@ -463,7 +483,8 @@ function removeAddress(item) {
 .form-panel {
   display: flex;
   width: 100%;
-  max-height: min(88vh, 720px);
+  height: 88vh;
+  max-height: 720px;
   flex-direction: column;
   overflow: hidden;
   border-radius: 20px 20px 0 0;
@@ -514,6 +535,8 @@ function removeAddress(item) {
 }
 
 .form-scroll {
+  width: 100%;
+  height: 0;
   min-height: 0;
   flex: 1;
 }
@@ -593,6 +616,16 @@ function removeAddress(item) {
   display: block;
 }
 
+.form-error {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #9B2C25;
+  background: #FFF3F2;
+  font-size: 12px;
+  line-height: 18px;
+}
+
 .default-title {
   color: #22242A;
   font-size: 14px;
@@ -643,6 +676,8 @@ function removeAddress(item) {
 
   .form-panel {
     max-width: 640px;
+    height: auto;
+    min-height: 560px;
     border-radius: 20px;
   }
 

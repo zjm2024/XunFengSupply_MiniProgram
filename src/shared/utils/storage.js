@@ -3,7 +3,7 @@
  *
  * 存储键命名规范（xf_b2b_ 前缀）：
  *   认证域：token, refreshToken, tokenExpiresIn
- *   用户域：userId, username, realName, nickname, avatarUrl, isAdmin, roleIds, permissions, dealerInfo, creditScore
+ *   用户域：用户、经销商主体、权限和财务上下文
  *   业务域：cart_items（购物车）, order_pending（待付款订单）
  */
 
@@ -15,7 +15,8 @@ const STORAGE_PREFIX = 'xf_b2b_'
 const AUTH_KEYS = ['token', 'refreshToken', 'tokenExpiresIn']
 const USER_KEYS = [
   'userId', 'username', 'realName', 'nickname', 'avatarUrl',
-  'isAdmin', 'roleIds', 'permissions', 'dealerInfo', 'creditScore'
+  'isAdmin', 'roleIds', 'permissions', 'dealerInfo', 'creditScore',
+  'dealerId', 'dealerStatus', 'accountStatus', 'isMainAccount', 'financeContext'
 ]
 const BUSINESS_KEYS = ['cart_items', 'order_pending', 'order_detail_cache']
 

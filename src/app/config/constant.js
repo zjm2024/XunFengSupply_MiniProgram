@@ -123,6 +123,7 @@ export const FULFILLMENT_STATUS = {
 export const PAYMENT_MODE = {
   CASH: 1,
   CREDIT: 2,
+  COMBINATION: 3,
 }
 
 /** 配送方式枚举（对应后端 DeliveryType） */
@@ -138,6 +139,7 @@ export const SETTLE_TYPE = PAYMENT_MODE
 export const SETTLE_TYPE_MAP = {
   [PAYMENT_MODE.CASH]: { text: '现款支付', icon: '💰' },
   [PAYMENT_MODE.CREDIT]: { text: '授信赊账', icon: '💳' },
+  [PAYMENT_MODE.COMBINATION]: { text: '组合支付', icon: '💳' },
 }
 
 // ==================== 售后相关常量 ====================

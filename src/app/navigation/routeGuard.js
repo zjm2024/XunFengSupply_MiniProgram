@@ -9,7 +9,7 @@
  *   { allowed: false, path, reason, redirectUrl }
  *
  * reason 取值：
- *   NOT_REGISTERED | NOT_LOGGED_IN | NOT_SIGNED | ACCOUNT_FROZEN | MAIN_ACCOUNT_ONLY
+ *   NOT_REGISTERED | NOT_LOGGED_IN | ACCOUNT_FROZEN | MAIN_ACCOUNT_ONLY | PERMISSION_DENIED
  */
 
 import {
@@ -24,7 +24,7 @@ import {
  * 根据标准化 path 和用户快照判断是否允许访问。
  *
  * @param {string} toUrl - 完整的 URL（可包含 query）
- * @param {{ isLogin: boolean, isSigned: boolean, isFrozen: boolean, isMainAccount: boolean }} [userSnapshot]
+ * @param {{ isLogin: boolean, isSigned: boolean, isFrozen: boolean, isMainAccount: boolean, permissions?: string[] }} [userSnapshot]
  * @returns {{ allowed: boolean, path: string, reason?: string, redirectUrl?: string }}
  */
 export function canAccess(toUrl, userSnapshot = null) {
@@ -74,21 +74,24 @@ export function canAccess(toUrl, userSnapshot = null) {
     }
   }
 
-  // 7. 签约检查
-  if (meta.requireSign && !user.isSigned) {
-    return {
-      allowed: false,
-      path,
-      reason: 'NOT_SIGNED',
-    }
-  }
-
-  // 8. 主账号限制
+  // 7. 主账号限制
   if (meta.owner === 'main' && !user.isMainAccount) {
     return {
       allowed: false,
       path,
       reason: 'MAIN_ACCOUNT_ONLY',
+    }
+  }
+
+  // 8. 子账号页面权限。冻结账号在白名单页面仅保留查询能力，不依赖原权限。
+  if (!user.isFrozen && meta.requiredPermission && !user.isMainAccount) {
+    const permissions = Array.isArray(user.permissions) ? user.permissions : []
+    if (!permissions.includes(meta.requiredPermission)) {
+      return {
+        allowed: false,
+        path,
+        reason: 'PERMISSION_DENIED',
+      }
     }
   }
 

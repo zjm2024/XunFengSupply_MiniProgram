@@ -41,8 +41,15 @@ export async function getAddressList() {
   return (Array.isArray(data) ? data : []).map(normalizeAddress).filter(item => item.id > 0)
 }
 
-export function createAddress(address) {
-  return dispatch('MallOrder', 'Mini.AddressController', 'CreateAddress', toAddressPayload(address))
+export async function createAddress(address) {
+  const result = await dispatch('MallOrder', 'Mini.AddressController', 'CreateAddress', toAddressPayload(address))
+  return Number(
+    result?.addressId
+    ?? result?.AddressId
+    ?? result?.id
+    ?? result?.Id
+    ?? result,
+  ) || 0
 }
 
 export function updateAddress(address) {

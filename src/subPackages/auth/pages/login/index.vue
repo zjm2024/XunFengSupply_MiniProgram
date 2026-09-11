@@ -112,11 +112,6 @@
                  {{ loginButtonText }}
               </button>
             </view>
-
-            <view class="apply-entry">
-              <text class="apply-copy">还没有经销商账号？</text>
-              <text class="apply-link" @click="goToApply">申请成为经销商</text>
-            </view>
           </view>
 
           <text class="security-note">账号信息加密传输 · 请勿向他人透露密码</text>
@@ -414,9 +409,6 @@ function openAgreement(type) {
   navigator.navigateTo(routes.auth.agreement({ type: type === 'privacy' ? 'privacy' : 'user' }))
 }
 
-function goToApply() {
-  navigator.navigateTo(routes.auth.applySign())
-}
 </script>
 
 <style lang="scss" scoped>

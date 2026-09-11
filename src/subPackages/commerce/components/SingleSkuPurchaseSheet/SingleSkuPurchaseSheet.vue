@@ -25,20 +25,40 @@
 
       <scroll-view class="sheet-scroll" scroll-y>
         <view class="sheet-section">
-          <text class="section-label">规格</text>
+          <text class="section-label">颜色</text>
           <view class="sku-options">
             <button
-              v-for="sku in productSkus"
-              :key="sku.skuId"
+              v-for="group in colorGroups"
+              :key="group.key"
               class="sku-option button-center"
+              :class="{ active: selectedColorKey === group.key, disabled: !group.canPurchase }"
+              :disabled="!group.canPurchase"
+              @tap="selectColor(group)"
+            >
+              {{ group.name }}
+            </button>
+          </view>
+        </view>
+
+        <view class="sheet-section size-section">
+          <view class="section-label-row">
+            <text class="section-label">尺码</text>
+            <text v-if="selectedColorName" class="selected-color">已选 {{ selectedColorName }}</text>
+          </view>
+          <view class="sku-options">
+            <button
+              v-for="sku in sizeOptions"
+              :key="sku.skuId"
+              class="sku-option size-option button-center"
               :class="{ active: isSelectedSku(sku), disabled: !sku.canPurchase }"
               :disabled="!sku.canPurchase"
-              @tap="selectSku(sku)"
+              @tap="selectSize(sku)"
             >
-              {{ sku.specName || sku.skuCode || '默认规格' }}
+              {{ sku.sizeName || sku.specName || sku.skuCode || '默认尺码' }}
             </button>
           </view>
           <text v-if="!hasPurchasableSku" class="empty-hint">当前商品暂无可采购规格</text>
+          <text v-else-if="!sizeOptions.length" class="empty-hint">请先选择颜色</text>
         </view>
 
         <view class="sheet-section quantity-section">
@@ -82,8 +102,30 @@ const props = defineProps({
 const emit = defineEmits(['update:visible', 'confirm', 'batch'])
 
 const selectedSkuId = ref(null)
+const selectedColorKey = ref('')
 const quantity = ref(1)
 const productSkus = computed(() => Array.isArray(props.product?.skus) ? props.product.skus : [])
+const colorGroups = computed(() => {
+  const groups = new Map()
+  productSkus.value.forEach(sku => {
+    const key = colorKey(sku)
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        name: sku.colorName || '默认颜色',
+        items: [],
+        canPurchase: false,
+      })
+    }
+    const group = groups.get(key)
+    group.items.push(sku)
+    group.canPurchase ||= Boolean(sku.canPurchase)
+  })
+  return Array.from(groups.values())
+})
+const selectedColorGroup = computed(() => colorGroups.value.find(group => group.key === selectedColorKey.value) || null)
+const selectedColorName = computed(() => selectedColorGroup.value?.name || '')
+const sizeOptions = computed(() => selectedColorGroup.value?.items || [])
 const hasPurchasableSku = computed(() => productSkus.value.some(sku => sku.canPurchase))
 const selectedSku = computed(() => productSkus.value.find(sku => String(sku.skuId) === String(selectedSkuId.value)) || null)
 const minimumQuantity = computed(() => Math.max(1, Number(selectedSku.value?.minOrderQty || props.product?.moq || 1)))
@@ -96,7 +138,12 @@ const canConfirm = computed(() => Boolean(
   && quantity.value >= minimumQuantity.value
   && quantity.value <= maximumQuantity.value,
 ))
-const selectedSkuName = computed(() => selectedSku.value?.specName || selectedSku.value?.skuCode || '请选择规格')
+const selectedSkuName = computed(() => {
+  if (!selectedSku.value) return '请先选颜色，再选尺码'
+  const color = selectedSku.value.colorName || '默认颜色'
+  const size = selectedSku.value.sizeName || selectedSku.value.specName || selectedSku.value.skuCode || '默认尺码'
+  return `${color} / ${size}`
+})
 const selectedImageStock = computed(() => selectedSku.value?.stockKnown ? selectedSku.value.stock : undefined)
 const minimumText = computed(() => `${minimumQuantity.value} ${props.product?.unit || '件'}起订`)
 const stockText = computed(() => {
@@ -112,6 +159,7 @@ watch(() => props.visible, visible => {
     || productSkus.value.find(sku => sku.canPurchase)
     || productSkus.value[0]
   selectedSkuId.value = initial?.skuId ?? null
+  selectedColorKey.value = initial ? colorKey(initial) : ''
   quantity.value = Math.max(1, Number(initial?.minOrderQty || props.product?.moq || 1))
 }, { immediate: true })
 
@@ -123,9 +171,25 @@ function isSelectedSku(sku) {
   return String(sku?.skuId) === String(selectedSkuId.value)
 }
 
-function selectSku(sku) {
+function colorKey(sku) {
+  return String(sku?.colorId ?? sku?.colorName ?? 'default')
+}
+
+function selectColor(group) {
+  if (!group?.canPurchase) return
+  selectedColorKey.value = group.key
+  const currentSize = selectedSku.value?.sizeValueId ?? selectedSku.value?.sizeName
+  const next = group.items.find(sku => (
+    sku.canPurchase
+    && String(sku.sizeValueId ?? sku.sizeName) === String(currentSize)
+  )) || group.items.find(sku => sku.canPurchase)
+  selectSize(next)
+}
+
+function selectSize(sku) {
   if (!sku?.canPurchase) return
   selectedSkuId.value = sku.skuId
+  selectedColorKey.value = colorKey(sku)
   quantity.value = Math.max(1, Number(sku.minOrderQty || props.product?.moq || 1))
 }
 
@@ -243,6 +307,22 @@ function formatMoney(value) {
   padding: 14px 0;
 }
 
+.size-section {
+  border-top: 1px solid var(--color-divider, #EFF0F2);
+}
+
+.section-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.selected-color {
+  color: var(--color-text-tertiary, #8B9098);
+  font-size: 11px;
+}
+
 .section-label {
   display: block;
   color: var(--color-text-primary, #1B1C20);
@@ -272,7 +352,8 @@ function formatMoney(value) {
 .sku-option.active {
   border-color: var(--color-brand, #D7192D);
   color: var(--color-brand, #D7192D);
-  background: var(--color-brand-soft, #FFF1F2);
+  background: #FFFFFF;
+  box-shadow: inset 0 0 0 1px var(--color-brand, #D7192D);
 }
 
 .sku-option.disabled { color: var(--color-text-disabled, #B8BBC2); opacity: 0.72; }
@@ -304,7 +385,7 @@ function formatMoney(value) {
   font-weight: 650;
 }
 
-.batch-button { color: var(--color-brand, #D7192D); background: var(--color-brand-soft, #FFF1F2); }
+.batch-button { border: 1px solid rgba(215, 25, 45, 0.42); color: var(--color-brand, #D7192D); background: #FFFFFF; }
 .confirm-button { color: #FFFFFF; background: var(--color-brand, #D7192D); }
 .batch-button[disabled], .confirm-button[disabled] { color: var(--color-text-disabled, #B8BBC2); background: var(--surface-muted, #ECEEF2); }
 

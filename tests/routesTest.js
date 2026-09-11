@@ -250,6 +250,11 @@ describe('Routes - FROZEN_ALLOWED_ROUTES', () => {
   it('HOME 不应在允许列表中', () => {
     expect(FROZEN_ALLOWED_ROUTES.has(HOME)).toBe(false)
   })
+
+  it('子账号管理页应允许冻结主账号只读访问', () => {
+    expect(FROZEN_ALLOWED_ROUTES.has(SUB_ACCOUNT)).toBe(true)
+    expect(FROZEN_ALLOWED_ROUTES.has(SUB_ACCOUNT_FORM)).toBe(true)
+  })
 })
 
 describe('Routes - ROUTE_META 元数据覆盖全部 35 个页面', () => {

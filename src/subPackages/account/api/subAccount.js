@@ -49,19 +49,8 @@ function normalizeSubAccount(item = {}) {
     email: item.email ?? item.Email ?? '',
     status,
     createdAt: createdAt ? String(createdAt).slice(0, 10) : '',
-    permissions: derivePermissions(realName),
+    permissions: item.permissions ?? item.Permissions ?? [],
   }
-}
-
-/**
- * 根据使用人姓名推导权限标签（待后端正式字段后替换）
- * @param {string} realName
- * @returns {string[]}
- */
-function derivePermissions(realName) {
-  if (!realName) return []
-  // 占位逻辑：根据已确认字段显示通用权限，后续可由后端下发 permission 字段替换
-  return ['商品浏览', '下单']
 }
 
 /**
@@ -79,6 +68,16 @@ export function createSubAccount(params = {}) {
     Password: params.password ?? params.Password ?? '',
     RealName: params.realName ?? params.RealName ?? null,
     Mobile: params.mobile ?? params.Mobile ?? null,
+    Permissions: params.permissions ?? params.Permissions ?? [],
+  })
+}
+
+export function updateSubAccount(params = {}) {
+  return dispatch('MallDealer', 'Mini.SubAccountController', 'Update', {
+    SubAccountId: params.subAccountId ?? params.id ?? 0,
+    RealName: params.realName ?? null,
+    Mobile: params.mobile ?? null,
+    Permissions: params.permissions || [],
   })
 }
 

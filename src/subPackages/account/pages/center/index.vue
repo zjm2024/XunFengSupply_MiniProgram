@@ -20,20 +20,37 @@
                 <text class="account-name">{{ dealerName }}</text>
                 <text class="account-code">客户编号 {{ dealerCode }}</text>
               </view>
-              <status-tag-new type="success" text="账号正常" />
+            <status-tag-new
+              :type="userStore.isAccountNormal ? 'success' : 'danger'"
+              :text="userStore.isAccountNormal ? '账号正常' : '账号冻结'"
+            />
             </view>
 
             <text class="account-meta">{{ dealerLevel }} · {{ accountType }}</text>
 
             <view class="account-metrics">
               <view class="metric-item">
-                <text class="metric-label">可用授信</text>
-                <text class="metric-value">¥{{ formatMoney(creditLimit) }}</text>
+                <text class="metric-label">主体可用授信</text>
+                <text class="metric-value">¥{{ formatMoney(finance.credit.availableAmount) }}</text>
               </view>
               <view class="metric-item">
-                <text class="metric-label">账户余额</text>
-                <text class="metric-value">¥{{ formatMoney(balance) }}</text>
+                <text class="metric-label">主体可用余额</text>
+                <text class="metric-value">¥{{ formatMoney(finance.subjectAvailableBalance) }}</text>
               </view>
+              <view class="metric-item">
+                <text class="metric-label">当前账户可用</text>
+                <text class="metric-value">¥{{ formatMoney(finance.currentAccount?.availableBalance || 0) }}</text>
+              </view>
+              <view class="metric-item">
+                <text class="metric-label">当前账户冻结</text>
+                <text class="metric-value">¥{{ formatMoney(finance.currentAccount?.frozenBalance || 0) }}</text>
+              </view>
+            </view>
+
+            <view class="credit-summary">
+              <text>授信总额 ¥{{ formatMoney(finance.credit.totalAmount) }}</text>
+              <text>已用 ¥{{ formatMoney(finance.credit.usedAmount) }}</text>
+              <text>冻结 ¥{{ formatMoney(finance.credit.frozenAmount) }}</text>
             </view>
 
             <view class="profile-btn" hover-class="profile-btn-pressed" @tap="goToProfile">
@@ -66,7 +83,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useUserStore } from '@/shared/session/userStore.js'
 import statusTagNew from '@/shared/ui/StatusTag/StatusTag.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
@@ -78,16 +95,25 @@ import AppListItem from '@/shared/ui/AppListItem/AppListItem.vue'
 import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import { getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 
 const userStore = useUserStore()
 
-// TODO: 接入后端经销商接口后替换为真实数据
-const dealerName = ref('')
-const dealerCode = ref('')
-const dealerLevel = ref('')
-const accountType = ref('主账号')
-const creditLimit = ref(0)
-const balance = ref(0)
+const finance = ref(userStore.financeContext)
+const dealerName = computed(() => userStore.displayName)
+const dealerCode = computed(() => userStore.dealerId || userStore.userId || '-')
+const dealerLevel = computed(() => userStore.creditLevel || '经销商账户')
+const accountType = computed(() => userStore.isMainAccount ? '主账号' : '子账号')
+
+onMounted(async () => {
+  try {
+    const context = await getDealerFinanceContext()
+    finance.value = context
+    userStore.updateFinanceContext(context)
+  } catch (error) {
+    console.error('[AccountCenter] 加载财务上下文失败:', error)
+  }
+})
 
 function formatMoney(value) {
   return value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -243,6 +269,15 @@ function handleLogout() {
   font-weight: 600;
   color: var(--text-primary);
   font-variant-numeric: tabular-nums;
+}
+
+.credit-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin: 8px 0 12px;
+  color: var(--text-secondary);
+  font-size: 12px;
 }
 
 .profile-btn {

@@ -77,8 +77,12 @@
                           v-for="perm in item.permissions"
                           :key="perm"
                           class="permission-tag"
-                        >{{ perm }}</text>
+                        >{{ permissionLabel(perm) }}</text>
                       </view>
+                    </view>
+                    <view class="detail-row">
+                      <text class="detail-label">余额</text>
+                      <text class="detail-value">可用 ¥{{ formatMoney(item.availableBalance) }} · 冻结 ¥{{ formatMoney(item.frozenBalance) }}</text>
                     </view>
                     <view class="detail-row">
                       <text class="detail-label">创建时间</text>
@@ -88,15 +92,22 @@
                 </view>
 
                 <view class="account-actions">
-                  <button class="action-btn" @click="editAccount(item)">编辑</button>
+                  <button class="action-btn" :disabled="isReadOnly" @click="editAccount(item)">编辑</button>
+                  <button class="action-btn" :disabled="isReadOnly" @click="adjustBalance(item, 'allocate')">分配</button>
+                  <button class="action-btn" :disabled="isReadOnly" @click="adjustBalance(item, 'reclaim')">收回</button>
+                  <button class="action-btn" :disabled="isReadOnly" @click="changeFrozen(item, item.frozenBalance <= 0)">
+                    {{ item.frozenBalance > 0 ? '解冻余额' : '冻结余额' }}
+                  </button>
                   <button
                     v-if="item.status === 'active'"
                     class="action-btn warning"
+                    :disabled="isReadOnly"
                     @click="toggleStatus(item)"
                   >停用</button>
                   <button
                     v-else
                     class="action-btn success"
+                    :disabled="isReadOnly"
                     @click="toggleStatus(item)"
                   >启用</button>
                 </view>
@@ -105,7 +116,8 @@
           </template>
 
           <!-- 新增按钮 -->
-          <button class="add-btn" @click="addAccount">
+          <text v-if="isReadOnly" class="readonly-hint">主账户已冻结：可查看子账户、余额与权限，但不可修改。</text>
+          <button class="add-btn" :disabled="isReadOnly" @click="addAccount">
             <text class="add-icon">+</text>
             <text>新增子账户</text>
           </button>
@@ -118,23 +130,34 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import { getSubAccountList, toggleSubAccountStatus } from '../../api/subAccount.js'
-import { SUB_ACCOUNT_FORM } from '@/app/config/routes.js'
+import { routes } from '@/app/config/routes.js'
+import { navigator } from '@/app/navigation/navigator.js'
+import { useUserStore } from '@/shared/session/userStore.js'
+import {
+  changeDealerFrozenBalance,
+  getDealerFinanceContext,
+  transferDealerBalance,
+} from '@/shared/api/dealerFinance.js'
 
 const accountList = ref([])
+const userStore = useUserStore()
 const loading = ref(false)
+const finance = ref({ accounts: [], currentAccount: null })
 
 const totalCount = computed(() => accountList.value.length)
 const activeCount = computed(() => accountList.value.filter(a => a.status === 'active').length)
 const inactiveCount = computed(() => accountList.value.filter(a => a.status === 'inactive').length)
+const isReadOnly = computed(() => userStore.isFrozen)
 
-onMounted(() => {
+onShow(() => {
   loadSubAccounts()
 })
 
@@ -144,8 +167,17 @@ onMounted(() => {
 async function loadSubAccounts() {
   loading.value = true
   try {
-    const result = await getSubAccountList({ pageNum: 1, pageSize: 50 })
-    accountList.value = result.items || []
+    const [result, financeContext] = await Promise.all([
+      getSubAccountList({ pageNum: 1, pageSize: 50 }),
+      getDealerFinanceContext(),
+    ])
+    finance.value = financeContext
+    const balanceMap = new Map(financeContext.accounts.map(item => [item.accountCustomerId, item]))
+    accountList.value = (result.items || []).map(item => ({
+      ...item,
+      availableBalance: balanceMap.get(item.customerId)?.availableBalance || 0,
+      frozenBalance: balanceMap.get(item.customerId)?.frozenBalance || 0,
+    }))
   } catch (err) {
     console.error('[SubAccount] 加载子账号列表失败:', err)
     uni.showToast({ title: '加载失败，请重试', icon: 'none' })
@@ -154,35 +186,102 @@ async function loadSubAccounts() {
   }
 }
 
+function formatMoney(value) {
+  return Number(value || 0).toFixed(2)
+}
+
+function permissionLabel(code) {
+  return {
+    ORDER_VIEW: '查看订单',
+    ORDER_CREATE: '下单',
+    BALANCE_VIEW: '余额对账',
+    SUB_ACCOUNT_MANAGE: '管理子账户',
+    COMBINATION_PAY_PARTICIPATE: '参与组合支付',
+  }[code] || code
+}
+
+function promptAmount(title, placeholder, action) {
+  uni.showModal({
+    title,
+    editable: true,
+    placeholderText: placeholder,
+    success: async res => {
+      if (!res.confirm) return
+      const amount = Number(res.content)
+      if (!Number.isFinite(amount) || amount <= 0) {
+        uni.showToast({ title: '请输入大于 0 的金额', icon: 'none' })
+        return
+      }
+      try {
+        await action(amount)
+        uni.showToast({ title: '操作成功', icon: 'success' })
+        await loadSubAccounts()
+      } catch (error) {
+        uni.showToast({ title: error?.message || '操作失败', icon: 'none' })
+      }
+    },
+  })
+}
+
+function adjustBalance(account, direction) {
+  const mainId = finance.value.accounts.find(item => item.isMaster)?.accountCustomerId
+  if (!mainId) {
+    uni.showToast({ title: '未找到主账户余额', icon: 'none' })
+    return
+  }
+  promptAmount(
+    direction === 'allocate' ? '从主账户分配余额' : '收回到主账户',
+    '请输入金额',
+    amount => transferDealerBalance({
+      fromAccountCustomerId: direction === 'allocate' ? mainId : account.customerId,
+      toAccountCustomerId: direction === 'allocate' ? account.customerId : mainId,
+      amount,
+      clientRequestId: 'transfer_' + Date.now(),
+    }),
+  )
+}
+
+function changeFrozen(account, freeze) {
+  promptAmount(
+    freeze ? '冻结账户余额' : '解冻账户余额',
+    freeze ? '不能超过可用余额' : '不能超过冻结余额',
+    amount => changeDealerFrozenBalance({
+      accountCustomerId: account.customerId,
+      amount,
+      freeze,
+      clientRequestId: 'freeze_' + Date.now(),
+    }),
+  )
+}
+
 /**
  * 跳转到新增子账户页面
  */
 function addAccount() {
-  uni.navigateTo({
-    url: SUB_ACCOUNT_FORM,
-  })
+  if (isReadOnly.value) return
+  navigator.navigateTo(routes.account.subAccountForm())
 }
 
 /**
  * 跳转到编辑子账户页面
  */
 function editAccount(account) {
-  const params = new URLSearchParams({
+  if (isReadOnly.value) return
+  navigator.navigateTo(routes.account.subAccountForm({
     accountId: account.id,
     username: account.username,
     realName: account.name !== account.username ? account.name : '',
     mobile: account.phone || '',
     status: account.status,
-  }).toString()
-  uni.navigateTo({
-    url: `${SUB_ACCOUNT_FORM}?${params}`,
-  })
+    permissions: JSON.stringify(account.permissions || []),
+  }))
 }
 
 /**
  * 切换子账号状态（启用/停用）
  */
 async function toggleStatus(account) {
+  if (isReadOnly.value) return
   const action = account.status === 'active' ? '停用' : '启用'
   uni.showModal({
     title: `确认${action}`,
@@ -373,6 +472,19 @@ async function toggleStatus(account) {
   &.danger { color: #B42318; }
 
   &:active { opacity: 0.7; }
+}
+
+.action-btn[disabled],
+.add-btn[disabled] {
+  opacity: 0.45;
+}
+
+.readonly-hint {
+  display: block;
+  margin: 14px 4px 0;
+  color: #B76500;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 /* 新增按钮 */

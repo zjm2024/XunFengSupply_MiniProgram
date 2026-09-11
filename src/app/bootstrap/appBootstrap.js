@@ -22,7 +22,7 @@
 import { getBootstrapContext, checkAppVersion } from './bootstrapApi.js'
 import { useUserStore } from '../../shared/session/userStore.js'
 import storage from '../../shared/utils/storage.js'
-import { LOGIN, APPLY_SIGN, ACCOUNT_STATUS, HOME } from '../config/routes.js'
+import { LOGIN, HOME, ACCOUNT_STATUS } from '../config/routes.js'
 import { AppError, ErrorKind } from '../../shared/api/appError.js'
 
 // ==================== 配置常量 ====================
@@ -246,15 +246,12 @@ function _getAppVersionInfo() {
  * 根据用户状态解析目标路由
  * @private
  *
- * 响应模型：{ customerId, username, realName, companyName, status, signStatus, isMaster, roles, permissions }
- * 禁止用 userStore.signStatus 默认值代替接口没有返回的字段
+ * 登录账号由后台创建并天然归属于经销商主体，不再使用签约状态做前端跳转。
  */
 function _resolveTarget(userInfo) {
   const userStore = useUserStore()
 
-  // 验证响应完整性：signStatus 必须存在
-  if (userInfo.signStatus === undefined || userInfo.signStatus === null) {
-    console.error('[Bootstrap] invalid response: signStatus missing')
+  if (!userInfo || userInfo.customerId == null) {
     return {
       status: 'error',
       targetUrl: null,
@@ -264,71 +261,11 @@ function _resolveTarget(userInfo) {
     }
   }
 
-  // 账号冻结/禁用
-  if (userInfo.status === 0 || userStore.isFrozen) {
-    return {
-      status: 'ready',
-      targetUrl: ACCOUNT_STATUS,
-      reason: 'account_frozen',
-      restoredSession: true
-    }
-  }
-
-  // 更新账号状态
-  userStore.setAccountStatus(userInfo.status || 1)
-
-  // 签约状态判断（使用接口返回的真实值，不依赖默认值）
-  const signStatus = userInfo.signStatus
-  userStore.setSignStatus(signStatus)
-
-  // 未签约 → 进入签约/申请页
-  if (signStatus === 0) {
-    return {
-      status: 'ready',
-      targetUrl: APPLY_SIGN,
-      reason: 'not_signed',
-      restoredSession: true
-    }
-  }
-
-  // 审核中 → 进入签约状态页
-  if (signStatus === 1) {
-    return {
-      status: 'ready',
-      targetUrl: APPLY_SIGN,
-      reason: 'sign_pending',
-      restoredSession: true
-    }
-  }
-
-  // 已拒绝 → 进入签约状态页
-  if (signStatus === -1) {
-    return {
-      status: 'ready',
-      targetUrl: APPLY_SIGN,
-      reason: 'sign_rejected',
-      restoredSession: true
-    }
-  }
-
-  // 已签约 (signStatus === 2) → 首页
-  if (signStatus === 2) {
-    return {
-      status: 'ready',
-      targetUrl: _getSafeDeepLink() || HOME,
-      reason: 'authenticated',
-      restoredSession: true
-    }
-  }
-
-  // 未知的 signStatus 值 → 错误
-  console.error('[Bootstrap] unknown signStatus:', signStatus)
   return {
-    status: 'error',
-    targetUrl: null,
-    reason: 'unknown_sign_status',
-    error: new AppError('未知的签约状态', ErrorKind.BUSINESS),
-    restoredSession: false
+    status: 'ready',
+    targetUrl: userStore.isFrozen ? ACCOUNT_STATUS : (_getSafeDeepLink() || HOME),
+    reason: userStore.isFrozen ? 'authenticated_frozen' : 'authenticated',
+    restoredSession: true
   }
 }
 

@@ -51,44 +51,62 @@
             </view>
 
             <view v-for="group in skuGroups" :key="group.key" class="sku-group-card">
-              <view class="group-heading">
+              <view class="group-heading" @tap="toggleGroup(group.key)">
                 <view>
                   <text class="group-title">{{ group.name }}</text>
-                  <text class="group-desc">{{ group.items.length }} 个尺码规格</text>
+                  <text class="group-desc">
+                    {{ group.items.length }} 个尺码规格<text v-if="group.selectedCount"> · 已选 {{ group.selectedCount }} 款 / {{ group.selectedQuantity }} {{ product.unit }}</text>
+                  </text>
                 </view>
-                <button class="copy-btn button-center" @click="copyGroup(group)">整行复制</button>
+                <view class="group-actions">
+                  <button class="copy-btn button-center" @tap.stop="copyGroup(group)">整行复制</button>
+                  <button
+                    class="collapse-btn button-center"
+                    :aria-label="isGroupCollapsed(group.key) ? '展开尺码' : '收起尺码'"
+                    @tap.stop="toggleGroup(group.key)"
+                  >
+                    <AppIcon
+                      name="chevron-right"
+                      :size="17"
+                      class="collapse-icon"
+                      :class="{ expanded: !isGroupCollapsed(group.key) }"
+                    />
+                  </button>
+                </view>
               </view>
 
-              <view
-                v-for="sku in group.items"
-                :key="sku.skuId"
-                class="sku-row"
-                :class="{ unavailable: !sku.canPurchase }"
-              >
-                <view class="sku-copy">
-                  <view class="sku-title-row">
-                    <text class="sku-size">{{ sku.sizeName || sku.specName || '默认规格' }}</text>
-                    <text class="sku-stock" :class="{ empty: !sku.canPurchase }">
-                      {{ sku.canPurchase ? formatStock(sku.stock) : '缺货' }}
-                    </text>
+              <view v-show="!isGroupCollapsed(group.key)" class="group-size-list">
+                <view
+                  v-for="sku in group.items"
+                  :key="sku.skuId"
+                  class="sku-row"
+                  :class="{ unavailable: !sku.canPurchase }"
+                >
+                  <view class="sku-copy">
+                    <view class="sku-title-row">
+                      <text class="sku-size">{{ sku.sizeName || sku.specName || '默认尺码' }}</text>
+                      <text class="sku-stock" :class="{ empty: !sku.canPurchase }">
+                        {{ sku.canPurchase ? formatStock(sku.stock) : '缺货' }}
+                      </text>
+                    </view>
+                    <text class="sku-code">SKU：{{ sku.skuCode || '-' }}</text>
+                    <view class="sku-price-row">
+                      <text class="sku-price">¥{{ formatMoney(sku.price) }}</text>
+                      <text class="sku-moq">{{ sku.minOrderQty }} {{ product.unit }}起订</text>
+                    </view>
                   </view>
-                  <text class="sku-code">SKU：{{ sku.skuCode || '-' }}</text>
-                  <view class="sku-price-row">
-                    <text class="sku-price">¥{{ formatMoney(sku.price) }}</text>
-                    <text class="sku-moq">{{ sku.minOrderQty }} {{ product.unit }}起订</text>
-                  </view>
+                  <quantity-stepper
+                    :model-value="quantities[sku.skuId] || 0"
+                    :min="sku.minOrderQty"
+                    :max="sku.stock"
+                    :step="1"
+                    :disabled="!sku.canPurchase"
+                    :allow-input="true"
+                    :allow-zero="true"
+                    size="sm"
+                    @update:model-value="setSkuQuantity(sku, $event)"
+                  />
                 </view>
-                <quantity-stepper
-                  :model-value="quantities[sku.skuId] || 0"
-                  :min="sku.minOrderQty"
-                  :max="sku.stock"
-                  :step="1"
-                  :disabled="!sku.canPurchase"
-                  :allow-input="true"
-                  :allow-zero="true"
-                  size="sm"
-                  @update:model-value="setSkuQuantity(sku, $event)"
-                />
               </view>
             </view>
 
@@ -129,12 +147,14 @@ import appHeader from '../../../../shared/ui/AppHeader/AppHeader.vue'
 import fixedActionBar from '../../../../shared/ui/FixedActionBar/FixedActionBar.vue'
 import AppProductImage from '../../../../shared/ui/AppProductImage/AppProductImage.vue'
 import quantityStepper from '../../components/QuantityStepper/QuantityStepper.vue'
+import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
 
 const productId = ref(0)
 const product = ref(null)
 const quantities = ref({})
 const batchRequestId = ref('')
 const batchFillNumber = ref('')
+const collapsedGroupKeys = ref({})
 const pageState = ref(PageStatus.LOADING)
 const errorMessage = ref('网络异常，请稍后重试')
 const { cartStore, submitting, loadCart, batchAddSkuToCart } = useCart()
@@ -150,7 +170,13 @@ const skuGroups = computed(() => {
         items: [],
       })
     }
-    groups.get(key).items.push(sku)
+    const group = groups.get(key)
+    group.items.push(sku)
+    const quantity = Number(quantities.value[sku.skuId]) || 0
+    if (quantity > 0) {
+      group.selectedCount = (group.selectedCount || 0) + 1
+      group.selectedQuantity = (group.selectedQuantity || 0) + quantity
+    }
   }
   return Array.from(groups.values())
 })
@@ -216,6 +242,7 @@ async function loadProduct() {
     if (!result) throw new Error('商品不存在或已下架')
     product.value = result
     quantities.value = Object.fromEntries((result.skus || []).map(sku => [sku.skuId, 0]))
+    collapsedGroupKeys.value = Object.fromEntries(skuGroups.value.map((group, index) => [group.key, index > 0]))
     batchRequestId.value = ''
     pageState.value = PageStatus.CONTENT
   } catch (error) {
@@ -243,6 +270,17 @@ function setSkuQuantity(sku, value) {
   batchRequestId.value = ''
 }
 
+function isGroupCollapsed(key) {
+  return Boolean(collapsedGroupKeys.value[key])
+}
+
+function toggleGroup(key) {
+  collapsedGroupKeys.value = {
+    ...collapsedGroupKeys.value,
+    [key]: !collapsedGroupKeys.value[key],
+  }
+}
+
 function clearAll() {
   quantities.value = Object.fromEntries((product.value?.skus || []).map(sku => [sku.skuId, 0]))
   batchRequestId.value = ''
@@ -253,7 +291,7 @@ function clearAll() {
 function applyBatchFill() {
   const raw = Number(batchFillNumber.value)
   if (!Number.isFinite(raw) || raw <= 0) {
-    uni.show({ title: '请输入有效的数量', icon: 'none' })
+    uni.showToast({ title: '请输入有效的数量', icon: 'none' })
     return
   }
   const target = Math.floor(raw)
@@ -342,11 +380,17 @@ async function goToCart() {
 .batch-fill-btn { flex-shrink: 0; height: 34px; padding: 0 14px; border: 0; border-radius: 17px; color: #fff; background: var(--color-brand); font-size: var(--type-caption-size, 12px); font-weight: 600; }
 .card-title, .group-title { display: block; color: var(--color-text-primary); font-size: 15px; font-weight: 700; }
 .card-desc, .group-desc { display: block; margin-top: 4px; color: var(--color-text-tertiary); font-size: 12px; line-height: 1.5; }
-.clear-btn, .copy-btn { flex-shrink: 0; height: 34px; padding: 0 13px; border: 0; border-radius: 17px; color: var(--color-brand); background: var(--color-brand-soft); font-size: var(--type-caption-size, 12px); line-height: var(--type-button-line-height, 20px); }
+.clear-btn, .copy-btn { flex-shrink: 0; height: 34px; padding: 0 13px; border: 1px solid var(--color-border); border-radius: 17px; color: var(--color-text-secondary); background: #FFFFFF; font-size: var(--type-caption-size, 12px); line-height: var(--type-button-line-height, 20px); }
 .clear-btn[disabled] { color: var(--color-text-disabled); background: var(--surface-muted); }
 
 .sku-group-card { overflow: hidden; }
-.group-heading { padding: 14px 16px; border-bottom: 1px solid var(--color-divider); }
+.group-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--color-divider); }
+.group-actions { display: flex; flex: none; align-items: center; gap: 7px; }
+.collapse-btn { display: flex; width: 34px; height: 34px; align-items: center; justify-content: center; margin: 0; padding: 0; border: 0; border-radius: 50%; color: var(--color-text-secondary); background: var(--surface-muted); }
+.collapse-btn::after, .copy-btn::after, .clear-btn::after { border: 0; }
+.collapse-icon { transition: transform 180ms ease; }
+.collapse-icon.expanded { transform: rotate(90deg); }
+.group-size-list { overflow: hidden; }
 .sku-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 96px; padding: 13px 14px; border-bottom: 1px solid var(--color-divider); box-sizing: border-box; }
 .sku-row:last-child { border-bottom: 0; }
 .sku-row.unavailable { opacity: 0.5; background: var(--surface-muted); }

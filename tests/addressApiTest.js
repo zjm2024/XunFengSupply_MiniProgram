@@ -35,11 +35,11 @@ describe('Address API', () => {
   })
 
   it('新增地址使用后端 PascalCase 契约', async () => {
-    const dispatchMock = vi.fn().mockResolvedValue(21)
+    const dispatchMock = vi.fn().mockResolvedValue({ AddressId: 21 })
     vi.doMock('@/shared/api/dispatchClient.js', () => ({ dispatch: dispatchMock }))
 
     const { createAddress } = await import('@/subPackages/account/api/addressApi.js')
-    await createAddress({
+    const addressId = await createAddress({
       name: '李四',
       phone: '13900139000',
       province: '浙江省',
@@ -63,5 +63,6 @@ describe('Address API', () => {
         IsDefault: true,
       },
     )
+    expect(addressId).toBe(21)
   })
 })

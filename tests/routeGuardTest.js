@@ -2,10 +2,10 @@
  * 路由守卫测试
  *
  * 覆盖：
- * 1. 判定顺序：注册 -> 公开 -> 登录 -> 冻结 -> 签约 -> 主账号
+ * 1. 判定顺序：注册 -> 公开 -> 登录 -> 冻结 -> 主账号
  * 2. 带 query 的公开协议页仍公开
  * 3. 未登录访问商品详情跳登录，保留完整 redirect
- * 4. 已登录未签约访问购物车跳 applySign
+ * 4. 已登录账号不再受历史签约状态限制
  * 5. 冻结用户只能访问 allowFrozen 页面
  * 6. 非主账号访问 subAccount 被拒绝
  * 7. 未注册内部路径被拒绝
@@ -13,7 +13,7 @@
  */
 import { describe, it, expect } from 'vitest'
 import { canAccess, isPublicRoute, isFrozenAllowed } from '@/app/navigation/routeGuard.js'
-import { PRODUCT_LIST, PRODUCT_DETAIL, CART, SUB_ACCOUNT, ACCOUNT_STATUS, AGREEMENT, HELP, ABOUT, HOME, LOGIN, STARTUP } from '@/app/config/routes.js'
+import { PRODUCT_LIST, PRODUCT_DETAIL, CART, CHECKOUT, ORDER_LIST, FUND_FLOW, SUB_ACCOUNT, ACCOUNT_STATUS, AGREEMENT, HELP, ABOUT, HOME, LOGIN, STARTUP } from '@/app/config/routes.js'
 
 describe('RouteGuard - 公开页面', () => {
   it('STARTUP 应始终允许', () => {
@@ -63,7 +63,7 @@ describe('RouteGuard - 未登录访问受保护页面', () => {
   })
 })
 
-describe('RouteGuard - 已登录未签约', () => {
+describe('RouteGuard - 历史签约状态不再参与准入', () => {
   const loggedInUnsigned = { isLogin: true, isSigned: false, isFrozen: false, isMainAccount: true }
 
   it('已登录未签约访问商品列表应放行 (商品浏览不需要签约)', () => {
@@ -71,10 +71,9 @@ describe('RouteGuard - 已登录未签约', () => {
     expect(result.allowed).toBe(true)
   })
 
-  it('已登录未签约访问购物车应拒绝 (NOT_SIGNED)', () => {
+  it('已登录未签约访问购物车应放行', () => {
     const result = canAccess(CART, loggedInUnsigned)
-    expect(result.allowed).toBe(false)
-    expect(result.reason).toBe('NOT_SIGNED')
+    expect(result.allowed).toBe(true)
   })
 
   it('已登录未签约访问 HOME 应放行', () => {
@@ -112,6 +111,11 @@ describe('RouteGuard - 冻结账号', () => {
     expect(result.allowed).toBe(true)
   })
 
+  it('冻结主账号可只读查看子账号权限页', () => {
+    const result = canAccess(SUB_ACCOUNT, frozen)
+    expect(result.allowed).toBe(true)
+  })
+
   it('isFrozenAllowed 识别冻结友好路由', () => {
     expect(isFrozenAllowed(ACCOUNT_STATUS)).toBe(true)
     expect(isFrozenAllowed(HELP)).toBe(true)
@@ -132,6 +136,31 @@ describe('RouteGuard - 主账号限制', () => {
   it('主账号访问 subAccount 应放行', () => {
     const master = { isLogin: true, isSigned: true, isFrozen: false, isMainAccount: true }
     const result = canAccess(SUB_ACCOUNT, master)
+    expect(result.allowed).toBe(true)
+  })
+})
+
+describe('RouteGuard - 子账号业务权限', () => {
+  const child = { isLogin: true, isSigned: true, isFrozen: false, isMainAccount: false, permissions: [] }
+
+  it('缺少下单权限时拒绝进入结算页', () => {
+    const result = canAccess(CHECKOUT, child)
+    expect(result.allowed).toBe(false)
+    expect(result.reason).toBe('PERMISSION_DENIED')
+  })
+
+  it('拥有下单权限时允许进入结算页', () => {
+    const result = canAccess(CHECKOUT, { ...child, permissions: ['ORDER_CREATE'] })
+    expect(result.allowed).toBe(true)
+  })
+
+  it('订单和余额查询分别校验对应权限', () => {
+    expect(canAccess(ORDER_LIST, { ...child, permissions: ['ORDER_VIEW'] }).allowed).toBe(true)
+    expect(canAccess(FUND_FLOW, { ...child, permissions: ['ORDER_VIEW'] }).reason).toBe('PERMISSION_DENIED')
+  })
+
+  it('冻结账号仍可进入账务查询白名单', () => {
+    const result = canAccess(FUND_FLOW, { ...child, isFrozen: true })
     expect(result.allowed).toBe(true)
   })
 })

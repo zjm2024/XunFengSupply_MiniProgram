@@ -1,7 +1,7 @@
 <template>
-  <view v-if="modelValue" class="image-viewer">
+  <view v-if="modelValue" class="image-viewer" @tap="closeViewer">
     <view class="viewer-toolbar" :style="toolbarStyle">
-      <button class="viewer-close" aria-label="关闭图片预览" @click="closeViewer">
+      <button class="viewer-close" aria-label="关闭图片预览" @tap.stop="closeViewer">
         <AppIcon name="close" :size="22" color="#FFFFFF" />
       </button>
       <text class="viewer-counter">{{ activeIndex + 1 }} / {{ normalizedImages.length }}</text>
@@ -12,19 +12,31 @@
       class="viewer-swiper"
       :current="activeIndex"
       :circular="normalizedImages.length > 1"
-      :disable-touch="normalizedImages.length <= 1"
+      :disable-touch="normalizedImages.length <= 1 || activeScale > 1.01"
       @change="handleChange"
     >
       <swiper-item v-for="(image, index) in normalizedImages" :key="`${image}-${index}`">
         <view class="viewer-slide">
-          <image
-            v-if="!failedImages[index]"
-            class="viewer-image"
-            :src="image"
-            mode="aspectFit"
-            :show-menu-by-longpress="true"
-            @error="markImageFailed(index)"
-          />
+          <movable-area v-if="!failedImages[index]" class="viewer-movable-area" scale-area @tap.stop="closeViewer">
+            <movable-view
+              class="viewer-movable"
+              :direction="scaleFor(index) > 1.01 ? 'all' : 'none'"
+              :scale="true"
+              :scale-min="1"
+              :scale-max="4"
+              :scale-value="scaleFor(index)"
+              :out-of-bounds="true"
+              @scale="handleScale(index, $event)"
+            >
+              <image
+                class="viewer-image"
+                :src="image"
+                mode="aspectFit"
+                :show-menu-by-longpress="true"
+                @error="markImageFailed(index)"
+              />
+            </movable-view>
+          </movable-area>
           <view v-else class="viewer-fallback">
             <AppIcon name="image" :size="48" color="#6D6E73" />
             <text class="viewer-fallback-text">图片暂时无法显示</text>
@@ -33,8 +45,8 @@
       </swiper-item>
     </swiper>
 
-    <view v-if="normalizedImages.length > 1" class="viewer-hint" :style="hintStyle">
-      <text>左右滑动查看</text>
+    <view class="viewer-hint" :style="hintStyle">
+      <text>{{ normalizedImages.length > 1 ? '左右滑动 · 双指缩放 · 点击关闭' : '双指缩放 · 点击关闭' }}</text>
     </view>
   </view>
 </template>
@@ -53,6 +65,7 @@ const emit = defineEmits(['update:modelValue', 'change', 'close'])
 
 const activeIndex = ref(0)
 const failedImages = ref({})
+const imageScales = ref({})
 
 const normalizedImages = computed(() => props.images
   .map(image => String(image || '').trim())
@@ -78,6 +91,7 @@ const toolbarStyle = computed(() => ({
 const hintStyle = computed(() => ({
   bottom: `${Math.max(18, safeAreaInsets.bottom + 12)}px`,
 }))
+const activeScale = computed(() => scaleFor(activeIndex.value))
 
 function clampIndex(index) {
   const maxIndex = Math.max(0, normalizedImages.value.length - 1)
@@ -90,7 +104,17 @@ function syncInitialIndex() {
 
 function handleChange(event) {
   activeIndex.value = clampIndex(event?.detail?.current)
+  imageScales.value = {}
   emit('change', activeIndex.value)
+}
+
+function scaleFor(index) {
+  return Math.max(1, Number(imageScales.value[index]) || 1)
+}
+
+function handleScale(index, event) {
+  const scale = Math.min(4, Math.max(1, Number(event?.detail?.scale) || 1))
+  imageScales.value = { ...imageScales.value, [index]: scale }
 }
 
 function markImageFailed(index) {
@@ -105,7 +129,10 @@ function closeViewer() {
 watch(
   () => props.modelValue,
   visible => {
-    if (visible) syncInitialIndex()
+    if (visible) {
+      imageScales.value = {}
+      syncInitialIndex()
+    }
   },
   { immediate: true },
 )
@@ -121,6 +148,7 @@ watch(
   () => props.images,
   () => {
     failedImages.value = {}
+    imageScales.value = {}
     activeIndex.value = clampIndex(activeIndex.value)
   },
   { deep: true },
@@ -207,6 +235,22 @@ watch(
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.viewer-movable-area,
+.viewer-movable {
+  width: 100%;
+  height: 100%;
+}
+
+.viewer-movable-area {
+  overflow: hidden;
+}
+
+.viewer-movable {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .viewer-fallback {

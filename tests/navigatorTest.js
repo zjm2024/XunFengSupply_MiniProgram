@@ -262,6 +262,7 @@ describe('Navigator - 返回逻辑', () => {
 
   it('navigateBack 失败应触发兜底逻辑', async () => {
     mockUni.navigateBack.mockImplementation(({ fail }) => fail())
+    mockUni.redirectTo.mockImplementation(({ fail }) => fail())
     mockUni.reLaunch.mockImplementation(({ success }) => success())
     global.getCurrentPages.mockReturnValue([
       { route: 'pages/startup/index' },

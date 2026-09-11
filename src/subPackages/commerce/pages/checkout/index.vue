@@ -173,7 +173,12 @@
                       @click="selectPayment(option)"
                     >
                       <view class="choice-icon">
-                        <AppIcon :name="option.icon" :size="19" />
+                        <view
+                          v-if="option.iconSvg"
+                          class="payment-asset-icon"
+                          :style="{ backgroundImage: svgBackground(option.iconSvg) }"
+                        />
+                        <AppIcon v-else :name="option.icon" :size="19" />
                       </view>
                       <view class="choice-copy">
                         <text class="choice-title">{{ option.label }}</text>
@@ -198,7 +203,12 @@
                         :disabled="submitting"
                         @click="paymentChannel = channel.value"
                       >
-                        <AppIcon :name="channel.icon" :size="19" />
+                        <view
+                          v-if="channel.iconSvg"
+                          class="channel-asset-icon"
+                          :style="{ backgroundImage: svgBackground(channel.iconSvg) }"
+                        />
+                        <AppIcon v-else :name="channel.icon" :size="19" />
                         <text>{{ channel.label }}</text>
                         <AppIcon
                           v-if="paymentChannel === channel.value"
@@ -209,7 +219,41 @@
                       </button>
                     </view>
                   </view>
-                  <text v-if="creditDisabledReason" class="credit-hint">{{ creditDisabledReason }}</text>
+                  <view v-if="paymentMode === PAYMENT_MODE.COMBINATION" class="allocation-panel">
+                    <view class="channel-heading">
+                      <text class="channel-title">分配支付金额</text>
+                      <text class="channel-tip">仅显示状态正常且已授权参与组合支付的账户</text>
+                    </view>
+                    <view
+                      v-for="account in availablePaymentAccounts"
+                      :key="'balance-' + account.accountCustomerId"
+                      class="allocation-row"
+                    >
+                      <checkbox
+                        :checked="isSourceSelected(balanceKey(account))"
+                        color="#D7192D"
+                        @tap.stop="toggleBalanceAccount(account)"
+                      />
+                      <view class="allocation-copy" @tap="toggleBalanceAccount(account)">
+                        <text class="allocation-name">{{ account.isMaster ? '主账户' : (account.realName || account.username) }}</text>
+                        <text class="allocation-available">可用 ¥{{ formatMoney(account.availableBalance) }} · 冻结 ¥{{ formatMoney(account.frozenBalance) }}</text>
+                      </view>
+                      <input
+                        v-if="isSourceSelected(balanceKey(account))"
+                        class="allocation-input"
+                        type="digit"
+                        :value="allocationAmounts[balanceKey(account)]"
+                        placeholder="0.00"
+                        @input="setAllocationAmount(balanceKey(account), $event.detail.value)"
+                      />
+                    </view>
+                    <text class="credit-hint">本单统一占用主体授信 ¥{{ formatMoney(payableAmount) }}；剩余可用授信 ¥{{ formatMoney(finance.credit.availableAmount) }}</text>
+                    <view class="allocation-total">
+                      <text>已分配 ¥{{ formatMoney(allocationTotal) }}</text>
+                      <text>应付 ¥{{ formatMoney(payableAmount) }}</text>
+                    </view>
+                    <text v-if="allocationValidationReason" class="credit-hint">{{ allocationValidationReason }}</text>
+                  </view>
                 </view>
 
                 <view class="section-card detail-card">
@@ -348,7 +392,12 @@ import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import { confirmDealerOrderPayment, getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import { groupItemsBySpu } from '../../model/cartGrouping.js'
+import cashPaySvg from '@/shared/assets/illustrations/pay/icon-cash-pay.svg?raw'
+import combinePaySvg from '@/shared/assets/illustrations/pay/icon-combine-pay.svg?raw'
+import wechatPaySvg from '@/shared/assets/illustrations/pay/payment-wechat-pay.svg?raw'
+import alipaySvg from '@/shared/assets/illustrations/pay/payment-alipay.svg?raw'
 
 const userStore = useUserStore()
 const { cartStore, loadCart, flush } = useCart()
@@ -360,7 +409,7 @@ const previewData = ref(null)
 const previewing = ref(false)
 const previewError = ref('')
 const deliveryType = ref(DELIVERY_TYPE.DELIVERY)
-const paymentMode = ref(PAYMENT_MODE.CASH)
+const paymentMode = ref(PAYMENT_MODE.COMBINATION)
 const paymentChannel = ref('wechat')
 const selectedAddress = ref(null)
 const customerRemark = ref('')
@@ -369,11 +418,14 @@ const confirmModalVisible = ref(false)
 const submitting = ref(false)
 const clientRequestId = ref('')
 const collapsedCheckoutGroupKeys = ref({})
+const finance = ref(userStore.financeContext)
+const selectedSources = ref([])
+const allocationAmounts = ref({})
 let previewSequence = 0
 
 const cashPaymentChannels = [
-  { value: 'wechat', label: '微信支付', icon: 'wechat-pay' },
-  { value: 'alipay', label: '支付宝', icon: 'alipay' },
+  { value: 'wechat', label: '微信支付', iconSvg: wechatPaySvg },
+  { value: 'alipay', label: '支付宝', iconSvg: alipaySvg },
   { value: 'bank-card', label: '银行卡', icon: 'bank' },
 ]
 
@@ -423,41 +475,68 @@ const hasPriceChanged = computed(() =>
   Boolean(previewData.value) && Math.abs(localAmount.value - goodsAmount.value) >= 0.01,
 )
 
-const availableCreditAmount = computed(() => Math.max(0, number(userStore.availableCreditLimit) / 100))
-const creditSufficient = computed(() =>
-  userStore.canUseCreditPay && availableCreditAmount.value >= payableAmount.value,
-)
-const creditDisabledReason = computed(() => {
-  if (!userStore.canUseCreditPay) return '当前账户暂不可使用授信赊账'
-  if (!creditSufficient.value) {
-    return '可用授信额度 ¥' + formatMoney(availableCreditAmount.value) + '，不足以支付本单'
-  }
-  return ''
-})
+const availableCreditAmount = computed(() => Math.max(0, number(finance.value.credit?.availableAmount)))
 const paymentOptions = computed(() => [
   {
     value: PAYMENT_MODE.CASH,
     label: '现款支付',
     description: '订单提交后在线付款',
-    icon: 'wallet',
+    iconSvg: cashPaySvg,
     disabled: false,
   },
   {
-    value: PAYMENT_MODE.CREDIT,
-    label: '授信赊账',
-    description: creditSufficient.value
-      ? '可用额度 ¥' + formatMoney(availableCreditAmount.value)
-      : '当前不可用',
-    icon: 'credit-card',
-    disabled: !creditSufficient.value,
+    value: PAYMENT_MODE.COMBINATION,
+    label: '账户组合支付',
+    description: '主账户与一个或多个子账户可用余额组合分摊',
+    iconSvg: combinePaySvg,
+    disabled: false,
   },
 ])
 
+const availablePaymentAccounts = computed(() => (finance.value.accounts || []).filter(account =>
+  account.accountStatus === 1
+  && account.financeStatus === 1
+  && account.canParticipateCombinationPay
+))
+const allocationTotal = computed(() => selectedSources.value.reduce(
+  (sum, key) => sum + number(allocationAmounts.value[key]),
+  0,
+))
+const creditEligibilityReason = computed(() => {
+  if (finance.value.credit.status === 2) return '经销商主体授信已冻结，当前禁止下单'
+  if (finance.value.credit.status !== 1) return '经销商主体授信未启用，当前禁止下单'
+  if (payableAmount.value > availableCreditAmount.value) return '订单金额不能超过经销商剩余可用授信'
+  return ''
+})
+const allocationValidationReason = computed(() => {
+  if (paymentMode.value !== PAYMENT_MODE.COMBINATION) return ''
+  if (creditEligibilityReason.value) return creditEligibilityReason.value
+  if (!selectedSources.value.length) return '请至少选择一个余额支付账户'
+  if (selectedSources.value.some(key => number(allocationAmounts.value[key]) <= 0)) {
+    return '已选择资金来源的分摊金额必须大于 0'
+  }
+  for (const account of availablePaymentAccounts.value) {
+    const key = balanceKey(account)
+    if (isSourceSelected(key) && number(allocationAmounts.value[key]) > account.availableBalance) {
+      return (account.realName || account.username || '账户') + '的分摊金额超过可用余额'
+    }
+  }
+  if (Math.abs(allocationTotal.value - payableAmount.value) >= 0.005) {
+    return '分摊合计必须等于订单应付金额'
+  }
+  return ''
+})
+
 const submitDisabledReason = computed(() => {
-  if (!userStore.canOrder) return '当前账号状态暂不允许提交订单'
+  if (!userStore.canOrder) return finance.value.credit.status === 2
+    ? '经销商主体授信已冻结，当前禁止下单'
+    : '当前账号状态暂不允许提交订单'
+  if (creditEligibilityReason.value) return creditEligibilityReason.value
   if (!hasAddress.value) return '请先新增并选择收货地址'
   if (!stockAvailable.value) return '存在库存不足商品，请调整后重新结算'
-  if (paymentMode.value === PAYMENT_MODE.CREDIT && !creditSufficient.value) return '当前授信额度不足'
+  if (paymentMode.value === PAYMENT_MODE.COMBINATION && allocationValidationReason.value) {
+    return allocationValidationReason.value
+  }
   if (!agreed.value) return '请阅读并同意经销商交易协议'
   if (previewError.value) return '订单核价失败，请重新核价'
   return ''
@@ -466,11 +545,12 @@ const canSubmit = computed(() =>
   checkoutItems.value.length > 0
   && Boolean(previewData.value)
   && userStore.canOrder
+  && !creditEligibilityReason.value
   && hasAddress.value
   && stockAvailable.value
   && !previewError.value
   && agreed.value
-  && (paymentMode.value !== PAYMENT_MODE.CREDIT || creditSufficient.value)
+  && (paymentMode.value !== PAYMENT_MODE.COMBINATION || !allocationValidationReason.value)
   && !previewing.value
   && !submitting.value,
 )
@@ -493,7 +573,7 @@ const stateActionText = computed(() =>
   pageState.value === PageStatus.EMPTY ? '返回购物车' : '重新加载',
 )
 const confirmDescription = computed(() => {
-  const paymentText = paymentMode.value === PAYMENT_MODE.CREDIT ? '授信赊账' : '现款支付'
+  const paymentText = paymentMode.value === PAYMENT_MODE.COMBINATION ? '账户组合支付' : '现款支付'
   const channelText = paymentMode.value === PAYMENT_MODE.CASH
     ? '（' + (cashPaymentChannels.find(item => item.value === paymentChannel.value)?.label || '在线支付') + '）'
     : ''
@@ -510,6 +590,16 @@ function number(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
+function svgBackground(svg) {
+  const normalized = String(svg || '')
+    .replace(/<\?xml[\s\S]*?\?>/gi, '')
+    .replace(/<!doctype[\s\S]*?>/gi, '')
+    .trim()
+  return normalized
+    ? `url("data:image/svg+xml;charset=UTF-8,${encodeURIComponent(normalized)}")`
+    : ''
+}
+
 function valueOf(source, camelKey, pascalKey, fallback = undefined) {
   return source?.[camelKey] ?? source?.[pascalKey] ?? fallback
 }
@@ -519,6 +609,58 @@ function formatMoney(value) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
+}
+
+function balanceKey(account) {
+  return 'balance:' + account.accountCustomerId
+}
+
+function isSourceSelected(key) {
+  return selectedSources.value.includes(key)
+}
+
+function setAllocationAmount(key, value) {
+  allocationAmounts.value = { ...allocationAmounts.value, [key]: value }
+}
+
+function toggleBalanceAccount(account) {
+  const key = balanceKey(account)
+  toggleSource(key, Math.min(account.availableBalance, Math.max(0, payableAmount.value - allocationTotal.value)))
+}
+
+function toggleSource(key, suggestedAmount) {
+  if (isSourceSelected(key)) {
+    selectedSources.value = selectedSources.value.filter(item => item !== key)
+    const next = { ...allocationAmounts.value }
+    delete next[key]
+    allocationAmounts.value = next
+    return
+  }
+  selectedSources.value = [...selectedSources.value, key]
+  setAllocationAmount(key, suggestedAmount > 0 ? suggestedAmount.toFixed(2) : '')
+}
+
+function buildAllocations() {
+  return selectedSources.value.map(key => ({
+      payMethod: 'balance',
+      accountCustomerId: Number(key.split(':')[1]),
+      amount: number(allocationAmounts.value[key]),
+  }))
+}
+
+function autoAllocatePayment() {
+  selectedSources.value = []
+  allocationAmounts.value = {}
+  let remaining = payableAmount.value
+  for (const account of availablePaymentAccounts.value) {
+    if (remaining <= 0) break
+    const amount = Math.min(remaining, account.availableBalance)
+    if (amount <= 0) continue
+    const key = balanceKey(account)
+    selectedSources.value.push(key)
+    allocationAmounts.value[key] = amount.toFixed(2)
+    remaining = Number((remaining - amount).toFixed(2))
+  }
 }
 
 function toggleCheckoutGroup(groupKey) {
@@ -605,8 +747,14 @@ async function loadCheckoutData() {
 
     checkoutItems.value = selected.map(item => ({ ...item }))
     await loadDefaultAddress()
-    const result = await refreshPreview({ silent: true })
+    const [result, financeContext] = await Promise.all([
+      refreshPreview({ silent: true }),
+      getDealerFinanceContext(),
+    ])
     if (!result) throw new Error(previewError.value || '订单核价失败')
+    finance.value = financeContext
+    userStore.updateFinanceContext(financeContext)
+    autoAllocatePayment()
     pageState.value = PageStatus.CONTENT
   } catch (error) {
     errorMessage.value = error?.message || '结算信息加载失败，请稍后重试'
@@ -646,7 +794,7 @@ async function refreshPreview({ silent = false } = {}) {
 
 function selectPayment(option) {
   if (option.disabled || submitting.value) {
-    if (option.disabled) uni.showToast({ title: creditDisabledReason.value, icon: 'none' })
+    if (option.disabled) uni.showToast({ title: '当前支付方式不可用', icon: 'none' })
     return
   }
   paymentMode.value = option.value
@@ -676,6 +824,11 @@ async function prepareSubmit() {
   if (!canSubmit.value) return
   const result = await refreshPreview()
   if (!result || !result.stockAvailable) return
+  if (paymentMode.value === PAYMENT_MODE.COMBINATION
+    && Math.abs(allocationTotal.value - payableAmount.value) >= 0.005) {
+    autoAllocatePayment()
+  }
+  if (!canSubmit.value) return
   confirmModalVisible.value = true
 }
 
@@ -700,6 +853,14 @@ async function confirmSubmit() {
     })
     const orderId = valueOf(response, 'orderId', 'OrderId')
     if (!orderId) throw new Error('订单创建成功但未返回订单编号')
+
+    if (paymentMode.value === PAYMENT_MODE.COMBINATION) {
+      await confirmDealerOrderPayment({
+        orderId,
+        clientRequestId: clientRequestId.value,
+        allocations: buildAllocations(),
+      })
+    }
 
     try {
       if (orderedCartIds.length) await removeItems(orderedCartIds)
@@ -778,14 +939,14 @@ function handleStateAction() {
 
 .heading-icon {
   display: flex;
-  width: 38px;
-  height: 38px;
-  flex: 0 0 38px;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
   align-items: center;
   justify-content: center;
-  border-radius: 11px;
-  color: var(--color-brand, #D7192D);
-  background: var(--color-brand-soft, #FFF2F3);
+  border-radius: 8px;
+  color: #50657A;
+  background: #EEF2F5;
 }
 
 .heading-copy {
@@ -813,8 +974,8 @@ function handleStateAction() {
 .section-badge {
   padding: 4px 9px;
   border-radius: 12px;
-  color: var(--color-brand, #D7192D);
-  background: var(--color-brand-soft, #FFF2F3);
+  color: #4C6072;
+  background: #EEF2F5;
   font-size: 11px;
   line-height: 16px;
 }
@@ -839,7 +1000,7 @@ function handleStateAction() {
   }
 
   &.empty {
-    background: #FFF7F8;
+    background: #F6F8FA;
   }
 }
 
@@ -866,7 +1027,7 @@ function handleStateAction() {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #FFECEF;
+  background: #EAF0F4;
 }
 
 .empty-address-copy {
@@ -878,13 +1039,13 @@ function handleStateAction() {
 }
 
 .empty-address-title {
-  color: #B42336;
+  color: #34495B;
   font-size: 14px;
   font-weight: 650;
 }
 
 .empty-address-desc {
-  color: #8C5962;
+  color: #6C7680;
   font-size: 11px;
 }
 
@@ -1170,23 +1331,23 @@ function handleStateAction() {
   gap: 10px;
   margin: 0 14px;
   padding: 10px 12px;
-  border: 1px solid rgba(215, 25, 45, 0.28);
+  border: 1px solid #DDE3E8;
   border-radius: 12px;
-  background: #FFF7F8;
+  background: #F7F9FA;
   box-sizing: border-box;
 }
 
 .active-icon {
-  color: var(--color-brand, #D7192D);
-  background: rgba(215, 25, 45, 0.08);
+  color: #50657A;
+  background: #EAF0F4;
 }
 
 .fixed-label {
   flex: none;
   padding: 3px 8px;
   border-radius: 999px;
-  color: var(--color-brand, #D7192D);
-  background: #FFECEF;
+  color: #4C6072;
+  background: #E9EEF2;
   font-size: 10px;
   font-weight: 600;
 }
@@ -1219,7 +1380,8 @@ function handleStateAction() {
 
   &.active {
     border-color: rgba(215, 25, 45, 0.46);
-    background: var(--color-brand-soft, #FFF2F3);
+    background: #FFFFFF;
+    box-shadow: inset 0 0 0 1px rgba(215, 25, 45, 0.18);
   }
 
   &.disabled {
@@ -1242,7 +1404,25 @@ function handleStateAction() {
 
 .choice-option.active .choice-icon {
   color: var(--color-brand, #D7192D);
-  background: rgba(215, 25, 45, 0.08);
+  background: #F5F6F8;
+}
+
+.payment-asset-icon,
+.channel-asset-icon {
+  flex: none;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: contain;
+}
+
+.payment-asset-icon {
+  width: 25px;
+  height: 25px;
+}
+
+.channel-asset-icon {
+  width: 21px;
+  height: 21px;
 }
 
 .choice-copy {
@@ -1308,10 +1488,60 @@ function handleStateAction() {
   line-height: 16px;
 }
 
-.cash-channel-panel {
+.cash-channel-panel,
+.allocation-panel {
   margin: 12px 14px 0;
   padding-top: 12px;
   border-top: 1px solid var(--color-divider, #F0F1F3);
+}
+
+.allocation-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 54px;
+  border-bottom: 1px solid var(--color-divider, #F0F1F3);
+}
+
+.allocation-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.allocation-name,
+.allocation-available {
+  display: block;
+}
+
+.allocation-name {
+  color: var(--color-text-primary, #111216);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.allocation-available {
+  margin-top: 2px;
+  color: var(--color-text-tertiary, #94969C);
+  font-size: 10px;
+}
+
+.allocation-input {
+  width: 88px;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border-strong, #D2D4D9);
+  border-radius: 8px;
+  text-align: right;
+  font-size: 13px;
+}
+
+.allocation-total {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 10px;
+  color: var(--color-text-primary, #111216);
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .channel-heading {
@@ -1362,7 +1592,8 @@ function handleStateAction() {
   &.active {
     border-color: rgba(215, 25, 45, 0.42);
     color: var(--color-brand, #D7192D);
-    background: #FFF3F5;
+    background: #FFFFFF;
+    box-shadow: inset 0 0 0 1px rgba(215, 25, 45, 0.14);
   }
 }
 
