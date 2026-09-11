@@ -2,7 +2,7 @@
   <view v-if="visible" class="drawer-layer">
     <view class="drawer-mask" @click="$emit('close')"></view>
 
-    <view class="drawer-panel">
+    <view class="drawer-panel" :style="panelStyle">
       <view class="drawer-header">
         <view>
           <text class="drawer-title">筛选与排序</text>
@@ -13,7 +13,12 @@
         </view>
       </view>
 
-      <scroll-view class="drawer-scroll" scroll-y>
+      <scroll-view
+        class="drawer-scroll"
+        scroll-y
+        enhanced
+        :show-scrollbar="false"
+      >
         <view class="filter-section category-section">
           <view class="section-heading">
             <text class="section-title">商品分类</text>
@@ -142,7 +147,7 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
 
 const props = defineProps({
@@ -183,17 +188,6 @@ const currentCategoryOptions = computed(() => {
   if (categoryLevel.value === 0) return props.categoryTree
   return Array.isArray(currentParent.value?.children) ? currentParent.value.children : []
 })
-
-watch(() => props.visible, (visible) => {
-  if (!visible) return
-  draftCategoryPath.value = [...props.categoryPath]
-  draftStockFilter.value = props.stockFilter
-  draftSortKey.value = props.sortKey
-  const selected = draftCategoryPath.value[draftCategoryPath.value.length - 1]
-  categoryLevel.value = selected?.children?.length
-    ? draftCategoryPath.value.length
-    : Math.max(0, draftCategoryPath.value.length - 1)
-}, { immediate: true })
 
 function isSameId(first, second) {
   return String(first ?? '') === String(second ?? '')
@@ -239,6 +233,53 @@ function applyFilters() {
     sortKey: draftSortKey.value,
   })
 }
+
+const panelHeight = ref('88vh')
+const panelStyle = computed(() => ({ height: panelHeight.value }))
+
+function getWindowSize() {
+  try {
+    if (typeof uni.getWindowInfo === 'function') {
+      return uni.getWindowInfo()
+    }
+    return uni.getSystemInfoSync()
+  } catch (error) {
+    return { windowWidth: 375, windowHeight: 667 }
+  }
+}
+
+function calcPanelHeight() {
+  nextTick(() => {
+    const { windowWidth = 375, windowHeight = 667 } = getWindowSize()
+    panelHeight.value = Number(windowWidth) >= 800
+      ? `${Math.max(1, Number(windowHeight))}px`
+      : `${Math.min(Math.max(1, Number(windowHeight)) * 0.88, 760)}px`
+  })
+}
+
+function handleWindowResize() {
+  if (props.visible) calcPanelHeight()
+}
+
+onMounted(() => {
+  if (typeof uni.onWindowResize === 'function') uni.onWindowResize(handleWindowResize)
+})
+
+onUnmounted(() => {
+  if (typeof uni.offWindowResize === 'function') uni.offWindowResize(handleWindowResize)
+})
+
+watch(() => props.visible, (visible) => {
+  if (!visible) return
+  draftCategoryPath.value = [...props.categoryPath]
+  draftStockFilter.value = props.stockFilter
+  draftSortKey.value = props.sortKey
+  const selected = draftCategoryPath.value[draftCategoryPath.value.length - 1]
+  categoryLevel.value = selected?.children?.length
+    ? draftCategoryPath.value.length
+    : Math.max(0, draftCategoryPath.value.length - 1)
+  calcPanelHeight()
+})
 </script>
 
 <style lang="scss" scoped>
@@ -319,8 +360,13 @@ function applyFilters() {
 }
 
 .drawer-scroll {
-  flex: 1;
+  flex: 1 1 0%;
+  width: 100%;
+  height: 0;
   min-height: 0;
+  overflow: hidden;
+  touch-action: pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 .filter-section {
@@ -543,7 +589,7 @@ function applyFilters() {
 }
 
 .drawer-scroll-spacer {
-  height: 8px;
+  height: calc(8px + env(safe-area-inset-bottom));
 }
 
 .drawer-footer {

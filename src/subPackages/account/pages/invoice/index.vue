@@ -1,4 +1,4 @@
-﻿﻿<template>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <AppPageShell>
     <template #header>
       <app-header title="发票管理" :show-back="true" />
@@ -215,6 +215,9 @@ function reapply(record) {
 }
 
 .action-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   color: #D7192D;
@@ -304,6 +307,9 @@ function reapply(record) {
 }
 
 .download-btn, .retry-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 32px; /* 稳定 px */
   padding: 0 12px;
   border: 1px solid #D7192D;

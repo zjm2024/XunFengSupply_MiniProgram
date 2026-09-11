@@ -195,6 +195,9 @@ function handleLogout() {
 }
 
 .logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: 48px;
   background: var(--surface-card, #FFFFFF);

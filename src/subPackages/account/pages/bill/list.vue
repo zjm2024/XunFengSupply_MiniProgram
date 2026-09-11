@@ -1,4 +1,4 @@
-﻿﻿﻿<!--
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!--
   月度对账账单列表页面（分包：settlementSub）
   对应业务流程节点：
   收货对账结算 → 月度账单列表查看
@@ -335,9 +335,11 @@ async function handleExport(bill) {
       border-top: 1rpx solid var(--border-color);
       
       .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
         min-width: 160rpx;
         height: 60rpx;
-        line-height: 60rpx;
         font-size: 26rpx;
         border-radius: 30rpx;
         border: none;

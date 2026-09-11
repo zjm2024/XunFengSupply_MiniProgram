@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <AppPageShell>
     <template #header>
       <app-header
@@ -31,10 +31,12 @@
                 @change="onSwiperChange"
               >
                 <swiper-item v-for="(image, idx) in displayImages" :key="idx">
-                  <AppProductImage class="main-image" :src="image" :stock="product.stock" />
+                  <view class="main-image-wrap" @click="previewImage(idx)">
+                    <AppProductImage class="main-image" :src="image" :stock="product.stock" />
+                  </view>
                 </swiper-item>
               </swiper>
-              <text v-if="displayImages.length" class="image-counter">
+              <text v-if="displayImages.length" class="image-counter" @click="previewImage(currentImage)">
                 {{ currentImage + 1 }} / {{ displayImages.length }}
               </text>
             </view>
@@ -182,13 +184,21 @@
           </view>
         </app-page-state>
       </AppContent>
+      <AppImageViewer
+        v-model="imageViewerVisible"
+        :images="displayImages"
+        :initial-index="imageViewerStartIndex"
+      />
     </template>
 
     <template #footer>
       <fixed-action-bar v-if="pageState === PageStatus.CONTENT">
         <button class="cart-entry" @click="goToCart">
+          <view class="cart-icon-wrap">
+            <AppIcon name="cart" :size="26" />
+            <text v-if="cartStore.cartBadgeCount" class="cart-badge">{{ cartStore.cartBadgeCount }}</text>
+          </view>
           <text>购物车</text>
-          <text v-if="cartStore.cartBadgeCount" class="cart-badge">{{ cartStore.cartBadgeCount }}</text>
         </button>
         <button
           class="action-btn secondary"
@@ -211,7 +221,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app'
+import { onBackPress, onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import { getGoodsDetail } from '../../api/productApi.js'
 import { useCart } from '../../composables/useCart.js'
 import { navigator } from '../../../../app/navigation/navigator.js'
@@ -224,11 +234,15 @@ import appHeader from '../../../../shared/ui/AppHeader/AppHeader.vue'
 import fixedActionBar from '../../../../shared/ui/FixedActionBar/FixedActionBar.vue'
 import statusTag from '../../../../shared/ui/StatusTag/StatusTag.vue'
 import AppProductImage from '../../../../shared/ui/AppProductImage/AppProductImage.vue'
+import AppImageViewer from '../../../../shared/ui/AppImageViewer/AppImageViewer.vue'
 import quantityStepper from '../../components/QuantityStepper/QuantityStepper.vue'
+import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
 
 const productId = ref(0)
 const product = ref(null)
 const currentImage = ref(0)
+const imageViewerVisible = ref(false)
+const imageViewerStartIndex = ref(0)
 const pageState = ref(PageStatus.LOADING)
 const errorMessage = ref('网络异常，请稍后重试')
 const submitting = ref(false)
@@ -390,6 +404,12 @@ onShow(() => {
   loadCart({ silent: true }).catch(() => {})
 })
 
+onBackPress(() => {
+  if (!imageViewerVisible.value) return false
+  imageViewerVisible.value = false
+  return true
+})
+
 onHide(async () => {
   await flush()
 })
@@ -430,6 +450,13 @@ function formatMoney(value) {
 
 function onSwiperChange(event) {
   currentImage.value = event.detail.current
+}
+
+/** 全屏预览图片 */
+function previewImage(index) {
+  if (!displayImages.value.length) return
+  imageViewerStartIndex.value = Number(index) || 0
+  imageViewerVisible.value = true
 }
 
 function selectColor(colorId) {
@@ -523,6 +550,11 @@ async function goToCart() {
   background: #FFFFFF;
 }
 
+.main-image-wrap {
+  width: 100%;
+  height: 100%;
+}
+
 .main-image {
   width: 100%;
   height: 100%;
@@ -540,6 +572,7 @@ async function goToCart() {
   font-size: 11px;
   line-height: 1.2;
   text-align: center;
+  cursor: pointer;
 }
 
 .detail-main {
@@ -673,15 +706,20 @@ async function goToCart() {
 
 .cart-entry {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   flex: 0 0 62px;
   height: 48px;
   padding: 0 8px;
   border: 0;
-  border-radius: 12px;
-  background: var(--surface-subtle, #F4F5F8);
+  background: transparent;
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: 11px;
   transition: all 0.2s ease;
+  overflow: visible;
 }
 
 .cart-entry:active {
@@ -689,9 +727,33 @@ async function goToCart() {
   transform: scale(0.96);
 }
 
-.cart-badge { position: absolute; top: -1px; right: 0; min-width: 17px; height: 17px; padding: 0 4px; border-radius: 9px; color: #FFFFFF; background: var(--color-brand); font-size: 10px; line-height: 17px; }
+.cart-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -6px;
+  right: -10px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  color: #FFFFFF;
+  background: var(--color-brand);
+  font-size: 10px;
+  line-height: 18px;
+  text-align: center;
+  z-index: 2;
+}
 
 .action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex: 1;
   min-width: 0;
   height: 48px;

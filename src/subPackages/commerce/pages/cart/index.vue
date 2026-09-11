@@ -1,4 +1,4 @@
-﻿<template>
+﻿﻿<template>
   <AppPageShell>
     <template #header>
       <app-header title="购物车" :show-back="true" @back="goBack" />
@@ -46,7 +46,7 @@
                   <view class="toolbar-left">
                     <text class="toolbar-title">采购清单</text>
                     <text class="toolbar-desc">
-                      {{ cartStore.items.length }} 种商品，共 {{ cartStore.summary.allQuantity }} 件
+                      {{ validGroups.length }} 个商品，{{ cartStore.validItems.length }} 个 SKU，共 {{ cartStore.summary.allQuantity }} 件
                     </text>
                   </view>
                   <button class="outline-btn" @click="goToProductList">继续选购</button>
@@ -84,69 +84,101 @@
                   </view>
                 </view>
 
-                <!-- 有效商品列表 -->
-                <view class="cart-list">
-                  <view v-for="item in cartStore.validItems" :key="item.cartItemId" class="cart-card">
-                    <!-- 选择框 -->
-                    <label class="check-wrap" @tap.stop="onToggleSelect(item)">
-                      <view class="check" :class="{ checked: isSelected(item) }">
-                        <text v-if="isSelected(item)">✓</text>
+                <!-- 有效商品：SPU 分组，组内展示 SKU -->
+                <view class="spu-list">
+                  <view v-for="group in validGroups" :key="group.key" class="spu-card">
+                    <view class="spu-header">
+                      <label class="check-wrap group-check" @tap.stop="onToggleGroup(group)">
+                        <view
+                          class="check"
+                          :class="{ checked: group.allSelected, indeterminate: group.partiallySelected }"
+                        >
+                          <text v-if="group.allSelected">✓</text>
+                          <text v-else-if="group.partiallySelected">—</text>
+                        </view>
+                      </label>
+                      <view class="spu-copy" @tap="goToDetail(group.productId)">
+                        <text class="spu-name">{{ group.name }}</text>
+                        <text class="spu-meta">{{ group.skuCount }} 个 SKU · 共 {{ group.totalQuantity }} 件</text>
                       </view>
-                    </label>
-
-                    <!-- 商品图 -->
-                    <AppProductImage
-                      class="product-image"
-                      :src="item.image"
-                      :stock="item.stock"
-                      @click="goToDetail(item.productId)"
-                    />
-
-                    <!-- 商品信息 -->
-                    <view class="product-info">
-                      <text class="product-name" @click="goToDetail(item.productId)">
-                        {{ item.name || `商品 ${item.productId}` }}
-                      </text>
-                      <text class="product-code">编号：{{ item.code || item.productId }}</text>
-
-                      <!-- SKU 规格 -->
-                      <text v-if="item.skuName" class="sku-spec">
-                        规格：{{ item.skuName }}
-                      </text>
-
-                      <!-- 价格行 -->
-                      <view class="price-line">
-                        <text class="price">¥{{ Number(item.price).toFixed(2) }}</text>
-                        <text class="unit">/ {{ unitText(item) }}</text>
-                      </view>
-
-                      <!-- 数量控制 -->
-                      <view class="quantity-row">
-                        <QuantityStepper
-                          :model-value="item.quantity"
-                          :min="Number(item.minOrderQty) || 1"
-                          :max="Number(item.stock) || 9999"
-                          :step="1"
-                          size="sm"
-                          @change="(val) => onQuantityChange(item, val)"
-                          @plus="(val) => onQuantityChange(item, val)"
-                          @minus="(val) => onQuantityChange(item, val)"
+                      <view class="spu-total">¥{{ formatMoney(group.totalAmount) }}</view>
+                      <button class="collapse-btn" :aria-label="isGroupCollapsed(group.key) ? '展开规格' : '收起规格'" @tap.stop="toggleGroup(group.key)">
+                        <AppIcon
+                          name="chevron-right"
+                          :size="17"
+                          class="collapse-icon"
+                          :class="{ expanded: !isGroupCollapsed(group.key) }"
                         />
-                        <button class="delete-icon-btn" @click="deleteOne(item.cartItemId)">
-                          <text class="trash-icon">🗑</text>
-                        </button>
-                      </view>
+                      </button>
                     </view>
 
-                    <!-- 小计 -->
-                    <text class="subtotal">¥{{ subtotal(item) }}</text>
+                    <view v-show="!isGroupCollapsed(group.key)" class="sku-list">
+                      <view
+                        v-for="item in group.items"
+                        :key="item.cartItemId"
+                        class="sku-action-shell"
+                        :class="{ 'action-open': isItemActionOpen(item.cartItemId) }"
+                      >
+                        <button class="sku-delete-action" @tap.stop="deleteOne(item.cartItemId)">
+                          <AppIcon name="trash" :size="19" color="#FFFFFF" />
+                          <text>删除</text>
+                        </button>
+                        <view
+                          class="sku-row"
+                          @longpress="openItemActions(item)"
+                          @contextmenu.prevent="openItemActions(item)"
+                        >
+                          <label class="check-wrap" @tap.stop="onToggleSelect(item)">
+                            <view class="check" :class="{ checked: isSelected(item) }">
+                              <text v-if="isSelected(item)">✓</text>
+                            </view>
+                          </label>
+
+                          <AppProductImage
+                            class="product-image"
+                            :src="item.image"
+                            :stock="item.stock"
+                            @click="goToDetail(item.productId)"
+                          />
+
+                          <view class="product-info">
+                            <text class="sku-title">{{ item.skuName || '默认规格' }}</text>
+                            <text class="product-code">SKU：{{ item.code || item.skuId }}</text>
+                            <view class="price-line">
+                              <text class="price">¥{{ formatMoney(item.price) }}</text>
+                              <text class="unit">/ {{ unitText(item) }}</text>
+                            </view>
+                            <view class="quantity-row">
+                              <QuantityStepper
+                                :model-value="item.quantity"
+                                :min="Number(item.minOrderQty) || 1"
+                                :max="Number(item.stock) || 9999"
+                                :step="1"
+                                size="sm"
+                                @change="(val) => onQuantityChange(item, val)"
+                                @plus="(val) => onQuantityChange(item, val)"
+                                @minus="(val) => onQuantityChange(item, val)"
+                              />
+                              <text class="sku-subtotal">小计 ¥{{ subtotal(item) }}</text>
+                            </view>
+                          </view>
+                        </view>
+                      </view>
+                    </view>
+                    <text class="longpress-hint">长按规格可删除</text>
                   </view>
                 </view>
               </view>
 
               <!-- 侧栏汇总 -->
               <view v-if="cartStore.validItems.length > 0" class="summary-card">
-                <text class="summary-title">采购汇总</text>
+                <view class="summary-heading">
+                  <view>
+                    <text class="summary-title">采购汇总</text>
+                    <text class="summary-subtitle">仅结算当前勾选商品</text>
+                  </view>
+                  <view class="summary-badge">{{ cartStore.summary.selectedCount }} 种</view>
+                </view>
                 <view class="summary-row">
                   <text>已选商品</text>
                   <text>{{ cartStore.summary.selectedCount }} 种</text>
@@ -184,24 +216,25 @@
     <!-- 底部结算栏 -->
     <template #footer>
       <fixed-action-bar v-if="pageState === PageStatus.CONTENT">
-        <label class="select-all" @tap="onSelectAll(!cartStore.isSelectAll)">
-          <view class="check" :class="{ checked: cartStore.isSelectAll }">
-            <text v-if="cartStore.isSelectAll">✓</text>
+        <view class="footer-inner">
+          <label class="select-all" @tap="onSelectAll(!areAllValidSelected)">
+            <view class="check" :class="{ checked: areAllValidSelected }">
+              <text v-if="areAllValidSelected">✓</text>
+            </view>
+            <text>全选</text>
+          </label>
+          <view class="footer-total">
+            <text class="footer-label">已选 {{ cartStore.summary.selectedQuantity }} 件</text>
+            <text class="footer-amount">{{ cartStore.formattedTotalAmount }}</text>
           </view>
-          <text>全选</text>
-        </label>
-        <view class="footer-spacer" />
-        <view class="footer-total">
-          <text class="footer-label">已选 {{ cartStore.summary.selectedQuantity }} 件</text>
-          <text class="footer-amount">{{ cartStore.formattedTotalAmount }}</text>
+          <button
+            class="checkout-btn"
+            :disabled="!canCheckout"
+            @click="goToCheckout"
+          >
+            去结算
+          </button>
         </view>
-        <button
-          class="checkout-btn"
-          :disabled="!canCheckout"
-          @click="goToCheckout"
-        >
-          去结算
-        </button>
       </fixed-action-bar>
     </template>
   </AppPageShell>
@@ -233,6 +266,8 @@ import QuantityStepper from '../../components/QuantityStepper/QuantityStepper.vu
 import ConfirmPopup from '../../../../shared/ui/ConfirmPopup/ConfirmPopup.vue'
 import AppProductImage from '../../../../shared/ui/AppProductImage/AppProductImage.vue'
 import AppSvgIllustration from '../../../../shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
+import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
+import { groupItemsBySpu } from '../../model/cartGrouping.js'
 import cartEmptySvg from '../../../../shared/assets/illustrations/empty-cart.svg?raw'
 
 // ==================== Cart Hook ====================
@@ -240,6 +275,7 @@ const {
   cartStore,
   loadCart,
   toggleSelect,
+  batchSetSelected,
   selectAllItems,
   setItemQuantity,
   deleteItems,
@@ -250,9 +286,10 @@ const {
 // ==================== 本地 UI 状态 ====================
 const loadFailed = ref(false)
 const loadError = ref('')
-const deletingIds = ref([])
 const showDeleteConfirm = ref(false)
 const deleteConfirmText = ref('')
+const collapsedGroupKeys = ref({})
+const activeActionItemId = ref(null)
 let pendingDeleteIds = null
 
 // ==================== 页面状态 ====================
@@ -282,6 +319,10 @@ const hasStaleForDisplay = computed(() =>
 const canCheckout = computed(() =>
   cartStore.hasSelected && !cartStore.summary.isOverLimit,
 )
+const validGroups = computed(() => groupItemsBySpu(cartStore.validItems))
+const areAllValidSelected = computed(() =>
+  cartStore.validItems.length > 0 && cartStore.validItems.every(item => isSelected(item)),
+)
 
 // ==================== 事件处理 ====================
 
@@ -309,12 +350,43 @@ async function retryFlush() {
 
 /** 单项选择切换 */
 function onToggleSelect(item) {
+  activeActionItemId.value = null
   toggleSelect(item)
+}
+
+function onToggleGroup(group) {
+  activeActionItemId.value = null
+  const ids = group.items.map(item => Number(item.cartItemId)).filter(Boolean)
+  batchSetSelected(ids, !group.allSelected)
 }
 
 /** 全选/取消全选 */
 function onSelectAll(selected) {
+  activeActionItemId.value = null
   selectAllItems(Boolean(selected))
+}
+
+function toggleGroup(groupKey) {
+  activeActionItemId.value = null
+  collapsedGroupKeys.value = {
+    ...collapsedGroupKeys.value,
+    [groupKey]: !collapsedGroupKeys.value[groupKey],
+  }
+}
+
+function isGroupCollapsed(groupKey) {
+  return Boolean(collapsedGroupKeys.value[groupKey])
+}
+
+function openItemActions(item) {
+  activeActionItemId.value = Number(item?.cartItemId) || null
+  if (typeof uni !== 'undefined' && typeof uni.vibrateShort === 'function') {
+    uni.vibrateShort({ type: 'light' })
+  }
+}
+
+function isItemActionOpen(cartItemId) {
+  return String(activeActionItemId.value) === String(cartItemId)
 }
 
 /** 数据驱动的选择状态 */
@@ -335,6 +407,7 @@ function deleteOne(cartItemId) {
   pendingDeleteIds = [Number(cartItemId)]
   deleteConfirmText.value = `确定从购物车移除「${item.name || '该商品'}」？`
   showDeleteConfirm.value = true
+  activeActionItemId.value = null
 }
 
 /** 移除失效商品 */
@@ -390,6 +463,13 @@ function subtotal(item) {
   return value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+function formatMoney(value) {
+  return Number(value || 0).toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
 // ==================== 生命周期 ====================
 onShow(refreshCart)
 
@@ -415,7 +495,10 @@ onBeforeUnmount(() => {
 
 // ==================== 布局 ====================
 .cart-layout {
-  padding: 12px 0 28px;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 14px 0 28px;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -432,6 +515,10 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
+  padding: 14px 15px;
+  border: 1px solid $color-border-default;
+  border-radius: 14px;
+  background: $color-bg-card;
 }
 
 .toolbar-left {
@@ -544,17 +631,184 @@ onBeforeUnmount(() => {
   gap: 10px;
 }
 
+.spu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spu-card {
+  overflow: hidden;
+  border: 1px solid $color-border-default;
+  border-radius: $radius-card;
+  background: $color-bg-card;
+}
+
+.spu-header {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto 32px;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 11px 12px;
+  border-bottom: 1px solid $color-gray-100;
+  box-sizing: border-box;
+}
+
+.spu-copy {
+  min-width: 0;
+}
+
+.spu-name {
+  display: block;
+  overflow: hidden;
+  color: $color-text-primary;
+  font-size: 15px;
+  font-weight: 650;
+  line-height: 21px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spu-meta {
+  display: block;
+  margin-top: 3px;
+  color: $color-gray-400;
+  font-size: 11px;
+}
+
+.spu-total {
+  color: $color-text-primary;
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.collapse-btn {
+  display: flex;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: $color-text-secondary;
+  background: $color-bg-subtle;
+}
+
+.collapse-icon {
+  transition: transform 180ms ease;
+}
+
+.collapse-icon.expanded {
+  transform: rotate(90deg);
+}
+
+.check.indeterminate {
+  color: #FFFFFF;
+  border-color: $color-brand-500;
+  background: $color-brand-500;
+}
+
+.sku-list {
+  overflow: hidden;
+}
+
+.sku-action-shell {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid $color-gray-100;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+.sku-delete-action {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  display: flex;
+  width: 78px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: #FFFFFF;
+  background: $color-brand-500;
+  font-size: 12px;
+}
+
+.sku-row {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 22px 84px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  min-height: 122px;
+  padding: 14px;
+  background: $color-bg-card;
+  box-sizing: border-box;
+  transition: transform 180ms ease;
+}
+
+.sku-action-shell.action-open .sku-row {
+  transform: translateX(-78px);
+}
+
+.sku-row .product-info {
+  min-width: 0;
+  padding-right: 0;
+}
+
+.sku-title {
+  display: block;
+  overflow: hidden;
+  color: $color-text-primary;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sku-subtotal {
+  color: $color-text-secondary;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.longpress-hint {
+  display: block;
+  padding: 7px 14px 8px 128px;
+  color: $color-gray-400;
+  background: $color-bg-subtle;
+  font-size: 10px;
+  line-height: 15px;
+}
+
 .cart-card {
   position: relative;
   display: grid;
-  grid-template-columns: 22px 76px minmax(0, 1fr);
-  gap: 10px;
-  padding: 13px;
+  grid-template-columns: 22px 84px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
   background: $color-bg-card;
   border: 1px solid $color-border-default;
   border-radius: $radius-card;
 
   &.is-invalid {
+    grid-template-columns: 84px minmax(0, 1fr) auto;
     opacity: 0.65;
     background: $color-bg-subtle;
     border-style: dashed;
@@ -604,8 +858,8 @@ onBeforeUnmount(() => {
 }
 
 .product-image {
-  width: 76px;
-  height: 76px;
+  width: 84px;
+  height: 84px;
   background: $color-bg-subtle;
   border-radius: 9px;
 }
@@ -667,25 +921,6 @@ onBeforeUnmount(() => {
   margin-top: 10px;
 }
 
-.delete-icon-btn {
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  background: transparent;
-  border: none;
-  border-radius: 8px;
-  flex-shrink: 0;
-
-  &:active {
-    background: $color-bg-subtle;
-  }
-}
-
-.trash-icon {
-  font-size: 16px;
-}
-
 .delete-btn {
   align-self: flex-start;
   height: 28px;
@@ -702,25 +937,58 @@ onBeforeUnmount(() => {
   position: absolute;
   top: 13px;
   right: 13px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
   color: $color-text-primary;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.subtotal-label {
+  color: $color-gray-400;
+  font-size: 10px;
+  font-weight: 400;
 }
 
 // ==================== 汇总卡 ====================
 .summary-card {
-  padding: 16px;
+  padding: 18px;
   background: $color-bg-card;
   border: 1px solid $color-border-default;
   border-radius: $radius-card;
 }
 
+.summary-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
 .summary-title {
   display: block;
-  margin-bottom: 12px;
   color: $color-text-primary;
   font-size: 15px;
   font-weight: 650;
+}
+
+.summary-subtitle {
+  display: block;
+  margin-top: 4px;
+  color: $color-gray-400;
+  font-size: 11px;
+}
+
+.summary-badge {
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: $color-brand-500;
+  background: $color-brand-50;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .summary-row {
@@ -766,6 +1034,16 @@ onBeforeUnmount(() => {
 }
 
 // ==================== 底部栏 ====================
+.footer-inner {
+  display: flex;
+  max-width: 1120px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  margin: 0 auto;
+}
+
 .select-all {
   display: flex;
   align-items: center;
@@ -774,13 +1052,10 @@ onBeforeUnmount(() => {
   font-size: 13px;
 }
 
-.footer-spacer {
-  flex: 1;
-  min-width: 12px;
-}
-
 .footer-total {
   display: flex;
+  min-width: 0;
+  flex: 1;
   flex-direction: column;
   align-items: flex-end;
 }
@@ -887,18 +1162,59 @@ onBeforeUnmount(() => {
     margin-top: 0;
   }
 
-  .cart-card {
-    grid-template-columns: 22px 92px minmax(0, 1fr);
+  .cart-card.is-invalid {
+    grid-template-columns: 104px minmax(0, 1fr) auto;
     padding: 16px;
   }
 
   .product-image {
-    width: 92px;
-    height: 92px;
+    width: 104px;
+    height: 104px;
   }
 
-  .product-info {
-    padding-right: 82px;
+  .sku-row {
+    grid-template-columns: 22px 104px minmax(0, 1fr);
+    min-height: 140px;
+    padding: 16px;
+  }
+
+  .longpress-hint {
+    padding-left: 154px;
+  }
+}
+
+@media screen and (max-width: 430px) {
+  .spu-header {
+    grid-template-columns: 22px minmax(0, 1fr) 32px;
+  }
+
+  .spu-total {
+    display: none;
+  }
+
+  .sku-row {
+    grid-template-columns: 22px 76px minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px 10px;
+  }
+
+  .sku-row .product-image {
+    width: 76px;
+    height: 76px;
+  }
+
+  .quantity-row {
+    align-items: flex-end;
+    flex-direction: column-reverse;
+  }
+
+  .longpress-hint {
+    padding-left: 120px;
+  }
+
+  .checkout-btn {
+    min-width: 96px;
+    padding: 0 15px;
   }
 }
 </style>

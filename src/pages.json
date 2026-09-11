@@ -199,6 +199,13 @@
                     }
                 },
                 {
+                    "path": "pages/sub-account/sub-account-form/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
                     "path": "pages/security/index",
                     "style": {
                         "navigationStyle": "custom",

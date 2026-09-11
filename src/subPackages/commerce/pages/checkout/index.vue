@@ -1,347 +1,1701 @@
-﻿<template>
+<template>
   <AppPageShell>
     <template #header>
-      <app-header title="确认订单" :show-back="true" />
+      <AppHeader title="确认订单" :show-back="true" />
     </template>
 
     <template #content>
-      <AppContent>
-        <app-page-state
+      <AppContent padding="16px var(--page-padding-x, 16px) 24px">
+        <AppPageState
           :state="pageState"
-          title="订单加载失败"
-          :description="errorMessage"
-          action-text="重新加载"
+          :title="stateTitle"
+          :description="stateDescription"
+          :action-text="stateActionText"
           icon-type="order"
-          @retry="loadCheckoutData"
+          @retry="handleStateAction"
         >
-          <view class="checkout-content">
-            <!-- 收货信息 -->
-            <view class="address-card">
-              <view class="address-info">
-                <text class="address-name">默认收货信息</text>
-                <text class="address-detail">提交后由订单服务按经销商档案确认</text>
-              </view>
+          <view class="checkout-page">
+            <view v-if="hasPriceChanged" class="price-notice">
+              <AppIcon name="info" :size="17" color="#B76500" />
+              <text>商品价格已按最新经销商价格重新核算，请确认后提交。</text>
             </view>
 
-            <!-- 订单商品 -->
-            <view class="checkout-card">
-              <view class="card-header">
-                <text class="card-title">订单商品</text>
-                <text class="card-count">{{ checkoutItems.length }} 个 SKU · {{ totalQuantity }} 件</text>
-              </view>
+            <view v-if="previewError" class="preview-notice">
+              <AppIcon name="alert" :size="17" color="#B42318" />
+              <text>{{ previewError }}</text>
+              <button class="notice-action" @click="refreshPreview()">重新核价</button>
+            </view>
 
-              <view v-for="item in checkoutItems" :key="item.cartItemId" class="product-row">
-                <AppProductImage class="product-image" :src="item.image" :stock="item.stock" />
-                <view class="product-info">
-                  <text class="product-name">{{ item.name }}</text>
-                  <text class="product-spec">{{ item.code || `商品 ${item.productId}` }} · {{ item.quantity }} {{ item.unit }}</text>
+            <view class="checkout-grid">
+              <view class="checkout-main">
+                <view class="section-card fulfillment-card">
+                  <view class="section-heading">
+                    <view class="heading-icon">
+                      <AppIcon name="location" :size="20" />
+                    </view>
+                    <view class="heading-copy">
+                      <text class="section-title">收货信息</text>
+                      <text class="section-subtitle">物流配送必须选择有效收货地址</text>
+                    </view>
+                    <text v-if="selectedAddress?.isDefault" class="section-badge">默认</text>
+                  </view>
+
+                  <button class="address-entry" :class="{ empty: !hasAddress }" @click="goToAddress">
+                    <template v-if="hasAddress">
+                      <view class="contact-block">
+                        <view class="contact-line">
+                          <text class="contact-name">{{ receiverName }}</text>
+                          <text v-if="receiverPhone" class="contact-phone">{{ receiverPhone }}</text>
+                        </view>
+                        <text class="contact-address">{{ receiverAddress }}</text>
+                      </view>
+                      <view class="address-action">
+                        <text>更换</text>
+                        <AppIcon name="chevron-right" :size="17" color="#90939A" />
+                      </view>
+                    </template>
+                    <template v-else>
+                      <view class="empty-address-icon">
+                        <AppIcon name="plus" :size="18" color="#D7192D" />
+                      </view>
+                      <view class="empty-address-copy">
+                        <text class="empty-address-title">请新增收货地址</text>
+                        <text class="empty-address-desc">保存后将自动用于本次订单</text>
+                      </view>
+                      <AppIcon name="chevron-right" :size="18" color="#D7192D" />
+                    </template>
+                  </button>
                 </view>
-                <text class="product-price">¥{{ (item.price * item.quantity).toFixed(2) }}</text>
-              </view>
-            </view>
 
-            <!-- 配送设置 -->
-            <view class="settings-list">
-              <view class="setting-item">
-                <text>配送方式</text>
-                <text class="setting-value">默认</text>
+                <view class="section-card products-card">
+                  <view class="section-heading product-heading">
+                    <view class="heading-icon">
+                      <AppIcon name="order" :size="20" />
+                    </view>
+                    <view class="heading-copy">
+                      <text class="section-title">商品清单</text>
+                      <text class="section-subtitle">{{ checkoutGroups.length }} 个商品 · {{ displayItems.length }} 个 SKU · 共 {{ totalQuantity }} 件</text>
+                    </view>
+                    <view class="verified-label">
+                      <AppIcon name="shield-check" :size="14" />
+                      <text>服务端核价</text>
+                    </view>
+                  </view>
+
+                  <view class="checkout-spu-list">
+                    <view v-for="group in checkoutGroups" :key="group.key" class="checkout-spu-group">
+                      <button class="checkout-spu-header" @tap="toggleCheckoutGroup(group.key)">
+                        <view class="checkout-spu-copy">
+                          <text class="checkout-spu-name">{{ group.name }}</text>
+                          <text class="checkout-spu-meta">{{ group.skuCount }} 个 SKU · {{ group.totalQuantity }} 件</text>
+                        </view>
+                        <text class="checkout-spu-total">¥{{ formatMoney(group.totalAmount) }}</text>
+                        <AppIcon
+                          name="chevron-right"
+                          :size="17"
+                          class="checkout-collapse-icon"
+                          :class="{ expanded: !isCheckoutGroupCollapsed(group.key) }"
+                        />
+                      </button>
+
+                      <view v-show="!isCheckoutGroupCollapsed(group.key)" class="product-list">
+                        <view
+                          v-for="item in group.items"
+                          :key="item.skuId"
+                          class="product-row"
+                          :class="{ 'has-stock-risk': item.stockInsufficient }"
+                        >
+                          <AppProductImage
+                            class="product-image"
+                            :src="item.image"
+                            :stock="item.availableStock"
+                            :fallback-icon-size="26"
+                          />
+                          <view class="product-info">
+                            <text class="product-name">{{ item.skuName || '默认规格' }}</text>
+                            <text class="product-spec">SKU：{{ item.code || item.skuId }}</text>
+                            <view class="product-meta">
+                              <text>¥{{ formatMoney(item.salePrice) }} / {{ item.unit }}</text>
+                              <text>× {{ item.quantity }}</text>
+                            </view>
+                            <text v-if="item.stockInsufficient" class="stock-risk">
+                              可用库存 {{ item.availableStock }}，当前需要 {{ item.quantity }}
+                            </text>
+                          </view>
+                          <view class="product-amount">
+                            <text>¥{{ formatMoney(item.totalAmount) }}</text>
+                            <text v-if="item.listPrice > item.salePrice" class="list-price">
+                              ¥{{ formatMoney(item.listPrice * item.quantity) }}
+                            </text>
+                          </view>
+                        </view>
+                      </view>
+                    </view>
+                  </view>
+
+                  <view v-if="!stockAvailable" class="stock-warning">
+                    <AppIcon name="alert" :size="16" color="#B42318" />
+                    <text>{{ stockWarningText }}</text>
+                  </view>
+                </view>
               </view>
-              <view class="setting-item">
-                <text>发票</text>
-                <text class="setting-value">暂不开票</text>
+
+              <view class="checkout-side">
+                <view class="section-card options-card">
+                  <view class="compact-heading">
+                    <text class="section-title">配送方式</text>
+                    <text v-if="previewing" class="refreshing-text">正在核价…</text>
+                  </view>
+                  <view class="delivery-fixed">
+                    <view class="choice-icon active-icon">
+                      <AppIcon name="truck" :size="19" />
+                    </view>
+                    <view class="choice-copy">
+                      <text class="choice-title">物流配送</text>
+                      <text class="choice-desc">由商城统一安排承运与发货</text>
+                    </view>
+                    <text class="fixed-label">默认</text>
+                  </view>
+                </view>
+
+                <view class="section-card options-card">
+                  <view class="compact-heading">
+                    <text class="section-title">结算方式</text>
+                    <text class="section-subtitle">提交后不可修改</text>
+                  </view>
+                  <view class="option-grid">
+                    <button
+                      v-for="option in paymentOptions"
+                      :key="option.value"
+                      class="choice-option"
+                      :class="{ active: paymentMode === option.value, disabled: option.disabled }"
+                      :disabled="option.disabled || submitting"
+                      @click="selectPayment(option)"
+                    >
+                      <view class="choice-icon">
+                        <AppIcon :name="option.icon" :size="19" />
+                      </view>
+                      <view class="choice-copy">
+                        <text class="choice-title">{{ option.label }}</text>
+                        <text class="choice-desc">{{ option.description }}</text>
+                      </view>
+                      <view class="radio-mark">
+                        <view class="radio-dot"></view>
+                      </view>
+                    </button>
+                  </view>
+                  <view v-if="paymentMode === PAYMENT_MODE.CASH" class="cash-channel-panel">
+                    <view class="channel-heading">
+                      <text class="channel-title">选择支付通道</text>
+                      <text class="channel-tip">订单提交后进入收银台</text>
+                    </view>
+                    <view class="channel-grid">
+                      <button
+                        v-for="channel in cashPaymentChannels"
+                        :key="channel.value"
+                        class="channel-option"
+                        :class="{ active: paymentChannel === channel.value }"
+                        :disabled="submitting"
+                        @click="paymentChannel = channel.value"
+                      >
+                        <AppIcon :name="channel.icon" :size="19" />
+                        <text>{{ channel.label }}</text>
+                        <AppIcon
+                          v-if="paymentChannel === channel.value"
+                          name="check"
+                          :size="13"
+                          color="#D7192D"
+                        />
+                      </button>
+                    </view>
+                  </view>
+                  <text v-if="creditDisabledReason" class="credit-hint">{{ creditDisabledReason }}</text>
+                </view>
+
+                <view class="section-card detail-card">
+                  <view class="setting-row">
+                    <view class="setting-label">
+                      <AppIcon name="invoice" :size="18" />
+                      <text>发票</text>
+                    </view>
+                    <text class="setting-value">订单完成后申请</text>
+                  </view>
+
+                  <view class="remark-block">
+                    <view class="remark-heading">
+                      <view class="setting-label">
+                        <AppIcon name="edit" :size="18" />
+                        <text>订单备注</text>
+                      </view>
+                      <text class="remark-count">{{ customerRemark.length }}/200</text>
+                    </view>
+                    <textarea
+                      v-model="customerRemark"
+                      class="remark-input"
+                      maxlength="200"
+                      placeholder="可填写交期、包装或收货要求"
+                      placeholder-class="remark-placeholder"
+                      :disabled="submitting"
+                    />
+                  </view>
+                </view>
+
+                <view class="section-card summary-card">
+                  <view class="compact-heading">
+                    <text class="section-title">订单汇总</text>
+                    <text class="verified-text">价格以提交时服务端结果为准</text>
+                  </view>
+
+                  <view class="amount-list">
+                    <view class="amount-row">
+                      <text>商品金额</text>
+                      <text>¥{{ formatMoney(goodsAmount) }}</text>
+                    </view>
+                    <view v-if="discountAmount > 0" class="amount-row discount">
+                      <text>优惠金额</text>
+                      <text>-¥{{ formatMoney(discountAmount) }}</text>
+                    </view>
+                    <view class="amount-row">
+                      <text>配送费用</text>
+                      <text>{{ freightAmount > 0 ? ('¥' + formatMoney(freightAmount)) : '免运费' }}</text>
+                    </view>
+                  </view>
+
+                  <view class="payable-row">
+                    <view>
+                      <text class="payable-label">应付金额</text>
+                      <text class="payable-quantity">共 {{ totalQuantity }} 件</text>
+                    </view>
+                    <view class="payable-price">
+                      <text class="currency">¥</text>
+                      <text>{{ formatMoney(payableAmount) }}</text>
+                    </view>
+                  </view>
+
+                  <view class="agreement-row" @click="agreed = !agreed">
+                    <view class="agreement-check" :class="{ checked: agreed }">
+                      <AppIcon v-if="agreed" name="check" :size="14" color="#FFFFFF" />
+                    </view>
+                    <text>我已阅读并同意《经销商交易协议》</text>
+                  </view>
+                  <text v-if="submitDisabledReason" class="submit-hint">{{ submitDisabledReason }}</text>
+
+                  <view class="secure-tip">
+                    <AppIcon name="shield-check" :size="15" color="#168A52" />
+                    <text>库存与价格将在提交前再次校验，重复点击不会重复创建订单。</text>
+                  </view>
+                </view>
               </view>
             </view>
           </view>
-        </app-page-state>
+        </AppPageState>
       </AppContent>
     </template>
 
     <template #footer>
-      <fixed-action-bar v-if="pageState === PageStatus.CONTENT">
-        <view class="amount-section">
-          <view class="amount-item">
-            <text>商品金额</text>
-            <text>¥{{ totalAmount.toFixed(2) }}</text>
+      <FixedActionBar v-if="pageState === PageStatus.CONTENT">
+        <view class="checkout-footer">
+          <view class="footer-summary">
+            <text class="footer-count">共 {{ totalQuantity }} 件</text>
+            <view class="footer-price">
+              <text class="footer-label">应付</text>
+              <text class="footer-currency">¥</text>
+              <text class="footer-amount">{{ formatMoney(payableAmount) }}</text>
+            </view>
           </view>
-          <view class="amount-item payable">
-            <text>应付</text>
-            <text class="payable-text">¥{{ totalAmount.toFixed(2) }}</text>
-          </view>
-
-          <label class="agreement-label">
-            <checkbox :checked="agreed" @tap="agreed = !agreed" />
-            <text>我已阅读并同意《经销商交易协议》</text>
-          </label>
-
           <button
             class="submit-btn"
-            :disabled="!agreed || checkoutItems.length === 0 || submitting"
-            :class="{ 'is-disabled': !agreed || checkoutItems.length === 0 || submitting }"
-            @click="submitOrder"
-          >{{ submitting ? '提交中…' : '提交订单' }}</button>
+            :class="{ 'is-disabled': !canSubmit }"
+            :disabled="!canSubmit"
+            @click="prepareSubmit"
+          >
+            {{ submitButtonText }}
+          </button>
         </view>
-      </fixed-action-bar>
+      </FixedActionBar>
     </template>
   </AppPageShell>
 
-  <!-- 提交确认弹窗 -->
-  <confirm-popup
-    v-model:visible="confirmModalVisible"
+  <ConfirmPopup
+    v-model="confirmModalVisible"
     title="确认提交订单？"
-    description="提交后将进入品牌审核流程。在线支付成功后锁定库存，授信或对公订单提交后即锁定库存。"
+    :description="confirmDescription"
+    :preview-text="confirmPreviewText"
     confirm-text="确认提交"
+    :confirm-disabled="submitting"
+    :close-on-overlay="!submitting"
     @confirm="confirmSubmit"
   />
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useCartStore } from '../../model/cartStore.js'
-import { createOrder, generateClientRequestId } from '../../api/checkoutApi.js'
+import { computed, ref } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
+import { createOrder, generateClientRequestId, previewOrder } from '../../api/checkoutApi.js'
+import { removeItems } from '../../api/cartApi.js'
+import { getAddressList } from '../../../account/api/addressApi.js'
+import { useCart } from '../../composables/useCart.js'
+import { PAYMENT_MODE, DELIVERY_TYPE } from '@/app/config/constant.js'
 import { PageStatus } from '@/shared/model/pageState.js'
+import { useUserStore } from '@/shared/session/userStore.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
-import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
-import fixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
-import confirmPopup from '@/shared/ui/ConfirmPopup/ConfirmPopup.vue'
+import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
+import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
+import ConfirmPopup from '@/shared/ui/ConfirmPopup/ConfirmPopup.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
+import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import { groupItemsBySpu } from '../../model/cartGrouping.js'
 
-const cartStore = useCartStore()
+const userStore = useUserStore()
+const { cartStore, loadCart, flush } = useCart()
 
+const pageState = ref(PageStatus.LOADING)
+const errorMessage = ref('')
+const checkoutItems = ref([])
+const previewData = ref(null)
+const previewing = ref(false)
+const previewError = ref('')
+const deliveryType = ref(DELIVERY_TYPE.DELIVERY)
+const paymentMode = ref(PAYMENT_MODE.CASH)
+const paymentChannel = ref('wechat')
+const selectedAddress = ref(null)
+const customerRemark = ref('')
 const agreed = ref(false)
 const confirmModalVisible = ref(false)
 const submitting = ref(false)
-const pageState = ref(PageStatus.LOADING)
-const errorMessage = ref('')
 const clientRequestId = ref('')
+const collapsedCheckoutGroupKeys = ref({})
+let previewSequence = 0
 
-// 只在购物车 store 中读取选中项
-const checkoutItems = computed(() => cartStore.selectedItems)
-const totalQuantity = computed(() => cartStore.summary.selectedQuantity)
-const totalAmount = computed(() => cartStore.summary.selectedAmount)
+const cashPaymentChannels = [
+  { value: 'wechat', label: '微信支付', icon: 'wechat-pay' },
+  { value: 'alipay', label: '支付宝', icon: 'alipay' },
+  { value: 'bank-card', label: '银行卡', icon: 'bank' },
+]
 
-onMounted(() => {
+const hasAddress = computed(() => Number(selectedAddress.value?.id) > 0)
+const receiverName = computed(() => selectedAddress.value?.name || '')
+const receiverPhone = computed(() => selectedAddress.value?.phone || '')
+const receiverAddress = computed(() => selectedAddress.value?.fullAddress || '')
+const addressId = computed(() => hasAddress.value ? Number(selectedAddress.value.id) : null)
+
+const localAmount = computed(() => checkoutItems.value.reduce(
+  (sum, item) => sum + number(item.price) * number(item.quantity),
+  0,
+))
+
+const displayItems = computed(() => {
+  if (previewData.value?.items?.length) return previewData.value.items
+  return checkoutItems.value.map(item => ({
+    ...item,
+    name: item.name || '商品',
+    salePrice: number(item.price),
+    listPrice: number(item.listPrice || item.price),
+    totalAmount: number(item.price) * number(item.quantity),
+    availableStock: number(item.stock, Number.MAX_SAFE_INTEGER),
+    stockInsufficient: number(item.stock, Number.MAX_SAFE_INTEGER) < number(item.quantity),
+  }))
+})
+const checkoutGroups = computed(() => groupItemsBySpu(displayItems.value))
+
+const totalQuantity = computed(() => displayItems.value.reduce(
+  (sum, item) => sum + number(item.quantity),
+  0,
+))
+const goodsAmount = computed(() => number(previewData.value?.goodsAmount, localAmount.value))
+const discountAmount = computed(() => number(previewData.value?.discountAmount))
+const freightAmount = computed(() => number(previewData.value?.freightAmount))
+const payableAmount = computed(() => number(
+  previewData.value?.payableAmount,
+  goodsAmount.value - discountAmount.value + freightAmount.value,
+))
+const stockAvailable = computed(() => previewData.value?.stockAvailable !== false)
+const insufficientSkus = computed(() => previewData.value?.insufficientSkus || [])
+const stockWarningText = computed(() => insufficientSkus.value.length
+  ? '以下规格库存不足：' + insufficientSkus.value.join('、')
+  : '部分商品库存不足，请返回购物车调整数量后重试。',
+)
+const hasPriceChanged = computed(() =>
+  Boolean(previewData.value) && Math.abs(localAmount.value - goodsAmount.value) >= 0.01,
+)
+
+const availableCreditAmount = computed(() => Math.max(0, number(userStore.availableCreditLimit) / 100))
+const creditSufficient = computed(() =>
+  userStore.canUseCreditPay && availableCreditAmount.value >= payableAmount.value,
+)
+const creditDisabledReason = computed(() => {
+  if (!userStore.canUseCreditPay) return '当前账户暂不可使用授信赊账'
+  if (!creditSufficient.value) {
+    return '可用授信额度 ¥' + formatMoney(availableCreditAmount.value) + '，不足以支付本单'
+  }
+  return ''
+})
+const paymentOptions = computed(() => [
+  {
+    value: PAYMENT_MODE.CASH,
+    label: '现款支付',
+    description: '订单提交后在线付款',
+    icon: 'wallet',
+    disabled: false,
+  },
+  {
+    value: PAYMENT_MODE.CREDIT,
+    label: '授信赊账',
+    description: creditSufficient.value
+      ? '可用额度 ¥' + formatMoney(availableCreditAmount.value)
+      : '当前不可用',
+    icon: 'credit-card',
+    disabled: !creditSufficient.value,
+  },
+])
+
+const submitDisabledReason = computed(() => {
+  if (!userStore.canOrder) return '当前账号状态暂不允许提交订单'
+  if (!hasAddress.value) return '请先新增并选择收货地址'
+  if (!stockAvailable.value) return '存在库存不足商品，请调整后重新结算'
+  if (paymentMode.value === PAYMENT_MODE.CREDIT && !creditSufficient.value) return '当前授信额度不足'
+  if (!agreed.value) return '请阅读并同意经销商交易协议'
+  if (previewError.value) return '订单核价失败，请重新核价'
+  return ''
+})
+const canSubmit = computed(() =>
+  checkoutItems.value.length > 0
+  && Boolean(previewData.value)
+  && userStore.canOrder
+  && hasAddress.value
+  && stockAvailable.value
+  && !previewError.value
+  && agreed.value
+  && (paymentMode.value !== PAYMENT_MODE.CREDIT || creditSufficient.value)
+  && !previewing.value
+  && !submitting.value,
+)
+const submitButtonText = computed(() => {
+  if (submitting.value) return '提交中…'
+  if (previewing.value) return '核价中…'
+  return '提交订单'
+})
+
+const stateTitle = computed(() => {
+  if (pageState.value === PageStatus.EMPTY) return '暂无可结算商品'
+  if (pageState.value === PageStatus.ERROR) return '结算信息加载失败'
+  return ''
+})
+const stateDescription = computed(() => {
+  if (pageState.value === PageStatus.EMPTY) return '请返回购物车选择需要采购的商品'
+  return errorMessage.value || '网络异常，请稍后重试'
+})
+const stateActionText = computed(() =>
+  pageState.value === PageStatus.EMPTY ? '返回购物车' : '重新加载',
+)
+const confirmDescription = computed(() => {
+  const paymentText = paymentMode.value === PAYMENT_MODE.CREDIT ? '授信赊账' : '现款支付'
+  const channelText = paymentMode.value === PAYMENT_MODE.CASH
+    ? '（' + (cashPaymentChannels.find(item => item.value === paymentChannel.value)?.label || '在线支付') + '）'
+    : ''
+  return '本单共 ' + totalQuantity.value + ' 件，将使用' + paymentText + channelText + '并通过物流配送完成履约。'
+})
+const confirmPreviewText = computed(() => '应付金额 ¥' + formatMoney(payableAmount.value))
+
+onLoad(() => {
   loadCheckoutData()
 })
 
-function loadCheckoutData() {
-  if (checkoutItems.value.length === 0) {
-    pageState.value = PageStatus.EMPTY
-    errorMessage.value = '购物车中没有选中商品'
-    return
-  }
-  pageState.value = PageStatus.CONTENT
+function number(value, fallback = 0) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : fallback
 }
 
-function submitOrder() {
-  if (!agreed.value) {
-    uni.showToast({ title: '请先同意交易协议', icon: 'none' })
+function valueOf(source, camelKey, pascalKey, fallback = undefined) {
+  return source?.[camelKey] ?? source?.[pascalKey] ?? fallback
+}
+
+function formatMoney(value) {
+  return number(value).toLocaleString('zh-CN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })
+}
+
+function toggleCheckoutGroup(groupKey) {
+  collapsedCheckoutGroupKeys.value = {
+    ...collapsedCheckoutGroupKeys.value,
+    [groupKey]: !collapsedCheckoutGroupKeys.value[groupKey],
+  }
+}
+
+function isCheckoutGroupCollapsed(groupKey) {
+  return Boolean(collapsedCheckoutGroupKeys.value[groupKey])
+}
+
+function buildOrderItems() {
+  return checkoutItems.value
+    .map(item => ({
+      SkuId: number(item.skuId),
+      Quantity: Math.max(1, number(item.quantity, 1)),
+    }))
+    .filter(item => item.SkuId > 0)
+}
+
+function normalizePreview(raw = {}) {
+  const sourceItems = valueOf(raw, 'items', 'Items', [])
+  const cartItemMap = new Map(checkoutItems.value.map(item => [String(item.skuId), item]))
+  const items = (Array.isArray(sourceItems) ? sourceItems : []).map(source => {
+    const skuId = number(valueOf(source, 'skuId', 'SkuId'))
+    const cartItem = cartItemMap.get(String(skuId)) || {}
+    const salePrice = number(valueOf(source, 'salePrice', 'SalePrice'), number(cartItem.price))
+    const listPrice = number(valueOf(source, 'listPrice', 'ListPrice'), salePrice)
+    const quantity = Math.max(1, number(valueOf(source, 'quantity', 'Quantity'), cartItem.quantity || 1))
+    const availableStock = number(
+      valueOf(source, 'availableStock', 'AvailableStock'),
+      number(cartItem.stock, Number.MAX_SAFE_INTEGER),
+    )
+    return {
+      cartItemId: cartItem.cartItemId,
+      productId: cartItem.productId,
+      skuId,
+      name: cartItem.name || valueOf(source, 'productName', 'ProductName') || valueOf(source, 'skuName', 'SkuName') || '商品',
+      skuName: cartItem.skuName || valueOf(source, 'skuName', 'SkuName') || '',
+      code: cartItem.code || '',
+      image: valueOf(source, 'imageUrl', 'ImageUrl') || cartItem.image,
+      unit: cartItem.unit || '件',
+      salePrice,
+      listPrice,
+      quantity,
+      totalAmount: number(valueOf(source, 'totalAmount', 'TotalAmount'), salePrice * quantity),
+      availableStock,
+      stockInsufficient: availableStock < quantity,
+    }
+  })
+
+  return {
+    items,
+    goodsAmount: number(valueOf(raw, 'goodsAmount', 'GoodsAmount')),
+    discountAmount: number(valueOf(raw, 'discountAmount', 'DiscountAmount')),
+    freightAmount: number(valueOf(raw, 'freightAmount', 'FreightAmount')),
+    payableAmount: number(valueOf(raw, 'payableAmount', 'PayableAmount')),
+    stockAvailable: valueOf(raw, 'stockAvailable', 'StockAvailable', true) !== false,
+    insufficientSkus: valueOf(raw, 'insufficientSkus', 'InsufficientSkus', []) || [],
+  }
+}
+
+async function loadCheckoutData() {
+  pageState.value = PageStatus.LOADING
+  errorMessage.value = ''
+  previewError.value = ''
+  previewData.value = null
+  clientRequestId.value = ''
+
+  try {
+    await flush()
+    await loadCart({ silent: true })
+    const selected = cartStore.selectedItems
+    if (selected.length === 0) {
+      checkoutItems.value = []
+      pageState.value = PageStatus.EMPTY
+      return
+    }
+    if (cartStore.summary.isOverLimit) {
+      throw new Error('单次采购金额不能超过 10 万元，请返回购物车分批结算')
+    }
+
+    checkoutItems.value = selected.map(item => ({ ...item }))
+    await loadDefaultAddress()
+    const result = await refreshPreview({ silent: true })
+    if (!result) throw new Error(previewError.value || '订单核价失败')
+    pageState.value = PageStatus.CONTENT
+  } catch (error) {
+    errorMessage.value = error?.message || '结算信息加载失败，请稍后重试'
+    pageState.value = PageStatus.ERROR
+  }
+}
+
+async function refreshPreview({ silent = false } = {}) {
+  if (checkoutItems.value.length === 0 || previewing.value) return null
+  const requestId = ++previewSequence
+  const previousPreview = previewData.value
+  previewing.value = true
+  previewError.value = ''
+
+  try {
+    const raw = await previewOrder({
+      Items: buildOrderItems(),
+      AddressId: addressId.value,
+      DeliveryType: deliveryType.value,
+    })
+    if (requestId !== previewSequence) return null
+    const normalized = normalizePreview(raw)
+    if (normalized.items.length === 0) throw new Error('服务端未返回可结算商品')
+    previewData.value = normalized
+    return normalized
+  } catch (error) {
+    if (requestId === previewSequence) {
+      previewData.value = previousPreview
+      previewError.value = error?.message || '订单核价失败，请稍后重试'
+      if (!silent) uni.showToast({ title: previewError.value, icon: 'none' })
+    }
+    return null
+  } finally {
+    if (requestId === previewSequence) previewing.value = false
+  }
+}
+
+function selectPayment(option) {
+  if (option.disabled || submitting.value) {
+    if (option.disabled) uni.showToast({ title: creditDisabledReason.value, icon: 'none' })
     return
   }
+  paymentMode.value = option.value
+}
+
+async function loadDefaultAddress() {
+  const list = await getAddressList()
+  const currentId = Number(selectedAddress.value?.id) || 0
+  selectedAddress.value = list.find(item => item.id === currentId)
+    || list.find(item => item.isDefault)
+    || list[0]
+    || null
+}
+
+function goToAddress() {
+  navigator.navigateTo(routes.account.address({ selectMode: true }), {
+    events: {
+      addressSelected: async (address) => {
+        selectedAddress.value = address || null
+        await refreshPreview()
+      },
+    },
+  })
+}
+
+async function prepareSubmit() {
+  if (!canSubmit.value) return
+  const result = await refreshPreview()
+  if (!result || !result.stockAvailable) return
   confirmModalVisible.value = true
 }
 
 async function confirmSubmit() {
+  if (submitting.value || !canSubmit.value) return
   confirmModalVisible.value = false
   submitting.value = true
+  if (!clientRequestId.value) clientRequestId.value = generateClientRequestId()
 
-  // 幂同键：重试复用同一 ClientRequestId
-  if (!clientRequestId.value) {
-    clientRequestId.value = generateClientRequestId()
-  }
+  const orderedCartIds = checkoutItems.value
+    .map(item => number(item.cartItemId))
+    .filter(Boolean)
 
   try {
     const response = await createOrder({
-      clientRequestId: clientRequestId.value,
-      items: checkoutItems.value.map(item => ({
-        skuId: item.skuId,
-        quantity: item.quantity,
-      })),
-      deliveryType: 1,
-      paymentMode: 1,
+      ClientRequestId: clientRequestId.value,
+      Items: buildOrderItems(),
+      AddressId: addressId.value,
+      PaymentMode: paymentMode.value,
+      DeliveryType: deliveryType.value,
+      CustomerRemark: customerRemark.value.trim() || null,
     })
-    // 必须读取 orderId，缺失视为响应错误
-    const orderId = response?.orderId
-    if (!orderId) {
-      uni.showToast({ title: '订单创建失败：未返回订单号', icon: 'none' })
-      return
+    const orderId = valueOf(response, 'orderId', 'OrderId')
+    if (!orderId) throw new Error('订单创建成功但未返回订单编号')
+
+    try {
+      if (orderedCartIds.length) await removeItems(orderedCartIds)
+    } catch (cleanupError) {
+      console.warn('[Checkout] 订单已创建，但购物车清理失败:', cleanupError)
     }
+    cartStore.optimisticRemove(orderedCartIds)
+
     uni.showToast({ title: '订单提交成功', icon: 'success' })
-    // 提交成功：清空购物车选中项
-    cartStore.clearCart()
     setTimeout(() => {
+      if (paymentMode.value === PAYMENT_MODE.CASH) {
+        navigator.redirectTo(routes.order.pay(orderId, {
+          paymentMode: paymentMode.value,
+          paymentChannel: paymentChannel.value,
+        }))
+        return
+      }
       navigator.redirectTo(routes.order.detail(orderId))
-    }, 800)
+    }, 600)
   } catch (error) {
-    // 保留 clientRequestId 以便用户重试复现幂等
     uni.showToast({ title: error?.message || '订单提交失败，请重试', icon: 'none' })
   } finally {
     submitting.value = false
   }
+}
+
+function handleStateAction() {
+  if (pageState.value === PageStatus.EMPTY) {
+    navigator.back()
+    return
+  }
+  loadCheckoutData()
 }
 </script>
 
 <style lang="scss" scoped>
 @use '@/shared/styles/variable.scss' as *;
 
-.checkout-content {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* 地址卡片 */
-.address-card {
-  position: relative;
+.checkout-page {
   width: 100%;
-  min-height: 76px;
-  background: $color-bg-card;
-  border: 1px solid $color-border-default;
-  border-radius: $radius-card;
-  padding: 14px 42px 14px 14px;
-  text-align: left;
-
-  &:active { opacity: 0.85; }
+  max-width: 1120px;
+  margin: 0 auto;
+  padding-bottom: 4px;
+  box-sizing: border-box;
 }
 
-.address-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: $color-text-primary;
-  display: block;
+.checkout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
 }
 
-.address-detail {
-  color: $color-text-secondary;
-  font-size: 12px;
-  margin-top: 5px;
-  display: block;
+.checkout-main,
+.checkout-side {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* 卡片 */
-.checkout-card, .settings-list {
-  background: $color-bg-card;
-  border: 1px solid $color-border-default;
-  border-radius: $radius-card;
+.section-card {
   overflow: hidden;
-  margin-top: 12px;
+  border: 1px solid var(--color-border, #E4E6EB);
+  border-radius: 16px;
+  background: var(--surface-card, #FFFFFF);
 }
 
-.card-header { padding: 14px; }
+.section-heading {
+  display: flex;
+  min-height: 64px;
+  align-items: center;
+  gap: 11px;
+  padding: 14px 16px;
+  box-sizing: border-box;
+}
 
-.card-title {
+.heading-icon {
+  display: flex;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  color: var(--color-brand, #D7192D);
+  background: var(--color-brand-soft, #FFF2F3);
+}
+
+.heading-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.section-title {
+  color: var(--color-text-primary, #111216);
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 22px;
+}
+
+.section-subtitle,
+.refreshing-text {
+  color: var(--color-text-secondary, #676A73);
+  font-size: 12px;
+  line-height: 17px;
+}
+
+.section-badge {
+  padding: 4px 9px;
+  border-radius: 12px;
+  color: var(--color-brand, #D7192D);
+  background: var(--color-brand-soft, #FFF2F3);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.address-entry {
+  display: flex;
+  width: calc(100% - 32px);
+  min-height: 78px;
+  align-items: center;
+  gap: 12px;
+  margin: 0 16px 16px;
+  padding: 13px 14px;
+  border: 1px solid var(--color-border, #E4E6EB);
+  border-radius: 13px;
+  color: var(--color-text-primary, #111216);
+  background: var(--surface-subtle, #F8F9FA);
+  text-align: left;
+  box-sizing: border-box;
+
+  &::after {
+    border: 0;
+  }
+
+  &.empty {
+    border-color: rgba(215, 25, 45, 0.3);
+    background: #FFF7F8;
+  }
+}
+
+.address-entry .contact-block {
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+}
+
+.address-action {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 2px;
+  color: var(--color-text-secondary, #676A73);
+  font-size: 12px;
+}
+
+.empty-address-icon {
+  display: flex;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #FFECEF;
+}
+
+.empty-address-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.empty-address-title {
+  color: #B42336;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.empty-address-desc {
+  color: #8C5962;
+  font-size: 11px;
+}
+
+.contact-block {
+  margin: 0 16px 16px 65px;
+}
+
+.contact-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.contact-name {
+  color: var(--color-text-primary, #111216);
   font-size: 15px;
   font-weight: 600;
-  color: $color-text-primary;
-  float: left;
+  line-height: 22px;
 }
 
-.card-count {
-  color: $color-text-secondary;
+.contact-phone {
+  color: var(--color-text-secondary, #676A73);
+  font-size: 14px;
+}
+
+.contact-address {
+  display: block;
+  margin-top: 6px;
+  color: var(--color-text-secondary, #676A73);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.profile-warning,
+.stock-warning,
+.price-notice,
+.preview-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: #8A4B00;
+  background: #FFF8ED;
   font-size: 12px;
-  float: right;
-  font-weight: 400;
+  line-height: 18px;
+}
+
+.profile-warning {
+  margin: 0 16px 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+}
+
+.price-notice,
+.preview-notice {
+  margin-bottom: 12px;
+  padding: 11px 13px;
+  border: 1px solid #F1DEC1;
+  border-radius: 12px;
+}
+
+.preview-notice {
+  color: #8A1C15;
+  border-color: #F0CBC8;
+  background: #FFF3F2;
+}
+
+.price-notice > text,
+.preview-notice > text {
+  min-width: 0;
+  flex: 1;
+}
+
+.notice-action {
+  flex: none;
+  margin: -6px -7px -6px 0;
+  padding: 6px 8px;
+  border: 0;
+  color: var(--color-brand, #D7192D);
+  background: transparent;
+  font-size: 12px;
+  line-height: 18px;
+
+  &::after {
+    border: 0;
+  }
+}
+
+.product-heading {
+  border-bottom: 1px solid var(--color-divider, #F0F1F3);
+}
+
+.verified-label,
+.verified-text {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  color: #168A52;
+  font-size: 11px;
+}
+
+.verified-text {
+  color: var(--color-text-tertiary, #94969C);
+}
+
+.checkout-spu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px 14px;
+}
+
+.checkout-spu-group {
+  overflow: hidden;
+  border: 1px solid var(--color-border, #E4E6EB);
+  border-radius: 13px;
+  background: var(--surface-card, #FFFFFF);
+}
+
+.checkout-spu-header {
+  display: grid;
+  width: 100%;
+  min-height: 62px;
+  grid-template-columns: minmax(0, 1fr) auto 28px;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 0;
+  color: var(--color-text-primary, #111216);
+  background: var(--surface-subtle, #F8F9FA);
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.checkout-spu-header::after {
+  border: 0;
+}
+
+.checkout-spu-copy {
+  min-width: 0;
+}
+
+.checkout-spu-name {
+  display: block;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checkout-spu-meta {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-text-tertiary, #94969C);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.checkout-spu-total {
+  color: var(--color-text-primary, #111216);
+  font-size: 13px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.checkout-collapse-icon {
+  color: var(--color-text-secondary, #676A73);
+  transition: transform 180ms ease;
+}
+
+.checkout-collapse-icon.expanded {
+  transform: rotate(90deg);
+}
+
+.product-list {
+  padding: 0 12px;
 }
 
 .product-row {
   display: grid;
-  grid-template-columns: 56px 1fr auto;
-  gap: 10px;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 12px;
   align-items: center;
-  padding: 0 14px 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-divider, #F0F1F3);
+
+  &:last-child {
+    border-bottom: 0;
+  }
 }
 
 .product-image {
-  width: 56px;
-  height: 56px;
-  border-radius: 7px;
-  object-fit: cover;
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+}
+
+.product-info {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
 }
 
 .product-name {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--color-text-primary, #111216);
   font-size: 14px;
-  font-weight: 500;
-  color: $color-text-primary;
-  display: block;
+  font-weight: 600;
+  line-height: 20px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .product-spec {
-  margin-top: 2px;
-  color: $color-text-secondary;
+  overflow: hidden;
+  margin-top: 4px;
+  color: var(--color-text-secondary, #676A73);
   font-size: 12px;
-  display: block;
+  line-height: 17px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.product-price {
-  font-size: 15px;
-  font-weight: 500;
-  color: $color-text-primary;
-}
-
-/* 设置列表 */
-.settings-list { padding: 0 14px; }
-
-.setting-item {
-  width: 100%;
-  min-height: 52px;
-  border: none;
-  border-bottom: 1px solid $color-border-default;
-  background: transparent;
-  text-align: left;
+.product-meta {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
-  color: $color-text-primary;
-
-  &:last-child { border-bottom: none; }
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 7px;
+  color: var(--color-text-secondary, #676A73);
+  font-size: 12px;
 }
 
-.setting-value { color: $color-text-secondary; font-weight: 400; }
-
-/* 底部金额栏 */
-.amount-section { width: 100%; max-width: 260px; }
-
-.amount-item {
+.product-amount {
   display: flex;
-  justify-content: space-between;
+  align-self: stretch;
+  align-items: flex-end;
+  justify-content: center;
+  flex-direction: column;
+  color: var(--color-text-primary, #111216);
   font-size: 14px;
-  color: $color-text-primary;
-
-  &.payable { margin-top: 8px; }
-}
-
-.payable-text {
-  font-size: 20px;
-  font-weight: 600;
-  color: $color-brand-500;
+  font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
 
-.agreement-label {
+.list-price {
+  margin-top: 5px;
+  color: var(--color-text-tertiary, #94969C);
+  font-size: 11px;
+  font-weight: 400;
+  text-decoration: line-through;
+}
+
+.stock-risk {
+  margin-top: 5px;
+  color: #B42318;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.stock-warning {
+  margin: 0 16px 16px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #8A1C15;
+  background: #FFF3F2;
+}
+
+.compact-heading {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 14px;
-  font-size: 12px;
-  color: $color-text-secondary;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 16px 12px;
+}
 
-  checkbox { accent-color: $color-brand-500; }
+.options-card {
+  padding-bottom: 14px;
+}
+
+.delivery-fixed {
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  gap: 10px;
+  margin: 0 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(215, 25, 45, 0.28);
+  border-radius: 12px;
+  background: #FFF7F8;
+  box-sizing: border-box;
+}
+
+.active-icon {
+  color: var(--color-brand, #D7192D);
+  background: rgba(215, 25, 45, 0.08);
+}
+
+.fixed-label {
+  flex: none;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: var(--color-brand, #D7192D);
+  background: #FFECEF;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.option-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 9px;
+  padding: 0 14px;
+}
+
+.choice-option {
+  display: flex;
+  width: 100%;
+  min-height: 62px;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border, #E4E6EB);
+  border-radius: 12px;
+  color: var(--color-text-primary, #111216);
+  background: var(--surface-card, #FFFFFF);
+  text-align: left;
+  box-sizing: border-box;
+
+  &::after {
+    border: 0;
+  }
+
+  &.active {
+    border-color: rgba(215, 25, 45, 0.46);
+    background: var(--color-brand-soft, #FFF2F3);
+  }
+
+  &.disabled {
+    color: var(--color-text-disabled, #B2B4BA);
+    background: var(--surface-subtle, #F7F8FA);
+  }
+}
+
+.choice-icon {
+  display: flex;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  color: var(--color-text-secondary, #676A73);
+  background: var(--surface-subtle, #F7F8FA);
+}
+
+.choice-option.active .choice-icon {
+  color: var(--color-brand, #D7192D);
+  background: rgba(215, 25, 45, 0.08);
+}
+
+.choice-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.choice-title {
+  color: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.choice-desc {
+  overflow: hidden;
+  color: var(--color-text-secondary, #676A73);
+  font-size: 11px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.choice-option.disabled .choice-desc {
+  color: var(--color-text-disabled, #B2B4BA);
+}
+
+.radio-mark {
+  display: flex;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--color-border-strong, #D2D4D9);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+
+.choice-option.active .radio-mark {
+  border-color: var(--color-brand, #D7192D);
+}
+
+.radio-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.choice-option.active .radio-dot {
+  background: var(--color-brand, #D7192D);
+}
+
+.credit-hint {
+  display: block;
+  margin: 9px 15px 0;
+  color: var(--color-text-tertiary, #94969C);
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.cash-channel-panel {
+  margin: 12px 14px 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-divider, #F0F1F3);
+}
+
+.channel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+.channel-title {
+  color: var(--color-text-primary, #111216);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.channel-tip {
+  color: var(--color-text-tertiary, #94969C);
+  font-size: 10px;
+}
+
+.channel-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.channel-option {
+  display: flex;
+  min-width: 0;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin: 0;
+  padding: 0 8px;
+  border: 1px solid var(--color-border, #E4E6EB);
+  border-radius: 10px;
+  color: var(--color-text-secondary, #676A73);
+  background: #FFFFFF;
+  font-size: 11px;
+  white-space: nowrap;
+
+  &::after {
+    border: 0;
+  }
+
+  &.active {
+    border-color: rgba(215, 25, 45, 0.42);
+    color: var(--color-brand, #D7192D);
+    background: #FFF3F5;
+  }
+}
+
+.detail-card {
+  padding: 0 16px 16px;
+}
+
+.setting-row,
+.remark-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.setting-row {
+  min-height: 52px;
+  border-bottom: 1px solid var(--color-divider, #F0F1F3);
+}
+
+.setting-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--color-text-primary, #111216);
+  font-size: 14px;
+  font-weight: 550;
+}
+
+.setting-value,
+.remark-count {
+  color: var(--color-text-secondary, #676A73);
+  font-size: 12px;
+}
+
+.remark-block {
+  padding-top: 15px;
+}
+
+.remark-input {
+  width: 100%;
+  height: 86px;
+  margin-top: 12px;
+  padding: 11px 12px;
+  border: 1px solid var(--color-border, #E4E6EB);
+  border-radius: 11px;
+  color: var(--color-text-primary, #111216);
+  background: var(--surface-subtle, #F7F8FA);
+  font-size: 13px;
+  line-height: 20px;
+  box-sizing: border-box;
+}
+
+.summary-card {
+  padding: 0 16px 16px;
+}
+
+.summary-card .compact-heading {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.amount-list {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  padding: 2px 0 15px;
+  border-bottom: 1px solid var(--color-divider, #F0F1F3);
+}
+
+.amount-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-text-secondary, #676A73);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.amount-row.discount {
+  color: var(--color-brand, #D7192D);
+}
+
+.payable-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 0;
+}
+
+.payable-label {
+  display: block;
+  color: var(--color-text-primary, #111216);
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.payable-quantity {
+  display: block;
+  margin-top: 3px;
+  color: var(--color-text-tertiary, #94969C);
+  font-size: 11px;
+}
+
+.payable-price {
+  color: var(--color-brand, #D7192D);
+  font-size: 24px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 30px;
+}
+
+.currency {
+  margin-right: 2px;
+  font-size: 14px;
+}
+
+.agreement-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--color-text-secondary, #676A73);
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.agreement-check {
+  display: flex;
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border-strong, #D2D4D9);
+  border-radius: 6px;
+  background: #FFFFFF;
+  box-sizing: border-box;
+}
+
+.agreement-check.checked {
+  border-color: var(--color-brand, #D7192D);
+  background: var(--color-brand, #D7192D);
+}
+
+.submit-hint {
+  display: block;
+  margin: 8px 0 0 27px;
+  color: #B76500;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.secure-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 14px;
+  padding: 10px 11px;
+  border-radius: 10px;
+  color: #3E6854;
+  background: #F1F8F4;
+  font-size: 11px;
+  line-height: 17px;
+}
+
+.checkout-footer {
+  display: flex;
+  width: 100%;
+  max-width: 1120px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.footer-summary {
+  min-width: 0;
+}
+
+.footer-count {
+  display: block;
+  color: var(--color-text-secondary, #676A73);
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.footer-price {
+  display: flex;
+  align-items: baseline;
+  margin-top: 2px;
+  color: var(--color-brand, #D7192D);
+  font-variant-numeric: tabular-nums;
+}
+
+.footer-label {
+  margin-right: 5px;
+  color: var(--color-text-primary, #111216);
+  font-size: 12px;
+}
+
+.footer-currency {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.footer-amount {
+  font-size: 21px;
+  font-weight: 700;
 }
 
 .submit-btn {
-  width: 100%;
-  height: 48px;
-  margin-top: 12px;
-  background: $color-brand-500;
-  color: white;
+  width: 136px;
+  height: 46px;
+  flex: 0 0 136px;
+  margin: 0;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  color: #FFFFFF;
+  background: var(--color-brand, #D7192D);
   font-size: 15px;
   font-weight: 650;
-  border: none;
-  border-radius: $radius-control;
+  line-height: 46px;
 
-  &:active:not(.is-disabled) { background: $color-brand-700; }
-  &.is-disabled { background: $color-bg-subtle; color: $color-text-disabled; }
+  &::after {
+    border: 0;
+  }
+
+  &.is-disabled {
+    color: var(--color-text-disabled, #B2B4BA);
+    background: var(--surface-subtle, #F1F2F4);
+  }
+}
+
+@media (min-width: 600px) {
+  .option-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 800px) {
+  .checkout-grid {
+    grid-template-columns: minmax(0, 1.48fr) minmax(320px, 0.82fr);
+    align-items: start;
+    gap: 16px;
+  }
+
+  .checkout-spu-list {
+    padding: 14px 16px 16px;
+  }
+
+  .checkout-main,
+  .checkout-side {
+    gap: 16px;
+  }
+
+  .checkout-side .option-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .section-card {
+    border-radius: 18px;
+  }
+
+  .product-row {
+    grid-template-columns: 84px minmax(0, 1fr) auto;
+  }
+
+  .product-image {
+    width: 84px;
+    height: 84px;
+  }
+
+  .checkout-footer {
+    padding: 0 4px;
+  }
+
+  .submit-btn {
+    width: 176px;
+    flex-basis: 176px;
+  }
+}
+
+@media (max-width: 420px) {
+  .section-heading {
+    padding-right: 13px;
+    padding-left: 13px;
+  }
+
+  .contact-block {
+    margin-right: 13px;
+    margin-left: 62px;
+  }
+
+  .channel-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .channel-option {
+    justify-content: flex-start;
+    padding: 0 12px;
+  }
+
+  .product-list {
+    padding: 0 13px;
+  }
+
+  .product-row {
+    grid-template-columns: 64px minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .product-image {
+    width: 64px;
+    height: 64px;
+  }
+
+  .product-amount {
+    grid-column: 2;
+    align-items: flex-start;
+    margin-top: -4px;
+  }
+
+  .submit-btn {
+    width: 124px;
+    flex-basis: 124px;
+  }
 }
 </style>

@@ -1,4 +1,4 @@
-﻿﻿<template>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <AppPageShell>
     <template #header>
       <app-header title="安全设置" :show-back="true" />
@@ -323,6 +323,9 @@ function handleLogout() {
 }
 
 .item-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 28px; /* 稳定 px */
   padding: 0 12px;
   background: transparent;
@@ -394,6 +397,9 @@ function handleLogout() {
 }
 
 .remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 28px; /* 稳定 px */
   padding: 0 10px;
   background: transparent;
@@ -408,6 +414,9 @@ function handleLogout() {
 
 /* 退出按钮 */
 .logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: 48px; /* 稳定 px */
   margin-top: 16px;

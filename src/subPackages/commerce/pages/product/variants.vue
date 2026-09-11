@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <AppPageShell>
     <template #header>
       <app-header
@@ -36,9 +36,18 @@
             <view class="batch-toolbar">
               <view>
                 <text class="card-title">按规格批量填数</text>
-                <text class="card-desc">数量为 0 表示不采购，提交时只发送已填写的 SKU</text>
+                <text class="card-desc">一键填数将覆盖所有可采购 SKU 的数量</text>
               </view>
-              <button class="clear-btn" :disabled="selectedLines.length === 0" @click="clearAll">一键清空</button>
+              <view class="batch-fill-row">
+                <input
+                  v-model="batchFillNumber"
+                  type="number"
+                  class="batch-fill-input"
+                  placeholder="输入数量"
+                />
+                <button class="batch-fill-btn" @click="applyBatchFill">一键填数</button>
+                <button class="clear-btn" :disabled="selectedLines.length === 0" @click="clearAll">一键清空</button>
+              </view>
             </view>
 
             <view v-for="group in skuGroups" :key="group.key" class="sku-group-card">
@@ -91,13 +100,15 @@
 
     <template #footer>
       <fixed-action-bar v-if="pageState === PageStatus.CONTENT">
-        <view class="footer-summary">
-          <text class="footer-label">已选 {{ selectedLines.length }} 款，共 {{ totalQuantity }} {{ product?.unit || '件' }}</text>
-          <text class="footer-amount">¥{{ formatMoney(totalAmount) }}</text>
+        <view class="footer-inner">
+          <view class="footer-summary">
+            <text class="footer-label">已选 {{ selectedLines.length }} 款，共 {{ totalQuantity }} {{ product?.unit || '件' }}</text>
+            <text class="footer-amount">¥{{ formatMoney(totalAmount) }}</text>
+          </view>
+          <button class="add-btn" :disabled="!canSubmit || submitting" @click="submit">
+            {{ submitting ? '提交中…' : '加入购物车' }}
+          </button>
         </view>
-        <button class="add-btn" :disabled="!canSubmit || submitting" @click="submit">
-          {{ submitting ? '提交中…' : '加入购物车' }}
-        </button>
       </fixed-action-bar>
     </template>
   </AppPageShell>
@@ -123,6 +134,7 @@ const productId = ref(0)
 const product = ref(null)
 const quantities = ref({})
 const batchRequestId = ref('')
+const batchFillNumber = ref('')
 const pageState = ref(PageStatus.LOADING)
 const errorMessage = ref('网络异常，请稍后重试')
 const { cartStore, submitting, loadCart, batchAddSkuToCart } = useCart()
@@ -234,6 +246,38 @@ function setSkuQuantity(sku, value) {
 function clearAll() {
   quantities.value = Object.fromEntries((product.value?.skus || []).map(sku => [sku.skuId, 0]))
   batchRequestId.value = ''
+  batchFillNumber.value = ''
+}
+
+/** 一键批量填数：输入数量应用到所有可采购 SKU，超出库存的取最高库存 */
+function applyBatchFill() {
+  const raw = Number(batchFillNumber.value)
+  if (!Number.isFinite(raw) || raw <= 0) {
+    uni.show({ title: '请输入有效的数量', icon: 'none' })
+    return
+  }
+  const target = Math.floor(raw)
+  const skus = product.value?.skus || []
+  const next = { ...quantities.value }
+  let filledCount = 0
+  skus.forEach(sku => {
+    if (!sku.canPurchase) return
+    const maxStock = Number(sku.stock || 0)
+    const minQty = Number(sku.minOrderQty || 1)
+    // 超出库存时取最高库存，但不低于起订量
+    const value = maxStock <= 0 ? 0 : Math.min(target, Math.max(maxStock, minQty))
+    if (value >= minQty) {
+      next[sku.skuId] = value
+      filledCount++
+    }
+  })
+  quantities.value = next
+  batchRequestId.value = ''
+  if (filledCount > 0) {
+    uni.showToast({ title: `已填入 ${filledCount} 个规格`, icon: 'success' })
+  } else {
+    uni.showToast({ title: '没有可填入的规格', icon: 'none' })
+  }
 }
 
 function copyGroup(group) {
@@ -291,8 +335,11 @@ async function goToCart() {
 .price { color: var(--color-brand); font-size: 20px; font-weight: 700; }
 .unit { margin-left: 4px; color: var(--color-text-secondary); font-size: 12px; }
 
-.batch-toolbar, .group-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.batch-toolbar { padding: 15px 16px; }
+.batch-toolbar { display: flex; flex-direction: column; gap: 10px; padding: 15px 16px; }
+.batch-fill-row { display: flex; align-items: center; gap: 8px; }
+.batch-fill-input { flex: 1; height: 34px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 17px; font-size: 13px; background: var(--surface-card); }
+.batch-fill-input:focus { border-color: var(--color-brand); }
+.batch-fill-btn { flex-shrink: 0; height: 34px; padding: 0 14px; border: 0; border-radius: 17px; color: #fff; background: var(--color-brand); font-size: 12px; font-weight: 600; }
 .card-title, .group-title { display: block; color: var(--color-text-primary); font-size: 15px; font-weight: 700; }
 .card-desc, .group-desc { display: block; margin-top: 4px; color: var(--color-text-tertiary); font-size: 12px; line-height: 1.5; }
 .clear-btn, .copy-btn { flex-shrink: 0; height: 34px; padding: 0 13px; border: 0; border-radius: 17px; color: var(--color-brand); background: var(--color-brand-soft); font-size: 12px; line-height: 34px; }
@@ -314,10 +361,12 @@ async function goToCart() {
 .sku-moq { color: var(--color-text-secondary); font-size: 11px; }
 .validation-message { padding: 11px 14px; border-radius: 9px; color: var(--danger-color, #B42318); background: #FFF1F1; font-size: 12px; line-height: 1.5; }
 
-.footer-summary { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.footer-inner { display: flex; width: 100%; max-width: 1120px; align-items: center; justify-content: space-between; gap: 16px; margin: 0 auto; }
+.footer-summary { display: flex; min-width: 0; flex: 1; align-items: flex-start; justify-content: center; flex-direction: column; }
 .footer-label { overflow: hidden; color: var(--color-text-secondary); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .footer-amount { color: var(--color-brand); font-size: 19px; font-weight: 700; }
-.add-btn { min-width: 136px; height: 44px; padding: 0 22px; color: #FFFFFF; background: var(--color-brand); border: 0; border-radius: var(--radius-control); font-size: 14px; font-weight: 650; }
+.add-btn { display: flex; min-width: 136px; height: 44px; flex: 0 0 auto; align-items: center; justify-content: center; margin: 0; padding: 0 22px; color: #FFFFFF; background: var(--color-brand); border: 0; border-radius: var(--radius-control); font-size: 14px; font-weight: 650; line-height: 1; text-align: center; box-sizing: border-box; }
+.add-btn::after { border: 0; }
 .add-btn[disabled] { color: var(--color-text-disabled); background: var(--surface-muted); }
 
 @media screen and (min-width: 760px) {

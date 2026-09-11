@@ -38,6 +38,7 @@ const barStyle = computed(() => ({
   position: relative;
   width: 100%;
   z-index: 1;
+  overflow: visible;
 }
 
 .action-content {
@@ -48,5 +49,6 @@ const barStyle = computed(() => ({
   min-height: 64px;
   margin: 0 auto;
   padding: 8px var(--page-padding-x, 16px);
+  overflow: visible;
 }
 </style>

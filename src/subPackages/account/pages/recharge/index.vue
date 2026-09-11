@@ -1,4 +1,4 @@
-﻿<template>
+﻿﻿﻿﻿﻿<template>
   <AppPageShell>
     <template #header>
       <app-header title="充值中心" :show-back="true" />
@@ -128,6 +128,9 @@ function submit() {
 
 .quick-btn {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 36px; /* 稳定 px */
   border: 1px solid #DEDFE3;
   background: white;
@@ -141,6 +144,9 @@ function submit() {
 }
 
 .submit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: 48px; /* 稳定 px */
   background: #D7192D;

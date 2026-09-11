@@ -1,4 +1,4 @@
-﻿﻿﻿<template>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <AppPageShell>
     <template #header>
       <app-header title="优惠券" :show-back="true" />
@@ -156,6 +156,9 @@ function exchangeVoucher() {
 }
 
 .tab-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 42px; /* 稳定 px */
   padding: 0;
   white-space: nowrap;
@@ -287,6 +290,9 @@ function exchangeVoucher() {
 
 .use-btn {
   align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: 28px; /* 稳定 px */
   padding: 0 12px;
   margin-top: 8px;
@@ -347,6 +353,9 @@ function exchangeVoucher() {
 }
 
 .exchange-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-width: 80px; /* 稳定 px */
   height: 40px;
   background: #D7192D;

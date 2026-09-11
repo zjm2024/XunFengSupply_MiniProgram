@@ -1,10 +1,5 @@
 <template>
   <view class="home-tab tab-page">
-    <view class="home-search-entry" hover-class="card--pressed" @click="openSearch">
-      <AppIcon name="search" :size="20" :stroke-width="1.8" />
-      <text class="home-search-placeholder">搜索商品名称 / SKU / 69码</text>
-    </view>
-
     <view class="entry-grid">
       <view class="entry-card order-card" hover-class="card--pressed" @click="openProductList">
         <view class="entry-copy">
@@ -134,14 +129,6 @@ async function openProduct(product) {
 async function openProductList() {
   await navigator.navigateTo(routes.commerce.productList())
 }
-
-async function openSearch() {
-  await navigator.navigateTo(routes.commerce.productList({ mode: 'search' }))
-}
-
-async function openCategoryTab() {
-  // 保留切换到分类标签页的功能（如果需要）
-}
 </script>
 
 <style lang="scss" scoped>
@@ -154,7 +141,6 @@ async function openCategoryTab() {
   box-sizing: border-box;
 }
 
-.home-search-entry,
 .entry-card,
 .feature-strip,
 .recommend-section {
@@ -164,49 +150,12 @@ async function openCategoryTab() {
   backdrop-filter: blur(18px);
 }
 
-.home-search-entry {
-  display: flex;
-  align-items: center;
-  min-height: 48px;
-  gap: 10px;
-  margin-bottom: 16px;
-  padding: 0 6px 0 16px;
-  box-sizing: border-box;
-  border-radius: 25px;
-  color: #7e838c;
-  border-color: rgba(39, 42, 48, .035);
-  background: #e6e7e9;
-  box-shadow: none;
-  -webkit-backdrop-filter: none;
-  backdrop-filter: none;
-}
-
 .section-mark {
   display: grid;
   place-items: center;
   flex-shrink: 0;
   color: var(--color-brand, #d7192d);
   background: rgba(215, 25, 45, 0.08);
-}
-
-.home-search-placeholder {
-  min-width: 0;
-  flex: 1;
-  overflow: hidden;
-  font-size: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-search-action {
-  height: 36px;
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
-  border-left: 1px solid rgba(67, 70, 77, .08);
-  color: #24272c;
-  font-size: 13px;
-  font-weight: 650;
 }
 
 .section-copy { display: flex; min-width: 0; flex-direction: column; }

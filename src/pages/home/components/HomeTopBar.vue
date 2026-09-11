@@ -5,7 +5,7 @@
         <image class="brand-logo" src="/static/images/logo-v.png" mode="aspectFit" />
       </view>
       <view class="brand-title-row">
-        <text class="brand-title">薰风商城</text>
+        <text class="brand-title">首页</text>
         <view class="brand-dot"></view>
       </view>
     </view>
@@ -14,15 +14,27 @@
       <text class="page-title">{{ currentTitle }}</text>
     </view>
 
+    <!-- 首页搜索框：位于 Logo 右侧 -->
     <view
-      v-if="activeTab === 'category'"
+      v-if="activeTab === 'home'"
+      class="home-search-box"
+      hover-class="home-search-box--pressed"
+      aria-label="搜索商品"
+      @click="$emit('search')"
+    >
+      <AppIcon class="home-search-icon" name="search" :size="16" :stroke-width="1.8" />
+      <text class="home-search-placeholder">商品名称 / SKU / 69码</text>
+    </view>
+
+    <view
+      v-else-if="activeTab === 'category'"
       class="category-search"
       hover-class="glass-btn--pressed"
       aria-label="搜索商品"
       @click="$emit('search')"
     >
       <AppIcon name="search" :size="20" :stroke-width="1.8" />
-      <text class="category-search-text">搜索商品名称 / SKU / 69码</text>
+      <text class="category-search-text">商品名称 / SKU / 69码</text>
     </view>
 
     <view v-else-if="activeTab === 'account'" class="header-actions">
@@ -107,6 +119,42 @@ const currentTitle = computed(() => tabTitles[props.activeTab] || '')
   display: none;
 }
 
+/* ========== 首页搜索框 ========== */
+
+.home-search-box {
+  display: flex;
+  min-width: 0;
+  height: 36px;
+  flex: 1;
+  align-items: center;
+  gap: 7px;
+  margin-left: 12px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 18px;
+  background: #e7e8eb;
+}
+
+.home-search-icon {
+  flex-shrink: 0;
+  color: #8c919b;
+}
+
+.home-search-placeholder {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: #a8adb5;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-search-box--pressed {
+  opacity: 0.58;
+}
+
 .brand-block {
   min-width: 0;
   gap: 10px;
@@ -130,6 +178,7 @@ const currentTitle = computed(() => tabTitles[props.activeTab] || '')
 }
 
 .brand-title-row {
+  display: none;
   min-width: 0;
   gap: 6px;
 }
@@ -206,6 +255,17 @@ const currentTitle = computed(() => tabTitles[props.activeTab] || '')
   box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
 }
 
+@media screen and (min-width: 768px) {
+  .brand-title-row {
+    display: flex;
+  }
+
+  .home-search-box {
+    max-width: 480px;
+    height: 38px;
+  }
+}
+
 @media screen and (min-width: 800px) {
   .topbar {
     min-height: 68px;
@@ -237,6 +297,26 @@ const currentTitle = computed(() => tabTitles[props.activeTab] || '')
     height: 46px;
   }
 
+
+  .home-search-box {
+    width: clamp(240px, 32vw, 360px);
+    height: 44px;
+    padding: 0 16px;
+    justify-content: flex-start;
+    gap: 9px;
+    box-sizing: border-box;
+    border-radius: 22px;
+    color: #737780;
+  }
+
+  .home-search-box-text {
+    display: block;
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .category-search {
     width: clamp(240px, 32vw, 360px);
     height: 44px;
@@ -254,6 +334,12 @@ const currentTitle = computed(() => tabTitles[props.activeTab] || '')
     font-size: 12px;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+}
+
+@media screen and (min-width: 1180px) {
+  .home-search-box {
+    max-width: 680px;
   }
 }
 

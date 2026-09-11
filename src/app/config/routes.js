@@ -61,6 +61,7 @@ export const BILL_LIST = '/subPackages/account/pages/bill/list'
 export const BILL_DETAIL = '/subPackages/account/pages/bill/detail'
 export const INVOICE = '/subPackages/account/pages/invoice/index'
 export const VOUCHER = '/subPackages/account/pages/voucher/index'
+export const SUB_ACCOUNT_FORM = '/subPackages/account/pages/sub-account/sub-account-form/index'
 export const LANGUAGE = '/subPackages/account/pages/language/index'
 export const SETTINGS = '/subPackages/account/pages/settings/index'
 
@@ -81,7 +82,7 @@ export const REGISTERED_ROUTES = Object.freeze([
   LOGIN, APPLY_SIGN, AGREEMENT, ACCOUNT_STATUS,
   PRODUCT_LIST, PRODUCT_DETAIL, PRODUCT_VARIANTS, CART, CHECKOUT,
   ORDER_LIST, ORDER_DETAIL, PAY_PAGE, APPLY_AFTER_SALE, AFTER_SALE_LIST,
-  ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, SUB_ACCOUNT, SECURITY,
+  ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, SUB_ACCOUNT, SUB_ACCOUNT_FORM, SECURITY,
   RECHARGE, FUND_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS,
   NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MESSAGE, HELP, ABOUT,
 ])
@@ -311,6 +312,13 @@ export const ROUTE_META = Object.freeze({
     allowFrozen: false,
     owner: null,
   },
+  [SUB_ACCOUNT_FORM]: {
+    title: '新增/编辑子账户',
+    requireAuth: true,
+    requireSign: false,
+    allowFrozen: false,
+    owner: 'main',
+  },
 
   // ===== content 分包 =====
   [NEWS]: {
@@ -533,9 +541,13 @@ export const routes = {
       const id = assertValidId(orderId, 'order.detail')
       return withQuery(ORDER_DETAIL, { orderId: id })
     },
-    pay: (orderId, { paymentMode } = {}) => {
+    pay: (orderId, { paymentMode, paymentChannel } = {}) => {
       const id = assertValidId(orderId, 'order.pay')
-      return withQuery(PAY_PAGE, { orderId: id, ...(paymentMode ? { paymentMode } : null) })
+      return withQuery(PAY_PAGE, {
+        orderId: id,
+        ...(paymentMode ? { paymentMode } : null),
+        ...(paymentChannel ? { paymentChannel } : null),
+      })
     },
     afterSaleApply: (orderId) => {
       const id = assertValidId(orderId, 'order.afterSaleApply')
@@ -550,6 +562,8 @@ export const routes = {
     address: ({ selectMode } = {}) =>
       withQuery(ADDRESS, selectMode ? { selectMode } : null),
     subAccount: () => SUB_ACCOUNT,
+    subAccountForm: ({ accountId, username, realName, mobile, status } = {}) =>
+      withQuery(SUB_ACCOUNT_FORM, { accountId, username, realName, mobile, status }),
     security: () => SECURITY,
     recharge: () => RECHARGE,
     fundFlow: () => FUND_FLOW,

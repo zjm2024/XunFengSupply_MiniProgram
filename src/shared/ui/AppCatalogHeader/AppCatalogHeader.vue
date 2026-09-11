@@ -100,7 +100,7 @@ const props = defineProps({
   sticky: { type: Boolean, default: true },
   statusBarExtra: { type: Number, default: 8 },
   keyword: { type: String, default: '' },
-  placeholder: { type: String, default: '搜索商品名称 / SKU / 69码' },
+  placeholder: { type: String, default: '商品名称 / SKU / 69码' },
   autoFocus: { type: Boolean, default: false },
   keywordCommitted: { type: Boolean, default: false },
   showTools: { type: Boolean, default: true },

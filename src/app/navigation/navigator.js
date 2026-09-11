@@ -231,8 +231,18 @@ function doNavigateBack(delta = 1) {
         delta,
         success: () => resolve(true),
         fail: () => {
-          // navigateBack 失败也兜底
-          safeBackOrHome().then(resolve)
+          // navigateBack 失败时，尝试重定向到上一页面
+          const targetPage = pages[pages.length - 1 - delta]
+          if (targetPage) {
+            const targetUrl = `/${targetPage.route}`
+            uni.redirectTo({
+              url: targetUrl,
+              success: () => resolve(true),
+              fail: () => safeBackOrHome().then(resolve),
+            })
+          } else {
+            safeBackOrHome().then(resolve)
+          }
         },
       })
     })

@@ -39,6 +39,15 @@
               <text class="method-name">支付宝</text>
               <view class="check-circle" :class="{ checked: payType === 'alipay' }"></view>
             </view>
+            <view
+              class="method-item"
+              :class="{ active: payType === 'bank-card' }"
+              @click="payType = 'bank-card'"
+            >
+              <view class="method-icon bank-card"><AppIcon name="bank" :size="26" /></view>
+              <text class="method-name">银行卡支付</text>
+              <view class="check-circle" :class="{ checked: payType === 'bank-card' }"></view>
+            </view>
           </view>
 
           <!-- 授信赊账信息 -->
@@ -113,7 +122,7 @@ const orderId = ref(null)
 const orderNo = ref('')
 const payMode = ref(PAYMENT_MODE.CASH)     // 1现款 2授信
 const payAmount = ref(0)    // 单位：元（后端返回元）
-const payType = ref('wechat') // weixin/alipay
+const payType = ref('wechat') // wechat/alipay/bank-card
 const paying = ref(false)
 const remainTime = ref(0)   // 剩余时间（秒）
 let countdownTimer = null
@@ -130,6 +139,9 @@ const formatRemainTime = computed(() => {
 onLoad(async (options) => {
   orderId.value = Number(options.orderId) || null
   payMode.value = Number(options.paymentMode) || PAYMENT_MODE.CASH
+  if (['wechat', 'alipay', 'bank-card'].includes(options.paymentChannel)) {
+    payType.value = options.paymentChannel
+  }
 
   // 从订单详情获取实际金额
   if (orderId.value) {
@@ -265,6 +277,7 @@ async function handleConfirmPay() {
     
     &.wechat { background: #07C160; color: #fff; }
     &.alipay { background: #E8F1FF; }
+    &.bank-card { background: #F2F3F5; color: #4E5664; }
   }
   
   .method-name {

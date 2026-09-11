@@ -87,8 +87,8 @@ const containerStyle = computed(() => {
 /** 实际使用的内边距 */
 const padding = computed(() => {
   if (props.padding) return props.padding
-  // 默认使用响应式边距
-  return `0 ${pagePaddingX.value}`
+  // 默认：上 16rpx + 左右响应式边距，确保内容与标题栏有间隔
+  return `16rpx ${pagePaddingX.value}`
 })
 
 function handleScroll(e) {

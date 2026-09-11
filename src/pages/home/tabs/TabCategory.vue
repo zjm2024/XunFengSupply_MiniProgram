@@ -73,10 +73,6 @@
                   <text class="group-title">{{ section.name }}</text>
                   <text class="group-subtitle">{{ getGroupSubtitle(section) }}</text>
                 </view>
-                <view class="group-link" hover-class="control--pressed" @click="openCategoryProducts(section)">
-                  <text>查看全部</text>
-                  <AppIcon name="chevron-right" :size="13" />
-                </view>
               </view>
 
               <view v-if="isSectionLoading(section)" class="product-preview-grid">
@@ -250,13 +246,13 @@ async function loadSectionProducts(section) {
   try {
     const result = await getGoodsList({
       pageNum: 1,
-      pageSize: 3,
+      pageSize: 9,
       categoryId: section.id,
       hasImage: true,
     })
     productsByCategory.value = {
       ...productsByCategory.value,
-      [key]: Array.isArray(result?.items) ? result.items.slice(0, 3) : [],
+      [key]: Array.isArray(result?.items) ? result.items : [],
     }
   } catch (error) {
     productsByCategory.value = { ...productsByCategory.value, [key]: [] }
@@ -307,7 +303,6 @@ function openCategoryProducts(category) {
 .secondary-tab-list,
 .secondary-tab,
 .group-heading,
-.group-link,
 .product-empty,
 .deeper-entry,
 .retry-button,
@@ -354,7 +349,6 @@ function openCategoryProducts(category) {
 .primary-item.is-active {
   color: #202228;
   font-weight: 720;
-  background: #f7f8f9;
 }
 
 .primary-indicator {
@@ -458,13 +452,6 @@ function openCategoryProducts(category) {
   margin-top: 3px;
   color: #a0a3aa;
   font-size: 8px;
-}
-
-.group-link {
-  flex-shrink: 0;
-  gap: 2px;
-  color: #7f838b;
-  font-size: 9px;
 }
 
 .product-preview-grid {
@@ -711,8 +698,7 @@ function openCategoryProducts(category) {
     font-size: 18px;
   }
 
-  .group-subtitle,
-  .group-link {
+  .group-subtitle {
     font-size: 10px;
   }
 

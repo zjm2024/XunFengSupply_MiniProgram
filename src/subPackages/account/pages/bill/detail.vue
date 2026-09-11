@@ -1,4 +1,4 @@
-﻿<!--
+﻿﻿﻿﻿﻿<!--
   账单详情+导出PDF凭证页面（分包：settlementSub）
   对应业务流程节点：
   收货对账结算 → 查看账单明细、导出PDF凭证、线上结清恢复授信额度
@@ -328,8 +328,10 @@ function handlePay() {
 
 .pay-btn {
   flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   height: 80rpx;
-  line-height: 80rpx;
   background: var(--primary-color);
   color: #fff;
   font-size: 30rpx;

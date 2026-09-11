@@ -5,7 +5,7 @@
  * 1. 路由常量正确性
  * 2. 路由工厂函数生成正确 URL
  * 3. REGISTERED_ROUTES 完整性
- * 4. pages.json 35 个注册页面与 routes/routeMeta 一一对应
+ * 4. pages.json 注册页面与 routes/routeMeta 一一对应
  * 5. 每个详情工厂缺 ID 都抛错
  * 6. buildQuery 严格校验
  * 7. normalizeRoutePath / isRegisteredRoute / sanitizeRedirect
@@ -37,6 +37,7 @@ import {
   ACCOUNT_PROFILE,
   ADDRESS,
   SUB_ACCOUNT,
+  SUB_ACCOUNT_FORM,
   SECURITY,
   RECHARGE,
   FUND_FLOW,
@@ -45,6 +46,7 @@ import {
   INVOICE,
   VOUCHER,
   LANGUAGE,
+  SETTINGS,
   // content 分包
   NEWS,
   NEWS_DETAIL,
@@ -193,15 +195,15 @@ describe('Routes - REGISTERED_ROUTES 完整性', () => {
       LOGIN, APPLY_SIGN, AGREEMENT, ACCOUNT_STATUS,
       PRODUCT_LIST, PRODUCT_DETAIL, PRODUCT_VARIANTS, CART, CHECKOUT,
       ORDER_LIST, ORDER_DETAIL, PAY_PAGE, APPLY_AFTER_SALE, AFTER_SALE_LIST,
-      ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, SUB_ACCOUNT, SECURITY,
-      RECHARGE, FUND_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE,
+      ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, SUB_ACCOUNT, SUB_ACCOUNT_FORM, SECURITY,
+      RECHARGE, FUND_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS,
       NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MESSAGE, HELP, ABOUT,
     ]
     expect(REGISTERED_ROUTES).toEqual(expected)
   })
 
-  it('应包含 35 个路由', () => {
-    expect(REGISTERED_ROUTES.length).toBe(35)
+  it('应包含 37 个路由', () => {
+    expect(REGISTERED_ROUTES.length).toBe(37)
   })
 
   it('不应有重复路由', () => {
@@ -378,6 +380,12 @@ describe('Routes - routes 工厂函数', () => {
     const url = routes.order.pay(123)
     expect(url).toContain(PAY_PAGE)
     expect(url).toContain('orderId=123')
+  })
+
+  it('order.pay 应携带结算模式和支付通道', () => {
+    const url = routes.order.pay(123, { paymentMode: 1, paymentChannel: 'bank-card' })
+    expect(url).toContain('paymentMode=1')
+    expect(url).toContain('paymentChannel=bank-card')
   })
 
   it('order.pay({ orderId: 123 }) 必须抛错，防止两种签名并存', () => {
