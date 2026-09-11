@@ -26,7 +26,6 @@
       </view>
     </view>
 
-    <view v-if="mode === 'sidebar'" class="sidebar-version">V1.0</view>
   </view>
 </template>
 

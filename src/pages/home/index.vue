@@ -49,7 +49,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onShow, onResize } from '@dcloudio/uni-app'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { useMessageStore } from '@/subPackages/content/model/messageStore.js'
@@ -75,12 +75,12 @@ let resizeListener = null
 
 function checkScreenSize() {
   // #ifdef H5
-  isLargeScreen.value = window.innerWidth >= 800
+  isLargeScreen.value = window.innerWidth >= 820
   // #endif
 
   // #ifdef MP-WEIXIN || APP-PLUS
   try {
-    isLargeScreen.value = uni.getSystemInfoSync().windowWidth >= 800
+    isLargeScreen.value = uni.getSystemInfoSync().windowWidth >= 820
   } catch (_) {
     isLargeScreen.value = false
   }
@@ -113,6 +113,11 @@ onMounted(() => {
 
 onShow(() => {
   loadCart({ silent: true }).catch(() => {})
+})
+
+// APP/小程序横竖屏旋转触发
+onResize(() => {
+  checkScreenSize()
 })
 
 onUnmounted(() => {

@@ -315,7 +315,6 @@ function openCategoryProducts(category) {
   display: flex;
   height: calc(100vh - 154px);
   min-height: 460px;
-  max-height: 820px;
   overflow: hidden;
   border-radius: 20px;
   background: #f2f3f4;
@@ -641,7 +640,7 @@ function openCategoryProducts(category) {
   }
 }
 
-@media screen and (min-width: 800px) {
+@media screen and (min-width: 821px) {
   .tab-page {
     padding: 6px 24px 20px;
   }
