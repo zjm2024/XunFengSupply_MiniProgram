@@ -26,7 +26,14 @@
         :enable-back-to-top="true"
         :scroll-into-view="scrollIntoView"
         :scroll-with-animation="scrollWithAnimation"
+        :refresher-enabled="refresherEnabled"
+        :refresher-triggered="refresherTriggered"
+        :refresher-background="refresherBackground"
+        refresher-default-style="black"
         @scroll="handleScroll"
+        @refresherrefresh="emit('refresherrefresh')"
+        @refresherrestore="emit('refresherrestore')"
+        @refresherabort="emit('refresherabort')"
         ref="scrollViewRef"
       >
         <view class="content-body" :style="{ padding: padding }">
@@ -61,9 +68,21 @@ const props = defineProps({
     type: Boolean,
     default: true,
   },
+  refresherEnabled: {
+    type: Boolean,
+    default: false,
+  },
+  refresherTriggered: {
+    type: Boolean,
+    default: false,
+  },
+  refresherBackground: {
+    type: String,
+    default: 'var(--surface-page, #F4F5F8)',
+  },
 })
 
-const emit = defineEmits(['scroll'])
+const emit = defineEmits(['scroll', 'refresherrefresh', 'refresherrestore', 'refresherabort'])
 
 const { layout, contentMaxWidth, pagePaddingX } = useResponsive()
 

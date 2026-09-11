@@ -108,6 +108,7 @@ page,
   --page-padding-x-tablet: #{tokens.$page-padding-tablet};
 
   /* 字号 */
+  --font-family-sans: #{tokens.$font-sans};
   --font-size-xs: #{tokens.$font-size-micro};
   --font-size-sm: #{tokens.$font-size-caption};
   --font-size-base: #{tokens.$font-size-body-m};
@@ -116,6 +117,34 @@ page,
   --font-size-xl: #{tokens.$font-size-h2};
   --font-size-xxl: #{tokens.$font-size-h1};
   --font-size-display: #{tokens.$font-size-display};
+
+  /* 语义排版：双端正文与控件保持稳定，仅大屏页面标题轻微增强 */
+  --type-display-size: #{tokens.$font-size-display};
+  --type-display-line-height: #{tokens.$line-height-display};
+  --type-page-title-size: #{tokens.$font-size-h2};
+  --type-page-title-line-height: #{tokens.$line-height-h1};
+  --type-header-title-size: 17px;
+  --type-header-title-line-height: 24px;
+  --type-section-title-size: #{tokens.$font-size-h3};
+  --type-section-title-line-height: #{tokens.$line-height-h3};
+  --type-card-title-size: #{tokens.$font-size-body-l};
+  --type-card-title-line-height: #{tokens.$line-height-body-l};
+  --type-label-size: #{tokens.$font-size-label-l};
+  --type-label-line-height: #{tokens.$line-height-label-l};
+  --type-body-size: #{tokens.$font-size-body-m};
+  --type-body-line-height: #{tokens.$line-height-body-m};
+  --type-body-small-size: #{tokens.$font-size-body-s};
+  --type-body-small-line-height: #{tokens.$line-height-body-s};
+  --type-caption-size: #{tokens.$font-size-caption};
+  --type-caption-line-height: #{tokens.$line-height-caption};
+  --type-micro-size: #{tokens.$font-size-micro};
+  --type-micro-line-height: #{tokens.$line-height-micro};
+  --type-button-size: #{tokens.$font-size-body-m};
+  --type-button-line-height: 20px;
+  --type-nav-size: #{tokens.$font-size-micro};
+  --type-nav-line-height: #{tokens.$line-height-micro};
+  --type-money-size: #{tokens.$font-size-h3};
+  --type-money-line-height: #{tokens.$line-height-h2};
 
   /* 字重 */
   --font-weight-regular: #{tokens.$font-weight-regular};
@@ -158,6 +187,13 @@ page,
   page,
   :root {
     --page-padding-x: #{tokens.$page-padding-tablet};
+  }
+}
+
+@media screen and (min-width: 840px) {
+  page,
+  :root {
+    --type-page-title-size: #{tokens.$font-size-h1};
   }
 }
 

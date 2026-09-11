@@ -45,8 +45,8 @@
                   class="batch-fill-input"
                   placeholder="输入数量"
                 />
-                <button class="batch-fill-btn" @click="applyBatchFill">一键填数</button>
-                <button class="clear-btn" :disabled="selectedLines.length === 0" @click="clearAll">一键清空</button>
+                <button class="batch-fill-btn button-center" @click="applyBatchFill">一键填数</button>
+                <button class="clear-btn button-center" :disabled="selectedLines.length === 0" @click="clearAll">一键清空</button>
               </view>
             </view>
 
@@ -56,7 +56,7 @@
                   <text class="group-title">{{ group.name }}</text>
                   <text class="group-desc">{{ group.items.length }} 个尺码规格</text>
                 </view>
-                <button class="copy-btn" @click="copyGroup(group)">整行复制</button>
+                <button class="copy-btn button-center" @click="copyGroup(group)">整行复制</button>
               </view>
 
               <view
@@ -105,7 +105,7 @@
             <text class="footer-label">已选 {{ selectedLines.length }} 款，共 {{ totalQuantity }} {{ product?.unit || '件' }}</text>
             <text class="footer-amount">¥{{ formatMoney(totalAmount) }}</text>
           </view>
-          <button class="add-btn" :disabled="!canSubmit || submitting" @click="submit">
+          <button class="add-btn button-center" :disabled="!canSubmit || submitting" @click="submit">
             {{ submitting ? '提交中…' : '加入购物车' }}
           </button>
         </view>
@@ -339,10 +339,10 @@ async function goToCart() {
 .batch-fill-row { display: flex; align-items: center; gap: 8px; }
 .batch-fill-input { flex: 1; height: 34px; padding: 0 12px; border: 1px solid var(--color-border); border-radius: 17px; font-size: 13px; background: var(--surface-card); }
 .batch-fill-input:focus { border-color: var(--color-brand); }
-.batch-fill-btn { flex-shrink: 0; height: 34px; padding: 0 14px; border: 0; border-radius: 17px; color: #fff; background: var(--color-brand); font-size: 12px; font-weight: 600; }
+.batch-fill-btn { flex-shrink: 0; height: 34px; padding: 0 14px; border: 0; border-radius: 17px; color: #fff; background: var(--color-brand); font-size: var(--type-caption-size, 12px); font-weight: 600; }
 .card-title, .group-title { display: block; color: var(--color-text-primary); font-size: 15px; font-weight: 700; }
 .card-desc, .group-desc { display: block; margin-top: 4px; color: var(--color-text-tertiary); font-size: 12px; line-height: 1.5; }
-.clear-btn, .copy-btn { flex-shrink: 0; height: 34px; padding: 0 13px; border: 0; border-radius: 17px; color: var(--color-brand); background: var(--color-brand-soft); font-size: 12px; line-height: 34px; }
+.clear-btn, .copy-btn { flex-shrink: 0; height: 34px; padding: 0 13px; border: 0; border-radius: 17px; color: var(--color-brand); background: var(--color-brand-soft); font-size: var(--type-caption-size, 12px); line-height: var(--type-button-line-height, 20px); }
 .clear-btn[disabled] { color: var(--color-text-disabled); background: var(--surface-muted); }
 
 .sku-group-card { overflow: hidden; }
@@ -364,7 +364,7 @@ async function goToCart() {
 .footer-inner { display: flex; width: 100%; max-width: 1120px; align-items: center; justify-content: space-between; gap: 16px; margin: 0 auto; }
 .footer-summary { display: flex; min-width: 0; flex: 1; align-items: flex-start; justify-content: center; flex-direction: column; }
 .footer-label { overflow: hidden; color: var(--color-text-secondary); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.footer-amount { color: var(--color-brand); font-size: 19px; font-weight: 700; }
+.footer-amount { color: var(--color-brand); font-size: var(--type-money-size, 18px); font-weight: 700; }
 .add-btn { display: flex; min-width: 136px; height: 44px; flex: 0 0 auto; align-items: center; justify-content: center; margin: 0; padding: 0 22px; color: #FFFFFF; background: var(--color-brand); border: 0; border-radius: var(--radius-control); font-size: 14px; font-weight: 650; line-height: 1; text-align: center; box-sizing: border-box; }
 .add-btn::after { border: 0; }
 .add-btn[disabled] { color: var(--color-text-disabled); background: var(--surface-muted); }

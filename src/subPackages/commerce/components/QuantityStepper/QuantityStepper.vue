@@ -179,6 +179,11 @@ function normalizeInputValue(value) {
   &:disabled {
     opacity: 0.35;
     color: var(--text-placeholder, #969AA3);
+    pointer-events: none;
+
+    .btn-text {
+      color: var(--text-placeholder, #969AA3);
+    }
   }
 }
 

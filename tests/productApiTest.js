@@ -107,5 +107,23 @@ describe('Product API adapter', () => {
       stock: 88,
       canPurchase: true,
     })
+    expect(result).toMatchObject({ stock: 88, stockKnown: true })
+  })
+
+  it('SKU 库存为零时即使接口返回可采购也必须判定为缺货', async () => {
+    const dispatchMock = vi.fn().mockResolvedValue({
+      productId: 10,
+      productName: '零库存商品',
+      skus: [{ skuId: 1001, displayStock: 0, canPurchase: true }],
+    })
+
+    vi.doMock('@/shared/api/dispatchClient.js', () => ({ dispatch: dispatchMock }))
+
+    const { getGoodsDetail } = await import('@/subPackages/commerce/api/productApi.js')
+    const result = await getGoodsDetail(10)
+
+    expect(result.stock).toBe(0)
+    expect(result.stockKnown).toBe(true)
+    expect(result.skus[0]).toMatchObject({ stock: 0, stockKnown: true, canPurchase: false })
   })
 })

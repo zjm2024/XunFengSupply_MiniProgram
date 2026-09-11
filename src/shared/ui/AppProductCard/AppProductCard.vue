@@ -65,14 +65,17 @@ const formattedPrice = computed(() => {
   return Number.isFinite(price) ? price.toFixed(2) : '0.00'
 })
 
+const hasKnownStock = computed(() => props.product.stock !== undefined && props.product.stock !== null && props.product.stock !== '')
 const stock = computed(() => Number(props.product.stock) || 0)
 const minimumOrder = computed(() => Number(props.product.moq) || 0)
 const stockState = computed(() => {
+  if (!hasKnownStock.value) return 'unknown'
   if (stock.value <= 0) return 'empty'
   if (stock.value < 50) return 'low'
   return 'normal'
 })
 const stockText = computed(() => {
+  if (!hasKnownStock.value) return '库存以实际为准'
   if (stock.value <= 0) return '暂无库存'
   if (stock.value < 50) return `仅剩 ${stock.value} ${props.product.unit || '件'}`
   return '库存充足'
@@ -84,10 +87,9 @@ const stockText = computed(() => {
   min-width: 0;
   box-sizing: border-box;
   overflow: hidden;
-  border: 1px solid rgba(17, 18, 22, 0.055);
   border-radius: 16px;
   background: #fff;
-  box-shadow: 0 5px 20px rgba(17, 18, 22, 0.035);
+  box-shadow: 0 6px 22px rgba(17, 18, 22, 0.05);
   transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
 }
 
@@ -134,7 +136,7 @@ const stockText = computed(() => {
 .app-product-card--tile .app-product-card__image-wrap {
   width: 100%;
   aspect-ratio: 1.18 / 1;
-  border-bottom: 1px solid rgba(17, 18, 22, 0.04);
+  background: #FAFAFB;
 }
 
 .app-product-card--compact .app-product-card__image-wrap {
@@ -181,19 +183,19 @@ const stockText = computed(() => {
 }
 
 .app-product-card--row .app-product-card__name {
-  font-size: 14px;
-  line-height: 20px;
+  font-size: var(--type-body-size, 14px);
+  line-height: var(--type-body-small-line-height, 20px);
 }
 
 .app-product-card--tile .app-product-card__name {
   min-height: 36px;
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--type-caption-size, 12px);
+  line-height: var(--type-caption-line-height, 18px);
 }
 
 .app-product-card--compact .app-product-card__name {
-  font-size: 12px;
-  line-height: 18px;
+  font-size: var(--type-caption-size, 12px);
+  line-height: var(--type-caption-line-height, 18px);
   -webkit-line-clamp: 2;
 }
 
@@ -202,16 +204,16 @@ const stockText = computed(() => {
   margin-top: 5px;
   overflow: hidden;
   color: #9ca1aa;
-  font-size: 11px;
-  line-height: 16px;
+  font-size: var(--type-micro-size, 11px);
+  line-height: var(--type-micro-line-height, 16px);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .app-product-card--tile .app-product-card__code {
   margin-top: 3px;
-  font-size: 10px;
-  line-height: 15px;
+  font-size: var(--type-micro-size, 11px);
+  line-height: var(--type-micro-line-height, 16px);
 }
 
 .app-product-card__price-row {
@@ -224,7 +226,7 @@ const stockText = computed(() => {
 
 .app-product-card__price {
   color: var(--color-brand, #d7192d);
-  font-size: 18px;
+  font-size: var(--type-money-size, 18px);
   font-weight: 700;
   line-height: 24px;
   letter-spacing: -0.2px;
@@ -233,7 +235,7 @@ const stockText = computed(() => {
 .app-product-card__unit {
   margin-left: 3px;
   color: #7a7f88;
-  font-size: 11px;
+  font-size: var(--type-micro-size, 11px);
 }
 
 .app-product-card--tile .app-product-card__price-row {
@@ -263,7 +265,7 @@ const stockText = computed(() => {
 }
 
 .app-product-card--tile .app-product-card__unit {
-  font-size: 10px;
+  font-size: var(--type-micro-size, 11px);
 }
 
 .app-product-card__stock {
@@ -271,7 +273,7 @@ const stockText = computed(() => {
   min-height: 18px;
   margin-top: 5px;
   overflow: hidden;
-  font-size: 11px;
+  font-size: var(--type-micro-size, 11px);
   line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -280,13 +282,14 @@ const stockText = computed(() => {
 .app-product-card--tile .app-product-card__stock {
   min-height: 16px;
   margin-top: 3px;
-  font-size: 10px;
-  line-height: 16px;
+  font-size: var(--type-micro-size, 11px);
+  line-height: var(--type-micro-line-height, 16px);
 }
 
 .app-product-card__stock--normal { color: #259b63; }
 .app-product-card__stock--low { color: #d58b13; }
 .app-product-card__stock--empty { color: #a2a6ad; }
+.app-product-card__stock--unknown { color: #7a7f88; }
 
 @media screen and (min-width: 600px) and (max-width: 767px) {
   .app-product-card--row {
@@ -314,23 +317,10 @@ const stockText = computed(() => {
     height: auto;
   }
 
-  .app-product-card--row .app-product-card__name {
-    min-height: 44px;
-    font-size: 15px;
-    line-height: 22px;
-  }
+  .app-product-card--row .app-product-card__name { min-height: 44px; }
 
   .app-product-card--row .app-product-card__price-row {
     padding-top: 12px;
-  }
-
-  .app-product-card--row .app-product-card__price {
-    font-size: 20px;
-    line-height: 26px;
-  }
-
-  .app-product-card--tile .app-product-card__name {
-    font-size: 13px;
   }
 
   .app-product-card--compact {
@@ -342,9 +332,5 @@ const stockText = computed(() => {
     height: 90px;
   }
 
-  .app-product-card--compact .app-product-card__name {
-    font-size: 13px;
-    line-height: 19px;
-  }
 }
 </style>

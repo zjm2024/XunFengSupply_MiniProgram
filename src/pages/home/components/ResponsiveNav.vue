@@ -94,9 +94,9 @@ function getItemIcon(item) {
 }
 
 .nav-label {
-  font-size: 11px;
+  font-size: var(--type-nav-size, 11px);
   font-weight: 600;
-  line-height: 1.2;
+  line-height: var(--type-nav-line-height, 16px);
 }
 
 .nav-item.is-active {
@@ -190,7 +190,7 @@ function getItemIcon(item) {
 }
 
 .responsive-nav--bottom .nav-label {
-  font-size: 10px;
+  font-size: var(--type-nav-size, 11px);
 }
 
 .responsive-nav--bottom .cart-badge {
@@ -286,7 +286,7 @@ function getItemIcon(item) {
 
 .sidebar-version {
   color: #aaaab0;
-  font-size: 10px;
+  font-size: var(--type-micro-size, 11px);
   text-align: center;
 }
 </style>

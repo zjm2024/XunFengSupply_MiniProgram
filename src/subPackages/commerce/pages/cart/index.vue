@@ -1,11 +1,23 @@
 ﻿﻿<template>
   <AppPageShell>
     <template #header>
-      <app-header title="购物车" :show-back="true" @back="goBack" />
+      <app-header
+        title="购物车"
+        :show-back="true"
+        :action-text="pageState === PageStatus.CONTENT ? (isManaging ? '完成' : '管理') : ''"
+        @back="goBack"
+        @action="toggleManagement"
+      />
     </template>
 
     <template #content>
-      <AppContent>
+      <AppContent
+        :refresher-enabled="true"
+        :refresher-triggered="isRefreshing"
+        @refresherrefresh="onPullRefresh"
+        @refresherrestore="finishPullRefresh"
+        @refresherabort="finishPullRefresh"
+      >
         <app-page-state
           :state="pageState"
           :title="stateTitle"
@@ -38,7 +50,7 @@
 
           <!-- 正常内容 -->
           <template #default>
-            <view class="cart-layout">
+            <view class="cart-layout" :class="{ 'is-managing': isManaging }" @tap="closeItemActions">
               <!-- 主体区域 -->
               <view class="cart-main">
                 <!-- 顶部工具栏 -->
@@ -49,7 +61,7 @@
                       {{ validGroups.length }} 个商品，{{ cartStore.validItems.length }} 个 SKU，共 {{ cartStore.summary.allQuantity }} 件
                     </text>
                   </view>
-                  <button class="outline-btn" @click="goToProductList">继续选购</button>
+                  <button v-if="!isManaging" class="outline-btn button-center" @click="goToProductList">继续选购</button>
                 </view>
 
                 <!-- 同步状态提示 -->
@@ -61,17 +73,22 @@
                 <!-- flush 错误提示 -->
                 <view v-if="flushError" class="sync-hint is-error">
                   <text class="sync-text">同步失败：{{ flushError.message || '请稍后重试' }}</text>
-                  <button class="retry-link" @click="retryFlush">重试</button>
+                  <button class="retry-link button-center" @click="retryFlush">重试</button>
                 </view>
 
                 <!-- 失效商品区 -->
                 <view v-if="cartStore.invalidItems.length > 0" class="invalid-section">
                   <view class="invalid-header">
                     <text class="invalid-title">{{ cartStore.invalidSummaryText }}</text>
-                    <button class="link-btn" @click="removeInvalidItems">清空失效</button>
+                    <button class="link-btn button-center" @click="removeInvalidItems">清空失效</button>
                   </view>
                   <view class="cart-list">
                     <view v-for="item in cartStore.invalidItems" :key="item.cartItemId" class="cart-card is-invalid">
+                      <label v-if="isManaging" class="check-wrap" @tap.stop="onToggleSelect(item)">
+                        <view class="check" :class="{ checked: isManagementSelected(item) }">
+                          <text v-if="isManagementSelected(item)">✓</text>
+                        </view>
+                      </label>
                       <view class="invalid-tag">失效</view>
                       <AppProductImage class="product-image" :src="item.image" :stock="item.stock" />
                       <view class="product-info">
@@ -79,7 +96,7 @@
                         <text class="product-code">编号：{{ item.code || item.productId }}</text>
                         <text class="invalid-reason">{{ item.invalidReason || '商品已下架或不可采购' }}</text>
                       </view>
-                      <button class="delete-btn" @click="deleteOne(item.cartItemId)">移除</button>
+                      <button v-if="!isManaging" class="delete-btn button-center" @click="deleteOne(item.cartItemId)">移除</button>
                     </view>
                   </view>
                 </view>
@@ -102,7 +119,7 @@
                         <text class="spu-meta">{{ group.skuCount }} 个 SKU · 共 {{ group.totalQuantity }} 件</text>
                       </view>
                       <view class="spu-total">¥{{ formatMoney(group.totalAmount) }}</view>
-                      <button class="collapse-btn" :aria-label="isGroupCollapsed(group.key) ? '展开规格' : '收起规格'" @tap.stop="toggleGroup(group.key)">
+                      <button class="collapse-btn button-center" :aria-label="isGroupCollapsed(group.key) ? '展开规格' : '收起规格'" @tap.stop="toggleGroup(group.key)">
                         <AppIcon
                           name="chevron-right"
                           :size="17"
@@ -117,16 +134,23 @@
                         v-for="item in group.items"
                         :key="item.cartItemId"
                         class="sku-action-shell"
-                        :class="{ 'action-open': isItemActionOpen(item.cartItemId) }"
+                        :class="{
+                          'action-open': isItemActionOpen(item.cartItemId),
+                          'is-dragging': isItemDragging(item.cartItemId),
+                        }"
                       >
-                        <button class="sku-delete-action" @tap.stop="deleteOne(item.cartItemId)">
+                        <button class="sku-delete-action button-center" @tap.stop="deleteOne(item.cartItemId)">
                           <AppIcon name="trash" :size="19" color="#FFFFFF" />
                           <text>删除</text>
                         </button>
                         <view
                           class="sku-row"
-                          @longpress="openItemActions(item)"
-                          @contextmenu.prevent="openItemActions(item)"
+                          :style="skuSwipeStyle(item.cartItemId)"
+                          @touchstart="onSkuTouchStart($event, item)"
+                          @touchmove="onSkuTouchMove($event, item)"
+                          @touchend="onSkuTouchEnd($event, item)"
+                          @touchcancel="onSkuTouchCancel(item)"
+                          @contextmenu.prevent="revealItemActions(item)"
                         >
                           <label class="check-wrap" @tap.stop="onToggleSelect(item)">
                             <view class="check" :class="{ checked: isSelected(item) }">
@@ -165,7 +189,6 @@
                         </view>
                       </view>
                     </view>
-                    <text class="longpress-hint">长按规格可删除</text>
                   </view>
                 </view>
               </view>
@@ -216,7 +239,26 @@
     <!-- 底部结算栏 -->
     <template #footer>
       <fixed-action-bar v-if="pageState === PageStatus.CONTENT">
-        <view class="footer-inner">
+        <view v-if="isManaging" class="footer-inner management-footer">
+          <label class="select-all" @tap="onManagementSelectAll(!areAllItemsSelected)">
+            <view class="check" :class="{ checked: areAllItemsSelected }">
+              <text v-if="areAllItemsSelected">✓</text>
+            </view>
+            <text>全选</text>
+          </label>
+          <button class="clear-cart-btn button-center" @tap="requestClearAll">
+            <AppIcon name="trash" :size="17" />
+            <text>一键清空</text>
+          </button>
+          <button
+            class="manage-delete-btn button-center"
+            :disabled="managementSelectedCount === 0"
+            @tap="requestDeleteSelected"
+          >
+            删除{{ managementSelectedCount ? ` (${managementSelectedCount})` : '' }}
+          </button>
+        </view>
+        <view v-else class="footer-inner">
           <label class="select-all" @tap="onSelectAll(!areAllValidSelected)">
             <view class="check" :class="{ checked: areAllValidSelected }">
               <text v-if="areAllValidSelected">✓</text>
@@ -228,7 +270,7 @@
             <text class="footer-amount">{{ cartStore.formattedTotalAmount }}</text>
           </view>
           <button
-            class="checkout-btn"
+            class="checkout-btn button-center"
             :disabled="!canCheckout"
             @click="goToCheckout"
           >
@@ -242,7 +284,7 @@
   <!-- 确认删除弹窗 -->
   <ConfirmPopup
     v-model="showDeleteConfirm"
-    title="确认移除"
+    :title="deleteConfirmTitle"
     :description="deleteConfirmText"
     confirm-text="移除"
     :danger="true"
@@ -279,6 +321,7 @@ const {
   selectAllItems,
   setItemQuantity,
   deleteItems,
+  clearAll,
   flush,
   flushError,
 } = useCart()
@@ -287,10 +330,19 @@ const {
 const loadFailed = ref(false)
 const loadError = ref('')
 const showDeleteConfirm = ref(false)
+const deleteConfirmTitle = ref('确认移除')
 const deleteConfirmText = ref('')
+const isManaging = ref(false)
 const collapsedGroupKeys = ref({})
 const activeActionItemId = ref(null)
+const draggingItemId = ref(null)
+const swipeOffsets = ref({})
+const isRefreshing = ref(false)
 let pendingDeleteIds = null
+let pendingClearAll = false
+let swipeGesture = null
+let suppressCloseUntil = 0
+const SWIPE_ACTION_WIDTH = 78
 
 // ==================== 页面状态 ====================
 const pageState = computed(() => {
@@ -323,6 +375,11 @@ const validGroups = computed(() => groupItemsBySpu(cartStore.validItems))
 const areAllValidSelected = computed(() =>
   cartStore.validItems.length > 0 && cartStore.validItems.every(item => isSelected(item)),
 )
+const managementSelectedItems = computed(() => cartStore.items.filter(item => item.selected !== false))
+const managementSelectedCount = computed(() => managementSelectedItems.value.length)
+const areAllItemsSelected = computed(() =>
+  cartStore.items.length > 0 && cartStore.items.every(item => item.selected !== false),
+)
 
 // ==================== 事件处理 ====================
 
@@ -331,12 +388,27 @@ async function refreshCart() {
   loadFailed.value = false
   loadError.value = ''
   try {
-    await loadCart()
+    await loadCart({ silent: cartStore.loaded })
   } catch (error) {
     loadFailed.value = true
     loadError.value = error?.message || '网络异常，请稍后重试'
     console.error('[Cart] 加载购物车失败:', error)
   }
+}
+
+async function onPullRefresh() {
+  if (isRefreshing.value) return
+  isRefreshing.value = true
+  activeActionItemId.value = null
+  try {
+    await refreshCart()
+  } finally {
+    isRefreshing.value = false
+  }
+}
+
+function finishPullRefresh() {
+  isRefreshing.value = false
 }
 
 /** 重试 flush */
@@ -352,6 +424,20 @@ async function retryFlush() {
 function onToggleSelect(item) {
   activeActionItemId.value = null
   toggleSelect(item)
+}
+
+function isManagementSelected(item) {
+  return item?.selected !== false
+}
+
+function toggleManagement() {
+  isManaging.value = !isManaging.value
+  activeActionItemId.value = null
+}
+
+function onManagementSelectAll(selected) {
+  activeActionItemId.value = null
+  selectAllItems(Boolean(selected))
 }
 
 function onToggleGroup(group) {
@@ -378,13 +464,6 @@ function isGroupCollapsed(groupKey) {
   return Boolean(collapsedGroupKeys.value[groupKey])
 }
 
-function openItemActions(item) {
-  activeActionItemId.value = Number(item?.cartItemId) || null
-  if (typeof uni !== 'undefined' && typeof uni.vibrateShort === 'function') {
-    uni.vibrateShort({ type: 'light' })
-  }
-}
-
 function isItemActionOpen(cartItemId) {
   return String(activeActionItemId.value) === String(cartItemId)
 }
@@ -396,8 +475,89 @@ function isSelected(item) {
 
 /** 数量变更 */
 function onQuantityChange(item, newQty) {
+  activeActionItemId.value = null
   if (!item || Number(newQty) === Number(item.quantity)) return
   setItemQuantity(item, Number(newQty))
+}
+
+function touchPoint(event, changed = false) {
+  const points = changed ? event?.changedTouches : event?.touches
+  const point = points?.[0] || event?.changedTouches?.[0] || event?.touches?.[0]
+  if (!point) return null
+  return {
+    x: Number(point.clientX ?? point.pageX ?? point.x ?? 0),
+    y: Number(point.clientY ?? point.pageY ?? point.y ?? 0),
+  }
+}
+
+function onSkuTouchStart(event, item) {
+  const point = touchPoint(event)
+  if (!point) return
+  const itemId = Number(item?.cartItemId)
+  if (!itemId) return
+  if (activeActionItemId.value && !isItemActionOpen(itemId)) activeActionItemId.value = null
+  swipeGesture = {
+    itemId,
+    startX: point.x,
+    startY: point.y,
+    baseOffset: isItemActionOpen(itemId) ? -SWIPE_ACTION_WIDTH : 0,
+    horizontal: false,
+  }
+}
+
+function onSkuTouchMove(event, item) {
+  if (!swipeGesture || swipeGesture.itemId !== Number(item?.cartItemId)) return
+  const point = touchPoint(event)
+  if (!point) return
+  const deltaX = point.x - swipeGesture.startX
+  const deltaY = point.y - swipeGesture.startY
+  if (!swipeGesture.horizontal && Math.abs(deltaX) < 6) return
+  if (!swipeGesture.horizontal && Math.abs(deltaY) >= Math.abs(deltaX)) return
+  swipeGesture.horizontal = true
+  draggingItemId.value = swipeGesture.itemId
+  const offset = Math.max(-SWIPE_ACTION_WIDTH, Math.min(0, swipeGesture.baseOffset + deltaX))
+  swipeOffsets.value = { ...swipeOffsets.value, [swipeGesture.itemId]: offset }
+}
+
+function onSkuTouchEnd(event, item) {
+  if (!swipeGesture || swipeGesture.itemId !== Number(item?.cartItemId)) return
+  const itemId = swipeGesture.itemId
+  const offset = Number(swipeOffsets.value[itemId] ?? swipeGesture.baseOffset)
+  if (swipeGesture.horizontal) {
+    activeActionItemId.value = offset <= -(SWIPE_ACTION_WIDTH / 2) ? itemId : null
+    suppressCloseUntil = Date.now() + 120
+  }
+  clearSwipeState(itemId)
+}
+
+function onSkuTouchCancel(item) {
+  clearSwipeState(Number(item?.cartItemId))
+}
+
+function clearSwipeState(itemId) {
+  const nextOffsets = { ...swipeOffsets.value }
+  delete nextOffsets[itemId]
+  swipeOffsets.value = nextOffsets
+  draggingItemId.value = null
+  swipeGesture = null
+}
+
+function skuSwipeStyle(cartItemId) {
+  const offset = swipeOffsets.value[cartItemId]
+  return Number.isFinite(offset) ? { transform: `translateX(${offset}px)` } : {}
+}
+
+function isItemDragging(cartItemId) {
+  return String(draggingItemId.value) === String(cartItemId)
+}
+
+function revealItemActions(item) {
+  activeActionItemId.value = Number(item?.cartItemId) || null
+}
+
+function closeItemActions() {
+  if (Date.now() < suppressCloseUntil) return
+  activeActionItemId.value = null
 }
 
 /** 删除单项：弹确认 */
@@ -405,6 +565,8 @@ function deleteOne(cartItemId) {
   const item = cartStore.items.find(i => String(i.cartItemId) === String(cartItemId))
   if (!item) return
   pendingDeleteIds = [Number(cartItemId)]
+  pendingClearAll = false
+  deleteConfirmTitle.value = '确认移除'
   deleteConfirmText.value = `确定从购物车移除「${item.name || '该商品'}」？`
   showDeleteConfirm.value = true
   activeActionItemId.value = null
@@ -415,12 +577,46 @@ function removeInvalidItems() {
   const ids = cartStore.invalidItems.map(i => Number(i.cartItemId))
   if (ids.length === 0) return
   pendingDeleteIds = ids
+  pendingClearAll = false
+  deleteConfirmTitle.value = '清空失效商品'
   deleteConfirmText.value = `确定清空 ${ids.length} 件失效商品？`
   showDeleteConfirm.value = true
 }
 
+function requestDeleteSelected() {
+  const ids = managementSelectedItems.value.map(item => Number(item.cartItemId)).filter(Boolean)
+  if (ids.length === 0) return
+  pendingDeleteIds = ids
+  pendingClearAll = false
+  deleteConfirmTitle.value = '删除已选商品'
+  deleteConfirmText.value = `确定删除已选择的 ${ids.length} 个 SKU？`
+  showDeleteConfirm.value = true
+}
+
+function requestClearAll() {
+  if (cartStore.items.length === 0) return
+  pendingDeleteIds = null
+  pendingClearAll = true
+  deleteConfirmTitle.value = '清空购物车'
+  deleteConfirmText.value = `确定清空购物车中的 ${cartStore.items.length} 个 SKU？此操作不可撤销。`
+  showDeleteConfirm.value = true
+}
+
 /** 确认删除 */
-function confirmDelete() {
+async function confirmDelete() {
+  if (pendingClearAll) {
+    try {
+      await clearAll()
+      isManaging.value = false
+    } catch (error) {
+      if (typeof uni !== 'undefined') uni.showToast({ title: error?.message || '清空失败，请稍后重试', icon: 'none' })
+      return
+    } finally {
+      pendingClearAll = false
+      showDeleteConfirm.value = false
+    }
+    return
+  }
   if (!pendingDeleteIds || pendingDeleteIds.length === 0) return
   deleteItems(pendingDeleteIds)
   pendingDeleteIds = null
@@ -474,6 +670,7 @@ function formatMoney(value) {
 onShow(refreshCart)
 
 onHide(() => {
+  isManaging.value = false
   // 页面隐藏时尽力 flush（不阻塞，不阻塞 UI）
   flush().catch(err => console.warn('[Cart] onHide flush 失败:', err))
 })
@@ -516,9 +713,9 @@ onBeforeUnmount(() => {
   gap: 12px;
   margin-bottom: 12px;
   padding: 14px 15px;
-  border: 1px solid $color-border-default;
   border-radius: 14px;
   background: $color-bg-card;
+  box-shadow: 0 5px 18px rgba(17, 18, 22, 0.045);
 }
 
 .toolbar-left {
@@ -528,14 +725,14 @@ onBeforeUnmount(() => {
 
 .toolbar-title {
   color: $color-text-primary;
-  font-size: 16px;
+  font-size: var(--type-card-title-size, 16px);
   font-weight: 650;
 }
 
 .toolbar-desc {
   margin-top: 3px;
   color: $color-gray-400;
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .outline-btn {
@@ -557,13 +754,10 @@ onBeforeUnmount(() => {
   margin-bottom: 12px;
   padding: 8px 12px;
   background: $color-brand-50;
-  border: 1px solid rgba(215, 25, 45, 0.15);
   border-radius: 8px;
 
   &.is-error {
     background: $color-error-bg;
-    border-color: rgba(180, 35, 24, 0.2);
-
     .sync-text {
       color: $color-error;
       flex: 1;
@@ -639,9 +833,9 @@ onBeforeUnmount(() => {
 
 .spu-card {
   overflow: hidden;
-  border: 1px solid $color-border-default;
   border-radius: $radius-card;
   background: $color-bg-card;
+  box-shadow: 0 5px 18px rgba(17, 18, 22, 0.045);
 }
 
 .spu-header {
@@ -651,7 +845,6 @@ onBeforeUnmount(() => {
   gap: 10px;
   min-height: 64px;
   padding: 11px 12px;
-  border-bottom: 1px solid $color-gray-100;
   box-sizing: border-box;
 }
 
@@ -663,7 +856,7 @@ onBeforeUnmount(() => {
   display: block;
   overflow: hidden;
   color: $color-text-primary;
-  font-size: 15px;
+  font-size: var(--type-label-size, 15px);
   font-weight: 650;
   line-height: 21px;
   text-overflow: ellipsis;
@@ -674,7 +867,7 @@ onBeforeUnmount(() => {
   display: block;
   margin-top: 3px;
   color: $color-gray-400;
-  font-size: 11px;
+  font-size: var(--type-micro-size, 11px);
 }
 
 .spu-total {
@@ -713,17 +906,18 @@ onBeforeUnmount(() => {
 }
 
 .sku-list {
+  display: flex;
   overflow: hidden;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 8px 8px;
 }
 
 .sku-action-shell {
   position: relative;
   overflow: hidden;
-  border-bottom: 1px solid $color-gray-100;
-
-  &:last-child {
-    border-bottom: 0;
-  }
+  border-radius: 12px;
+  background: $color-brand-500;
 }
 
 .sku-delete-action {
@@ -756,9 +950,15 @@ onBeforeUnmount(() => {
   gap: 12px;
   min-height: 122px;
   padding: 14px;
-  background: $color-bg-card;
+  border-radius: 12px;
+  background: $color-bg-subtle;
   box-sizing: border-box;
   transition: transform 180ms ease;
+  touch-action: pan-y;
+}
+
+.sku-action-shell.is-dragging .sku-row {
+  transition: none;
 }
 
 .sku-action-shell.action-open .sku-row {
@@ -774,7 +974,7 @@ onBeforeUnmount(() => {
   display: block;
   overflow: hidden;
   color: $color-text-primary;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   font-weight: 600;
   line-height: 20px;
   text-overflow: ellipsis;
@@ -783,19 +983,11 @@ onBeforeUnmount(() => {
 
 .sku-subtotal {
   color: $color-text-secondary;
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.longpress-hint {
-  display: block;
-  padding: 7px 14px 8px 128px;
-  color: $color-gray-400;
-  background: $color-bg-subtle;
-  font-size: 10px;
-  line-height: 15px;
-}
 
 .cart-card {
   position: relative;
@@ -804,15 +996,18 @@ onBeforeUnmount(() => {
   gap: 12px;
   padding: 14px;
   background: $color-bg-card;
-  border: 1px solid $color-border-default;
   border-radius: $radius-card;
+  box-shadow: 0 5px 18px rgba(17, 18, 22, 0.045);
 
   &.is-invalid {
     grid-template-columns: 84px minmax(0, 1fr) auto;
     opacity: 0.65;
     background: $color-bg-subtle;
-    border-style: dashed;
   }
+}
+
+.cart-layout.is-managing .cart-card.is-invalid {
+  grid-template-columns: 22px 84px minmax(0, 1fr);
 }
 
 .invalid-tag {
@@ -956,8 +1151,8 @@ onBeforeUnmount(() => {
 .summary-card {
   padding: 18px;
   background: $color-bg-card;
-  border: 1px solid $color-border-default;
   border-radius: $radius-card;
+  box-shadow: 0 5px 18px rgba(17, 18, 22, 0.045);
 }
 
 .summary-heading {
@@ -1067,7 +1262,7 @@ onBeforeUnmount(() => {
 
 .footer-amount {
   color: $color-brand-500;
-  font-size: 18px;
+  font-size: var(--type-money-size, 18px);
   font-weight: 700;
 }
 
@@ -1086,6 +1281,39 @@ onBeforeUnmount(() => {
     color: $color-text-disabled;
     background: $color-bg-subtle;
   }
+}
+
+.management-footer {
+  justify-content: flex-start;
+}
+
+.clear-cart-btn,
+.manage-delete-btn {
+  height: 42px;
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  font-size: var(--type-button-size, 14px);
+  font-weight: 650;
+}
+
+.clear-cart-btn {
+  gap: 5px;
+  margin-left: auto;
+  color: $color-brand-500;
+  background: $color-brand-50;
+}
+
+.manage-delete-btn {
+  min-width: 112px;
+  color: #FFFFFF;
+  background: $color-brand-500;
+}
+
+.manage-delete-btn[disabled] {
+  color: $color-text-disabled;
+  background: $color-bg-subtle;
 }
 
 // ==================== 骨架屏 ====================
@@ -1167,6 +1395,10 @@ onBeforeUnmount(() => {
     padding: 16px;
   }
 
+  .cart-layout.is-managing .cart-card.is-invalid {
+    grid-template-columns: 22px 104px minmax(0, 1fr);
+  }
+
   .product-image {
     width: 104px;
     height: 104px;
@@ -1178,9 +1410,6 @@ onBeforeUnmount(() => {
     padding: 16px;
   }
 
-  .longpress-hint {
-    padding-left: 154px;
-  }
 }
 
 @media screen and (max-width: 430px) {
@@ -1208,13 +1437,18 @@ onBeforeUnmount(() => {
     flex-direction: column-reverse;
   }
 
-  .longpress-hint {
-    padding-left: 120px;
-  }
-
   .checkout-btn {
     min-width: 96px;
     padding: 0 15px;
+  }
+
+  .clear-cart-btn,
+  .manage-delete-btn {
+    padding: 0 12px;
+  }
+
+  .manage-delete-btn {
+    min-width: 96px;
   }
 }
 </style>

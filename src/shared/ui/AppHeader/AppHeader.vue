@@ -85,8 +85,16 @@
           <AppIcon name="cart" :size="21" />
           <text class="cart-count-badge">{{ cartCount > 99 ? '99+' : cartCount }}</text>
         </view>
+        <button
+          v-if="actionText"
+          class="header-action button-center"
+          :disabled="actionDisabled"
+          @tap="handleAction"
+        >
+          {{ actionText }}
+        </button>
         <!-- 占位 -->
-        <view v-if="!showMessage && !showLanguage && !(showCart && cartCount > 0)" class="placeholder" />
+        <view v-if="!showMessage && !showSupplier && !showLanguage && !(showCart && cartCount > 0) && !actionText" class="placeholder" />
       </view>
     </view>
   </view>
@@ -146,6 +154,15 @@ const props = defineProps({
     type: Number,
     default: 0,
   },
+  /** 右侧文字操作，例如购物车“管理/完成” */
+  actionText: {
+    type: String,
+    default: '',
+  },
+  actionDisabled: {
+    type: Boolean,
+    default: false,
+  },
   /** 透明背景（用于商品详情等滚动时） */
   transparent: {
     type: Boolean,
@@ -164,7 +181,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['back', 'home', 'message', 'supplier', 'language', 'cart'])
+const emit = defineEmits(['back', 'home', 'message', 'supplier', 'language', 'cart', 'action'])
 
 const { layout, safeArea, menuButton } = useResponsive()
 
@@ -269,6 +286,10 @@ function handleCart() {
   emit('cart')
 }
 
+function handleAction() {
+  if (!props.actionDisabled) emit('action')
+}
+
 /** App 自定义导航下同步系统状态栏前景色。 */
 function applyStatusBarStyle() {
   // #ifdef APP-PLUS
@@ -371,7 +392,7 @@ onUnmounted(() => {
 }
 
 .logo-text {
-  font-size: 20px; // 稳定 px 值
+  font-size: var(--type-section-title-size, 18px);
   font-weight: 800;
   color: var(--primary-color, #D7192D);
   letter-spacing: -1px;
@@ -391,8 +412,9 @@ onUnmounted(() => {
 
 .title-text {
   display: block;
-  font-size: 17px; // 稳定 px 值，iOS 标准导航栏字号
+  font-size: var(--type-header-title-size, 17px);
   font-weight: 600;
+  line-height: var(--type-header-title-line-height, 24px);
   color: var(--text-primary, #1B1C20);
   text-align: center;
   white-space: nowrap;
@@ -438,7 +460,7 @@ onUnmounted(() => {
 // ==================== 供应商入口 ====================
 
 .supplier-text {
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   font-weight: 500;
   color: #4f545c;
 }
@@ -446,7 +468,7 @@ onUnmounted(() => {
 // ==================== 语言切换 ====================
 
 .lang-text {
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   font-weight: 600;
   color: #4f545c;
 }
@@ -459,20 +481,42 @@ onUnmounted(() => {
 
 .cart-count-badge {
   position: absolute;
-  top: -1px;
-  right: -2px;
+  top: 2px;
+  right: 1px;
   display: grid;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 4px;
+  min-width: 16px;
+  max-width: 25px;
+  height: 16px;
+  padding: 0 3px;
   box-sizing: border-box;
   place-items: center;
-  border: 2px solid #f7f8fa;
-  border-radius: 9px;
+  overflow: hidden;
+  border: 1.5px solid #f7f8fa;
+  border-radius: 8px;
   color: #fff;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: 700;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   background: #d7192d;
+}
+
+.header-action {
+  min-width: 52px;
+  height: 40px;
+  margin: 0;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 10px;
+  color: var(--color-text-primary, #1B1C20);
+  background: transparent;
+  font-size: var(--type-body-size, 14px);
+  font-weight: 600;
+}
+
+.header-action[disabled] {
+  color: var(--color-text-disabled, #B8BBC2);
 }
 
 // ==================== 响应式适配 ====================

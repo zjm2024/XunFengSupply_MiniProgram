@@ -32,7 +32,7 @@
               >
                 <swiper-item v-for="(image, idx) in displayImages" :key="idx">
                   <view class="main-image-wrap" @click="previewImage(idx)">
-                    <AppProductImage class="main-image" :src="image" :stock="product.stock" />
+                    <AppProductImage class="main-image" :src="image" :stock="detailImageStock" />
                   </view>
                 </swiper-item>
               </swiper>
@@ -80,80 +80,14 @@
                 <text class="batch-entry-arrow">›</text>
               </view>
 
-              <!-- SKU 选择器 -->
-              <view v-if="product.skus.length > 0" class="section-card sku-card">
-                <view class="section-heading-row">
-                  <view>
-                    <text class="section-title">单规格采购</text>
-                    <text class="section-desc">选择一个颜色和尺码后加入购物车</text>
-                  </view>
-                  <button class="text-action" :disabled="!hasPurchasableSku" @click="goToBatchPurchase">
-                    批量填数
-                  </button>
+              <view class="single-purchase-entry" :class="{ disabled: !hasPurchasableSku }" @click="openPurchaseSheet">
+                <view>
+                  <text class="section-title">单规格采购</text>
+                  <text class="section-desc">{{ selectedSkuSummary }}</text>
                 </view>
-
-                <!-- 颜色选择 -->
-                <view v-if="colorOptions.length > 0" class="sku-group">
-                  <text class="sku-group-label">颜色</text>
-                  <view class="sku-options">
-                    <button
-                      v-for="color in colorOptions"
-                      :key="color.colorId"
-                      class="sku-chip"
-                      :class="{
-                        active: selectedColorId === color.colorId,
-                        disabled: !color.available,
-                      }"
-                      :disabled="!color.available"
-                      @click="selectColor(color.colorId)"
-                    >
-                      <text class="sku-chip-text">{{ color.colorName || '默认' }}</text>
-                    </button>
-                  </view>
-                </view>
-
-                <!-- 尺码选择 -->
-                <view v-if="sizeOptions.length > 0" class="sku-group">
-                  <text class="sku-group-label">尺码</text>
-                  <view class="sku-options">
-                    <button
-                      v-for="size in sizeOptions"
-                      :key="size.sizeValueId"
-                      class="sku-chip"
-                      :class="{
-                        active: selectedSizeId === size.sizeValueId,
-                        disabled: !size.available,
-                      }"
-                      :disabled="!size.available"
-                      @click="selectSize(size.sizeValueId)"
-                    >
-                      <text class="sku-chip-text">{{ size.sizeName || '-' }}</text>
-                    </button>
-                  </view>
-                </view>
-
-                <!-- 当前选中 SKU 提示 -->
-                <view v-if="selectedSku" class="sku-selected-tip">
-                  <text class="tip-text">已选：{{ selectedSku.specName || selectedSku.skuCode || '默认规格' }}</text>
-                  <text v-if="!selectedSku.canPurchase" class="tip-error">{{ selectedSku.invalidReason || '该规格暂不可购买' }}</text>
-                </view>
-              </view>
-
-              <!-- 数量选择器 -->
-              <view class="section-card">
-                <view class="quantity-heading">
-                  <text class="section-title">采购数量</text>
-                  <text v-if="selectedSku" class="section-stock">{{ selectedStockText }}</text>
-                </view>
-                <view class="quantity-stepper-row">
-                  <quantity-stepper
-                    v-model="quantity"
-                    :min="selectedMinOrderQty"
-                    :max="selectedMaxOrderable"
-                    :step="1"
-                    :disabled="!canPurchaseSelected"
-                    @change="onQuantityChange"
-                  />
+                <view class="entry-action">
+                  <text>{{ hasPurchasableSku ? '选择规格' : '暂无库存' }}</text>
+                  <AppIcon name="chevron-right" :size="16" />
                 </view>
               </view>
 
@@ -189,6 +123,14 @@
         :images="displayImages"
         :initial-index="imageViewerStartIndex"
       />
+      <SingleSkuPurchaseSheet
+        v-model:visible="purchaseSheetVisible"
+        :product="product"
+        :initial-sku-id="selectedSku?.skuId"
+        :submitting="submitting"
+        @confirm="submitAddToCart"
+        @batch="goToBatchPurchase"
+      />
     </template>
 
     <template #footer>
@@ -201,14 +143,14 @@
           <text>购物车</text>
         </button>
         <button
-          class="action-btn secondary"
-          :disabled="!canPurchaseSelected || submitting"
+          class="action-btn secondary button-center"
+          :disabled="!hasPurchasableSku || submitting"
           @click="handleAddToCart"
         >
           {{ submitting ? '加入中…' : '加入购物车' }}
         </button>
         <button
-          class="action-btn primary"
+          class="action-btn primary button-center"
           :disabled="!hasPurchasableSku || submitting"
           @click="goToBatchPurchase"
         >
@@ -235,7 +177,7 @@ import fixedActionBar from '../../../../shared/ui/FixedActionBar/FixedActionBar.
 import statusTag from '../../../../shared/ui/StatusTag/StatusTag.vue'
 import AppProductImage from '../../../../shared/ui/AppProductImage/AppProductImage.vue'
 import AppImageViewer from '../../../../shared/ui/AppImageViewer/AppImageViewer.vue'
-import quantityStepper from '../../components/QuantityStepper/QuantityStepper.vue'
+import SingleSkuPurchaseSheet from '../../components/SingleSkuPurchaseSheet/SingleSkuPurchaseSheet.vue'
 import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
 
 const productId = ref(0)
@@ -246,9 +188,8 @@ const imageViewerStartIndex = ref(0)
 const pageState = ref(PageStatus.LOADING)
 const errorMessage = ref('网络异常，请稍后重试')
 const submitting = ref(false)
-const quantity = ref(1)
-const selectedColorId = ref(null)
-const selectedSizeId = ref(null)
+const selectedSkuId = ref(null)
+const purchaseSheetVisible = ref(false)
 
 const { cartStore, loadCart, addSkuToCart, flush } = useCart()
 
@@ -289,86 +230,26 @@ function normalizeDetailHtml(value) {
   })
 }
 
-// ==================== 颜色/尺码分组 ====================
-const colorOptions = computed(() => {
-  if (!product.value?.skus?.length) return []
-  const map = new Map()
-  product.value.skus.forEach(sku => {
-    const cid = sku.colorId || null
-    if (!cid) return
-    if (!map.has(cid)) {
-      map.set(cid, {
-        colorId: cid,
-        colorName: sku.colorName || null,
-        available: false,
-      })
-    }
-    if (sku.canPurchase) map.get(cid).available = true
-  })
-  if (map.size === 0) return []
-  return Array.from(map.values())
-})
-
-const sizeOptions = computed(() => {
-  if (!product.value?.skus?.length) return []
-  const map = new Map()
-  const filteredSkus = product.value.skus.filter(sku => {
-    if (!selectedColorId.value) return true
-    return sku.colorId === selectedColorId.value
-  })
-  filteredSkus.forEach(sku => {
-    const sid = sku.sizeValueId || null
-    if (!sid) return
-    if (!map.has(sid)) {
-      map.set(sid, {
-        sizeValueId: sid,
-        sizeName: sku.sizeName || null,
-        available: isSkuAvailable(sku),
-      })
-    }
-    if (isSkuAvailable(sku)) map.get(sid).available = true
-  })
-  if (map.size === 0) return []
-  return Array.from(map.values())
-})
-
-function isSkuAvailable(sku) {
-  if (!sku) return false
-  if (selectedColorId.value && sku.colorId !== selectedColorId.value) return false
-  if (selectedSizeId.value && sku.sizeValueId !== selectedSizeId.value) return false
-  return sku.canPurchase
-}
-
 // ==================== 当前选中 SKU ====================
 const selectedSku = computed(() => {
   if (!product.value?.skus?.length) return null
-  const colorSet = colorOptions.value.length > 0
-  const sizeSet = sizeOptions.value.length > 0
-  const matched = product.value.skus.filter(sku => {
-    if (colorSet && selectedColorId.value && sku.colorId !== selectedColorId.value) return false
-    if (sizeSet && selectedSizeId.value && sku.sizeValueId !== selectedSizeId.value) return false
-    return true
-  })
-  // 当存在多个匹配时（颜色或尺码未选全），视为未确定选中
-  if (matched.length === 1) return matched[0]
-  return null
+  return product.value.skus.find(sku => String(sku.skuId) === String(selectedSkuId.value)) || null
 })
 
 const selectedSkuPrice = computed(() => Number(selectedSku.value?.price || product.value?.price || 0))
 const selectedSkuListPrice = computed(() => Number(selectedSku.value?.listPrice || 0))
 const selectedMinOrderQty = computed(() => Math.max(1, Number(selectedSku.value?.minOrderQty || product.value?.moq || 1)))
-const selectedMaxOrderable = computed(() => Number(selectedSku.value?.displayStock ?? selectedSku.value?.stock ?? 0))
-const canPurchaseSelected = computed(() => Boolean(selectedSku.value && selectedSku.value.canPurchase))
 const hasPurchasableSku = computed(() => Boolean(product.value?.skus?.some(sku => sku.canPurchase)))
-
-function formatStock(stock, unit = '件') {
-  const available = Math.max(0, Number(stock) || 0)
-  return available > 100 ? '有货' : `库存 ${available} ${unit}`
-}
-
-const selectedStockText = computed(() => selectedSku.value
-  ? formatStock(selectedSku.value.displayStock ?? selectedSku.value.stock, product.value?.unit)
-  : '')
+const detailImageStock = computed(() => {
+  if (selectedSku.value?.stockKnown) return selectedSku.value.stock
+  if (product.value?.stockKnown) return product.value.stock
+  return undefined
+})
+const selectedSkuSummary = computed(() => {
+  if (!hasPurchasableSku.value) return '当前商品暂无可采购规格'
+  if (!selectedSku.value) return '选择规格和采购数量'
+  return `已选 ${selectedSku.value.specName || selectedSku.value.skuCode || '默认规格'}，${selectedMinOrderQty.value} ${product.value?.unit || '件'}起订`
+})
 
 const detailHtml = computed(() => normalizeDetailHtml(product.value?.description))
 
@@ -378,10 +259,11 @@ const displayImages = computed(() => {
 })
 
 const stockStatus = computed(() => {
+  if (!hasPurchasableSku.value) return { type: 'error', text: '暂无库存' }
   if (!selectedSku.value) return { type: 'info', text: '请选择规格' }
-  const stock = selectedSku.value.displayStock ?? selectedSku.value.stock ?? 0
   if (!selectedSku.value.canPurchase) return { type: 'error', text: selectedSku.value.invalidReason || '暂不可购买' }
-  if (stock <= 0) return { type: 'error', text: '缺货' }
+  if (!selectedSku.value.stockKnown) return { type: 'success', text: '可采购' }
+  const stock = Number(selectedSku.value.stock) || 0
   if (stock <= 100) return { type: 'warning', text: `库存 ${stock} ${product.value.unit}` }
   return { type: 'success', text: '有货' }
 })
@@ -405,6 +287,10 @@ onShow(() => {
 })
 
 onBackPress(() => {
+  if (purchaseSheetVisible.value) {
+    purchaseSheetVisible.value = false
+    return true
+  }
   if (!imageViewerVisible.value) return false
   imageViewerVisible.value = false
   return true
@@ -434,9 +320,7 @@ async function loadProduct() {
     // 默认选中首个可用 SKU
     const firstAvailable = result.skus?.find(s => s.canPurchase)
     const initialSku = firstAvailable || result.skus?.[0]
-    selectedColorId.value = initialSku?.colorId || null
-    selectedSizeId.value = initialSku?.sizeValueId || null
-    quantity.value = Math.max(1, Number(initialSku?.minOrderQty || result.moq || 1))
+    selectedSkuId.value = initialSku?.skuId ?? null
     pageState.value = PageStatus.CONTENT
   } catch (error) {
     errorMessage.value = error?.message || '商品加载失败，请稍后重试'
@@ -459,37 +343,14 @@ function previewImage(index) {
   imageViewerVisible.value = true
 }
 
-function selectColor(colorId) {
-  selectedColorId.value = colorId
-  // 切换颜色后校验尺码是否仍匹配
-  if (selectedSizeId.value) {
-    const sizeStillValid = sizeOptions.value.some(s => s.sizeValueId === selectedSizeId.value && s.available)
-    if (!sizeStillValid) selectedSizeId.value = null
-  }
-  syncQuantity()
-}
-
-function selectSize(sizeId) {
-  selectedSizeId.value = sizeId
-  syncQuantity()
-}
-
-function syncQuantity() {
-  if (!selectedSku.value) return
-  const min = Math.max(1, Number(selectedSku.value.minOrderQty || 1))
-  const max = Number(selectedSku.value.displayStock ?? selectedSku.value.stock ?? 0)
-  quantity.value = Math.min(Math.max(min, quantity.value), Math.max(min, max))
-}
-
-function onQuantityChange(val) {
-  quantity.value = val
-}
-
-async function submitAddToCart() {
-  if (!canPurchaseSelected.value || submitting.value) return null
+async function submitAddToCart({ sku, quantity } = {}) {
+  if (!sku?.canPurchase || submitting.value) return null
   submitting.value = true
   try {
-    await addSkuToCart({ skuId: selectedSku.value.skuId, quantity: quantity.value })
+    await addSkuToCart({ skuId: sku.skuId, quantity })
+    selectedSkuId.value = sku.skuId
+    purchaseSheetVisible.value = false
+    if (typeof uni !== 'undefined') uni.showToast({ title: '已加入购物车', icon: 'success' })
     return true
   } catch (error) {
     if (typeof uni !== 'undefined') {
@@ -501,20 +362,16 @@ async function submitAddToCart() {
   }
 }
 
-async function handleAddToCart() {
-  // 未选择规格时给出明确提示
-  if (!selectedSku.value) {
-    uni.showToast({ title: '请先选择商品规格', icon: 'none' })
+function handleAddToCart() {
+  openPurchaseSheet()
+}
+
+function openPurchaseSheet() {
+  if (!hasPurchasableSku.value) {
+    if (typeof uni !== 'undefined') uni.showToast({ title: '当前商品暂无库存', icon: 'none' })
     return
   }
-  if (!selectedSku.value.canPurchase) {
-    uni.showToast({ title: selectedSku.value.invalidReason || '该规格暂不可购买', icon: 'none' })
-    return
-  }
-  const ok = await submitAddToCart()
-  if (ok && typeof uni !== 'undefined') {
-    uni.showToast({ title: '已加入购物车', icon: 'success' })
-  }
+  purchaseSheetVisible.value = true
 }
 
 async function goToBatchPurchase() {
@@ -522,6 +379,7 @@ async function goToBatchPurchase() {
     uni.showToast({ title: '当前商品暂无可采购规格', icon: 'none' })
     return
   }
+  purchaseSheetVisible.value = false
   await navigator.navigateTo(routes.commerce.productVariants(productId.value))
 }
 
@@ -586,10 +444,11 @@ async function goToCart() {
 
 .info-card,
 .section-card,
-.batch-purchase-entry {
+.batch-purchase-entry,
+.single-purchase-entry {
   background: var(--surface-card);
   border-radius: var(--radius-card);
-  box-shadow: 0 2px 10px rgba(17, 18, 22, 0.035);
+  box-shadow: 0 5px 18px rgba(17, 18, 22, 0.045);
 }
 
 .info-card,
@@ -644,8 +503,7 @@ async function goToCart() {
   min-height: 74px;
   padding: 14px 16px;
   box-sizing: border-box;
-  border: 1px solid rgba(215, 25, 45, 0.16);
-  background: linear-gradient(135deg, #FFFFFF 0%, var(--color-brand-soft) 100%);
+  background: var(--surface-card);
 }
 
 .batch-purchase-entry:active { opacity: 0.82; }
@@ -654,6 +512,21 @@ async function goToCart() {
 .batch-entry-title { display: block; color: var(--color-text-primary); font-size: 16px; font-weight: 700; }
 .batch-entry-desc { display: block; margin-top: 4px; color: var(--color-text-secondary); font-size: 12px; }
 .batch-entry-arrow { margin-left: 12px; color: var(--color-brand); font-size: 28px; line-height: 1; }
+
+.single-purchase-entry {
+  display: flex;
+  min-height: 72px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+  box-sizing: border-box;
+}
+
+.single-purchase-entry:active { background: var(--surface-subtle); }
+.single-purchase-entry.disabled { opacity: 0.62; }
+.entry-action { display: flex; flex: 0 0 auto; align-items: center; gap: 3px; color: var(--color-brand); font-size: var(--type-body-small-size, 13px); }
+.single-purchase-entry.disabled .entry-action { color: var(--color-text-disabled); }
 
 .section-heading-row,
 .quantity-heading {
@@ -680,7 +553,7 @@ async function goToCart() {
 .tip-text { color: var(--color-text-secondary); font-size: 12px; }
 .tip-error { color: var(--danger-color, #B42318); font-size: 12px; }
 .params-list { margin-top: 12px; }
-.param-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; min-height: 42px; align-items: center; border-top: 1px solid var(--color-divider); font-size: 13px; }
+.param-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; min-height: 42px; align-items: center; margin-top: 6px; padding: 0 12px; border-radius: 9px; background: var(--surface-subtle); font-size: 13px; }
 .param-label { color: var(--color-text-tertiary); }
 .param-value { color: var(--color-text-primary); text-align: right; word-break: break-all; }
 
@@ -736,16 +609,21 @@ async function goToCart() {
 
 .cart-badge {
   position: absolute;
-  top: -6px;
-  right: -10px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 9px;
+  top: -5px;
+  right: -6px;
+  min-width: 16px;
+  max-width: 25px;
+  height: 16px;
+  padding: 0 3px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-radius: 8px;
   color: #FFFFFF;
   background: var(--color-brand);
-  font-size: 10px;
-  line-height: 18px;
+  font-size: 9px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   text-align: center;
   z-index: 2;
 }
@@ -766,30 +644,25 @@ async function goToCart() {
 
 .action-btn.secondary {
   color: #fff;
-  background: linear-gradient(135deg, #f2515f 0%, var(--color-brand, #D7192D) 60%, #c91428 100%);
-  box-shadow: 0 4px 14px rgba(215, 25, 45, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  background: var(--color-brand, #D7192D);
 }
 
 .action-btn.secondary:active {
   transform: scale(0.97);
-  box-shadow: 0 2px 8px rgba(215, 25, 45, 0.25);
 }
 
 .action-btn.primary {
   color: #fff;
-  background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 60%, #1a1a2e 100%);
-  box-shadow: 0 4px 14px rgba(26, 26, 46, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  background: #23252A;
 }
 
 .action-btn.primary:active {
   transform: scale(0.97);
-  box-shadow: 0 2px 8px rgba(26, 26, 46, 0.25);
 }
 
 .action-btn[disabled] {
   color: rgba(255, 255, 255, 0.7);
-  background: linear-gradient(135deg, #c9c9c9 0%, #a8a8a8 100%);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  background: #B8BBC2;
 }
 
 @media screen and (min-width: 768px) {

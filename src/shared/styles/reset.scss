@@ -14,10 +14,9 @@ page, view, text, image, scroll-view, swiper, swiper-item {
 /* ==================== 页面基础 ==================== */
 
 page {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
-               'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
-  font-size: var(--font-size-base, 14px);
-  line-height: var(--line-height-normal, 1.5);
+  font-family: var(--font-family-sans, -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif);
+  font-size: var(--type-body-size, 14px);
+  line-height: var(--type-body-line-height, 22px);
   color: var(--text-primary, #1B1C20);
   background-color: var(--surface-page, #F4F5F8);
   -webkit-font-smoothing: antialiased;
@@ -38,8 +37,10 @@ button {
   border: none;
   outline: none;
   background: transparent;
-  line-height: inherit;
   font: inherit;
+  font-family: var(--font-family-sans, -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif);
+  font-size: var(--type-button-size, 14px);
+  line-height: var(--type-button-line-height, 20px);
   color: inherit;
 
   &::after {
@@ -58,6 +59,49 @@ input, textarea {
 input::placeholder,
 textarea::placeholder {
   color: var(--text-placeholder, #969AA3);
+}
+
+/* 纯操作按钮统一使用该类，禁止用“行高等于高度”伪造垂直居中。 */
+.button-center {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  line-height: var(--type-button-line-height, 20px) !important;
+  text-align: center;
+  box-sizing: border-box;
+
+  > text {
+    line-height: var(--type-button-line-height, 20px);
+  }
+}
+
+.type-page-title {
+  font-size: var(--type-page-title-size, 20px);
+  font-weight: var(--font-weight-bold, 700);
+  line-height: var(--type-page-title-line-height, 32px);
+}
+
+.type-section-title {
+  font-size: var(--type-section-title-size, 18px);
+  font-weight: var(--font-weight-bold, 700);
+  line-height: var(--type-section-title-line-height, 26px);
+}
+
+.type-body {
+  font-size: var(--type-body-size, 14px);
+  line-height: var(--type-body-line-height, 22px);
+}
+
+.type-caption {
+  font-size: var(--type-caption-size, 12px);
+  line-height: var(--type-caption-line-height, 18px);
+}
+
+.type-money {
+  font-size: var(--type-money-size, 18px);
+  font-weight: var(--font-weight-bold, 700);
+  line-height: var(--type-money-line-height, 28px);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ==================== 图片重置 ==================== */

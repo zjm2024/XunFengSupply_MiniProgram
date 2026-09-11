@@ -41,7 +41,11 @@ function normalizeImages(source) {
 }
 
 function normalizeSku(item, product) {
-  const stock = number(firstDefined(item, ['effectiveStock', 'displayStock', 'stockQuantity', 'stock', 'availableStock']))
+  const rawStock = firstDefined(item, ['effectiveStock', 'displayStock', 'stockQuantity', 'stock', 'availableStock'], null)
+  const stockKnown = rawStock !== null && rawStock !== ''
+  const stock = number(rawStock)
+  const purchaseFlag = firstDefined(item, ['canPurchase', 'can_purchase'], true)
+  const minOrderQty = Math.max(1, number(firstDefined(item, ['minOrderQty', 'minQuantity'], product.moq), product.moq))
   return {
     ...item,
     skuId: firstDefined(item, ['skuId', 'id', 'productSkuId']),
@@ -57,8 +61,9 @@ function normalizeSku(item, product) {
     listPrice: number(firstDefined(item, ['listPrice', 'standardPrice'])),
     basePrice: number(firstDefined(item, ['basePrice', 'base_price'])),
     stock,
-    minOrderQty: Math.max(1, number(firstDefined(item, ['minOrderQty', 'minQuantity'], product.moq), product.moq)),
-    canPurchase: firstDefined(item, ['canPurchase', 'can_purchase'], true),
+    stockKnown,
+    minOrderQty,
+    canPurchase: purchaseFlag !== false && (!stockKnown || stock >= minOrderQty),
   }
 }
 
@@ -68,6 +73,8 @@ export function normalizeProduct(item = {}, extra = {}) {
   const currentPrice = firstDefined(item, ['currentPrice'], firstDefined(source, ['currentPrice', 'minCurrentPrice', 'basePrice', 'price'], 0))
   const priceRule = prices.find(rule => number(rule.price) === number(currentPrice)) || prices[0]
   const images = normalizeImages(source)
+  const rawProductStock = firstDefined(source, ['totalEffectiveStock', 'stockQuantity', 'stock', 'availableStock'], null)
+  const productStockKnown = rawProductStock !== null && rawProductStock !== ''
   const product = {
     ...source,
     ...extra,
@@ -79,7 +86,8 @@ export function normalizeProduct(item = {}, extra = {}) {
     image: images[0],
     images,
     price: number(currentPrice),
-    stock: number(firstDefined(source, ['totalEffectiveStock', 'stockQuantity', 'stock', 'availableStock'])),
+    stock: productStockKnown ? number(rawProductStock) : null,
+    stockKnown: productStockKnown,
     moq: Math.max(1, number(firstDefined(source, ['minOrderQty', 'minQuantity'], priceRule?.minQuantity ?? 1), 1)),
     unit: firstDefined(source, ['unit', 'unitName'], '件'),
     categoryName: firstDefined(item, ['categoryName'], firstDefined(source, ['categoryName'], '')),
@@ -87,6 +95,10 @@ export function normalizeProduct(item = {}, extra = {}) {
   }
   const skuSource = firstDefined(item, ['skus', 'skuList'], firstDefined(source, ['skus', 'skuList'], []))
   product.skus = Array.isArray(skuSource) ? skuSource.map(sku => normalizeSku(sku, product)) : []
+  if (!product.stockKnown && product.skus.some(sku => sku.stockKnown)) {
+    product.stock = product.skus.reduce((sum, sku) => sum + (sku.stockKnown ? sku.stock : 0), 0)
+    product.stockKnown = true
+  }
   return product
 }
 

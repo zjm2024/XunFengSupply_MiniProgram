@@ -23,7 +23,7 @@
             <view v-if="previewError" class="preview-notice">
               <AppIcon name="alert" :size="17" color="#B42318" />
               <text>{{ previewError }}</text>
-              <button class="notice-action" @click="refreshPreview()">重新核价</button>
+              <button class="notice-action button-center" @click="refreshPreview()">重新核价</button>
             </view>
 
             <view class="checkout-grid">
@@ -193,7 +193,7 @@
                       <button
                         v-for="channel in cashPaymentChannels"
                         :key="channel.value"
-                        class="channel-option"
+                        class="channel-option button-center"
                         :class="{ active: paymentChannel === channel.value }"
                         :disabled="submitting"
                         @click="paymentChannel = channel.value"
@@ -304,7 +304,7 @@
             </view>
           </view>
           <button
-            class="submit-btn"
+            class="submit-btn button-center"
             :class="{ 'is-disabled': !canSubmit }"
             :disabled="!canSubmit"
             @click="prepareSubmit"
@@ -762,9 +762,9 @@ function handleStateAction() {
 
 .section-card {
   overflow: hidden;
-  border: 1px solid var(--color-border, #E4E6EB);
   border-radius: 16px;
   background: var(--surface-card, #FFFFFF);
+  box-shadow: 0 5px 18px rgba(17, 18, 22, 0.045);
 }
 
 .section-heading {
@@ -798,7 +798,7 @@ function handleStateAction() {
 
 .section-title {
   color: var(--color-text-primary, #111216);
-  font-size: 16px;
+  font-size: var(--type-card-title-size, 16px);
   font-weight: 650;
   line-height: 22px;
 }
@@ -806,7 +806,7 @@ function handleStateAction() {
 .section-subtitle,
 .refreshing-text {
   color: var(--color-text-secondary, #676A73);
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   line-height: 17px;
 }
 
@@ -827,7 +827,7 @@ function handleStateAction() {
   gap: 12px;
   margin: 0 16px 16px;
   padding: 13px 14px;
-  border: 1px solid var(--color-border, #E4E6EB);
+  border: 0;
   border-radius: 13px;
   color: var(--color-text-primary, #111216);
   background: var(--surface-subtle, #F8F9FA);
@@ -839,7 +839,6 @@ function handleStateAction() {
   }
 
   &.empty {
-    border-color: rgba(215, 25, 45, 0.3);
     background: #FFF7F8;
   }
 }
@@ -943,13 +942,11 @@ function handleStateAction() {
 .preview-notice {
   margin-bottom: 12px;
   padding: 11px 13px;
-  border: 1px solid #F1DEC1;
   border-radius: 12px;
 }
 
 .preview-notice {
   color: #8A1C15;
-  border-color: #F0CBC8;
   background: #FFF3F2;
 }
 
@@ -972,10 +969,6 @@ function handleStateAction() {
   &::after {
     border: 0;
   }
-}
-
-.product-heading {
-  border-bottom: 1px solid var(--color-divider, #F0F1F3);
 }
 
 .verified-label,
@@ -1001,9 +994,8 @@ function handleStateAction() {
 
 .checkout-spu-group {
   overflow: hidden;
-  border: 1px solid var(--color-border, #E4E6EB);
   border-radius: 13px;
-  background: var(--surface-card, #FFFFFF);
+  background: var(--surface-subtle, #F8F9FA);
 }
 
 .checkout-spu-header {
@@ -1034,7 +1026,7 @@ function handleStateAction() {
 .checkout-spu-name {
   display: block;
   overflow: hidden;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   font-weight: 650;
   line-height: 20px;
   text-overflow: ellipsis;
@@ -1066,7 +1058,10 @@ function handleStateAction() {
 }
 
 .product-list {
-  padding: 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
 }
 
 .product-row {
@@ -1074,12 +1069,9 @@ function handleStateAction() {
   grid-template-columns: 72px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
-  padding: 16px 0;
-  border-bottom: 1px solid var(--color-divider, #F0F1F3);
-
-  &:last-child {
-    border-bottom: 0;
-  }
+  padding: 12px;
+  border-radius: 11px;
+  background: var(--surface-card, #FFFFFF);
 }
 
 .product-image {
@@ -1263,7 +1255,7 @@ function handleStateAction() {
 
 .choice-title {
   color: inherit;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   font-weight: 600;
   line-height: 20px;
 }
@@ -1590,9 +1582,9 @@ function handleStateAction() {
   border-radius: 12px;
   color: #FFFFFF;
   background: var(--color-brand, #D7192D);
-  font-size: 15px;
+  font-size: var(--type-label-size, 15px);
   font-weight: 650;
-  line-height: 46px;
+  line-height: var(--type-button-line-height, 20px);
 
   &::after {
     border: 0;
