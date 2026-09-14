@@ -1,5 +1,11 @@
 <template>
-  <view class="topbar" :class="{ 'topbar--page': activeTab !== 'home' }">
+  <view
+    class="topbar"
+    :class="{
+      'topbar--page': activeTab !== 'home',
+      'topbar--follow-scroll': followScroll,
+    }"
+  >
     <view v-if="activeTab === 'home'" class="brand-block">
       <view class="brand-mark">
         <image class="brand-logo" src="/static/images/logo-v.png" mode="aspectFit" />
@@ -68,6 +74,7 @@ import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 const props = defineProps({
   activeTab: { type: String, default: 'home' },
   hasUnread: { type: Boolean, default: false },
+  followScroll: { type: Boolean, default: false },
 })
 
 defineEmits(['messages', 'settings', 'search'])
@@ -76,7 +83,7 @@ const tabTitles = Object.freeze({
   category: '分类',
   news: '资讯',
   cart: '购物车',
-  account: '我的',
+  account: '个人中心',
 })
 
 const currentTitle = computed(() => tabTitles[props.activeTab] || '')
@@ -91,6 +98,10 @@ const currentTitle = computed(() => tabTitles[props.activeTab] || '')
   min-height: 62px;
   padding: 8px 16px;
   box-sizing: border-box;
+}
+
+.topbar--follow-scroll {
+  background: transparent;
 }
 
 .brand-block,

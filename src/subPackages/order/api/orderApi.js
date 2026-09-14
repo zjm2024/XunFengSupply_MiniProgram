@@ -36,15 +36,23 @@ function normalizeOrder(order = {}) {
     ...order,
     orderId: order.orderId ?? order.OrderId,
     orderNo: order.orderNo ?? order.OrderNo,
+    parentOrderId: number(order.parentOrderId ?? order.ParentOrderId),
+    splitOrderCount: number(order.splitOrderCount ?? order.SplitOrderCount),
     orderStatus: order.orderStatus ?? order.OrderStatus,
     payableAmount: number(order.payableAmount ?? order.PayableAmount),
     paymentMode: order.paymentMode ?? order.PaymentMode,
     deliveryType: order.deliveryType ?? order.DeliveryType,
     customerRemark: order.customerRemark ?? order.CustomerRemark,
+    createdAt: order.createdAt ?? order.CreatedAt ?? order.createdTime ?? order.CreatedTime,
     createdTime: order.createdTime ?? order.CreatedTime,
     itemCount: number(order.itemCount ?? order.ItemCount),
     totalQuantity: number(order.totalQuantity ?? order.TotalQuantity),
     totalAmount: number(order.totalAmount ?? order.TotalAmount),
+    firstItemImageUrl: order.firstItemImageUrl ?? order.FirstItemImageUrl ?? '',
+    firstItemProductName: order.firstItemProductName ?? order.FirstItemProductName ?? '',
+    fulfillmentStatus: order.fulfillmentStatus ?? order.FulfillmentStatus,
+    giftOmitted: (order.giftOmitted ?? order.GiftOmitted) === true,
+    omittedGiftSkus: order.omittedGiftSkus ?? order.OmittedGiftSkus ?? [],
   }
 }
 
@@ -89,6 +97,7 @@ function toCreateOrderPayload(params = {}) {
     PaymentMode: params.paymentMode ?? params.PaymentMode ?? null,
     DeliveryType: params.deliveryType ?? params.DeliveryType ?? null,
     CustomerRemark: params.customerRemark ?? params.CustomerRemark ?? null,
+    OmitUnavailableGifts: params.omitUnavailableGifts ?? params.OmitUnavailableGifts ?? false,
   }
 }
 
@@ -149,6 +158,7 @@ export function previewOrder(params = {}) {
  * @param {number} [params.paymentMode] - 结算模式：1现款 2授信
  * @param {number} [params.deliveryType] - 配送方式：1物流 2自提
  * @param {string} [params.customerRemark] - 客户备注
+ * @param {boolean} [params.omitUnavailableGifts=false] - 赠品库存不足时是否确认放弃赠品
  * @returns {Promise<{orderId:number, orderNo:string, payableAmount:number, orderStatus:number, idempotent:boolean}>}
  */
 export function createOrder(params = {}) {

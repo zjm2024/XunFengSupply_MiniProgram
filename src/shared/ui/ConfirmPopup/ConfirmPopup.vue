@@ -144,6 +144,7 @@ function handleOverlayClick() {
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  animation: xf-popup-fade-in 180ms ease-out both;
 }
 
 .popup-sheet {
@@ -156,13 +157,19 @@ function handleOverlayClick() {
   border-radius: 18px 18px 0 0;
   padding: 22px 18px calc(18px + env(safe-area-inset-bottom));
   box-shadow: var(--shadow-lg, 0 12px 32px rgba(17, 18, 22, 0.12));
-  animation: sheet-in 0.18s ease-out;
+  transform-origin: center bottom;
+  animation: xf-popup-sheet-in 260ms cubic-bezier(.2, .8, .2, 1) both;
 }
 
-@keyframes sheet-in {
+@keyframes xf-popup-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes xf-popup-sheet-in {
   from {
-    opacity: 0.5;
-    transform: translateY(8px);
+    opacity: 0;
+    transform: translateY(36px) scale(.985);
   }
   to {
     opacity: 1;
@@ -287,6 +294,18 @@ function handleOverlayClick() {
     max-width: 520px;
     border-radius: var(--radius-feature, 18px);
     padding: 24px;
+    transform-origin: center;
+    animation-name: xf-popup-dialog-in;
   }
+}
+
+@keyframes xf-popup-dialog-in {
+  from { opacity: 0; transform: translateY(10px) scale(.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popup-overlay,
+  .popup-sheet { animation-duration: 1ms; }
 }
 </style>

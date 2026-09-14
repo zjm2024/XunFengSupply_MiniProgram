@@ -59,6 +59,7 @@ describe('Order API Layer - Request Mapping', () => {
       paymentMode: 1,
       deliveryType: 2,
       customerRemark: '请尽快发货',
+      omitUnavailableGifts: true,
     })
 
     expect(dispatchMock).toHaveBeenCalledWith(
@@ -72,6 +73,7 @@ describe('Order API Layer - Request Mapping', () => {
         PaymentMode: 1,
         DeliveryType: 2,
         CustomerRemark: '请尽快发货',
+        OmitUnavailableGifts: true,
       },
     )
   })
@@ -161,6 +163,8 @@ describe('Order API Layer - Response Mapping', () => {
       OrderNo: 'ORD20260905001',
       OrderStatus: 20,
       PayableAmount: 1999.99,
+      GiftOmitted: true,
+      OmittedGiftSkus: ['GIFT-001'],
     })
 
     vi.doMock('@/shared/api/dispatchClient.js', () => ({
@@ -177,6 +181,8 @@ describe('Order API Layer - Response Mapping', () => {
     expect(result.orderNo).toBe('ORD20260905001')
     expect(result.orderStatus).toBe(20)
     expect(result.payableAmount).toBe(1999.99)
+    expect(result.giftOmitted).toBe(true)
+    expect(result.omittedGiftSkus).toEqual(['GIFT-001'])
   })
 
   it('getOrderList 应将 PascalCase 响应转换为 camelCase', async () => {
@@ -245,7 +251,7 @@ describe('AfterSale API Layer', () => {
       orderId: 100,
       afterSaleType: 1,
       reason: '商品质量问题',
-      refundAmount: 99.9,
+      items: [{ orderItemId: 2001, quantity: 2 }],
       clientRequestId: 'test-123',
     })
 
@@ -258,7 +264,7 @@ describe('AfterSale API Layer', () => {
         AfterSaleType: 1,
         ReasonCode: null,
         Reason: '商品质量问题',
-        RefundAmount: 99.9,
+        Items: [{ OrderItemId: 2001, Quantity: 2 }],
         ClientRequestId: 'test-123',
       },
     )

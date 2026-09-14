@@ -60,8 +60,32 @@
         <view v-else class="placeholder"></view>
       </view>
 
+      <!-- 列表页顶部搜索：与状态栏、导航栏组成一个紧凑头部。 -->
+      <view v-if="searchable" class="nav-search">
+        <AppIcon class="nav-search-icon" name="search" :size="17" :stroke-width="1.8" />
+        <input
+          class="nav-search-input"
+          :value="searchValue"
+          type="text"
+          confirm-type="search"
+          :placeholder="searchPlaceholder"
+          placeholder-class="nav-search-placeholder"
+          @input="handleSearchInput"
+          @confirm="handleSearch"
+        />
+        <view
+          v-if="searchValue"
+          class="nav-search-clear"
+          hover-class="header-button--pressed"
+          aria-label="清除搜索"
+          @tap="handleSearchClear"
+        >
+          <AppIcon name="close" :size="14" />
+        </view>
+      </view>
+
       <!-- 标题：绝对居中 -->
-      <view class="nav-title" v-if="title" :style="titleStyle">
+      <view class="nav-title" v-if="title && !searchable" :style="titleStyle">
         <text class="title-text">{{ title }}</text>
       </view>
 
@@ -113,6 +137,19 @@ const props = defineProps({
   title: {
     type: String,
     default: '',
+  },
+  /** 在导航栏内展示列表搜索框。 */
+  searchable: {
+    type: Boolean,
+    default: false,
+  },
+  searchValue: {
+    type: String,
+    default: '',
+  },
+  searchPlaceholder: {
+    type: String,
+    default: '搜索',
   },
   /** 是否显示返回按钮 */
   showBack: {
@@ -181,7 +218,18 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['back', 'home', 'message', 'supplier', 'language', 'cart', 'action'])
+const emit = defineEmits([
+  'back',
+  'home',
+  'message',
+  'supplier',
+  'language',
+  'cart',
+  'action',
+  'update:searchValue',
+  'search',
+  'clear-search',
+])
 
 const { layout, safeArea, menuButton } = useResponsive()
 
@@ -290,6 +338,19 @@ function handleAction() {
   if (!props.actionDisabled) emit('action')
 }
 
+function handleSearchInput(event) {
+  emit('update:searchValue', event?.detail?.value ?? '')
+}
+
+function handleSearch(event) {
+  emit('search', event?.detail?.value ?? props.searchValue)
+}
+
+function handleSearchClear() {
+  emit('update:searchValue', '')
+  emit('clear-search')
+}
+
 /** App 自定义导航下同步系统状态栏前景色。 */
 function applyStatusBarStyle() {
   // #ifdef APP-PLUS
@@ -372,6 +433,47 @@ onUnmounted(() => {
 .nav-left {
   position: relative;
   z-index: 2;
+}
+
+.nav-search {
+  display: flex;
+  min-width: 0;
+  max-width: 680px;
+  height: 38px;
+  flex: 1;
+  align-items: center;
+  gap: 8px;
+  margin: 0 6px 0 4px;
+  padding: 0 11px;
+  border: 1px solid #e2e5e8;
+  border-radius: 19px;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.nav-search-icon,
+.nav-search-clear {
+  flex: none;
+  color: #8b9199;
+}
+
+.nav-search-input {
+  min-width: 0;
+  height: 100%;
+  flex: 1;
+  color: #252a31;
+  font-size: 12px;
+}
+
+.nav-search-placeholder {
+  color: #a2a7ae;
+}
+
+.nav-search-clear {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
 }
 
 .nav-right {
@@ -545,6 +647,14 @@ onUnmounted(() => {
   .icon-btn {
     width: 48px;
     height: 48px;
+  }
+
+  .nav-search {
+    height: 42px;
+    margin-right: 12px;
+    margin-left: 10px;
+    padding: 0 14px;
+    border-radius: 21px;
   }
 }
 

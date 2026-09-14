@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <view class="page">
     <app-header :show-back="true" :title="'账户资料'" @back="goBack" />
     <scroll-view class="page-scroll" scroll-y>

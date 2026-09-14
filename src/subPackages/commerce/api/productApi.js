@@ -67,6 +67,54 @@ function normalizeSku(item, product) {
   }
 }
 
+function normalizePromotionGift(item = {}) {
+  const availableStock = Math.max(0, number(firstDefined(item, ['availableStock', 'AvailableStock'])))
+  const quantity = Math.max(1, number(firstDefined(item, ['quantity', 'Quantity']), 1))
+  const isAvailable = firstDefined(item, ['isAvailable', 'IsAvailable'], true) !== false
+  return {
+    giftId: firstDefined(item, ['giftId', 'GiftId']),
+    skuId: firstDefined(item, ['skuId', 'SkuId']),
+    skuCode: firstDefined(item, ['skuCode', 'SkuCode'], ''),
+    productName: firstDefined(item, ['productName', 'ProductName'], '促销赠品'),
+    specDesc: firstDefined(item, ['specDesc', 'SpecDesc'], ''),
+    image: firstDefined(item, ['imageUrl', 'ImageUrl'], DEFAULT_IMAGE),
+    quantity,
+    availableStock,
+    isAvailable,
+    isStockSufficient: firstDefined(item, ['isStockSufficient', 'IsStockSufficient'], isAvailable && availableStock >= quantity) !== false,
+  }
+}
+
+function normalizePromotionRule(item = {}) {
+  const rawGifts = firstDefined(item, ['gifts', 'Gifts'], [])
+  return {
+    ruleId: firstDefined(item, ['ruleId', 'RuleId']),
+    ruleType: firstDefined(item, ['ruleType', 'RuleType'], ''),
+    thresholdAmount: number(firstDefined(item, ['thresholdAmount', 'ThresholdAmount'])),
+    thresholdQuantity: number(firstDefined(item, ['thresholdQuantity', 'ThresholdQuantity'])),
+    discountAmount: number(firstDefined(item, ['discountAmount', 'DiscountAmount'])),
+    discountRate: number(firstDefined(item, ['discountRate', 'DiscountRate'])),
+    isMultiple: firstDefined(item, ['isMultiple', 'IsMultiple'], false) === true,
+    giftMaxPerOrder: number(firstDefined(item, ['giftMaxPerOrder', 'GiftMaxPerOrder'])),
+    description: firstDefined(item, ['description', 'Description'], '促销优惠'),
+    gifts: (Array.isArray(rawGifts) ? rawGifts : []).map(normalizePromotionGift),
+  }
+}
+
+function normalizePromotion(item = {}) {
+  const rawRules = firstDefined(item, ['rules', 'Rules'], [])
+  return {
+    promotionId: firstDefined(item, ['promotionId', 'PromotionId']),
+    promotionCode: firstDefined(item, ['promotionCode', 'PromotionCode'], ''),
+    name: firstDefined(item, ['name', 'Name'], '促销活动'),
+    beginTime: firstDefined(item, ['beginTime', 'BeginTime']),
+    endTime: firstDefined(item, ['endTime', 'EndTime']),
+    priority: number(firstDefined(item, ['priority', 'Priority'])),
+    isStackable: firstDefined(item, ['isStackable', 'IsStackable'], false) === true,
+    rules: (Array.isArray(rawRules) ? rawRules : []).map(normalizePromotionRule),
+  }
+}
+
 export function normalizeProduct(item = {}, extra = {}) {
   const source = item?.product || item || {}
   const prices = Array.isArray(item?.prices) ? item.prices : []
@@ -92,6 +140,9 @@ export function normalizeProduct(item = {}, extra = {}) {
     unit: firstDefined(source, ['unit', 'unitName'], '件'),
     categoryName: firstDefined(item, ['categoryName'], firstDefined(source, ['categoryName'], '')),
     description: firstDefined(source, ['description', 'detailHtml', 'productDescription'], ''),
+    promotions: (Array.isArray(firstDefined(source, ['promotions', 'Promotions'], []))
+      ? firstDefined(source, ['promotions', 'Promotions'], [])
+      : []).map(normalizePromotion),
   }
   const skuSource = firstDefined(item, ['skus', 'skuList'], firstDefined(source, ['skus', 'skuList'], []))
   product.skus = Array.isArray(skuSource) ? skuSource.map(sku => normalizeSku(sku, product)) : []

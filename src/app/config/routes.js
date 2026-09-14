@@ -53,9 +53,13 @@ export const AFTER_SALE_LIST = '/subPackages/order/pages/after-sale/list'
 export const ACCOUNT_CENTER = '/subPackages/account/pages/center/index'
 export const ACCOUNT_PROFILE = '/subPackages/account/pages/profile/index'
 export const ADDRESS = '/subPackages/account/pages/address/index'
+export const ADDRESS_FORM = '/subPackages/account/pages/address/form'
 export const SUB_ACCOUNT = '/subPackages/account/pages/sub-account/index'
+export const DEALER_INVENTORY = '/subPackages/account/pages/inventory/index'
+export const DEALER_INVENTORY_DETAIL = '/subPackages/account/pages/inventory/detail'
 export const SECURITY = '/subPackages/account/pages/security/index'
 export const RECHARGE = '/subPackages/account/pages/recharge/index'
+export const RECHARGE_RECORDS = '/subPackages/account/pages/recharge/records'
 export const FUND_FLOW = '/subPackages/account/pages/fund-flow/index'
 export const BILL_LIST = '/subPackages/account/pages/bill/list'
 export const BILL_DETAIL = '/subPackages/account/pages/bill/detail'
@@ -82,8 +86,9 @@ export const REGISTERED_ROUTES = Object.freeze([
   LOGIN, APPLY_SIGN, AGREEMENT, ACCOUNT_STATUS,
   PRODUCT_LIST, PRODUCT_DETAIL, PRODUCT_VARIANTS, CART, CHECKOUT,
   ORDER_LIST, ORDER_DETAIL, PAY_PAGE, APPLY_AFTER_SALE, AFTER_SALE_LIST,
-  ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, SUB_ACCOUNT, SUB_ACCOUNT_FORM, SECURITY,
-  RECHARGE, FUND_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS,
+  ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
+  DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, SECURITY,
+  RECHARGE, RECHARGE_RECORDS, FUND_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS,
   NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MESSAGE, HELP, ABOUT,
 ])
 
@@ -94,7 +99,7 @@ const REGISTERED_ROUTES_SET = new Set(REGISTERED_ROUTES)
 // ==================== 路由元数据 ====================
 
 /**
- * 全部 35 个注册页面的元数据。
+ * 全部注册页面的元数据。
  * key 必须与上方导出常量严格一致。
  *
  * @type {Record<string, { title: string, requireAuth: boolean, requireSign: boolean, allowFrozen: boolean, owner: string|null }>}
@@ -246,6 +251,13 @@ export const ROUTE_META = Object.freeze({
     allowFrozen: false,
     owner: null,
   },
+  [ADDRESS_FORM]: {
+    title: '新增/编辑收货地址',
+    requireAuth: true,
+    requireSign: true,
+    allowFrozen: false,
+    owner: null,
+  },
   [SUB_ACCOUNT]: {
     title: '子账号管理',
     requireAuth: true,
@@ -265,6 +277,15 @@ export const ROUTE_META = Object.freeze({
     requireAuth: true,
     requireSign: true,
     allowFrozen: false,
+    requiredPermission: 'BALANCE_VIEW',
+    owner: null,
+  },
+  [RECHARGE_RECORDS]: {
+    title: '充值记录',
+    requireAuth: true,
+    requireSign: true,
+    allowFrozen: true,
+    requiredPermission: 'BALANCE_VIEW',
     owner: null,
   },
   [FUND_FLOW]: {
@@ -325,6 +346,22 @@ export const ROUTE_META = Object.freeze({
     requireSign: false,
     allowFrozen: true,
     owner: 'main',
+  },
+  [DEALER_INVENTORY]: {
+    title: '我的库存',
+    requireAuth: true,
+    requireSign: true,
+    allowFrozen: false,
+    requiredPermission: 'INVENTORY_VIEW',
+    owner: null,
+  },
+  [DEALER_INVENTORY_DETAIL]: {
+    title: '库存详情',
+    requireAuth: true,
+    requireSign: true,
+    allowFrozen: false,
+    requiredPermission: 'INVENTORY_VIEW',
+    owner: null,
   },
 
   // ===== content 分包 =====
@@ -568,11 +605,19 @@ export const routes = {
     profile: () => ACCOUNT_PROFILE,
     address: ({ selectMode } = {}) =>
       withQuery(ADDRESS, selectMode ? { selectMode } : null),
+    addressForm: ({ addressId, selectMode } = {}) =>
+      withQuery(ADDRESS_FORM, { addressId, selectMode }),
     subAccount: () => SUB_ACCOUNT,
     subAccountForm: ({ accountId, username, realName, mobile, status, permissions } = {}) =>
       withQuery(SUB_ACCOUNT_FORM, { accountId, username, realName, mobile, status, permissions }),
+    inventory: () => DEALER_INVENTORY,
+    inventoryDetail: (skuId) => {
+      const id = assertValidId(skuId, 'account.inventoryDetail')
+      return withQuery(DEALER_INVENTORY_DETAIL, { skuId: id })
+    },
     security: () => SECURITY,
     recharge: () => RECHARGE,
+    rechargeRecords: () => RECHARGE_RECORDS,
     fundFlow: () => FUND_FLOW,
     billList: ({ year, month } = {}) =>
       withQuery(BILL_LIST, { year, month }),

@@ -192,6 +192,13 @@
                     }
                 },
                 {
+                    "path": "pages/address/form",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
                     "path": "pages/sub-account/index",
                     "style": {
                         "navigationStyle": "custom",
@@ -206,6 +213,20 @@
                     }
                 },
                 {
+                    "path": "pages/inventory/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/inventory/detail",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
                     "path": "pages/security/index",
                     "style": {
                         "navigationStyle": "custom",
@@ -214,6 +235,13 @@
                 },
                 {
                     "path": "pages/recharge/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/recharge/records",
                     "style": {
                         "navigationStyle": "custom",
                         "navigationBarTitleText": ""

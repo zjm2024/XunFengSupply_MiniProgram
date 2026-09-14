@@ -1,101 +1,152 @@
 /**
- * 结算对账相关接口 - 月度对账、结算账单、导出凭证、赊账还款
- *
- * 后端映射：
- *   Module: MallOrder
- *   - Mini.InvoiceController → ApplyInvoice
- *
- * ⚠️ 参数由页面层构建 PascalCase 实体，API 层直接透传
+ * 经销商财务只读接口：充值记录、月度账单与账单明细。
+ * 金额字段统一使用“元”，禁止再做 / 100 换算。
  */
-
 import { dispatch } from '../../../shared/api/dispatchClient.js'
 
-// ==================== 发票接口（后端已实现） ====================
+const FINANCE_CONTROLLER = 'Mini.DealerStatementController'
 
-/**
- * 申请发票
- * @param {Object} params - 后端实体参数（PascalCase）
- * @param {number} params.OrderId - 订单ID
- * @param {number} params.InvoiceType - 发票类型（1普通, 2专用）
- * @param {string} [params.Title] - 发票抬头
- * @param {string} [params.TaxNo] - 税号
- * @returns {Promise<boolean>}
- * @remarks 后端当前固定返回"发票暂未开放"业务错误
- */
+function pick(source, camelKey, pascalKey, fallback = undefined) {
+  return source?.[camelKey] ?? source?.[pascalKey] ?? fallback
+}
+
+function numberOf(value) {
+  const number = Number(value)
+  return Number.isFinite(number) ? number : 0
+}
+
+export function normalizeRechargeRecord(source = {}) {
+  return {
+    rechargeId: numberOf(pick(source, 'rechargeId', 'RechargeId', 0)),
+    rechargeNo: String(pick(source, 'rechargeNo', 'RechargeNo', '') || ''),
+    accountId: numberOf(pick(source, 'accountId', 'AccountId', 0)),
+    amount: numberOf(pick(source, 'amount', 'Amount', 0)),
+    payMethod: String(pick(source, 'payMethod', 'PayMethod', '') || ''),
+    transactionId: String(pick(source, 'transactionId', 'TransactionId', '') || ''),
+    status: numberOf(pick(source, 'status', 'Status', 0)),
+    resultCertainty: numberOf(pick(source, 'resultCertainty', 'ResultCertainty', 0)),
+    voucherUrl: String(pick(source, 'voucherUrl', 'VoucherUrl', '') || ''),
+    auditedAt: pick(source, 'auditedAt', 'AuditedAt', null),
+    completedAt: pick(source, 'completedAt', 'CompletedAt', null),
+    createdAt: pick(source, 'createdAt', 'CreatedAt', null),
+  }
+}
+
+export function normalizeBill(source = {}) {
+  return {
+    billId: numberOf(pick(source, 'billId', 'BillId', 0)),
+    billNo: String(pick(source, 'billNo', 'BillNo', '') || ''),
+    billPeriod: String(pick(source, 'billPeriod', 'BillPeriod', '') || ''),
+    totalAmount: numberOf(pick(source, 'totalAmount', 'TotalAmount', 0)),
+    paidAmount: numberOf(pick(source, 'paidAmount', 'PaidAmount', 0)),
+    outstandingAmount: numberOf(pick(source, 'outstandingAmount', 'OutstandingAmount', 0)),
+    status: numberOf(pick(source, 'status', 'Status', 0)),
+    generatedAt: pick(source, 'generatedAt', 'GeneratedAt', null),
+    settledAt: pick(source, 'settledAt', 'SettledAt', null),
+    closedAt: pick(source, 'closedAt', 'ClosedAt', null),
+    createdAt: pick(source, 'createdAt', 'CreatedAt', null),
+  }
+}
+
+export function normalizeBillItem(source = {}) {
+  return {
+    billItemId: numberOf(pick(source, 'billItemId', 'BillItemId', 0)),
+    businessType: String(pick(source, 'businessType', 'BusinessType', '') || ''),
+    businessNo: String(pick(source, 'businessNo', 'BusinessNo', '') || ''),
+    orderId: numberOf(pick(source, 'orderId', 'OrderId', 0)),
+    amount: numberOf(pick(source, 'amount', 'Amount', 0)),
+    createdAt: pick(source, 'createdAt', 'CreatedAt', null),
+  }
+}
+
+export function normalizeFundFlow(source = {}) {
+  return {
+    transactionId: numberOf(pick(source, 'transactionId', 'TransactionId', 0)),
+    transactionNo: String(pick(source, 'transactionNo', 'TransactionNo', '') || ''),
+    accountId: numberOf(pick(source, 'accountId', 'AccountId', 0)),
+    customerId: numberOf(pick(source, 'customerId', 'CustomerId', 0)),
+    businessType: String(pick(source, 'businessType', 'BusinessType', '') || ''),
+    businessNo: String(pick(source, 'businessNo', 'BusinessNo', '') || ''),
+    balanceDelta: numberOf(pick(source, 'balanceDelta', 'BalanceDelta', 0)),
+    frozenDelta: numberOf(pick(source, 'frozenDelta', 'FrozenDelta', 0)),
+    balanceAfter: numberOf(pick(source, 'balanceAfter', 'BalanceAfter', 0)),
+    frozenAfter: numberOf(pick(source, 'frozenAfter', 'FrozenAfter', 0)),
+    remark: String(pick(source, 'remark', 'Remark', '') || ''),
+    createdAt: pick(source, 'createdAt', 'CreatedAt', null),
+  }
+}
+
+function normalizePaged(result, mapper) {
+  const rawItems = pick(result, 'items', 'Items', [])
+  return {
+    items: (Array.isArray(rawItems) ? rawItems : []).map(mapper),
+    totalCount: numberOf(pick(result, 'totalCount', 'TotalCount', 0)),
+    pageNum: numberOf(pick(result, 'pageNum', 'PageNum', 1)) || 1,
+    pageSize: numberOf(pick(result, 'pageSize', 'PageSize', 20)) || 20,
+    totalPages: numberOf(pick(result, 'totalPages', 'TotalPages', 0)),
+  }
+}
+
+export async function getRechargeList(params = {}) {
+  const result = await dispatch('Finance', FINANCE_CONTROLLER, 'GetRechargeList', {
+    PageNum: numberOf(params.pageNum || params.page || 1) || 1,
+    PageSize: numberOf(params.pageSize || 20) || 20,
+    ...(params.status === undefined || params.status === null || params.status === ''
+      ? {}
+      : { Status: numberOf(params.status) }),
+    ...(params.accountId ? { AccountId: numberOf(params.accountId) } : {}),
+    ...(params.payMethod ? { PayMethod: params.payMethod } : {}),
+  })
+  return normalizePaged(result, normalizeRechargeRecord)
+}
+
+export async function getBillList(params = {}) {
+  const result = await dispatch('Finance', FINANCE_CONTROLLER, 'GetBillList', {
+    PageNum: numberOf(params.pageNum || params.page || 1) || 1,
+    PageSize: numberOf(params.pageSize || 20) || 20,
+    ...(params.billPeriod ? { BillPeriod: params.billPeriod } : {}),
+    ...(params.status === undefined || params.status === null || params.status === ''
+      ? {}
+      : { Status: numberOf(params.status) }),
+  })
+  return normalizePaged(result, normalizeBill)
+}
+
+export async function getBillDetail(billId) {
+  const result = await dispatch('Finance', FINANCE_CONTROLLER, 'GetBillDetail', {
+    BillId: numberOf(billId),
+  })
+  const bill = normalizeBill(result || {})
+  const rawItems = pick(result, 'items', 'Items', [])
+  return {
+    ...bill,
+    items: (Array.isArray(rawItems) ? rawItems : []).map(normalizeBillItem),
+  }
+}
+
+export async function getFundFlowList(params = {}) {
+  const result = await dispatch('Finance', FINANCE_CONTROLLER, 'GetFundFlowList', {
+    PageNum: numberOf(params.pageNum || params.page || 1) || 1,
+    PageSize: numberOf(params.pageSize || 20) || 20,
+    ...(params.businessType ? { BusinessType: params.businessType } : {}),
+    ...(params.businessNo ? { BusinessNo: params.businessNo } : {}),
+    ...(params.startTime ? { StartTime: params.startTime } : {}),
+    ...(params.endTime ? { EndTime: params.endTime } : {}),
+  })
+  return normalizePaged(result, normalizeFundFlow)
+}
+
 export function applyInvoice(params) {
   return dispatch('MallOrder', 'Mini.InvoiceController', 'ApplyInvoice', params)
 }
 
-// ==================== 以下接口后端尚未实现，保留占位 ====================
-
-/**
- * 获取月度结算账单列表
- * ⚠️ 后端未实现
- */
-export function getBillList(params) {
-  return Promise.reject(new Error('账单列表功能尚未实现'))
+function unavailable(feature) {
+  return Promise.reject(new Error(`${feature}尚未开放，请联系财务人员`))
 }
 
-/**
- * 获取账单详情
- * ⚠️ 后端未实现
- */
-export function getBillDetail(billId) {
-  return Promise.reject(new Error('账单详情功能尚未实现'))
-}
-
-/**
- * 获取账单关联的订单明细列表
- * ⚠️ 后端未实现
- */
-export function getBillOrderItems(billId, params) {
-  return Promise.reject(new Error('账单订单明细功能尚未实现'))
-}
-
-/**
- * 支付/结清账单
- * ⚠️ 后端未实现
- */
-export function payBill(billId, data) {
-  return Promise.reject(new Error('账单支付功能尚未实现'))
-}
-
-/**
- * 授信赊账还款
- * ⚠️ 后端未实现
- */
-export function repayCredit(billId, data) {
-  return Promise.reject(new Error('赊账还款功能尚未实现'))
-}
-
-/**
- * 导出账单PDF凭证
- * ⚠️ 后端未实现
- */
-export function exportBillVoucher(billId) {
-  return Promise.reject(new Error('导出账单功能尚未实现'))
-}
-
-/**
- * 获取账单下载链接
- * ⚠️ 后端未实现
- */
-export function getBillDownloadUrl(billId) {
-  return Promise.reject(new Error('账单下载功能尚未实现'))
-}
-
-/**
- * 获取经销商结算概览
- * ⚠️ 后端未实现
- */
-export function getSettlementOverview() {
-  return Promise.reject(new Error('结算概览功能尚未实现'))
-}
-
-/**
- * 获取授信额度使用情况
- * ⚠️ 后端未实现
- */
-export function getCreditInfo() {
-  return Promise.reject(new Error('授信额度功能尚未实现'))
-}
+export function payBill() { return unavailable('账单线上还款') }
+export function repayCredit() { return unavailable('授信线上还款') }
+export function exportBillVoucher() { return unavailable('账单导出') }
+export function getBillDownloadUrl() { return unavailable('账单下载') }
+export function getSettlementOverview() { return unavailable('结算概览') }
+export function getCreditInfo() { return unavailable('独立授信详情') }

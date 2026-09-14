@@ -79,7 +79,11 @@ $content-max-width: 1120px;
 $content-reading-width: 720px;
 
 /* ---------- 字体 Typography ---------- */
-$font-sans: 'Inter', 'PingFang SC', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif;
+/*
+ * 中文优先的系统字体栈。不再把 Inter 放在首位，避免中英文回退字体
+ * 的字重、x-height 不一致；同时兼容 iOS、HarmonyOS、Windows 与 Android。
+ */
+$font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans SC', sans-serif;
 
 $font-size-display: 28px;
 $font-size-h1: 24px;

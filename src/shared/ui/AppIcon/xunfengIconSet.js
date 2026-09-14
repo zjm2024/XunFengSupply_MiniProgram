@@ -8,6 +8,50 @@ import tabCartSvg from '../../assets/illustrations/tab-cart.svg?raw'
 import tabCartActiveSvg from '../../assets/illustrations/tab-cart-active.svg?raw'
 import tabAccountSvg from '../../assets/illustrations/tab-account.svg?raw'
 import tabAccountActiveSvg from '../../assets/illustrations/tab-account-active.svg?raw'
+import noOrderSvg from '../../assets/illustrations/no-order.svg?raw'
+import noMessageSvg from '../../assets/illustrations/no-message.svg?raw'
+import noCouponSvg from '../../assets/illustrations/no-coupon.svg?raw'
+import noAddressSvg from '../../assets/illustrations/no-address.svg?raw'
+import noSearchResultSvg from '../../assets/illustrations/no-search-result.svg?raw'
+import emptyCartSvg from '../../assets/illustrations/empty-cart.svg?raw'
+import noNotificationSvg from '../../assets/illustrations/no-notification.svg?raw'
+import noFavoriteSvg from '../../assets/illustrations/no-favorite.svg?raw'
+import noNetworkSvg from '../../assets/illustrations/no-network.svg?raw'
+import noRevenueSvg from '../../assets/illustrations/no-revenue.svg?raw'
+import cashPaySvg from '../../assets/illustrations/pay/icon-cash-pay.svg?raw'
+import combinePaySvg from '../../assets/illustrations/pay/icon-combine-pay.svg?raw'
+import paymentAlipaySvg from '../../assets/illustrations/pay/payment-alipay.svg?raw'
+import paymentWechatPaySvg from '../../assets/illustrations/pay/payment-wechat-pay.svg?raw'
+
+// 全彩色插图资源（页面通过 name 引用，无需手动 import）
+export const illustrationRegistry = Object.freeze({
+  'no-order': noOrderSvg,
+  'no-message': noMessageSvg,
+  'no-coupon': noCouponSvg,
+  'no-address': noAddressSvg,
+  'no-search-result': noSearchResultSvg,
+  'empty-cart': emptyCartSvg,
+  'no-notification': noNotificationSvg,
+  'no-favorite': noFavoriteSvg,
+  'no-network': noNetworkSvg,
+  'no-revenue': noRevenueSvg,
+})
+
+// 个人中心 SVG 图标资源
+import afterSalesSvg from '../../assets/icon/after-sales.svg?raw'
+import billAccountFlowSvg from '../../assets/icon/bill-account-flow.svg?raw'
+import couponSvg from '../../assets/icon/coupon.svg?raw'
+import dataManagementSvg from '../../assets/icon/data-management.svg?raw'
+import inventoryManagementSvg from '../../assets/icon/inventory-management.svg?raw'
+import messageSvg from '../../assets/icon/message.svg?raw'
+import myInvoiceSvg from '../../assets/icon/my-invoice.svg?raw'
+import pendingPaymentSvg from '../../assets/icon/pending-payment.svg?raw'
+import pendingShipmentSvg from '../../assets/icon/pending-shipment.svg?raw'
+import securityCenterSvg from '../../assets/icon/security-center.svg?raw'
+import shippedSvg from '../../assets/icon/shipped.svg?raw'
+import signedSvg from '../../assets/icon/signed.svg?raw'
+import transactionFailedSvg from '../../assets/icon/transaction-failed.svg?raw'
+import transactionSuccessSvg from '../../assets/icon/transaction-success.svg?raw'
 
 /**
  * 薰风商城图标集。
@@ -69,8 +113,15 @@ const coreIconPaths = Object.freeze({
 
 function createSvgAssetIcon(svg) {
   const viewBox = svg.match(/\bviewBox=["']([^"']+)["']/i)?.[1] || '0 0 24 24'
-  const content = svg.match(/<svg\b[^>]*>([\s\S]*?)<\/svg>/i)?.[1]?.trim() || ''
-  return Object.freeze({ viewBox, content })
+  let content = svg.match(/<svg\b[^>]*>([\s\S]*?)<\/svg>/i)?.[1]?.trim() || ''
+  // 保存原始内容，用于 useOriginalColor 模式
+  const originalContent = content
+  // CSS mask 渲染：白色区域显示背景色
+  // 替换已有的 fill 颜色为 white
+  content = content.replace(/fill=["']([^""]*)["']/gi, 'fill="white"')
+  // 为没有 fill 属性的 path 添加 fill="white"
+  content = content.replace(/<path\b(?![^>]*\bfill=)/gi, '<path fill="white" ')
+  return Object.freeze({ viewBox, content, originalContent })
 }
 
 const tabIconPaths = Object.freeze({
@@ -86,9 +137,43 @@ const tabIconPaths = Object.freeze({
   'tab-account-active': createSvgAssetIcon(tabAccountActiveSvg),
 })
 
+// 个人中心 SVG 图标映射
+const accountIconPaths = Object.freeze({
+  'profile-after-sales': createSvgAssetIcon(afterSalesSvg),
+  'profile-invoice': createSvgAssetIcon(myInvoiceSvg),
+  'profile-bill': createSvgAssetIcon(myInvoiceSvg),
+  'profile-fund-flow': createSvgAssetIcon(billAccountFlowSvg),
+  'profile-inventory': createSvgAssetIcon(inventoryManagementSvg),
+  'profile-voucher': createSvgAssetIcon(couponSvg),
+  'profile-security': createSvgAssetIcon(securityCenterSvg),
+  'profile-message': createSvgAssetIcon(messageSvg),
+  'profile-recharge': createSvgAssetIcon(dataManagementSvg),
+  'order-pending-payment': createSvgAssetIcon(pendingPaymentSvg),
+  'order-pending-shipment': createSvgAssetIcon(pendingShipmentSvg),
+  'order-shipped': createSvgAssetIcon(shippedSvg),
+  'order-signed': createSvgAssetIcon(signedSvg),
+  'order-transaction-failed': createSvgAssetIcon(transactionFailedSvg),
+  'order-transaction-success': createSvgAssetIcon(transactionSuccessSvg),
+})
+
+// 支付方式 SVG 图标映射
+const paymentIconPaths = Object.freeze({
+  'pay-cash': createSvgAssetIcon(cashPaySvg),
+  'pay-combine': createSvgAssetIcon(combinePaySvg),
+  'pay-alipay': createSvgAssetIcon(paymentAlipaySvg),
+  'pay-wechat': createSvgAssetIcon(paymentWechatPaySvg),
+})
+
 export const xunfengIconMap = Object.freeze({
   ...coreIconPaths,
   ...tabIconPaths,
+  ...accountIconPaths,
+  ...paymentIconPaths,
+  // 个人中心专用图标占位：后续补充高品质 SVG 时只替换这里的映射即可。
+  'profile-orders': coreIconPaths.order,
+  'profile-sub-account': coreIconPaths.users,
+  'profile-help': coreIconPaths.help,
+  'profile-address': coreIconPaths.address,
   package: coreIconPaths.product,
   box: coreIconPaths.product,
   user: coreIconPaths.account,

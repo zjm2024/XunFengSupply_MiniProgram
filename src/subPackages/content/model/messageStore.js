@@ -16,11 +16,9 @@ export const useMessageStore = defineStore('message', {
     // 各类型未读数
     typeUnreadCount: {
       order: 0,          // 订单状态变更
-      payment: 0,        // 付款提醒
-      shipping: 0,       // 发货通知
-      afterSale: 0,      // 售后结果
-      settlement: 0,     // 对账提醒
-      system: 0          // 系统公告
+      audit: 0,          // 审核进度
+      bill: 0,           // 账单提醒
+      announcement: 0    // 系统公告
     },
     
     // 最新一条消息预览（用于首页展示）
@@ -92,11 +90,9 @@ export const useMessageStore = defineStore('message', {
       this.unreadCount = 0
       this.typeUnreadCount = {
         order: 0,
-        payment: 0,
-        shipping: 0,
-        afterSale: 0,
-        settlement: 0,
-        system: 0
+        audit: 0,
+        bill: 0,
+        announcement: 0
       }
     },
     
@@ -134,13 +130,11 @@ export const useMessageStore = defineStore('message', {
     getMessageTypeKey(typeValue) {
       const map = {
         1: 'order',
-        2: 'payment',
-        3: 'shipping',
-        4: 'afterSale',
-        5: 'settlement',
-        99: 'system'
+        2: 'audit',
+        3: 'bill',
+        4: 'announcement'
       }
-      return map[typeValue] || 'system'
+      return map[typeValue] || 'announcement'
     },
     
     /**

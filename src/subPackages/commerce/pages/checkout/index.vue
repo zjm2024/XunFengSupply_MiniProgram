@@ -40,7 +40,7 @@
                     <text v-if="selectedAddress?.isDefault" class="section-badge">默认</text>
                   </view>
 
-                  <button class="address-entry" :class="{ empty: !hasAddress }" @click="goToAddress">
+                  <button class="address-entry" :class="{ empty: !hasAddress }" @click="goToAddress()">
                     <template v-if="hasAddress">
                       <view class="contact-block">
                         <view class="contact-line">
@@ -101,7 +101,7 @@
                       <view v-show="!isCheckoutGroupCollapsed(group.key)" class="product-list">
                         <view
                           v-for="item in group.items"
-                          :key="item.skuId"
+                          :key="item.lineKey || item.skuId"
                           class="product-row"
                           :class="{ 'has-stock-risk': item.stockInsufficient }"
                         >
@@ -112,7 +112,10 @@
                             :fallback-icon-size="26"
                           />
                           <view class="product-info">
-                            <text class="product-name">{{ item.skuName || '默认规格' }}</text>
+                            <view class="product-name-line">
+                              <text class="product-name">{{ item.skuName || '默认规格' }}</text>
+                              <text v-if="item.isGift" class="gift-tag">赠品</text>
+                            </view>
                             <text class="product-spec">SKU：{{ item.code || item.skuId }}</text>
                             <view class="product-meta">
                               <text>¥{{ formatMoney(item.salePrice) }} / {{ item.unit }}</text>
@@ -136,6 +139,10 @@
                   <view v-if="!stockAvailable" class="stock-warning">
                     <AppIcon name="alert" :size="16" color="#B42318" />
                     <text>{{ stockWarningText }}</text>
+                  </view>
+                  <view v-if="requiresGiftOmissionConfirmation" class="gift-stock-warning">
+                    <AppIcon name="gift" :size="16" color="#D7192D" />
+                    <text>{{ giftStockWarningText }}。正价商品仍可下单，提交前可确认放弃这些赠品。</text>
                   </view>
                 </view>
               </view>
@@ -416,6 +423,7 @@ const customerRemark = ref('')
 const agreed = ref(false)
 const confirmModalVisible = ref(false)
 const submitting = ref(false)
+const omitUnavailableGifts = ref(false)
 const clientRequestId = ref('')
 const collapsedCheckoutGroupKeys = ref({})
 const finance = ref(userStore.financeContext)
@@ -470,6 +478,15 @@ const insufficientSkus = computed(() => previewData.value?.insufficientSkus || [
 const stockWarningText = computed(() => insufficientSkus.value.length
   ? '以下规格库存不足：' + insufficientSkus.value.join('、')
   : '部分商品库存不足，请返回购物车调整数量后重试。',
+)
+const giftStockAvailable = computed(() => previewData.value?.giftStockAvailable !== false)
+const insufficientGiftSkus = computed(() => previewData.value?.insufficientGiftSkus || [])
+const requiresGiftOmissionConfirmation = computed(() => (
+  previewData.value?.requiresGiftOmissionConfirmation === true || !giftStockAvailable.value
+))
+const giftStockWarningText = computed(() => insufficientGiftSkus.value.length
+  ? '以下促销赠品库存不足：' + insufficientGiftSkus.value.join('、')
+  : '部分促销赠品当前库存不足',
 )
 const hasPriceChanged = computed(() =>
   Boolean(previewData.value) && Math.abs(localAmount.value - goodsAmount.value) >= 0.01,
@@ -526,7 +543,6 @@ const allocationValidationReason = computed(() => {
   }
   return ''
 })
-
 const submitDisabledReason = computed(() => {
   if (!userStore.canOrder) return finance.value.credit.status === 2
     ? '经销商主体授信已冻结，当前禁止下单'
@@ -577,7 +593,8 @@ const confirmDescription = computed(() => {
   const channelText = paymentMode.value === PAYMENT_MODE.CASH
     ? '（' + (cashPaymentChannels.find(item => item.value === paymentChannel.value)?.label || '在线支付') + '）'
     : ''
-  return '本单共 ' + totalQuantity.value + ' 件，将使用' + paymentText + channelText + '并通过物流配送完成履约。'
+  const giftText = omitUnavailableGifts.value ? '；库存不足赠品将不随单赠送' : ''
+  return '本单共 ' + totalQuantity.value + ' 件，将使用' + paymentText + channelText + '完成结算' + giftText + '。'
 })
 const confirmPreviewText = computed(() => '应付金额 ¥' + formatMoney(payableAmount.value))
 
@@ -696,9 +713,11 @@ function normalizePreview(raw = {}) {
       valueOf(source, 'availableStock', 'AvailableStock'),
       number(cartItem.stock, Number.MAX_SAFE_INTEGER),
     )
+    const isGift = Boolean(valueOf(source, 'isGift', 'IsGift', cartItem.isGift || false))
+    const isStockSufficient = valueOf(source, 'isStockSufficient', 'IsStockSufficient', availableStock >= quantity) !== false
     return {
       cartItemId: cartItem.cartItemId,
-      productId: cartItem.productId,
+      productId: number(valueOf(source, 'productId', 'ProductId'), cartItem.productId),
       skuId,
       name: cartItem.name || valueOf(source, 'productName', 'ProductName') || valueOf(source, 'skuName', 'SkuName') || '商品',
       skuName: cartItem.skuName || valueOf(source, 'skuName', 'SkuName') || '',
@@ -710,7 +729,10 @@ function normalizePreview(raw = {}) {
       quantity,
       totalAmount: number(valueOf(source, 'totalAmount', 'TotalAmount'), salePrice * quantity),
       availableStock,
-      stockInsufficient: availableStock < quantity,
+      stockInsufficient: isGift ? !isStockSufficient : availableStock < quantity,
+      isGift,
+      promotionName: valueOf(source, 'promotionName', 'PromotionName', ''),
+      lineKey: `${valueOf(source, 'isGift', 'IsGift', false) ? 'gift' : 'goods'}:${skuId}`,
     }
   })
 
@@ -722,6 +744,9 @@ function normalizePreview(raw = {}) {
     payableAmount: number(valueOf(raw, 'payableAmount', 'PayableAmount')),
     stockAvailable: valueOf(raw, 'stockAvailable', 'StockAvailable', true) !== false,
     insufficientSkus: valueOf(raw, 'insufficientSkus', 'InsufficientSkus', []) || [],
+    giftStockAvailable: valueOf(raw, 'giftStockAvailable', 'GiftStockAvailable', true) !== false,
+    insufficientGiftSkus: valueOf(raw, 'insufficientGiftSkus', 'InsufficientGiftSkus', []) || [],
+    requiresGiftOmissionConfirmation: valueOf(raw, 'requiresGiftOmissionConfirmation', 'RequiresGiftOmissionConfirmation', false) === true,
   }
 }
 
@@ -779,6 +804,7 @@ async function refreshPreview({ silent = false } = {}) {
     const normalized = normalizePreview(raw)
     if (normalized.items.length === 0) throw new Error('服务端未返回可结算商品')
     previewData.value = normalized
+    omitUnavailableGifts.value = false
     return normalized
   } catch (error) {
     if (requestId === previewSequence) {
@@ -824,6 +850,11 @@ async function prepareSubmit() {
   if (!canSubmit.value) return
   const result = await refreshPreview()
   if (!result || !result.stockAvailable) return
+  if (result.requiresGiftOmissionConfirmation || result.giftStockAvailable === false) {
+    const confirmed = await confirmGiftOmission(giftStockWarningText.value)
+    if (!confirmed) return
+    omitUnavailableGifts.value = true
+  }
   if (paymentMode.value === PAYMENT_MODE.COMBINATION
     && Math.abs(allocationTotal.value - payableAmount.value) >= 0.005) {
     autoAllocatePayment()
@@ -841,6 +872,7 @@ async function confirmSubmit() {
   const orderedCartIds = checkoutItems.value
     .map(item => number(item.cartItemId))
     .filter(Boolean)
+  let createdOrders = []
 
   try {
     const response = await createOrder({
@@ -850,17 +882,18 @@ async function confirmSubmit() {
       PaymentMode: paymentMode.value,
       DeliveryType: deliveryType.value,
       CustomerRemark: customerRemark.value.trim() || null,
+      OmitUnavailableGifts: omitUnavailableGifts.value,
     })
     const orderId = valueOf(response, 'orderId', 'OrderId')
     if (!orderId) throw new Error('订单创建成功但未返回订单编号')
 
-    if (paymentMode.value === PAYMENT_MODE.COMBINATION) {
-      await confirmDealerOrderPayment({
-        orderId,
-        clientRequestId: clientRequestId.value,
-        allocations: buildAllocations(),
-      })
-    }
+    const responseOrders = valueOf(response, 'orders', 'Orders', [])
+    createdOrders = (Array.isArray(responseOrders) && responseOrders.length ? responseOrders : [response])
+      .map(order => ({
+        orderId: number(valueOf(order, 'orderId', 'OrderId')),
+        payableAmount: number(valueOf(order, 'payableAmount', 'PayableAmount')),
+      }))
+      .filter(order => order.orderId > 0)
 
     try {
       if (orderedCartIds.length) await removeItems(orderedCartIds)
@@ -869,8 +902,24 @@ async function confirmSubmit() {
     }
     cartStore.optimisticRemove(orderedCartIds)
 
-    uni.showToast({ title: '订单提交成功', icon: 'success' })
+    if (paymentMode.value === PAYMENT_MODE.COMBINATION) {
+      const paymentPlans = buildPaymentPlans(createdOrders)
+      for (const plan of paymentPlans) {
+        await confirmDealerOrderPayment({
+          orderId: plan.orderId,
+          clientRequestId: `${clientRequestId.value}_${plan.orderId}`,
+          allocations: plan.allocations,
+        })
+      }
+    }
+
+    const giftOmitted = valueOf(response, 'giftOmitted', 'GiftOmitted', false) === true
+    uni.showToast({ title: giftOmitted ? '订单已提交，缺货赠品已放弃' : '订单提交成功', icon: 'success' })
     setTimeout(() => {
+      if (createdOrders.length > 1) {
+        navigator.redirectTo(routes.order.list({ status: paymentMode.value === PAYMENT_MODE.CASH ? 20 : undefined }))
+        return
+      }
       if (paymentMode.value === PAYMENT_MODE.CASH) {
         navigator.redirectTo(routes.order.pay(orderId, {
           paymentMode: paymentMode.value,
@@ -881,10 +930,63 @@ async function confirmSubmit() {
       navigator.redirectTo(routes.order.detail(orderId))
     }, 600)
   } catch (error) {
+    if (createdOrders.length) {
+      uni.showToast({ title: '订单已创建，支付未完成，请到订单中心继续处理', icon: 'none', duration: 2600 })
+      setTimeout(() => navigator.redirectTo(routes.order.list({ status: 20 })), 900)
+      return
+    }
+    if (error?.errorCode === 'ORDER_GIFT_STOCK_INSUFFICIENT' && !omitUnavailableGifts.value) {
+      submitting.value = false
+      const confirmed = await confirmGiftOmission(error?.message || '促销赠品库存不足')
+      if (confirmed) {
+        omitUnavailableGifts.value = true
+        await confirmSubmit()
+      }
+      return
+    }
     uni.showToast({ title: error?.message || '订单提交失败，请重试', icon: 'none' })
   } finally {
     submitting.value = false
   }
+}
+
+function confirmGiftOmission(message) {
+  return new Promise(resolve => {
+    uni.showModal({
+      title: '赠品库存不足',
+      content: `${message}。是否放弃库存不足的赠品并继续下单？`,
+      confirmText: '放弃赠品',
+      cancelText: '暂不下单',
+      confirmColor: '#D7192D',
+      success: result => resolve(Boolean(result.confirm)),
+      fail: () => resolve(false),
+    })
+  })
+}
+
+function buildPaymentPlans(orders) {
+  const sources = buildAllocations().map(source => ({
+    ...source,
+    remainingCents: Math.round(number(source.amount) * 100),
+  }))
+  return orders.filter(order => number(order.payableAmount) > 0).map(order => {
+    let requiredCents = Math.round(number(order.payableAmount) * 100)
+    const allocations = []
+    for (const source of sources) {
+      if (requiredCents <= 0) break
+      const usedCents = Math.min(requiredCents, source.remainingCents)
+      if (usedCents <= 0) continue
+      allocations.push({
+        payMethod: source.payMethod,
+        accountCustomerId: source.accountCustomerId,
+        amount: usedCents / 100,
+      })
+      source.remainingCents -= usedCents
+      requiredCents -= usedCents
+    }
+    if (requiredCents !== 0) throw new Error('订单支付金额分配失败，请返回订单中心继续支付')
+    return { orderId: order.orderId, allocations }
+  })
 }
 
 function handleStateAction() {
@@ -927,6 +1029,9 @@ function handleStateAction() {
   background: var(--surface-card, #FFFFFF);
   box-shadow: 0 5px 18px rgba(17, 18, 22, 0.045);
 }
+
+.product-name-line { display: flex; align-items: center; gap: 7px; }
+.gift-tag { flex: 0 0 auto; padding: 2px 6px; border-radius: 7px; color: #B22131; background: #FFF0F2; font-size: 10px; line-height: 15px; }
 
 .section-heading {
   display: flex;
@@ -1082,6 +1187,7 @@ function handleStateAction() {
 
 .profile-warning,
 .stock-warning,
+.gift-stock-warning,
 .price-notice,
 .preview-notice {
   display: flex;
@@ -1089,6 +1195,20 @@ function handleStateAction() {
   gap: 8px;
   color: #8A4B00;
   background: #FFF8ED;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.gift-stock-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0 14px 14px;
+  padding: 10px 12px;
+  border: 1px solid rgba(215, 25, 45, 0.2);
+  border-radius: 10px;
+  color: #7E252E;
+  background: #FFFFFF;
   font-size: 12px;
   line-height: 18px;
 }

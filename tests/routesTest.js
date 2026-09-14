@@ -36,10 +36,14 @@ import {
   ACCOUNT_CENTER,
   ACCOUNT_PROFILE,
   ADDRESS,
+  ADDRESS_FORM,
   SUB_ACCOUNT,
   SUB_ACCOUNT_FORM,
+  DEALER_INVENTORY,
+  DEALER_INVENTORY_DETAIL,
   SECURITY,
   RECHARGE,
+  RECHARGE_RECORDS,
   FUND_FLOW,
   BILL_LIST,
   BILL_DETAIL,
@@ -157,6 +161,11 @@ describe('Routes - account 分包常量', () => {
     expect(SUB_ACCOUNT).toBe('/subPackages/account/pages/sub-account/index')
   })
 
+  it('经销商库存路由应指向账号分包', () => {
+    expect(DEALER_INVENTORY).toBe('/subPackages/account/pages/inventory/index')
+    expect(DEALER_INVENTORY_DETAIL).toBe('/subPackages/account/pages/inventory/detail')
+  })
+
   it('SECURITY 指向正确路径', () => {
     expect(SECURITY).toBe('/subPackages/account/pages/security/index')
   })
@@ -195,15 +204,16 @@ describe('Routes - REGISTERED_ROUTES 完整性', () => {
       LOGIN, APPLY_SIGN, AGREEMENT, ACCOUNT_STATUS,
       PRODUCT_LIST, PRODUCT_DETAIL, PRODUCT_VARIANTS, CART, CHECKOUT,
       ORDER_LIST, ORDER_DETAIL, PAY_PAGE, APPLY_AFTER_SALE, AFTER_SALE_LIST,
-      ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, SUB_ACCOUNT, SUB_ACCOUNT_FORM, SECURITY,
-      RECHARGE, FUND_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS,
+      ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
+      DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, SECURITY,
+      RECHARGE, RECHARGE_RECORDS, FUND_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS,
       NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MESSAGE, HELP, ABOUT,
     ]
     expect(REGISTERED_ROUTES).toEqual(expected)
   })
 
-  it('应包含 37 个路由', () => {
-    expect(REGISTERED_ROUTES.length).toBe(37)
+  it('应包含 41 个路由', () => {
+    expect(REGISTERED_ROUTES.length).toBe(41)
   })
 
   it('不应有重复路由', () => {
@@ -257,7 +267,7 @@ describe('Routes - FROZEN_ALLOWED_ROUTES', () => {
   })
 })
 
-describe('Routes - ROUTE_META 元数据覆盖全部 35 个页面', () => {
+describe('Routes - ROUTE_META 元数据覆盖全部页面', () => {
   it('每个 REGISTERED_ROUTES 都应在 ROUTE_META 中', () => {
     for (const path of REGISTERED_ROUTES) {
       expect(ROUTE_META[path], `缺少 ${path} 的元数据`).toBeDefined()
@@ -412,6 +422,22 @@ describe('Routes - routes 工厂函数', () => {
     expect(url).toContain('selectMode=checkout')
   })
 
+  it('account.addressForm() 应支持新增与编辑参数', () => {
+    expect(routes.account.addressForm()).toBe(ADDRESS_FORM)
+    const url = routes.account.addressForm({ addressId: 12, selectMode: 1 })
+    expect(url).toContain('addressId=12')
+    expect(url).toContain('selectMode=1')
+  })
+
+  it('account.rechargeRecords() 应返回充值记录页', () => {
+    expect(routes.account.rechargeRecords()).toBe(RECHARGE_RECORDS)
+  })
+
+  it('account.inventoryDetail(id) 应包含 skuId 参数', () => {
+    expect(routes.account.inventory()).toBe(DEALER_INVENTORY)
+    expect(routes.account.inventoryDetail(88)).toBe(`${DEALER_INVENTORY_DETAIL}?skuId=88`)
+  })
+
   it('account.billDetail(id) 应包含 billId 参数', () => {
     const url = routes.account.billDetail('BILL001')
     expect(url).toContain(BILL_DETAIL)
@@ -490,6 +516,12 @@ describe('Routes - 必填 ID 缺失时抛错', () => {
     expect(() => routes.account.billDetail()).toThrow()
     expect(() => routes.account.billDetail(null)).toThrow()
     expect(() => routes.account.billDetail('')).toThrow()
+  })
+
+  it('account.inventoryDetail() 缺少 ID 应抛错', () => {
+    expect(() => routes.account.inventoryDetail()).toThrow()
+    expect(() => routes.account.inventoryDetail(null)).toThrow()
+    expect(() => routes.account.inventoryDetail('')).toThrow()
   })
 
   it('account.billPay() 缺少 ID 应抛错', () => {

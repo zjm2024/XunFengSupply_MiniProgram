@@ -122,8 +122,8 @@ const errorShowSecondary = ref(false)
 
 // ==================== 加载文案 ====================
 
-const loadingTitle = ref('正在准备您的经销商工作台')
-const loadingTip = ref('请稍候，数据加载中...')
+const loadingTitle = ref('正在加载采购工作台')
+const loadingTip = ref('正在同步账户与采购数据')
 
 // ==================== 计时器 ====================
 
@@ -663,9 +663,7 @@ onBackPress(({ from }) => {
   height: 100vh;
   position: relative;
   overflow: hidden;
-  background: 
-    radial-gradient(circle at 76% 22%, rgba(215, 25, 45, 0.055), transparent 30%),
-    linear-gradient(180deg, #fff 0%, #fffdfd 100%);
+  background: #fff;
   isolation: isolate;
 }
 
@@ -677,7 +675,7 @@ onBackPress(({ from }) => {
   bottom: 8%;
   height: 34%;
   z-index: 0;
-  opacity: 0.95;
+  opacity: 0;
   pointer-events: none;
   
   &::before,

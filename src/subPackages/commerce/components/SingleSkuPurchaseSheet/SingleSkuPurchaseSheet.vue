@@ -216,6 +216,7 @@ function formatMoney(value) {
   align-items: flex-end;
   justify-content: center;
   background: rgba(17, 18, 22, 0.42);
+  animation: xf-sku-mask-in 180ms ease-out both;
 }
 
 .sku-sheet {
@@ -226,7 +227,12 @@ function formatMoney(value) {
   overflow: hidden;
   border-radius: 22px 22px 0 0;
   background: var(--surface-card, #FFFFFF);
+  transform-origin: center bottom;
+  animation: xf-sku-sheet-in 260ms cubic-bezier(.2, .8, .2, 1) both;
 }
+
+@keyframes xf-sku-mask-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes xf-sku-sheet-in { from { opacity: .2; transform: translateY(48px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
 .sheet-handle {
   width: 36px;
@@ -394,6 +400,15 @@ function formatMoney(value) {
     max-width: 560px;
     margin-bottom: 28px;
     border-radius: 22px;
+    transform-origin: center;
+    animation-name: xf-sku-dialog-in;
   }
+}
+
+@keyframes xf-sku-dialog-in { from { opacity: 0; transform: translateY(10px) scale(.94); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sku-sheet-mask,
+  .sku-sheet { animation-duration: 1ms; }
 }
 </style>

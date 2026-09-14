@@ -129,10 +129,13 @@
           <view style="height: 100rpx;" v-if="actionButtons.length > 0" />
         </view>
 
-        <!-- 加载中 -->
-        <view v-else class="loading-page">
-          <text class="loading-text">加载中...</text>
-        </view>
+        <AppInitializing
+          v-else
+          class="order-initializing"
+          title="正在加载订单"
+          description="正在同步订单与履约进度"
+          :fill="true"
+        />
       </AppContent>
     </template>
     <template #footer>
@@ -159,6 +162,7 @@ import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
+import AppInitializing from '@/shared/ui/AppInitializing/AppInitializing.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
@@ -338,17 +342,7 @@ async function handleAction(key) {
   background: var(--bg-color);
 }
 
-.loading-page {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 300px;
-
-  .loading-text {
-    font-size: 28rpx;
-    color: var(--text-secondary);
-  }
-}
+.order-initializing { min-height: 68vh; }
 
 .status-header {
   padding: 40rpx 32rpx;

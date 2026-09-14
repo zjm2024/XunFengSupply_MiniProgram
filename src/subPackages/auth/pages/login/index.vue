@@ -1,4 +1,4 @@
-﻿﻿<!--
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!--
   经销商登录页（分包：authSub）
   安全策略：首次不展示验证码；凭证输错一次后，由服务端强制启用滑块拼图验证。
 -->
@@ -468,7 +468,6 @@ function openAgreement(type) {
 .login-card {
   padding: $space-6;
   background: $color-bg-card;
-  border: 2rpx solid $color-border-default;
   border-radius: $radius-feature;
 }
 
@@ -600,6 +599,7 @@ function openAgreement(type) {
   align-items: center;
   justify-content: center;
   background: rgba(16, 24, 40, 0.56);
+  animation: xf-captcha-mask-in 180ms ease-out both;
 }
 
 .captcha-modal {
@@ -610,6 +610,18 @@ function openAgreement(type) {
   background: $color-bg-card;
   border-radius: $radius-feature;
   box-shadow: 0 24rpx 64rpx rgba(16, 24, 40, 0.2);
+  transform-origin: center;
+  animation: xf-captcha-dialog-in 260ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+@keyframes xf-captcha-mask-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes xf-captcha-dialog-in {
+  from { opacity: 0; transform: translateY(18rpx) scale(.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .captcha-modal__header {

@@ -168,6 +168,7 @@ watch(
   height: 100dvh;
   overflow: hidden;
   background: #0B0B0D;
+  animation: xf-viewer-fade-in 180ms ease-out both;
 }
 
 .viewer-toolbar {
@@ -229,12 +230,21 @@ watch(
   justify-content: center;
   padding: 88px 18px 70px;
   box-sizing: border-box;
+  animation: xf-viewer-media-in 240ms cubic-bezier(.2, .8, .2, 1) both;
 }
+
+@keyframes xf-viewer-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes xf-viewer-media-in { from { opacity: 0; transform: scale(.965); } to { opacity: 1; transform: scale(1); } }
 
 .viewer-image {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-viewer,
+  .viewer-slide { animation-duration: 1ms; }
 }
 
 .viewer-movable-area,

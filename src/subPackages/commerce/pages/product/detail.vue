@@ -68,6 +68,47 @@
                 </view>
               </view>
 
+              <view v-if="product.promotions?.length" class="promotion-card">
+                <view class="promotion-heading">
+                  <view class="promotion-title-row">
+                    <AppIcon name="gift" :size="19" color="#D7192D" />
+                    <text class="promotion-title">促销活动</text>
+                  </view>
+                  <text class="promotion-count">{{ product.promotions.length }} 个活动</text>
+                </view>
+                <view
+                  v-for="promotion in product.promotions"
+                  :key="promotion.promotionId"
+                  class="promotion-item"
+                >
+                  <view class="promotion-item-heading">
+                    <text class="promotion-name">{{ promotion.name }}</text>
+                    <text v-if="promotion.isStackable" class="promotion-stackable">可叠加</text>
+                  </view>
+                  <view v-for="rule in promotion.rules" :key="rule.ruleId" class="promotion-rule">
+                    <view class="promotion-rule-line">
+                      <text class="promotion-badge">{{ promotionRuleBadge(rule.ruleType) }}</text>
+                      <text class="promotion-description">{{ rule.description }}</text>
+                    </view>
+                    <view v-if="rule.gifts.length" class="promotion-gifts">
+                      <view v-for="gift in rule.gifts" :key="gift.giftId || gift.skuId" class="promotion-gift">
+                        <AppProductImage class="promotion-gift-image" :src="gift.image" :stock="gift.availableStock" />
+                        <view class="promotion-gift-copy">
+                          <text class="promotion-gift-name">{{ gift.productName }}</text>
+                          <text class="promotion-gift-spec">{{ gift.specDesc || gift.skuCode }} · 赠 {{ gift.quantity }} 件</text>
+                        </view>
+                        <text
+                          class="promotion-gift-stock"
+                          :class="{ warning: !gift.isStockSufficient }"
+                        >{{ giftStockText(gift) }}</text>
+                      </view>
+                    </view>
+                  </view>
+                  <text class="promotion-time">有效期至 {{ formatPromotionTime(promotion.endTime) }}</text>
+                </view>
+                <text class="promotion-notice">实际赠品与优惠以下单确认页实时计算结果为准</text>
+              </view>
+
               <view
                 class="batch-purchase-entry"
                 :class="{ disabled: !hasPurchasableSku }"
@@ -332,6 +373,30 @@ function formatMoney(value) {
   return Number(value || 0).toFixed(2)
 }
 
+function promotionRuleBadge(ruleType) {
+  const labels = {
+    AMOUNT_REDUCTION: '满减',
+    AMOUNT_GIFT: '满赠',
+    QUANTITY_GIFT: '满赠',
+    RATE_DISCOUNT: '折扣',
+  }
+  return labels[ruleType] || '促销'
+}
+
+function giftStockText(gift) {
+  if (!gift.isAvailable) return '已下架'
+  if (!gift.isStockSufficient) return '赠品库存紧张'
+  return gift.availableStock <= 20 ? `仅余 ${gift.availableStock}` : '赠品有货'
+}
+
+function formatPromotionTime(value) {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10)
+  const pad = number => String(number).padStart(2, '0')
+  return `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())}`
+}
+
 function onSwiperChange(event) {
   currentImage.value = event.detail.current
 }
@@ -443,6 +508,7 @@ async function goToCart() {
 }
 
 .info-card,
+.promotion-card,
 .section-card,
 .batch-purchase-entry,
 .single-purchase-entry {
@@ -452,9 +518,64 @@ async function goToCart() {
 }
 
 .info-card,
+.promotion-card,
 .section-card {
   padding: 16px;
 }
+
+.promotion-card {
+  background: var(--surface-card);
+  border-radius: var(--radius-card);
+  box-shadow: 0 5px 18px rgba(17, 18, 22, 0.045);
+}
+
+.promotion-heading,
+.promotion-title-row,
+.promotion-item-heading,
+.promotion-rule-line,
+.promotion-gift {
+  display: flex;
+  align-items: center;
+}
+
+.promotion-heading,
+.promotion-item-heading { justify-content: space-between; gap: 12px; }
+.promotion-title-row { gap: 7px; }
+.promotion-title { color: var(--color-text-primary); font-size: 16px; font-weight: 700; }
+.promotion-count { color: var(--color-text-tertiary); font-size: 11px; }
+
+.promotion-item {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-divider);
+}
+
+.promotion-name { min-width: 0; color: var(--color-text-primary); font-size: 14px; font-weight: 650; }
+.promotion-stackable { flex: 0 0 auto; color: var(--color-brand); font-size: 11px; }
+.promotion-rule { margin-top: 10px; }
+.promotion-rule-line { align-items: flex-start; gap: 8px; }
+.promotion-badge { flex: 0 0 auto; padding: 2px 5px; border: 1px solid var(--color-brand); border-radius: 4px; color: var(--color-brand); font-size: 10px; line-height: 15px; }
+.promotion-description { color: var(--color-text-secondary); font-size: 13px; line-height: 20px; }
+
+.promotion-gifts {
+  margin-top: 9px;
+  overflow: hidden;
+  border: 1px solid var(--color-divider);
+  border-radius: 10px;
+}
+
+.promotion-gift { min-height: 54px; gap: 9px; padding: 8px 10px; }
+.promotion-gift + .promotion-gift { border-top: 1px solid var(--color-divider); }
+.promotion-gift-image { width: 42px; height: 42px; flex: 0 0 42px; border-radius: 7px; overflow: hidden; }
+.promotion-gift-copy { min-width: 0; flex: 1; }
+.promotion-gift-name,
+.promotion-gift-spec { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.promotion-gift-name { color: var(--color-text-primary); font-size: 12px; font-weight: 600; }
+.promotion-gift-spec { margin-top: 3px; color: var(--color-text-tertiary); font-size: 10px; }
+.promotion-gift-stock { flex: 0 0 auto; color: var(--success-color, #168A52); font-size: 10px; }
+.promotion-gift-stock.warning { color: var(--color-brand); }
+.promotion-time { display: block; margin-top: 9px; color: var(--color-text-tertiary); font-size: 10px; text-align: right; }
+.promotion-notice { display: block; margin-top: 12px; color: var(--color-text-tertiary); font-size: 10px; line-height: 16px; }
 
 .product-name {
   display: block;
@@ -670,7 +791,7 @@ async function goToCart() {
   .media-card { border-radius: var(--radius-card); }
   .image-swiper { height: min(712px, calc(100vw - 96px)); }
   .detail-main { padding: 14px 0 20px; }
-  .info-card, .section-card { padding: 20px; }
+  .info-card, .promotion-card, .section-card { padding: 20px; }
   .product-name { font-size: 21px; }
 }
 

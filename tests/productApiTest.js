@@ -85,6 +85,33 @@ describe('Product API adapter', () => {
           canPurchase: true,
         },
       ],
+      promotions: [
+        {
+          promotionId: 20,
+          promotionCode: 'GIFT-20',
+          name: '开学满赠',
+          isStackable: true,
+          rules: [
+            {
+              ruleId: 201,
+              ruleType: 'AMOUNT_GIFT',
+              description: '满 500 元赠礼品',
+              gifts: [
+                {
+                  giftId: 1,
+                  skuId: 9901,
+                  skuCode: 'GIFT-SKU',
+                  productName: '赠品球袜',
+                  quantity: 2,
+                  availableStock: 1,
+                  isAvailable: true,
+                  isStockSufficient: false,
+                },
+              ],
+            },
+          ],
+        },
+      ],
     })
 
     vi.doMock('@/shared/api/dispatchClient.js', () => ({ dispatch: dispatchMock }))
@@ -108,6 +135,17 @@ describe('Product API adapter', () => {
       canPurchase: true,
     })
     expect(result).toMatchObject({ stock: 88, stockKnown: true })
+    expect(result.promotions[0]).toMatchObject({
+      promotionId: 20,
+      name: '开学满赠',
+      isStackable: true,
+    })
+    expect(result.promotions[0].rules[0].gifts[0]).toMatchObject({
+      skuId: 9901,
+      quantity: 2,
+      availableStock: 1,
+      isStockSufficient: false,
+    })
   })
 
   it('SKU 库存为零时即使接口返回可采购也必须判定为缺货', async () => {

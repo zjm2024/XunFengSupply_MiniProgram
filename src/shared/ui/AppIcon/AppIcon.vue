@@ -20,6 +20,8 @@ const props = defineProps({
   name: { type: String, required: true },
   size: { type: [Number, String], default: 20 },
   color: { type: String, default: 'currentColor' },
+  // 是否使用 SVG 原始颜色（不禁用 mask 单色着色）。默认 false，保持统一着色行为。
+  useOriginalColor: { type: Boolean, default: false },
   // 兼容旧调用参数。字体图标自身决定线宽，页面不再单独控制。
   strokeWidth: { type: [Number, String], default: 2 },
 })
@@ -115,6 +117,16 @@ const svgIcon = computed(() => {
 const svgMaskImage = computed(() => {
   if (!svgIcon.value) return ''
 
+  // 使用原始颜色模式：直接渲染完整 SVG，保留其原始填充色
+  if (props.useOriginalColor && svgIcon.value.originalContent) {
+    const svgMarkup = [
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${svgIcon.value.viewBox}">`,
+      svgIcon.value.originalContent,
+      '</svg>',
+    ].join('')
+    return `url("data:image/svg+xml,${encodeURIComponent(svgMarkup)}")`
+  }
+
   const svgMarkup = [
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${svgIcon.value.viewBox}"`,
     ' fill="none" stroke="black"',
@@ -142,8 +154,18 @@ const iconStyle = computed(() => {
   }
 
   if (svgMaskImage.value) {
-    style.webkitMaskImage = svgMaskImage.value
-    style.maskImage = svgMaskImage.value
+    if (props.useOriginalColor) {
+      // 使用原始颜色模式：SVG 背景图直接展示原始颜色
+      style.backgroundImage = svgMaskImage.value
+      style.backgroundRepeat = 'no-repeat'
+      style.backgroundPosition = 'center'
+      style.backgroundSize = 'contain'
+      style.backgroundColor = 'transparent'
+    } else {
+      // 默认模式：CSS mask 单色渲染
+      style.webkitMaskImage = svgMaskImage.value
+      style.maskImage = svgMaskImage.value
+    }
   }
 
   return style

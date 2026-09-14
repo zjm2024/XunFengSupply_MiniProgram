@@ -146,6 +146,12 @@ page,
   --type-money-size: #{tokens.$font-size-h3};
   --type-money-line-height: #{tokens.$line-height-h2};
 
+  /* 文字层级语义色：页面只需表达“标题 / 正文 / 辅助”，不再自建灰色 */
+  --type-title-color: #{tokens.$color-text-primary};
+  --type-body-color: #{tokens.$color-text-primary};
+  --type-secondary-color: #{tokens.$color-text-secondary};
+  --type-muted-color: #{tokens.$color-gray-400};
+
   /* 字重 */
   --font-weight-regular: #{tokens.$font-weight-regular};
   --font-weight-medium: #{tokens.$font-weight-medium};

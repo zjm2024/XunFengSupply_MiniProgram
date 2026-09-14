@@ -1,4 +1,4 @@
-﻿﻿<template>
+﻿﻿﻿﻿﻿<template>
   <AppPageShell>
     <template #header>
       <app-header

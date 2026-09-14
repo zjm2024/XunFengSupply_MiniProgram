@@ -31,6 +31,7 @@
         :refresher-background="refresherBackground"
         refresher-default-style="black"
         @scroll="handleScroll"
+        @scrolltolower="emit('scrolltolower')"
         @refresherrefresh="emit('refresherrefresh')"
         @refresherrestore="emit('refresherrestore')"
         @refresherabort="emit('refresherabort')"
@@ -82,7 +83,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['scroll', 'refresherrefresh', 'refresherrestore', 'refresherabort'])
+const emit = defineEmits(['scroll', 'scrolltolower', 'refresherrefresh', 'refresherrestore', 'refresherabort'])
 
 const { layout, contentMaxWidth, pagePaddingX } = useResponsive()
 

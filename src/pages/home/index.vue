@@ -1,6 +1,17 @@
 <template>
-  <view class="home-page" :class="{ 'is-large-screen': isLargeScreen }">
-    <AppStatusBarSpacer />
+  <view
+    class="home-page"
+    :class="{
+      'is-large-screen': isLargeScreen,
+      'home-page--integrated': currentTabLayout.integratedBackground,
+    }"
+  >
+    <view
+      class="home-status-area"
+      :class="{ 'home-status-area--integrated': currentTabLayout.integratedBackground }"
+    >
+      <AppStatusBarSpacer />
+    </view>
 
     <view class="home-layout">
       <view v-if="isLargeScreen" class="sidebar-container">
@@ -14,14 +25,31 @@
 
       <view class="home-main">
         <HomeTopBar
+          v-if="!currentTabLayout.topBarFollowsScroll"
           :active-tab="activeTab"
           :has-unread="hasUnread"
+          :follow-scroll="false"
           @search="goToProductSearch"
           @messages="goToMessages"
           @settings="goToSettings"
         />
 
-        <scroll-view class="home-scroll" scroll-y :show-scrollbar="false" :enable-back-to-top="true">
+        <scroll-view
+          class="home-scroll"
+          :class="{ 'home-scroll--integrated': currentTabLayout.integratedBackground }"
+          scroll-y
+          :show-scrollbar="false"
+          :enable-back-to-top="true"
+        >
+          <HomeTopBar
+            v-if="currentTabLayout.topBarFollowsScroll"
+            :active-tab="activeTab"
+            :has-unread="hasUnread"
+            :follow-scroll="true"
+            @search="goToProductSearch"
+            @messages="goToMessages"
+            @settings="goToSettings"
+          />
           <view class="tab-stage">
             <TabHome
               v-show="activeTab === 'home'"
@@ -70,6 +98,16 @@ const activeTab = ref('home')
 const isLargeScreen = ref(false)
 const hasUnread = computed(() => messageStore.hasUnread)
 const cartCount = computed(() => cartStore.cartBadgeCount)
+
+// 页面级头部策略：需要沉浸式体验的页面可让标题栏进入滚动容器。
+const TAB_LAYOUT_CONFIG = Object.freeze({
+  home: { topBarFollowsScroll: false, integratedBackground: false },
+  category: { topBarFollowsScroll: false, integratedBackground: false },
+  news: { topBarFollowsScroll: false, integratedBackground: false },
+  cart: { topBarFollowsScroll: false, integratedBackground: false },
+  account: { topBarFollowsScroll: true, integratedBackground: true },
+})
+const currentTabLayout = computed(() => TAB_LAYOUT_CONFIG[activeTab.value] || TAB_LAYOUT_CONFIG.home)
 
 let resizeListener = null
 
@@ -140,10 +178,24 @@ onUnmounted(() => {
   background: var(--home-bg);
 }
 
+.home-page--integrated {
+  /* 状态栏、顶部、个人信息和内容区共用一张底，避免色块断层。 */
+  --home-bg: #f2f5f9;
+}
+
 .home-layout,
 .home-main {
   min-width: 0;
   min-height: 0;
+}
+
+.home-status-area {
+  flex: none;
+  background: var(--home-bg);
+}
+
+.home-status-area--integrated {
+  background: var(--home-bg);
 }
 
 .home-layout {
@@ -167,6 +219,10 @@ onUnmounted(() => {
   height: 100%;
 }
 
+.home-scroll--integrated {
+  background: var(--home-bg);
+}
+
 .tab-stage {
   width: 100%;
   min-height: 100%;
@@ -185,8 +241,5 @@ onUnmounted(() => {
     box-sizing: border-box;
   }
 
-  .home-scroll {
-    background: transparent;
-  }
 }
 </style>

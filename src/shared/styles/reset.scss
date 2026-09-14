@@ -21,6 +21,16 @@ page {
   background-color: var(--surface-page, #F4F5F8);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+view,
+text,
+button,
+input,
+textarea {
+  font-family: var(--font-family-sans, -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif);
 }
 
 /* ==================== 文本重置 ==================== */
@@ -87,14 +97,42 @@ textarea::placeholder {
   line-height: var(--type-section-title-line-height, 26px);
 }
 
+.type-card-title {
+  color: var(--type-title-color, #1B1C20);
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-semibold, 600);
+  line-height: var(--type-card-title-line-height, 24px);
+}
+
+.type-label {
+  color: var(--type-title-color, #1B1C20);
+  font-size: var(--type-label-size, 15px);
+  font-weight: var(--font-weight-medium, 500);
+  line-height: var(--type-label-line-height, 22px);
+}
+
 .type-body {
+  color: var(--type-body-color, #1B1C20);
   font-size: var(--type-body-size, 14px);
   line-height: var(--type-body-line-height, 22px);
 }
 
+.type-body-small {
+  color: var(--type-secondary-color, #62666F);
+  font-size: var(--type-body-small-size, 13px);
+  line-height: var(--type-body-small-line-height, 20px);
+}
+
 .type-caption {
+  color: var(--type-secondary-color, #62666F);
   font-size: var(--type-caption-size, 12px);
   line-height: var(--type-caption-line-height, 18px);
+}
+
+.type-micro {
+  color: var(--type-muted-color, #969AA3);
+  font-size: var(--type-micro-size, 11px);
+  line-height: var(--type-micro-line-height, 16px);
 }
 
 .type-money {

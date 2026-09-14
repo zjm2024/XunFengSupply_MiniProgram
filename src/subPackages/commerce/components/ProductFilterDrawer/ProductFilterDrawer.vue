@@ -287,6 +287,7 @@ watch(() => props.visible, (visible) => {
   position: fixed;
   inset: 0;
   z-index: 1000;
+  animation: xf-drawer-layer-in 180ms ease-out both;
 }
 
 .drawer-mask {
@@ -295,6 +296,7 @@ watch(() => props.visible, (visible) => {
   background: rgba(17, 18, 22, .38);
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
+  animation: xf-drawer-mask-in 180ms ease-out both;
 }
 
 .drawer-panel {
@@ -309,7 +311,7 @@ watch(() => props.visible, (visible) => {
   border-radius: 24px 24px 0 0;
   background: #fbfbfc;
   box-shadow: 0 -18px 50px rgba(17, 18, 22, .16);
-  animation: drawer-up 180ms ease-out;
+  animation: drawer-up 260ms cubic-bezier(.2, .8, .2, 1) both;
 }
 
 .drawer-header,
@@ -630,9 +632,12 @@ watch(() => props.visible, (visible) => {
 }
 
 @keyframes drawer-up {
-  from { transform: translateY(22px); opacity: .7; }
+  from { transform: translateY(54px); opacity: .35; }
   to { transform: translateY(0); opacity: 1; }
 }
+
+@keyframes xf-drawer-layer-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes xf-drawer-mask-in { from { opacity: 0; } to { opacity: 1; } }
 
 @media screen and (min-width: 800px) {
   .drawer-panel {
@@ -662,7 +667,13 @@ watch(() => props.visible, (visible) => {
 }
 
 @keyframes drawer-left {
-  from { transform: translateX(28px); opacity: .72; }
+  from { transform: translateX(54px); opacity: .35; }
   to { transform: translateX(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer-layer,
+  .drawer-mask,
+  .drawer-panel { animation-duration: 1ms; }
 }
 </style>

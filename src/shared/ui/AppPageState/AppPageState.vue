@@ -42,20 +42,7 @@
     <view v-else-if="state === 'empty'" class="state-empty">
       <view class="illustration">
         <slot name="illustration">
-          <view class="icon-placeholder" :class="`icon-${iconType}`">
-            <!-- 纯 CSS 线性图标，非 Emoji -->
-            <view class="css-icon css-icon-{{ iconType }}">
-              <view v-if="iconType === 'cart'" class="icon-cart-svg"><view class="cart-body" /><view class="cart-handle" /><view class="cart-wheel cart-wheel-l" /><view class="cart-wheel cart-wheel-r" /></view>
-              <view v-else-if="iconType === 'order'" class="icon-order-svg"><view class="order-doc" /><view class="order-lines" /></view>
-              <view v-else-if="iconType === 'message'" class="icon-message-svg"><view class="msg-bubble" /><view class="msg-tail" /></view>
-              <view v-else-if="iconType === 'search'" class="icon-search-svg"><view class="search-circle" /><view class="search-handle" /></view>
-              <view v-else-if="iconType === 'product'" class="icon-product-svg"><view class="product-box" /><view class="product-lid" /></view>
-              <view v-else-if="iconType === 'favorite'" class="icon-favorite-svg"><view class="fav-heart" /></view>
-              <view v-else-if="iconType === 'address'" class="icon-address-svg"><view class="addr-pin" /><view class="addr-base" /></view>
-              <view v-else-if="iconType === 'voucher'" class="icon-voucher-svg"><view class="voucher-ticket" /><view class="voucher-hole" /></view>
-              <view v-else class="icon-default-svg"><view class="default-inbox" /><view class="default-line" /></view>
-            </view>
-          </view>
+          <AppSvgIllustration :name="emptyIllustrationName" size="md" />
         </slot>
       </view>
       <text class="state-title">{{ displayTitle }}</text>
@@ -106,17 +93,7 @@
     <!-- 离线状态 -->
     <view v-else-if="state === 'offline'" class="state-offline">
       <view class="illustration">
-        <view class="icon-placeholder icon-offline">
-          <view class="css-icon icon-offline-svg">
-            <view class="offline-cloud" />
-            <view class="offline-slash" />
-            <view class="offline-dots">
-              <view class="dot dot-1" />
-              <view class="dot dot-2" />
-              <view class="dot dot-3" />
-            </view>
-          </view>
-        </view>
+        <AppSvgIllustration name="no-network" size="md" />
       </view>
       <text class="state-title">{{ displayTitle }}</text>
       <text v-if="displayDescription" class="state-desc">{{ displayDescription }}</text>
@@ -141,6 +118,7 @@
 <script setup>
 import { computed } from 'vue'
 import { PageStatus, DEFAULT_MESSAGES, EmptyType } from '../../model/pageState.js'
+import AppSvgIllustration from '../AppSvgIllustration/AppSvgIllustration.vue'
 
 const props = defineProps({
   /** 当前页面状态 */
@@ -200,6 +178,20 @@ const displayTitle = computed(() => props.title || DEFAULT_MESSAGES[props.state]
 
 /** 显示描述 */
 const displayDescription = computed(() => props.description || DEFAULT_MESSAGES[props.state]?.description || '')
+
+const EMPTY_ILLUSTRATIONS = Object.freeze({
+  [EmptyType.CART]: 'empty-cart',
+  [EmptyType.ORDER]: 'no-order',
+  [EmptyType.MESSAGE]: 'no-message',
+  [EmptyType.SEARCH]: 'no-search-result',
+  [EmptyType.PRODUCT]: 'no-search-result',
+  [EmptyType.FAVORITE]: 'no-favorite',
+  [EmptyType.ADDRESS]: 'no-address',
+  [EmptyType.VOUCHER]: 'no-coupon',
+  [EmptyType.DEFAULT]: 'no-search-result',
+})
+
+const emptyIllustrationName = computed(() => EMPTY_ILLUSTRATIONS[props.iconType] || 'no-search-result')
 
 // 注意：图标已改为纯 CSS 实现（见模板中的 css-icon），不再使用 Unicode 符号
 // EmptyType 仍导出供外部判断使用
@@ -328,7 +320,7 @@ export default {
 
   // 插图区域
   .illustration {
-    margin-bottom: $space-5;
+    margin-bottom: 8px;
   }
 
   .icon-placeholder {
@@ -387,19 +379,19 @@ export default {
 
   // 文案
   .state-title {
-    font-size: $font-size-h3;
+    font-size: var(--type-card-title-size, 16px);
     font-weight: $font-weight-semibold;
     color: $color-text-primary;
     text-align: center;
     margin-bottom: $space-1;
-    line-height: $line-height-h3;
+    line-height: 1.45;
   }
 
   .state-desc {
-    font-size: $font-size-body-m;
+    font-size: var(--type-caption-size, 12px);
     color: $color-text-secondary;
     text-align: center;
-    line-height: $line-height-body-m;
+    line-height: 1.6;
     max-width: 480rpx;
   }
 

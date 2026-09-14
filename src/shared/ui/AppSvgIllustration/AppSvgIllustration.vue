@@ -11,9 +11,15 @@
 
 <script setup>
 import { computed } from 'vue'
+import { illustrationRegistry } from '../AppIcon/xunfengIconSet.js'
 
 const props = defineProps({
   svg: {
+    type: String,
+    default: '',
+  },
+  /** 通过已注册的 name 引用插图，优先级低于 svg */
+  name: {
     type: String,
     default: '',
   },
@@ -24,7 +30,13 @@ const props = defineProps({
   },
 })
 
-const normalizedSvg = computed(() => props.svg
+const resolvedSvg = computed(() => {
+  if (props.svg) return props.svg
+  if (props.name && illustrationRegistry[props.name]) return illustrationRegistry[props.name]
+  return ''
+})
+
+const normalizedSvg = computed(() => resolvedSvg.value
   .replace(/<\?xml[\s\S]*?\?>/gi, '')
   .replace(/<!doctype[\s\S]*?>/gi, '')
   .trim())

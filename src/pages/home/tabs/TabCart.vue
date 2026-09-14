@@ -8,7 +8,9 @@
         <view class="summary-card"><text class="summary-label">商品种类</text><text class="summary-value">{{ cartStore.summary.productCount }}</text><text class="summary-hint">种商品</text></view>
         <view class="summary-card"><text class="summary-label">采购数量</text><text class="summary-value">{{ cartStore.summary.totalQuantity }}</text><text class="summary-hint">件商品</text></view>
       </view>
-
+      
+      <view class="cart-action" @click="openCart"><view><text class="action-title">进入购物车</text><text class="action-subtitle">调整数量、勾选商品并提交订单</text></view><view class="action-arrow"><AppIcon name="arrow-right" :size="20" /></view></view>
+      
       <view class="cart-preview">
         <view class="section-heading"><view><text class="section-title">已选货品</text><text class="section-subtitle">展示最近 {{ previewItems.length }} 项</text></view><text class="item-count">共 {{ cartStore.cartBadgeCount }} 件</text></view>
         <view class="cart-list">
@@ -20,7 +22,7 @@
         </view>
       </view>
 
-      <view class="cart-action" @click="openCart"><view><text class="action-title">进入购物车</text><text class="action-subtitle">调整数量、勾选商品并提交订单</text></view><view class="action-arrow"><AppIcon name="arrow-right" :size="20" /></view></view>
+     
     </view>
 
     <view v-else class="empty-cart">

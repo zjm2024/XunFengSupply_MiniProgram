@@ -34,8 +34,8 @@ defineEmits(['click'])
 
 <style lang="scss" scoped>
 .app-back-button {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;

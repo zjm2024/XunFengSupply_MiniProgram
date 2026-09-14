@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿<template>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <AppPageShell>
     <template #header>
       <AppHeader title="子账户管理" :show-back="true" />
@@ -195,6 +195,7 @@ function permissionLabel(code) {
     ORDER_VIEW: '查看订单',
     ORDER_CREATE: '下单',
     BALANCE_VIEW: '余额对账',
+    INVENTORY_VIEW: '查看库存',
     SUB_ACCOUNT_MANAGE: '管理子账户',
     COMBINATION_PAY_PARTICIPATE: '参与组合支付',
   }[code] || code

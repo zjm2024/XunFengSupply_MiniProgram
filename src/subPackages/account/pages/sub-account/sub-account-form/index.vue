@@ -134,6 +134,7 @@ const permissionOptions = [
   { code: 'ORDER_VIEW', name: '查看订单', description: '查看经销商主体订单' },
   { code: 'ORDER_CREATE', name: '下单', description: '创建并提交订单' },
   { code: 'BALANCE_VIEW', name: '查看余额对账', description: '查看余额、账单和流水' },
+  { code: 'INVENTORY_VIEW', name: '查看库存', description: '查看经销商主体的自有库存与入库流水' },
   { code: 'SUB_ACCOUNT_MANAGE', name: '管理子账户', description: '保留扩展；主账号始终拥有' },
   { code: 'COMBINATION_PAY_PARTICIPATE', name: '参与组合支付', description: '允许本账户余额被选作资金来源' },
 ]
