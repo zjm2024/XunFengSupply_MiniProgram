@@ -111,6 +111,11 @@
               >
                  {{ loginButtonText }}
               </button>
+
+              <view class="apply-entry">
+                <text class="apply-copy">还没有经销商账号？</text>
+                <text class="apply-link" @click="goToApplySign">立即申请</text>
+              </view>
             </view>
           </view>
 
@@ -407,6 +412,10 @@ async function handleLogin() {
 
 function openAgreement(type) {
   navigator.navigateTo(routes.auth.agreement({ type: type === 'privacy' ? 'privacy' : 'user' }))
+}
+
+function goToApplySign() {
+  navigator.navigateTo(routes.auth.applySign())
 }
 
 </script>

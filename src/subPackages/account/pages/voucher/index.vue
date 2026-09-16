@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+﻿﻿<template>
   <AppPageShell>
     <template #header>
       <app-header title="优惠券" :show-back="true" />
@@ -7,16 +7,13 @@
     <template #content>
       <AppContent>
         <view class="content">
-          <!-- Tab 切换 -->
-          <scroll-view class="segment-tabs" scroll-x>
-            <button
-              v-for="tab in tabs"
-              :key="tab.key"
-              class="tab-btn"
-              :class="{ 'is-active': activeTab === tab.key }"
-              @click="activeTab = tab.key"
-            >{{ tab.label }}</button>
-          </scroll-view>
+          <!-- Tab 切换，改用带数量的renderTabs -->
+         <view class="segment-tabs">
+            <view class="tabs-inner">
+              <button v-for="tab in renderTabs" :key="tab.key" class="tab-btn"
+                :class="{ 'is-active': activeTab === tab.key }" @click="activeTab = tab.key">{{ tab.label }}</button>
+            </view>
+          </view>
 
           <!-- 优惠券列表 -->
           <view class="voucher-list">
@@ -67,28 +64,12 @@
               v-if="filteredList.length === 0"
               state="empty"
               title="暂无优惠券"
-              description="更多优惠活动敬请期待"
+              description="可输入上方兑换码领取优惠券，关注平台营销活动"
             >
               <template #illustration>
                 <AppSvgIllustration :svg="noCouponSvg" size="lg" />
               </template>
             </AppPageState>
-          </view>
-
-          <!-- 兑换码入口 -->
-          <view v-if="activeTab === 'available'" class="exchange-section">
-            <view class="exchange-card">
-              <text class="exchange-title">兑换优惠券</text>
-              <view class="exchange-input-wrapper">
-                <input
-                  class="exchange-input"
-                  v-model="exchangeCode"
-                  placeholder="请输入兑换码"
-                  placeholder-class="placeholder"
-                />
-                <button class="exchange-btn" @click="exchangeVoucher">兑换</button>
-              </view>
-            </view>
           </view>
 
           <view class="bottom-spacer"></view>
@@ -99,7 +80,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import statusTagNew from '@/shared/ui/StatusTag/StatusTag.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
@@ -109,16 +90,30 @@ import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustratio
 import noCouponSvg from '../../../../shared/assets/illustrations/no-coupon.svg?raw'
 
 const tabs = [
-  { key: 'available', label: '可使用' },
-  { key: 'used', label: '已使用' },
-  { key: 'expired', label: '已过期' }
+  { key: 'available', label: '可使用', count: 0 },
+  { key: 'used', label: '已使用', count: 0 },
+  { key: 'expired', label: '已过期', count: 0 }
 ]
 
 const activeTab = ref('available')
 const exchangeCode = ref('')
+const exchangeLoading = ref(false)
 
-// TODO: 接入后端优惠券接口后替换为 store 数据
 const voucherList = ref([])
+
+// 按状态统计数量
+const tabCountInfo = computed(()=>{
+  const available = voucherList.value.filter(i=>i.status === 'available').length
+  const used = voucherList.value.filter(i=>i.status === 'used').length
+  const expired = voucherList.value.filter(i=>i.status === 'expired').length
+  return {available,used,expired}
+})
+// 给tab追加数量
+const renderTabs = computed(()=>{
+  return tabs.map(tab=>{
+    return {...tab, label: `${tab.label}(${tabCountInfo.value[tab.key]})`}
+  })
+})
 
 const filteredList = computed(() => {
   return voucherList.value.filter(item => item.status === activeTab.value)
@@ -128,19 +123,31 @@ function useVoucher(item) {
   uni.showToast({ title: '跳转至商品列表', icon: 'none' })
 }
 
+// 兑换逻辑增加loading、去空格、防重复提交
 function exchangeVoucher() {
-  if (!exchangeCode.value.trim()) {
+  const code = exchangeCode.value.trim()
+  if (!code) {
     uni.showToast({ title: '请输入兑换码', icon: 'none' })
     return
   }
+  if(exchangeLoading.value) return
+  exchangeLoading.value = true
   uni.showLoading({ title: '兑换中...' })
   setTimeout(() => {
     uni.hideLoading()
     uni.showToast({ title: '兑换成功', icon: 'success' })
     exchangeCode.value = ''
+    exchangeLoading.value = false
+    // 兑换成功后重新拉取优惠券列表
+    // fetchVoucherList()
   }, 1000)
 }
+// 回车触发兑换
+function onExchangeEnter() {
+  exchangeVoucher()
+}
 </script>
+
 
 <style lang="scss" scoped>
 .content {
@@ -148,19 +155,22 @@ function exchangeVoucher() {
 }
 
 .segment-tabs {
-  display: flex;
-  gap: 18px;
   border-bottom: 1px solid #EFEFF1;
   margin-bottom: 16px;
-  white-space: nowrap;
+}
+
+.tabs-inner {
+  display: flex;
+  justify-content: center; /* 核心：整体居中 */
+  gap: 32px; /* 增大tab之间距离，原来18px → 32px，更宽松好看 */
 }
 
 .tab-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 42px; /* 稳定 px */
-  padding: 0;
+  min-height: 44px;
+  padding: 0 4px;
   white-space: nowrap;
   border: none;
   background: transparent;
@@ -173,6 +183,7 @@ function exchangeVoucher() {
     font-weight: 650;
   }
 }
+
 
 .voucher-list {
   display: grid;
@@ -373,4 +384,19 @@ function exchangeVoucher() {
 .bottom-spacer {
   height: 24px;
 }
+.exchange-section {
+  margin: 16px 0;
+}
+.exchange-tip {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #5E626B;
+  display: block;
+}
+.exchange-btn {
+  &[disabled] {
+    opacity: 0.6;
+  }
+}
+
 </style>
