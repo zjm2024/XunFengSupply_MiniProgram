@@ -78,6 +78,35 @@
             </view>
           </view>
 
+          <view class="pay-methods" v-if="payMode === PAYMENT_MODE.COMBINATION">
+            <view class="method-title">账户余额分摊</view>
+            <view
+              v-for="account in availableAccounts"
+              :key="account.accountCustomerId"
+              class="balance-source"
+              @tap="toggleAccount(account)"
+            >
+              <checkbox :checked="isSelected(account)" color="#D7192D" />
+              <view class="source-copy">
+                <text>{{ account.isMaster ? '主账户' : (account.realName || account.username) }}</text>
+                <text>可用 ¥{{ Number(account.availableBalance || 0).toFixed(2) }}</text>
+              </view>
+              <input
+                v-if="isSelected(account)"
+                class="source-input"
+                type="digit"
+                :value="allocationAmounts[account.accountCustomerId]"
+                placeholder="0.00"
+                @tap.stop
+                @input="setAllocation(account, $event.detail.value)"
+              />
+            </view>
+            <view class="allocation-summary">
+              <text>已分配 ¥{{ allocationTotal.toFixed(2) }}</text>
+              <text>应付 ¥{{ Number(payAmount || 0).toFixed(2) }}</text>
+            </view>
+          </view>
+
           <!-- 倒计时提示（待付款订单） -->
           <view class="expire-tip" v-if="remainTime > 0">
             <AppIcon name="clock" :size="14" color="#E6A23C" />
@@ -96,7 +125,7 @@
           :disabled="paying"
           @click="handleConfirmPay"
         >
-          {{ paying ? '支付中...' : (payMode === 1 ? '确认支付' : '确认赊账') }}
+          {{ paying ? '支付中...' : (payMode === PAYMENT_MODE.CREDIT ? '确认授信支付' : '确认支付') }}
         </button>
       </FixedActionBar>
     </template>
@@ -115,6 +144,8 @@ import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import { navigator } from '@/app/navigation/navigator.js'
+import { routes } from '@/app/config/routes.js'
+import { confirmDealerOrderPayment, getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 
 const userStore = useUserStore()
 
@@ -125,6 +156,9 @@ const payAmount = ref(0)    // 单位：元（后端返回元）
 const payType = ref('wechat') // wechat/alipay/bank-card
 const paying = ref(false)
 const remainTime = ref(0)   // 剩余时间（秒）
+const finance = ref({ credit: {}, accounts: [] })
+const selectedAccountIds = ref([])
+const allocationAmounts = ref({})
 let countdownTimer = null
 
 // 格式化剩余时间
@@ -135,6 +169,12 @@ const formatRemainTime = computed(() => {
   const s = remainTime.value % 60
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 })
+const availableAccounts = computed(() => (finance.value.accounts || []).filter(item =>
+  item.accountStatus === 1 && item.financeStatus === 1 && item.canParticipateCombinationPay,
+))
+const allocationTotal = computed(() => selectedAccountIds.value.reduce(
+  (sum, id) => sum + Number(allocationAmounts.value[id] || 0), 0,
+))
 
 onLoad(async (options) => {
   orderId.value = Number(options.orderId) || null
@@ -146,6 +186,10 @@ onLoad(async (options) => {
   // 从订单详情获取实际金额
   if (orderId.value) {
     await loadOrderInfo()
+    if (payMode.value === PAYMENT_MODE.CREDIT || payMode.value === PAYMENT_MODE.COMBINATION) {
+      finance.value = await getDealerFinanceContext()
+      if (payMode.value === PAYMENT_MODE.COMBINATION) autoAllocate()
+    }
   }
 })
 
@@ -187,24 +231,76 @@ async function loadOrderInfo() {
 
 /**
  * 确认支付/赊账
- * V1 支付集成模块尚未实现独立支付接口，此页面先展示订单金额
+ * 授信与账户余额走内部确定性支付；现款支付等待外部支付渠道回调。
  */
 async function handleConfirmPay() {
   paying.value = true
 
   try {
-    // V1：支付功能尚未接入第三方支付渠道
-    uni.showModal({
-      title: '提示',
-      content: '支付功能正在对接中，请稍后再试或联系客服',
-      showCancel: false,
-    })
+    if (payMode.value === PAYMENT_MODE.CREDIT) {
+      if (Number(finance.value.credit?.status) !== 1) throw new Error('主体授信当前不可用')
+      await confirmDealerOrderPayment({
+        orderId: orderId.value,
+        clientRequestId: `credit-pay-${orderId.value}-${Date.now()}`,
+        allocations: [{ payMethod: 'credit', accountCustomerId: null, amount: payAmount.value }],
+      })
+      return handlePaid()
+    }
+    if (payMode.value === PAYMENT_MODE.COMBINATION) {
+      if (Math.abs(allocationTotal.value - Number(payAmount.value)) >= 0.005) {
+        throw new Error('账户分摊合计必须等于订单应付金额')
+      }
+      await confirmDealerOrderPayment({
+        orderId: orderId.value,
+        clientRequestId: `balance-pay-${orderId.value}-${Date.now()}`,
+        allocations: selectedAccountIds.value.map(id => ({
+          payMethod: 'balance',
+          accountCustomerId: Number(id),
+          amount: Number(allocationAmounts.value[id] || 0),
+        })),
+      })
+      return handlePaid()
+    }
+    uni.showModal({ title: '提示', content: '现款支付渠道正在对接中，请稍后再试或联系客服', showCancel: false })
   } catch (e) {
     console.error('支付失败:', e)
     uni.showToast({ title: e.message || '支付失败', icon: 'none' })
   } finally {
     paying.value = false
   }
+}
+
+function isSelected(account) { return selectedAccountIds.value.includes(account.accountCustomerId) }
+function setAllocation(account, value) {
+  allocationAmounts.value = { ...allocationAmounts.value, [account.accountCustomerId]: value }
+}
+function toggleAccount(account) {
+  const id = account.accountCustomerId
+  if (isSelected(account)) {
+    selectedAccountIds.value = selectedAccountIds.value.filter(item => item !== id)
+    const next = { ...allocationAmounts.value }; delete next[id]; allocationAmounts.value = next
+    return
+  }
+  const remaining = Math.max(0, Number(payAmount.value) - allocationTotal.value)
+  selectedAccountIds.value = [...selectedAccountIds.value, id]
+  setAllocation(account, Math.min(remaining, Number(account.availableBalance)).toFixed(2))
+}
+function autoAllocate() {
+  selectedAccountIds.value = []
+  allocationAmounts.value = {}
+  let remaining = Number(payAmount.value)
+  for (const account of availableAccounts.value) {
+    if (remaining <= 0) break
+    const amount = Math.min(remaining, Number(account.availableBalance))
+    if (amount <= 0) continue
+    selectedAccountIds.value.push(account.accountCustomerId)
+    allocationAmounts.value[account.accountCustomerId] = amount.toFixed(2)
+    remaining = Number((remaining - amount).toFixed(2))
+  }
+}
+function handlePaid() {
+  uni.showToast({ title: '支付成功', icon: 'success' })
+  setTimeout(() => navigator.redirectTo(routes.order.detail(orderId.value)), 500)
 }
 </script>
 
@@ -309,6 +405,12 @@ async function handleConfirmPay() {
     }
   }
 }
+
+.balance-source { display: flex; align-items: center; gap: 12px; min-height: 58px; border-top: 1px solid #EEF0F2; }
+.source-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 4px; color: #2A2E35; font-size: 13px; }
+.source-copy text + text { color: #92979F; font-size: 11px; }
+.source-input { width: 96px; height: 34px; box-sizing: border-box; border: 1px solid #DDE0E4; border-radius: 9px; padding: 0 9px; text-align: right; }
+.allocation-summary { display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid #EEF0F2; color: #555B64; font-size: 12px; }
 
 .credit-card-display {
   .credit-header {

@@ -439,14 +439,14 @@ onUnmounted(() => {
   display: flex;
   min-width: 0;
   max-width: 680px;
-  height: 38px;
+  height: 44px;
   flex: 1;
   align-items: center;
   gap: 8px;
   margin: 0 6px 0 4px;
-  padding: 0 11px;
+  padding: 0 12px;
   border: 1px solid #e2e5e8;
-  border-radius: 19px;
+  border-radius: 22px;
   background: #ffffff;
   box-sizing: border-box;
 }
@@ -462,7 +462,7 @@ onUnmounted(() => {
   height: 100%;
   flex: 1;
   color: #252a31;
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .nav-search-placeholder {
@@ -583,25 +583,26 @@ onUnmounted(() => {
 
 .cart-count-badge {
   position: absolute;
-  top: 2px;
-  right: 1px;
+  top: 0;
+  right: 0;
   display: grid;
-  min-width: 16px;
-  max-width: 25px;
-  height: 16px;
-  padding: 0 3px;
+  min-width: 18px;
+  max-width: 32px;
+  height: 18px;
+  padding: 0 4px;
   box-sizing: border-box;
   place-items: center;
   overflow: hidden;
   border: 1.5px solid #f7f8fa;
-  border-radius: 8px;
+  border-radius: 9px;
   color: #fff;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
   background: #d7192d;
+  transform: translate(25%, -25%);
 }
 
 .header-action {
@@ -650,11 +651,11 @@ onUnmounted(() => {
   }
 
   .nav-search {
-    height: 42px;
+    height: 48px;
     margin-right: 12px;
     margin-left: 10px;
-    padding: 0 14px;
-    border-radius: 21px;
+    padding: 0 16px;
+    border-radius: 24px;
   }
 }
 

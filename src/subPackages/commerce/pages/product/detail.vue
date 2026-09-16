@@ -179,7 +179,7 @@
         <button class="cart-entry" @click="goToCart">
           <view class="cart-icon-wrap">
             <AppIcon name="cart" :size="26" />
-            <text v-if="cartStore.cartBadgeCount" class="cart-badge">{{ cartStore.cartBadgeCount }}</text>
+            <text v-if="cartStore.cartBadgeCount" class="cart-badge">{{ cartStore.cartBadgeDisplay }}</text>
           </view>
           <text>购物车</text>
         </button>

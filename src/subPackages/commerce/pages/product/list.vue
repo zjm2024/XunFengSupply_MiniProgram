@@ -67,6 +67,7 @@
           v-for="item in products"
           :key="item.productId"
           :product="item"
+          :show-image-stock-badge="false"
           @click="goToDetail(item)"
         />
       </view>
@@ -482,7 +483,7 @@ function goToDetail(item) {
 .page {
   height: 100vh;
   overflow: hidden;
-  background: #f7f8fa;
+  background: #f5f6f7;
   display: flex;
   flex-direction: column;
 }
@@ -505,14 +506,14 @@ function goToDetail(item) {
   flex: 1;
   min-height: 0;
   box-sizing: border-box;
-  background: #f7f8fa;
+  background: #f5f6f7;
 }
 
 .scroll-inner {
   width: 100%;
   max-width: 1240px;
   margin: 0 auto;
-  padding: 14px 14px 28px;
+  padding: 12px 12px 28px;
   box-sizing: border-box;
 }
 
@@ -842,7 +843,7 @@ function goToDetail(item) {
 .product-grid {
   display: grid;
   grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 12px;
+  gap: 10px;
 }
 
 .loading-state,
@@ -941,8 +942,8 @@ function goToDetail(item) {
     padding: 10px 28px 14px;
   }
 
-  .page-scroll {
-    padding: 16px 28px 40px;
+  .scroll-inner {
+    padding: 18px 28px 40px;
   }
 
   .back-to-top {
@@ -978,15 +979,15 @@ function goToDetail(item) {
 
   .product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
+    gap: 16px;
   }
 
 }
 
-@media screen and (min-width: 768px) and (orientation: landscape) {
+@media screen and (min-width: 1024px) and (orientation: landscape) {
   .product-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
   }
 }
 
@@ -996,13 +997,9 @@ function goToDetail(item) {
     padding-right: 36px;
   }
 
-  .page-scroll {
+  .scroll-inner {
     padding-left: 36px;
     padding-right: 36px;
-  }
-
-  .product-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 </style>

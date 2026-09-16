@@ -144,7 +144,7 @@ const currentTitle = computed(() => tabTitles[props.activeTab] || '')
   box-sizing: border-box;
   overflow: hidden;
   border-radius: 18px;
-  background: #e7e8eb;
+  background: #eff0f2;
 }
 
 .home-search-icon {

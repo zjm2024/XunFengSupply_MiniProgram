@@ -20,6 +20,7 @@ import noNetworkSvg from '../../assets/illustrations/no-network.svg?raw'
 import noRevenueSvg from '../../assets/illustrations/no-revenue.svg?raw'
 import cashPaySvg from '../../assets/illustrations/pay/icon-cash-pay.svg?raw'
 import combinePaySvg from '../../assets/illustrations/pay/icon-combine-pay.svg?raw'
+import creditPaySvg from '../../assets/illustrations/pay/credit-pay.svg?raw'
 import paymentAlipaySvg from '../../assets/illustrations/pay/payment-alipay.svg?raw'
 import paymentWechatPaySvg from '../../assets/illustrations/pay/payment-wechat-pay.svg?raw'
 
@@ -160,6 +161,7 @@ const accountIconPaths = Object.freeze({
 const paymentIconPaths = Object.freeze({
   'pay-cash': createSvgAssetIcon(cashPaySvg),
   'pay-combine': createSvgAssetIcon(combinePaySvg),
+  'pay-credit': createSvgAssetIcon(creditPaySvg),
   'pay-alipay': createSvgAssetIcon(paymentAlipaySvg),
   'pay-wechat': createSvgAssetIcon(paymentWechatPaySvg),
 })

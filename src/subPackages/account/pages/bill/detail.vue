@@ -39,7 +39,7 @@
                 <AppIcon name="info" :size="18" color="#735D35" />
                 <view>
                   <text class="notice-title">该账单尚未结清</text>
-                  <text class="notice-desc">当前 App 仅支持查询。结算或异常核对请联系财务人员，最终状态以后端账单为准。</text>
+                  <text class="notice-desc">可选择主体下正常的余额账户还款，还款后将实时恢复可用授信。</text>
                 </view>
               </view>
 
@@ -95,9 +95,13 @@
 
     <template #footer>
       <FixedActionBar v-if="pageState === PageStatus.CONTENT">
-        <button class="flow-btn" @tap="goToFundFlow">
+        <button class="flow-btn flow-btn--secondary" @tap="goToFundFlow">
           <AppIcon name="history" :size="18" color="#FFFFFF" />
           <text>查看资金流水</text>
+        </button>
+        <button v-if="bill.outstandingAmount > 0 && bill.status === 0" class="flow-btn" :disabled="repaying" @tap="startRepayment">
+          <AppIcon name="credit-card" :size="18" color="#FFFFFF" />
+          <text>{{ repaying ? '还款中…' : '余额还款' }}</text>
         </button>
       </FixedActionBar>
     </template>
@@ -107,7 +111,8 @@
 <script setup>
 import { reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getBillDetail } from '../../api/settlement.js'
+import { getBillDetail, payBill } from '../../api/settlement.js'
+import { getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -123,6 +128,8 @@ import { routes } from '@/app/config/routes.js'
 const billId = ref(0)
 const pageState = ref(PageStatus.LOADING)
 const loadError = ref('')
+const repaying = ref(false)
+const finance = ref({ accounts: [] })
 const bill = reactive({ billId: 0, billNo: '', billPeriod: '', totalAmount: 0, paidAmount: 0, outstandingAmount: 0, status: 0, generatedAt: null, settledAt: null, closedAt: null, items: [] })
 
 onLoad((options = {}) => {
@@ -139,7 +146,12 @@ async function loadDetail() {
   pageState.value = PageStatus.LOADING
   loadError.value = ''
   try {
-    Object.assign(bill, await getBillDetail(billId.value))
+    const [detail, financeContext] = await Promise.all([
+      getBillDetail(billId.value),
+      getDealerFinanceContext(),
+    ])
+    Object.assign(bill, detail)
+    finance.value = financeContext
     pageState.value = PageStatus.CONTENT
   } catch (error) {
     loadError.value = error?.message || '账单详情读取失败，请稍后重试'
@@ -153,10 +165,56 @@ function formatDate(value) { if (!value) return '-'; const date = new Date(value
 function formatDateTime(value) { if (!value) return '-'; const date = new Date(value); if (Number.isNaN(date.getTime())) return String(value); const pad = number => String(number).padStart(2, '0'); return `${formatDate(value)} ${pad(date.getHours())}:${pad(date.getMinutes())}` }
 function statusText(status) { return ({ 0: '未结清', 1: '已结清', 2: '已关闭' })[status] || '未知状态' }
 function statusType(status) { return ({ 0: 'warning', 1: 'success', 2: 'info' })[status] || 'default' }
-function businessTypeText(type) { return ({ order: '订单入账', payment: '支付记录', refund: '退款记录', adjustment: '财务调整' })[String(type || '').toLowerCase()] || '财务明细' }
-function businessIcon(type) { return String(type || '').toLowerCase() === 'order' ? 'order' : 'receipt' }
+function businessTypeText(type) { return ({ order: '订单入账', order_charge: '授信订单入账', payment: '支付记录', repayment: '授信还款', refund: '退款记录', adjustment: '财务调整' })[String(type || '').toLowerCase()] || '财务明细' }
+function businessIcon(type) { return ['order', 'order_charge'].includes(String(type || '').toLowerCase()) ? 'order' : 'receipt' }
 function openBusiness(item) { if (item.orderId > 0) navigator.navigateTo(routes.order.detail(item.orderId)) }
 function goToFundFlow() { navigator.navigateTo(routes.account.fundFlow()) }
+
+function startRepayment() {
+  const accounts = (finance.value.accounts || []).filter(item =>
+    item.accountStatus === 1
+    && item.financeStatus === 1
+    && item.canParticipateCombinationPay
+    && Number(item.availableBalance) > 0,
+  )
+  if (!accounts.length) {
+    uni.showToast({ title: '暂无可用于还款的余额账户', icon: 'none' })
+    return
+  }
+  uni.showActionSheet({
+    itemList: accounts.map(item => `${item.isMaster ? '主账户' : (item.realName || item.username)}  可用 ¥${formatMoney(item.availableBalance)}`),
+    success: ({ tapIndex }) => confirmRepayment(accounts[tapIndex]),
+  })
+}
+
+function confirmRepayment(account) {
+  const amount = Math.min(Number(bill.outstandingAmount), Number(account.availableBalance))
+  uni.showModal({
+    title: '确认授信还款',
+    content: `将从${account.isMaster ? '主账户' : (account.realName || account.username)}余额扣除 ¥${formatMoney(amount)}，并恢复同额授信。`,
+    confirmText: '确认还款',
+    confirmColor: '#D7192D',
+    success: result => { if (result.confirm) submitRepayment(account, amount) },
+  })
+}
+
+async function submitRepayment(account, amount) {
+  if (repaying.value) return
+  repaying.value = true
+  try {
+    await payBill(bill.billId, {
+      accountCustomerId: account.accountCustomerId,
+      amount,
+      clientRequestId: `bill-repay-${bill.billId}-${Date.now()}`,
+    })
+    uni.showToast({ title: '还款成功', icon: 'success' })
+    await loadDetail()
+  } catch (error) {
+    uni.showToast({ title: error?.message || '还款失败', icon: 'none' })
+  } finally {
+    repaying.value = false
+  }
+}
 </script>
 
 <style lang="scss" scoped>
@@ -204,7 +262,8 @@ function goToFundFlow() { navigator.navigateTo(routes.account.fundFlow()) }
 .item-amount { color: #23272E; font-size: 13px; font-weight: 680; font-variant-numeric: tabular-nums; }
 .items-empty { display: flex; flex-direction: column; align-items: center; padding: 16px 0 28px; color: #969AA2; font-size: 11px; text-align: center; }
 .items-empty-illustration { width: 124px; height: 124px; }
-.flow-btn { display: flex; width: min(100%,460px); height: 48px; align-items: center; justify-content: center; gap: 8px; margin: 0; border: 0; border-radius: 13px; color: #FFFFFF; background: #D7192D; font-size: 14px; font-weight: 680; }
+.flow-btn { display: flex; flex: 1; width: min(100%,460px); height: 48px; align-items: center; justify-content: center; gap: 8px; margin: 0; border: 0; border-radius: 13px; color: #FFFFFF; background: #D7192D; font-size: 14px; font-weight: 680; }
+.flow-btn--secondary { background: #4F555E; }
 .flow-btn::after { border: 0; }
 @media screen and (min-width: 760px) {
   .bill-hero { display: grid; grid-template-columns: minmax(0,1.1fr) minmax(360px,.9fr); }

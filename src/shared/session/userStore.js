@@ -30,6 +30,7 @@ const emptyFinanceContext = () => ({
   accounts: [],
   credit: {
     totalAmount: 0,
+    reservedAmount: 0,
     usedAmount: 0,
     frozenAmount: 0,
     availableAmount: 0,
@@ -68,6 +69,7 @@ export const useUserStore = defineStore('user', {
     // 兼容旧页面字段，数值全部由后端 Finance 上下文驱动。
     creditScore: 0,
     totalCreditLimit: 0,
+    reservedCreditLimit: 0,
     usedCreditLimit: 0,
     frozenCreditLimit: 0,
     availableCreditLimit: 0,
@@ -225,6 +227,7 @@ export const useUserStore = defineStore('user', {
         credit: { ...emptyFinanceContext().credit, ...credit },
       }
       this.totalCreditLimit = Number(credit.totalAmount || 0)
+      this.reservedCreditLimit = Number(credit.reservedAmount || 0)
       this.usedCreditLimit = Number(credit.usedAmount || 0)
       this.frozenCreditLimit = Number(credit.frozenAmount || 0)
       this.availableCreditLimit = Number(credit.availableAmount || 0)
@@ -239,10 +242,12 @@ export const useUserStore = defineStore('user', {
         credit: {
           ...this.financeContext.credit,
           totalAmount: data.totalLimit ?? data.totalAmount ?? this.totalCreditLimit,
+          reservedAmount: data.reservedAmount ?? this.reservedCreditLimit,
           usedAmount: data.usedLimit ?? data.usedAmount ?? this.usedCreditLimit,
           frozenAmount: data.frozenAmount ?? this.frozenCreditLimit,
           availableAmount: data.availableAmount
             ?? Math.max(0, Number(data.totalLimit ?? this.totalCreditLimit)
+              - Number(data.reservedAmount ?? this.reservedCreditLimit)
               - Number(data.usedLimit ?? this.usedCreditLimit)
               - Number(data.frozenAmount ?? this.frozenCreditLimit)),
           status: data.status ?? this.creditStatus,

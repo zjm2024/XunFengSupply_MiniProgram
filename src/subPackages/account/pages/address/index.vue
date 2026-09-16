@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿<template>
+﻿﻿<template>
   <AppPageShell>
     <template #header>
       <AppHeader :title="selectMode ? '选择收货地址' : '收货地址'" :show-back="true" />
@@ -194,25 +194,24 @@ function removeAddress(item) {
 </script>
 
 <style lang="scss" scoped>
-.address-page { width: 100%; max-width: 980px; margin: 0 auto; }
-.select-notice { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding: 12px 14px; border: 1px solid #DEE4E9; border-radius: 13px; color: #4F6475; background: #F6F8FA; font-size: 13px; }
+.address-page { width: 100%; max-width: var(--content-max-width, 1120px); margin: 0 auto; }
+.select-notice { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding: 12px 14px; border-radius: var(--radius-card); color: var(--type-secondary-color); background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); font-size: var(--type-body-small-size); }
 .address-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.address-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) 38px; gap: 13px; align-items: center; min-height: 94px; padding: 16px; border: 1px solid #E5E7EB; border-radius: 17px; background: #FFFFFF; box-shadow: 0 5px 18px rgba(22, 28, 36, .035); box-sizing: border-box; }
-.address-card.is-default { border-color: #CCD3DA; }
+.address-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) 38px; gap: 13px; align-items: center; min-height: 94px; padding: 16px; border-radius: var(--radius-card); background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-sizing: border-box; }
+.address-card.is-default { background: rgba(255, 255, 255, 0.85); }
 .address-card.is-selectable { grid-template-columns: 44px minmax(0, 1fr) 18px; }
 .address-card--pressed { opacity: .76; transform: scale(.994); }
-.address-marker { display: flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: 13px; color: #50657A; background: #EEF2F5; }
+.address-marker { display: flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: var(--radius-control); color: var(--type-secondary-color); background: var(--surface-subtle); }
 .card-main { min-width: 0; }
 .card-header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.contact-name { color: #111216; font-size: 15px; font-weight: 700; }
-.contact-phone { color: #656871; font-size: 13px; }
-.default-tag { padding: 2px 8px; border-radius: 999px; color: #4C6072; background: #EEF2F5; font-size: 10px; }
-.address-detail { display: block; margin-top: 8px; color: #4F525A; font-size: 13px; line-height: 20px; }
-.manage-btn { display: flex; width: 38px; height: 38px; align-items: center; justify-content: center; margin: 0; padding: 0; border: 0; border-radius: 50%; background: #F4F5F7; }
+.contact-name { color: var(--type-title-color); font-size: var(--type-label-size); font-weight: 700; }
+.contact-phone { color: var(--type-secondary-color); font-size: var(--type-body-small-size); }
+.default-tag { padding: 2px 8px; border-radius: var(--radius-full); color: var(--type-secondary-color); background: var(--surface-subtle); font-size: var(--type-micro-size); }
+.address-detail { display: block; margin-top: 8px; color: var(--type-secondary-color); font-size: var(--type-body-small-size); line-height: 20px; }
+.manage-btn { display: flex; width: 38px; height: 38px; align-items: center; justify-content: center; margin: 0; padding: 0; border: 0; border-radius: 50%; background: var(--surface-subtle); }
 .manage-btn::after, .add-address-btn::after { border: 0; }
-.add-address-btn { display: flex; width: min(100%, 460px); height: 48px; align-items: center; justify-content: center; gap: 8px; margin: 0; border: 0; border-radius: 13px; color: #FFFFFF; background: #D7192D; font-size: 15px; font-weight: 700; box-shadow: 0 8px 20px rgba(215, 25, 45, .18); }
+.add-address-btn { display: flex; width: min(100%, 460px); height: 48px; align-items: center; justify-content: center; gap: 8px; margin: 0 auto; border: 0; border-radius: var(--radius-card); color: #FFFFFF; background: var(--color-brand); font-size: var(--type-button-size); font-weight: 700; }
 @media screen and (min-width: 760px) {
   .address-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-  .address-card { min-height: 108px; padding: 18px; }
 }
 </style>

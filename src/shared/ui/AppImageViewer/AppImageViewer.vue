@@ -12,12 +12,12 @@
       class="viewer-swiper"
       :current="activeIndex"
       :circular="normalizedImages.length > 1"
-      :disable-touch="normalizedImages.length <= 1 || activeScale > 1.01"
+      :disable-touch="normalizedImages.length <= 1 || scaleFor(activeIndex) > 1.01"
       @change="handleChange"
     >
       <swiper-item v-for="(image, index) in normalizedImages" :key="`${image}-${index}`">
         <view class="viewer-slide">
-          <movable-area v-if="!failedImages[index]" class="viewer-movable-area" scale-area @tap.stop="closeViewer">
+          <movable-area v-if="!failedImages[index]" class="viewer-movable-area" scale-area @tap.stop="handleImageTap(index)">
             <movable-view
               class="viewer-movable"
               :direction="scaleFor(index) > 1.01 ? 'all' : 'none'"
@@ -26,6 +26,9 @@
               :scale-max="4"
               :scale-value="scaleFor(index)"
               :out-of-bounds="true"
+              :damping="20"
+              :friction="2"
+              :inertia="true"
               @scale="handleScale(index, $event)"
             >
               <image
@@ -66,6 +69,8 @@ const emit = defineEmits(['update:modelValue', 'change', 'close'])
 const activeIndex = ref(0)
 const failedImages = ref({})
 const imageScales = ref({})
+const lastTapTime = ref(0)
+const lastTapIndex = ref(-1)
 
 const normalizedImages = computed(() => props.images
   .map(image => String(image || '').trim())
@@ -104,7 +109,6 @@ function syncInitialIndex() {
 
 function handleChange(event) {
   activeIndex.value = clampIndex(event?.detail?.current)
-  imageScales.value = {}
   emit('change', activeIndex.value)
 }
 
@@ -115,6 +119,23 @@ function scaleFor(index) {
 function handleScale(index, event) {
   const scale = Math.min(4, Math.max(1, Number(event?.detail?.scale) || 1))
   imageScales.value = { ...imageScales.value, [index]: scale }
+}
+
+// 双击放大/还原
+function handleImageTap(index) {
+  const now = Date.now()
+  // 300ms内两次点击判定双击
+  if (now - lastTapTime.value < 300 && lastTapIndex.value === index) {
+    const s = scaleFor(index)
+    imageScales.value = {
+      ...imageScales.value,
+      [index]: s > 1 ? 1 : 2
+    }
+    lastTapTime.value = 0
+    return
+  }
+  lastTapTime.value = now
+  lastTapIndex.value = index
 }
 
 function markImageFailed(index) {

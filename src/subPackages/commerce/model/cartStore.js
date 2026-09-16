@@ -64,6 +64,10 @@ export const useCartStore = defineStore('cart', {
     cartBadgeCount() {
       return this.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
     },
+    cartBadgeDisplay() {
+      const count = this.cartBadgeCount
+      return count > 99 ? '99+' : count
+    },
     formattedTotalAmount() {
       return this.formatMoney(this.summary.selectedAmount)
     },

@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
+﻿﻿<template>
   <AppPageShell>
     <template #header>
       <AppHeader title="子账户管理" :show-back="true" />

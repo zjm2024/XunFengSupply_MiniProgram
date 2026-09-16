@@ -163,6 +163,13 @@
                         "navigationStyle": "custom",
                         "navigationBarTitleText": ""
                     }
+                },
+                {
+                    "path": "pages/cancel/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
                 }
             ]
         },

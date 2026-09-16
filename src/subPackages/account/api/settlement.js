@@ -3,6 +3,10 @@
  * 金额字段统一使用“元”，禁止再做 / 100 换算。
  */
 import { dispatch } from '../../../shared/api/dispatchClient.js'
+import {
+  getDealerFinanceContext,
+  repayDealerCreditFromBalance,
+} from '../../../shared/api/dealerFinance.js'
 
 const FINANCE_CONTROLLER = 'Mini.DealerStatementController'
 
@@ -144,9 +148,25 @@ function unavailable(feature) {
   return Promise.reject(new Error(`${feature}尚未开放，请联系财务人员`))
 }
 
-export function payBill() { return unavailable('账单线上还款') }
-export function repayCredit() { return unavailable('授信线上还款') }
+export function payBill(_billId, params = {}) {
+  return repayDealerCreditFromBalance({
+    accountCustomerId: params.accountCustomerId,
+    amount: params.amount,
+    clientRequestId: params.clientRequestId,
+  })
+}
+export function repayCredit(params = {}) { return repayDealerCreditFromBalance(params) }
 export function exportBillVoucher() { return unavailable('账单导出') }
 export function getBillDownloadUrl() { return unavailable('账单下载') }
-export function getSettlementOverview() { return unavailable('结算概览') }
-export function getCreditInfo() { return unavailable('独立授信详情') }
+export async function getSettlementOverview() {
+  const [finance, bills] = await Promise.all([
+    getDealerFinanceContext(),
+    getBillList({ pageNum: 1, pageSize: 100, status: 0 }),
+  ])
+  return {
+    totalOutstanding: bills.items.reduce((sum, item) => sum + item.outstandingAmount, 0),
+    unpaidBillCount: bills.totalCount,
+    subjectAvailableBalance: finance.subjectAvailableBalance,
+  }
+}
+export function getCreditInfo() { return getDealerFinanceContext().then(result => result.credit) }

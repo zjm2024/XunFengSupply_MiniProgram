@@ -47,6 +47,7 @@ export const ORDER_DETAIL = '/subPackages/order/pages/detail/index'
 export const PAY_PAGE = '/subPackages/order/pages/pay/index'
 export const APPLY_AFTER_SALE = '/subPackages/order/pages/after-sale/apply'
 export const AFTER_SALE_LIST = '/subPackages/order/pages/after-sale/list'
+export const CANCEL_ORDER = '/subPackages/order/pages/cancel/index'
 
 // ==================== account：账户分包 ====================
 
@@ -85,7 +86,7 @@ export const REGISTERED_ROUTES = Object.freeze([
   STARTUP, HOME,
   LOGIN, APPLY_SIGN, AGREEMENT, ACCOUNT_STATUS,
   PRODUCT_LIST, PRODUCT_DETAIL, PRODUCT_VARIANTS, CART, CHECKOUT,
-  ORDER_LIST, ORDER_DETAIL, PAY_PAGE, APPLY_AFTER_SALE, AFTER_SALE_LIST,
+  ORDER_LIST, ORDER_DETAIL, PAY_PAGE, APPLY_AFTER_SALE, AFTER_SALE_LIST, CANCEL_ORDER,
   ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
   DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, SECURITY,
   RECHARGE, RECHARGE_RECORDS, FUND_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS,
@@ -226,6 +227,14 @@ export const ROUTE_META = Object.freeze({
     requireAuth: true,
     requireSign: true,
     allowFrozen: false,
+    owner: null,
+  },
+  [CANCEL_ORDER]: {
+    title: '取消订单',
+    requireAuth: true,
+    requireSign: true,
+    allowFrozen: false,
+    requiredPermission: 'ORDER_VIEW',
     owner: null,
   },
 
@@ -598,6 +607,11 @@ export const routes = {
       return withQuery(APPLY_AFTER_SALE, { orderId: id })
     },
     afterSaleList: () => AFTER_SALE_LIST,
+    cancelOrder: (orderId, extra = {}) => {
+      const id = assertValidId(orderId, 'order.cancelOrder')
+      const params = { orderId: id, ...extra }
+      return withQuery(CANCEL_ORDER, params)
+    },
   },
 
   account: {

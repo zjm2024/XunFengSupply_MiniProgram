@@ -11,12 +11,12 @@
 
     <view class="header-content">
       <view v-if="backOnly" class="minimal-nav">
-        <AppBackButton :transparent="transparent" :theme="theme" @click="$emit('back')" />
+        <AppBackButton plain :transparent="transparent" :theme="theme" @click="$emit('back')" />
       </view>
 
       <template v-else>
         <view class="search-nav">
-          <AppBackButton :transparent="transparent" :theme="theme" @click="$emit('back')" />
+          <AppBackButton plain :transparent="transparent" :theme="theme" @click="$emit('back')" />
 
           <view class="search-box">
             <AppIcon class="search-icon" name="search" :size="19" />
@@ -167,8 +167,8 @@ watch(() => props.theme, applyStatusBarStyle)
   position: relative;
   z-index: 120;
   flex-shrink: 0;
-  border-bottom: 1px solid transparent;
-  background: #f7f8fa;
+  border-bottom: 1px solid #eef0f2;
+  background: #fff;
 }
 
 .app-catalog-header.is-sticky {
@@ -185,7 +185,7 @@ watch(() => props.theme, applyStatusBarStyle)
   width: 100%;
   max-width: 1240px;
   margin: 0 auto;
-  padding: 8px 12px 10px;
+  padding: 8px 14px 10px;
   box-sizing: border-box;
 }
 
@@ -214,24 +214,16 @@ watch(() => props.theme, applyStatusBarStyle)
   min-height: 44px;
 }
 
-.search-nav {
-  gap: 9px;
-}
+.search-nav { gap: 8px; }
 
 .catalog-cart-button {
   position: relative;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 42px;
   flex-shrink: 0;
   justify-content: center;
-  border-radius: 50%;
-  color: #22252a;
-  background: #e7e8eb;
-}
-
-.catalog-cart-button {
-  color: #4f545c;
-  background: rgba(231, 232, 235, .78);
+  color: #34373d;
+  background: transparent;
 }
 
 .header-button--pressed {
@@ -241,20 +233,26 @@ watch(() => props.theme, applyStatusBarStyle)
 
 .cart-count-badge {
   position: absolute;
-  top: -1px;
-  right: -2px;
+  top: 1px;
+  right: -1px;
   display: grid;
-  min-width: 17px;
-  height: 17px;
+  min-width: 18px;
+  max-width: 32px;
+  height: 18px;
   padding: 0 4px;
   box-sizing: border-box;
   place-items: center;
-  border: 2px solid #f4f5f7;
+  overflow: hidden;
+  border: 1.5px solid #fff;
   border-radius: 9px;
   color: #fff;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   background: #d7192d;
+  transform: translate(25%, -25%);
 }
 
 .search-box {
@@ -263,17 +261,17 @@ watch(() => props.theme, applyStatusBarStyle)
   height: 44px;
   flex: 1;
   align-items: center;
-  gap: 9px;
+  gap: 8px;
   padding-left: 14px;
   overflow: hidden;
-  border: 1px solid transparent;
-  border-radius: 24px;
-  background: #e7e8eb;
+  border: 1px solid #eff1f3;
+  border-radius: 22px;
+  background: #f4f5f6;
 }
 
 .search-icon {
   flex-shrink: 0;
-  color: #8c919b;
+  color: #777c84;
 }
 
 .search-input {
@@ -281,13 +279,13 @@ watch(() => props.theme, applyStatusBarStyle)
   height: 100%;
   flex: 1;
   border: none;
-  color: #111216;
-  font-size: 15px;
+  color: #202226;
+  font-size: 14px;
   background: transparent;
 }
 
 .search-input::placeholder {
-  color: #a8adb5;
+  color: #9a9fa7;
 }
 
 .search-keyword-chip {
@@ -297,12 +295,11 @@ watch(() => props.theme, applyStatusBarStyle)
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 0 7px 0 12px;
+  padding: 0;
   box-sizing: border-box;
-  border-radius: 16px;
   color: #34373d;
-  font-size: 13px;
-  background: rgba(255, 255, 255, .72);
+  font-size: 14px;
+  background: transparent;
 }
 
 .search-keyword-text {
@@ -313,15 +310,14 @@ watch(() => props.theme, applyStatusBarStyle)
 }
 
 .search-keyword-close {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  border-radius: 50%;
   color: #767b84;
-  background: rgba(72, 76, 84, .08);
+  background: transparent;
 }
 
 .search-keyword-chip--pressed {
@@ -329,25 +325,24 @@ watch(() => props.theme, applyStatusBarStyle)
 }
 
 .search-clear {
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   flex-shrink: 0;
   justify-content: center;
-  border-radius: 50%;
   color: #777c85;
-  background: rgba(93, 98, 108, .09);
+  background: transparent;
 }
 
 .search-submit {
-  height: 30px;
-  min-width: 62px;
+  height: 26px;
+  min-width: 56px;
   margin-left: auto;
   flex-shrink: 0;
   justify-content: center;
-  padding: 0 15px;
+  padding: 0 14px;
   box-sizing: border-box;
-  border-left: 1px solid rgba(77, 81, 89, .1);
-  color: #24272c;
+  border-left: 1px solid #dde0e4;
+  color: #25272b;
   font-size: 13px;
   font-weight: 650;
 }
@@ -358,9 +353,10 @@ watch(() => props.theme, applyStatusBarStyle)
 }
 
 .quick-sort-bar {
-  height: 48px;
+  height: 46px;
   justify-content: space-between;
-  margin-top: 5px;
+  margin-top: 8px;
+  margin-bottom: 8px;
 }
 
 .quick-sort-item {
@@ -369,20 +365,20 @@ watch(() => props.theme, applyStatusBarStyle)
   min-width: 54px;
   justify-content: center;
   gap: 3px;
-  color: #656a72;
+  color: #686d75;
   font-size: 13px;
 }
 
 .quick-sort-item.is-active {
-  color: #17191d;
-  font-weight: 700;
+  color: #1d1f23;
+  font-weight: 650;
 }
 
 .quick-sort-item.is-active::after {
   position: absolute;
-  bottom: 3px;
+  bottom: 1px;
   left: 50%;
-  width: 18px;
+  width: 20px;
   height: 2px;
   border-radius: 2px;
   background: #d7192d;
@@ -392,7 +388,7 @@ watch(() => props.theme, applyStatusBarStyle)
 
 .sort-direction {
   flex-direction: column;
-  color: #afb2b8;
+  color: #b7bac0;
   font-size: 6px;
   line-height: 7px;
 }
@@ -498,10 +494,7 @@ watch(() => props.theme, applyStatusBarStyle)
     gap: 6px;
   }
 
-  .catalog-cart-button {
-    width: 40px;
-    height: 40px;
-  }
+  .catalog-cart-button { width: 36px; height: 40px; }
 
   .search-box {
     height: 40px;
@@ -520,21 +513,29 @@ watch(() => props.theme, applyStatusBarStyle)
 
 @media screen and (min-width: 768px) {
   .header-content {
-    padding: 10px 28px 14px;
+    padding: 10px 28px 0;
   }
 
   .search-box {
     height: 48px;
-    border-radius: 25px;
+    border-radius: 24px;
+    padding-left: 16px;
   }
 
   .catalog-cart-button {
-    width: 48px;
+    width: 44px;
     height: 48px;
   }
 
+  .search-submit {
+    height: 28px;
+    padding: 0 16px;
+  }
+
   .quick-sort-bar {
-    height: 52px;
+    height: 50px;
+    margin-top: 10px;
+    margin-bottom: 8px;
   }
 
   .quick-sort-item {

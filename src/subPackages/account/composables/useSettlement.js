@@ -30,7 +30,7 @@ export function useSettlement() {
     loading.value = true
     try {
       const res = await getBillList(params)
-      return res.list || []
+      return res.items || []
     } catch (e) {
       console.error('加载账单列表失败:', e)
       return []

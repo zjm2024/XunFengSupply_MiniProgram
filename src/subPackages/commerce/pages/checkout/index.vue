@@ -180,12 +180,7 @@
                       @click="selectPayment(option)"
                     >
                       <view class="choice-icon">
-                        <view
-                          v-if="option.iconSvg"
-                          class="payment-asset-icon"
-                          :style="{ backgroundImage: svgBackground(option.iconSvg) }"
-                        />
-                        <AppIcon v-else :name="option.icon" :size="19" />
+                        <AppIcon :name="option.icon" :size="24" use-original-color />
                       </view>
                       <view class="choice-copy">
                         <text class="choice-title">{{ option.label }}</text>
@@ -205,26 +200,35 @@
                       <button
                         v-for="channel in cashPaymentChannels"
                         :key="channel.value"
-                        class="channel-option button-center"
+                        class="channel-option"
                         :class="{ active: paymentChannel === channel.value }"
                         :disabled="submitting"
                         @click="paymentChannel = channel.value"
                       >
-                        <view
-                          v-if="channel.iconSvg"
-                          class="channel-asset-icon"
-                          :style="{ backgroundImage: svgBackground(channel.iconSvg) }"
-                        />
-                        <AppIcon v-else :name="channel.icon" :size="19" />
-                        <text>{{ channel.label }}</text>
-                        <AppIcon
-                          v-if="paymentChannel === channel.value"
-                          name="check"
-                          :size="13"
-                          color="#D7192D"
-                        />
+                        <view class="channel-left">
+                          <AppIcon :name="channel.icon" :size="28" use-original-color />
+                          <text>{{ channel.label }}</text>
+                        </view>
+                        <view class="channel-radio">
+                          <text v-if="paymentChannel === channel.value">✓</text>
+                        </view>
                       </button>
                     </view>
+                  </view>
+                  <view v-if="paymentMode === PAYMENT_MODE.CREDIT" class="allocation-panel credit-settlement-panel">
+                    <view class="channel-heading">
+                      <text class="channel-title">主体授信结算</text>
+                      <text class="channel-tip">本次不扣账户余额，支付成功后形成授信应收账单</text>
+                    </view>
+                    <view class="allocation-total">
+                      <text>本次授信支付</text>
+                      <text>¥{{ formatMoney(payableAmount) }}</text>
+                    </view>
+                    <view class="allocation-total">
+                      <text>支付前可用授信</text>
+                      <text>¥{{ formatMoney(finance.credit.availableAmount) }}</text>
+                    </view>
+                    <text class="credit-hint">订单提交时先暂占额度，授信支付成功后转为已用授信；后续可在对账账单中还款。</text>
                   </view>
                   <view v-if="paymentMode === PAYMENT_MODE.COMBINATION" class="allocation-panel">
                     <view class="channel-heading">
@@ -254,7 +258,7 @@
                         @input="setAllocationAmount(balanceKey(account), $event.detail.value)"
                       />
                     </view>
-                    <text class="credit-hint">本单统一占用主体授信 ¥{{ formatMoney(payableAmount) }}；剩余可用授信 ¥{{ formatMoney(finance.credit.availableAmount) }}</text>
+                    <text class="credit-hint">提交时暂占主体授信 ¥{{ formatMoney(payableAmount) }}，余额支付成功后自动释放；当前可用授信 ¥{{ formatMoney(finance.credit.availableAmount) }}</text>
                     <view class="allocation-total">
                       <text>已分配 ¥{{ formatMoney(allocationTotal) }}</text>
                       <text>应付 ¥{{ formatMoney(payableAmount) }}</text>
@@ -401,11 +405,6 @@ import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { confirmDealerOrderPayment, getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import { groupItemsBySpu } from '../../model/cartGrouping.js'
-import cashPaySvg from '@/shared/assets/illustrations/pay/icon-cash-pay.svg?raw'
-import combinePaySvg from '@/shared/assets/illustrations/pay/icon-combine-pay.svg?raw'
-import wechatPaySvg from '@/shared/assets/illustrations/pay/payment-wechat-pay.svg?raw'
-import alipaySvg from '@/shared/assets/illustrations/pay/payment-alipay.svg?raw'
-
 const userStore = useUserStore()
 const { cartStore, loadCart, flush } = useCart()
 
@@ -432,8 +431,8 @@ const allocationAmounts = ref({})
 let previewSequence = 0
 
 const cashPaymentChannels = [
-  { value: 'wechat', label: '微信支付', iconSvg: wechatPaySvg },
-  { value: 'alipay', label: '支付宝', iconSvg: alipaySvg },
+  { value: 'wechat', label: '微信支付', icon: 'pay-wechat' },
+  { value: 'alipay', label: '支付宝', icon: 'pay-alipay' },
   { value: 'bank-card', label: '银行卡', icon: 'bank' },
 ]
 
@@ -498,14 +497,21 @@ const paymentOptions = computed(() => [
     value: PAYMENT_MODE.CASH,
     label: '现款支付',
     description: '订单提交后在线付款',
-    iconSvg: cashPaySvg,
+    icon: 'pay-cash',
     disabled: false,
+  },
+  {
+    value: PAYMENT_MODE.CREDIT,
+    label: '授信支付',
+    description: '使用经销商主体授信赊账，本次不扣账户余额',
+    icon: 'pay-credit',
+    disabled: finance.value.credit?.status !== 1,
   },
   {
     value: PAYMENT_MODE.COMBINATION,
     label: '账户组合支付',
     description: '主账户与一个或多个子账户可用余额组合分摊',
-    iconSvg: combinePaySvg,
+    icon: 'pay-combine',
     disabled: false,
   },
 ])
@@ -589,7 +595,11 @@ const stateActionText = computed(() =>
   pageState.value === PageStatus.EMPTY ? '返回购物车' : '重新加载',
 )
 const confirmDescription = computed(() => {
-  const paymentText = paymentMode.value === PAYMENT_MODE.COMBINATION ? '账户组合支付' : '现款支付'
+  const paymentText = paymentMode.value === PAYMENT_MODE.COMBINATION
+    ? '账户组合支付'
+    : paymentMode.value === PAYMENT_MODE.CREDIT
+      ? '授信支付'
+      : '现款支付'
   const channelText = paymentMode.value === PAYMENT_MODE.CASH
     ? '（' + (cashPaymentChannels.find(item => item.value === paymentChannel.value)?.label || '在线支付') + '）'
     : ''
@@ -607,15 +617,6 @@ function number(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
-function svgBackground(svg) {
-  const normalized = String(svg || '')
-    .replace(/<\?xml[\s\S]*?\?>/gi, '')
-    .replace(/<!doctype[\s\S]*?>/gi, '')
-    .trim()
-  return normalized
-    ? `url("data:image/svg+xml;charset=UTF-8,${encodeURIComponent(normalized)}")`
-    : ''
-}
 
 function valueOf(source, camelKey, pascalKey, fallback = undefined) {
   return source?.[camelKey] ?? source?.[pascalKey] ?? fallback
@@ -902,7 +903,7 @@ async function confirmSubmit() {
     }
     cartStore.optimisticRemove(orderedCartIds)
 
-    if (paymentMode.value === PAYMENT_MODE.COMBINATION) {
+    if (paymentMode.value === PAYMENT_MODE.COMBINATION || paymentMode.value === PAYMENT_MODE.CREDIT) {
       const paymentPlans = buildPaymentPlans(createdOrders)
       for (const plan of paymentPlans) {
         await confirmDealerOrderPayment({
@@ -965,6 +966,16 @@ function confirmGiftOmission(message) {
 }
 
 function buildPaymentPlans(orders) {
+  if (paymentMode.value === PAYMENT_MODE.CREDIT) {
+    return orders.filter(order => number(order.payableAmount) > 0).map(order => ({
+      orderId: order.orderId,
+      allocations: [{
+        payMethod: 'credit',
+        accountCustomerId: null,
+        amount: number(order.payableAmount),
+      }],
+    }))
+  }
   const sources = buildAllocations().map(source => ({
     ...source,
     remainingCents: Math.round(number(source.amount) * 100),
@@ -1527,23 +1538,6 @@ function handleStateAction() {
   background: #F5F6F8;
 }
 
-.payment-asset-icon,
-.channel-asset-icon {
-  flex: none;
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: contain;
-}
-
-.payment-asset-icon {
-  width: 25px;
-  height: 25px;
-}
-
-.channel-asset-icon {
-  width: 21px;
-  height: 21px;
-}
 
 .choice-copy {
   display: flex;
@@ -1692,18 +1686,19 @@ function handleStateAction() {
 .channel-option {
   display: flex;
   min-width: 0;
-  height: 42px;
+  height: 48px;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
+  justify-content: space-between;
+  gap: 10px;
   margin: 0;
-  padding: 0 8px;
+  padding: 0 14px;
   border: 1px solid var(--color-border, #E4E6EB);
   border-radius: 10px;
   color: var(--color-text-secondary, #676A73);
   background: #FFFFFF;
-  font-size: 11px;
+  font-size: 13px;
   white-space: nowrap;
+  text-align: left;
 
   &::after {
     border: 0;
@@ -1715,6 +1710,33 @@ function handleStateAction() {
     background: #FFFFFF;
     box-shadow: inset 0 0 0 1px rgba(215, 25, 45, 0.14);
   }
+}
+
+.channel-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.channel-radio {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  place-items: center;
+  color: #FFFFFF;
+  background: #FFFFFF;
+  border: 1px solid var(--color-border-strong, #D2D4D9);
+  border-radius: 50%;
+  font-size: 11px;
+  box-sizing: border-box;
+}
+
+.channel-option.active .channel-radio {
+  background: var(--color-brand, #D7192D);
+  border-color: var(--color-brand, #D7192D);
 }
 
 .detail-card {
@@ -1973,6 +1995,10 @@ function handleStateAction() {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .channel-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .section-card {
     border-radius: 18px;
   }
@@ -2012,7 +2038,6 @@ function handleStateAction() {
   }
 
   .channel-option {
-    justify-content: flex-start;
     padding: 0 12px;
   }
 

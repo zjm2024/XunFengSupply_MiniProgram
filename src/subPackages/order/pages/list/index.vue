@@ -131,7 +131,7 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { ORDER_STATUS, ORDER_STATUS_MAP } from '@/app/config/constant.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
-import { cancelOrder, generateClientRequestId, getOrderList } from '@/subPackages/order/api/orderApi.js'
+import { getOrderList } from '@/subPackages/order/api/orderApi.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -297,22 +297,9 @@ function handleAction(key, order) {
     navigator.navigateTo(routes.order.detail(order.orderId))
     return
   }
-  if (key !== 'cancel') return
-  uni.showModal({
-    title: '取消订单',
-    content: `确定取消订单 ${order.orderNo} 吗？`,
-    confirmText: '确认取消',
-    success: async result => {
-      if (!result.confirm) return
-      try {
-        await cancelOrder({ orderId: order.orderId, clientRequestId: generateClientRequestId() })
-        uni.showToast({ title: '订单已取消', icon: 'success' })
-        resetAndLoad()
-      } catch (error) {
-        uni.showToast({ title: error?.message || '取消失败', icon: 'none' })
-      }
-    },
-  })
+  if (key === 'cancel') {
+    navigator.navigateTo(routes.order.cancelOrder(order.orderId, { orderNo: order.orderNo || '' }))
+  }
 }
 </script>
 
@@ -357,7 +344,15 @@ function handleAction(key, order) {
 .skeleton-line.short { width: 42%; }.skeleton-line.medium { width: 68%; }.skeleton-line.tiny { width: 28%; margin: 0; }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media screen and (min-width: 720px) {
-  .order-grid, .skeleton-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 15px; }
+  .order-page { max-width: 760px; }
   .filter-panel { padding-top: 7px; }
+  .order-card { padding: 20px; }
+  .goods-preview { grid-template-columns: 84px minmax(0,1fr); gap: 16px; }
+  .goods-img { width: 84px; height: 84px; }
+}
+
+@media screen and (min-width: 1024px) {
+  .order-page { max-width: 820px; }
+  .order-grid { gap: 14px; }
 }
 </style>

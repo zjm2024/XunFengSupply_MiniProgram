@@ -1,4 +1,4 @@
-﻿<!--
+﻿﻿<!--
   订单详情页面（分包：orderSub）
   对应业务流程节点：
   订单履约发货 → 查看完整订单详情、物流轨迹、操作日志
@@ -51,7 +51,9 @@
               v-for="item in detail.items"
               :key="item.orderItemId"
             >
-              <AppProductImage class="goods-image" :src="item.imageUrl" mode="aspectFill" />
+              <view class="goods-image-link" @click="goToProductDetail(item)">
+                <AppProductImage class="goods-image" :src="item.imageUrl" mode="aspectFill" />
+              </view>
               <view class="goods-info">
                 <text class="goods-name">{{ item.productName }}</text>
                 <text class="sku-name">{{ item.skuName }}</text>
@@ -76,7 +78,7 @@
             </view>
             <view class="info-row">
               <text class="info-label">结算方式</text>
-              <text class="info-value">{{ detail.paymentMode === PAYMENT_MODE.CASH ? '现款支付' : '授信赊账' }}</text>
+              <text class="info-value">{{ paymentModeText(detail.paymentMode) }}</text>
             </view>
             <view class="info-row" v-if="detail.customerRemark">
               <text class="info-label">发货备注</text>
@@ -155,7 +157,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getOrderDetail, cancelOrder, confirmReceipt, generateClientRequestId } from '../../api/orderApi.js'
+import { getOrderDetail, confirmReceipt, generateClientRequestId } from '../../api/orderApi.js'
 import { ORDER_STATUS, ORDER_STATUS_MAP, PAYMENT_MODE } from '@/app/config/constant.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -266,6 +268,14 @@ function getStatusLogText(log) {
   return `${prefix}状态变更为 ${log.toStatus}${remark}`
 }
 
+function paymentModeText(mode) {
+  return ({
+    [PAYMENT_MODE.CASH]: '现款支付',
+    [PAYMENT_MODE.CREDIT]: '授信支付',
+    [PAYMENT_MODE.COMBINATION]: '账户组合支付',
+  })[Number(mode)] || '未知方式'
+}
+
 /**
  * 格式化时间
  */
@@ -280,30 +290,22 @@ function copyText(text) {
   uni.setClipboardData({ data: text })
 }
 
+/**
+ * 跳转商品详情
+ */
+function goToProductDetail(item) {
+  const productId = item.productId || item.ProductId
+  if (!productId) return
+  navigator.navigateTo(routes.commerce.productDetail(productId))
+}
+
 async function handleAction(key) {
   switch (key) {
     case 'pay':
       navigator.navigateTo(routes.order.pay(orderId.value))
       break
     case 'cancel':
-      uni.showModal({
-        title: '提示',
-        content: '确定要取消该订单吗？',
-        success: async (res) => {
-          if (res.confirm) {
-            try {
-              await cancelOrder({
-                orderId: orderId.value,
-                clientRequestId: generateClientRequestId(),
-              })
-              uni.showToast({ title: '取消成功', icon: 'success' })
-              setTimeout(() => loadOrderDetail(), 1000)
-            } catch (e) {
-              uni.showToast({ title: e.message || '取消失败', icon: 'none' })
-            }
-          }
-        }
-      })
+      navigator.navigateTo(routes.order.cancelOrder(orderId.value))
       break
     case 'receive':
       uni.showModal({
@@ -448,11 +450,20 @@ async function handleAction(key) {
 
   &:last-child { border-bottom: none; }
 
+  .goods-image-link {
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: opacity 150ms ease;
+
+    &:active {
+      opacity: 0.75;
+    }
+  }
+
   .goods-image {
     width: 150rpx;
     height: 150rpx;
     border-radius: 8rpx;
-    flex-shrink: 0;
   }
 
   .goods-info {

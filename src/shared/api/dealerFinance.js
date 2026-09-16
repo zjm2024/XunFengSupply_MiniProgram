@@ -33,6 +33,7 @@ export function normalizeFinanceContext(result = {}) {
     credit: {
       creditAccountId: Number(credit.creditAccountId ?? credit.CreditAccountId ?? 0),
       totalAmount: Number(credit.totalAmount ?? credit.TotalAmount ?? 0),
+      reservedAmount: Number(credit.reservedAmount ?? credit.ReservedAmount ?? 0),
       usedAmount: Number(credit.usedAmount ?? credit.UsedAmount ?? 0),
       frozenAmount: Number(credit.frozenAmount ?? credit.FrozenAmount ?? 0),
       availableAmount: Number(credit.availableAmount ?? credit.AvailableAmount ?? 0),
@@ -79,5 +80,13 @@ export function confirmDealerOrderPayment(params = {}) {
         : null,
       Amount: Number(item.amount || 0),
     })),
+  })
+}
+
+export function repayDealerCreditFromBalance(params = {}) {
+  return dispatch('Finance', 'Mini.DealerFinanceController', 'RepayCreditFromBalance', {
+    AccountCustomerId: Number(params.accountCustomerId || 0),
+    Amount: Number(params.amount || 0),
+    ClientRequestId: params.clientRequestId,
   })
 }

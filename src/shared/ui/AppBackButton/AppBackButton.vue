@@ -3,7 +3,7 @@
     class="app-back-button"
     :class="[
       `theme-${theme}`,
-      { 'is-transparent': transparent },
+      { 'is-transparent': transparent, 'is-plain': plain },
     ]"
     hover-class="app-back-button--pressed"
     :hover-start-time="0"
@@ -19,6 +19,10 @@ import AppIcon from '../AppIcon/AppIcon.vue'
 
 defineProps({
   transparent: {
+    type: Boolean,
+    default: false,
+  },
+  plain: {
     type: Boolean,
     default: false,
   },
@@ -53,6 +57,18 @@ defineEmits(['click'])
   background: rgba(255, 255, 255, .84);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
+}
+
+.app-back-button.is-plain {
+  border-color: transparent;
+  background: transparent;
+}
+
+.app-back-button.is-plain.is-transparent {
+  border-color: transparent;
+  background: transparent;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 .app-back-button.theme-light {
