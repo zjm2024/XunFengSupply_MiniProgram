@@ -83,7 +83,7 @@
 import { ref, watch } from 'vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
-import { getGoodsList } from '@/subPackages/commerce/api/productApi.js'
+import { getGoodsList } from '@/shared/api/product.js'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppProductCard from '@/shared/ui/AppProductCard/AppProductCard.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'

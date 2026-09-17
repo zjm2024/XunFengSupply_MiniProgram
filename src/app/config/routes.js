@@ -45,6 +45,7 @@ export const CHECKOUT = '/subPackages/commerce/pages/checkout/index'
 export const ORDER_LIST = '/subPackages/order/pages/list/index'
 export const ORDER_DETAIL = '/subPackages/order/pages/detail/index'
 export const PAY_PAGE = '/subPackages/order/pages/pay/index'
+export const FULFILLMENT_SPLIT = '/subPackages/order/pages/split/index'
 export const APPLY_AFTER_SALE = '/subPackages/order/pages/after-sale/apply'
 export const AFTER_SALE_LIST = '/subPackages/order/pages/after-sale/list'
 export const CANCEL_ORDER = '/subPackages/order/pages/cancel/index'
@@ -86,7 +87,7 @@ export const REGISTERED_ROUTES = Object.freeze([
   STARTUP, HOME,
   LOGIN, APPLY_SIGN, AGREEMENT, ACCOUNT_STATUS,
   PRODUCT_LIST, PRODUCT_DETAIL, PRODUCT_VARIANTS, CART, CHECKOUT,
-  ORDER_LIST, ORDER_DETAIL, PAY_PAGE, APPLY_AFTER_SALE, AFTER_SALE_LIST, CANCEL_ORDER,
+  ORDER_LIST, ORDER_DETAIL, PAY_PAGE, FULFILLMENT_SPLIT, APPLY_AFTER_SALE, AFTER_SALE_LIST, CANCEL_ORDER,
   ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
   DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, SECURITY,
   RECHARGE, RECHARGE_RECORDS, FUND_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS,
@@ -209,6 +210,14 @@ export const ROUTE_META = Object.freeze({
   },
   [PAY_PAGE]: {
     title: '收银台',
+    requireAuth: true,
+    requireSign: true,
+    allowFrozen: false,
+    requiredPermission: 'ORDER_CREATE',
+    owner: null,
+  },
+  [FULFILLMENT_SPLIT]: {
+    title: '配送拆单',
     requireAuth: true,
     requireSign: true,
     allowFrozen: false,
@@ -601,6 +610,10 @@ export const routes = {
         ...(paymentMode ? { paymentMode } : null),
         ...(paymentChannel ? { paymentChannel } : null),
       })
+    },
+    fulfillmentSplit: (orderId) => {
+      const id = assertValidId(orderId, 'order.fulfillmentSplit')
+      return withQuery(FULFILLMENT_SPLIT, { orderId: id })
     },
     afterSaleApply: (orderId) => {
       const id = assertValidId(orderId, 'order.afterSaleApply')

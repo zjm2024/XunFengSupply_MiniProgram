@@ -40,7 +40,7 @@
 import { computed, watch } from 'vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
-import { useCart } from '@/subPackages/commerce/composables/useCart.js'
+import { useCart } from '@/shared/composables/useCart.js'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'

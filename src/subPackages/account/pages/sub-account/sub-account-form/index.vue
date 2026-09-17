@@ -113,6 +113,7 @@ import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import { createSubAccount, updateSubAccount, toggleSubAccountStatus } from '../../../api/subAccount.js'
 import { useUserStore } from '@/shared/session/userStore.js'
+import { navigator } from '@/app/navigation/navigator.js'
 const submitting = ref(false)
 const userStore = useUserStore()
 const isReadOnly = computed(() => userStore.isFrozen)
@@ -180,7 +181,7 @@ function onStatusSwitchChange(e) {
  * 返回上一页
  */
 function goBack() {
-  uni.navigateBack()
+  navigator.back()
 }
 
 /**
@@ -229,7 +230,7 @@ async function submitForm() {
       uni.showToast({ title: '创建成功', icon: 'success' })
     }
     setTimeout(() => {
-      uni.navigateBack()
+      navigator.back()
     }, 1000)
   } catch (err) {
     console.error('[SubAccountForm] 提交失败:', err)

@@ -389,7 +389,7 @@ import { onLoad } from '@dcloudio/uni-app'
 import { createOrder, generateClientRequestId, previewOrder } from '../../api/checkoutApi.js'
 import { removeItems } from '../../api/cartApi.js'
 import { getAddressList } from '../../../account/api/addressApi.js'
-import { useCart } from '../../composables/useCart.js'
+import { useCart } from '@/shared/composables/useCart.js'
 import { PAYMENT_MODE, DELIVERY_TYPE } from '@/app/config/constant.js'
 import { PageStatus } from '@/shared/model/pageState.js'
 import { useUserStore } from '@/shared/session/userStore.js'
@@ -403,7 +403,7 @@ import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
-import { confirmDealerOrderPayment, getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
+import { getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import { groupItemsBySpu } from '../../model/cartGrouping.js'
 const userStore = useUserStore()
 const { cartStore, loadCart, flush } = useCart()
@@ -903,33 +903,10 @@ async function confirmSubmit() {
     }
     cartStore.optimisticRemove(orderedCartIds)
 
-    if (paymentMode.value === PAYMENT_MODE.COMBINATION || paymentMode.value === PAYMENT_MODE.CREDIT) {
-      const paymentPlans = buildPaymentPlans(createdOrders)
-      for (const plan of paymentPlans) {
-        await confirmDealerOrderPayment({
-          orderId: plan.orderId,
-          clientRequestId: `${clientRequestId.value}_${plan.orderId}`,
-          allocations: plan.allocations,
-        })
-      }
-    }
-
-    const giftOmitted = valueOf(response, 'giftOmitted', 'GiftOmitted', false) === true
-    uni.showToast({ title: giftOmitted ? '订单已提交，缺货赠品已放弃' : '订单提交成功', icon: 'success' })
-    setTimeout(() => {
-      if (createdOrders.length > 1) {
-        navigator.redirectTo(routes.order.list({ status: paymentMode.value === PAYMENT_MODE.CASH ? 20 : undefined }))
-        return
-      }
-      if (paymentMode.value === PAYMENT_MODE.CASH) {
-        navigator.redirectTo(routes.order.pay(orderId, {
-          paymentMode: paymentMode.value,
-          paymentChannel: paymentChannel.value,
-        }))
-        return
-      }
-      navigator.redirectTo(routes.order.detail(orderId))
-    }, 600)
+    navigator.redirectTo(routes.order.pay(orderId, {
+      paymentMode: paymentMode.value,
+      paymentChannel: paymentChannel.value,
+    }))
   } catch (error) {
     if (createdOrders.length) {
       uni.showToast({ title: '订单已创建，支付未完成，请到订单中心继续处理', icon: 'none', duration: 2600 })
@@ -962,41 +939,6 @@ function confirmGiftOmission(message) {
       success: result => resolve(Boolean(result.confirm)),
       fail: () => resolve(false),
     })
-  })
-}
-
-function buildPaymentPlans(orders) {
-  if (paymentMode.value === PAYMENT_MODE.CREDIT) {
-    return orders.filter(order => number(order.payableAmount) > 0).map(order => ({
-      orderId: order.orderId,
-      allocations: [{
-        payMethod: 'credit',
-        accountCustomerId: null,
-        amount: number(order.payableAmount),
-      }],
-    }))
-  }
-  const sources = buildAllocations().map(source => ({
-    ...source,
-    remainingCents: Math.round(number(source.amount) * 100),
-  }))
-  return orders.filter(order => number(order.payableAmount) > 0).map(order => {
-    let requiredCents = Math.round(number(order.payableAmount) * 100)
-    const allocations = []
-    for (const source of sources) {
-      if (requiredCents <= 0) break
-      const usedCents = Math.min(requiredCents, source.remainingCents)
-      if (usedCents <= 0) continue
-      allocations.push({
-        payMethod: source.payMethod,
-        accountCustomerId: source.accountCustomerId,
-        amount: usedCents / 100,
-      })
-      source.remainingCents -= usedCents
-      requiredCents -= usedCents
-    }
-    if (requiredCents !== 0) throw new Error('订单支付金额分配失败，请返回订单中心继续支付')
-    return { orderId: order.orderId, allocations }
   })
 }
 

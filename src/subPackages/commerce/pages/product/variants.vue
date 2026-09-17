@@ -136,7 +136,7 @@
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getGoodsDetail } from '../../api/productApi.js'
-import { useCart } from '../../composables/useCart.js'
+import { useCart } from '@/shared/composables/useCart.js'
 import { navigator } from '../../../../app/navigation/navigator.js'
 import { routes } from '../../../../app/config/routes.js'
 import { PageStatus } from '../../../../shared/model/pageState.js'

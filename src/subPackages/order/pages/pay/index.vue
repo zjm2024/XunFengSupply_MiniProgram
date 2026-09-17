@@ -35,7 +35,7 @@
               :class="{ active: payType === 'alipay' }"
               @click="payType = 'alipay'"
             >
-              <view class="method-icon alipay"><text style="font-size:28px;color:#1677FF;">支</text></view>
+              <view class="method-icon alipay"><AppIcon name="pay-alipay" :size="28" use-original-color /></view>
               <text class="method-name">支付宝</text>
               <view class="check-circle" :class="{ checked: payType === 'alipay' }"></view>
             </view>
@@ -64,11 +64,11 @@
               </view>
               <view class="credit-row">
                 <text class="cr-label">当前可用额度</text>
-                <text class="cr-value">¥{{ Number(userStore.availableCreditLimit || 0).toFixed(2) }}</text>
+                <text class="cr-value">¥{{ availableCreditAmount.toFixed(2) }}</text>
               </view>
               <view class="credit-row">
                 <text class="cr-label">赊账后剩余额度</text>
-                <text class="cr-value warn">¥{{ Math.max(0, Number(userStore.availableCreditLimit || 0) - Number(payAmount || 0)).toFixed(2) }}</text>
+                <text class="cr-value warn">¥{{ Math.max(0, availableCreditAmount - Number(payAmount || 0)).toFixed(2) }}</text>
               </view>
               </view>
               <view class="credit-tips">
@@ -76,6 +76,17 @@
                 <text>赊账金额将计入本月账单，请于每月5日前完成还款</text>
               </view>
             </view>
+          </view>
+
+          <view v-if="payMode === PAYMENT_MODE.CASH" class="channel-notice">
+            <AppIcon name="info" :size="16" color="#B76500" />
+            <text>现款支付渠道尚未完成生产联调，当前不可发起支付。</text>
+          </view>
+
+          <view class="reserve-banner" :class="reserveStateClass">
+            <view class="reserve-indicator"><text v-if="!stockReady && !stockFailed" class="reserve-spinner"></text><AppIcon v-else :name="stockReady ? 'check' : 'warning'" :size="18" /></view>
+            <view class="reserve-copy"><text class="reserve-title">{{ reserveTitle }}</text><text class="reserve-desc">{{ reserveDescription }}</text></view>
+            <text v-if="!stockReady" class="refresh-link" @tap="loadOrderInfo">更新状态</text>
           </view>
 
           <view class="pay-methods" v-if="payMode === PAYMENT_MODE.COMBINATION">
@@ -108,9 +119,13 @@
           </view>
 
           <!-- 倒计时提示（待付款订单） -->
-          <view class="expire-tip" v-if="remainTime > 0">
+          <view class="expire-tip" v-if="!paymentExpired && remainTime > 0">
             <AppIcon name="clock" :size="14" color="#E6A23C" />
             <text>请在 <text class="time-highlight">{{ formatRemainTime }}</text> 内完成支付，超时订单将自动取消</text>
+          </view>
+          <view class="expire-tip is-expired" v-else-if="paymentExpired">
+            <AppIcon name="warning" :size="14" color="#C83B3B" />
+            <text>支付时间已结束，请返回订单详情查看最新处理状态</text>
           </view>
 
           <!-- 底部占位 -->
@@ -122,10 +137,10 @@
       <FixedActionBar>
         <button 
           class="confirm-pay-btn" 
-          :disabled="paying"
+          :disabled="paying || !orderPayable || stockFailed || paymentExpired || (payMode === PAYMENT_MODE.CASH && !cashPaymentAvailable)"
           @click="handleConfirmPay"
         >
-          {{ paying ? '支付中...' : (payMode === PAYMENT_MODE.CREDIT ? '确认授信支付' : '确认支付') }}
+          {{ paying ? '支付中...' : (paymentExpired ? '支付时间已结束' : (stockFailed ? '库存预占失败' : (payMode === PAYMENT_MODE.CASH && !cashPaymentAvailable ? '现款渠道暂未开放' : (payMode === PAYMENT_MODE.CREDIT ? '确认授信支付' : '确认支付')))) }}
         </button>
       </FixedActionBar>
     </template>
@@ -156,10 +171,17 @@ const payAmount = ref(0)    // 单位：元（后端返回元）
 const payType = ref('wechat') // wechat/alipay/bank-card
 const paying = ref(false)
 const remainTime = ref(0)   // 剩余时间（秒）
+const paymentExpired = ref(false)
 const finance = ref({ credit: {}, accounts: [] })
+const cashPaymentAvailable = false
 const selectedAccountIds = ref([])
 const allocationAmounts = ref({})
+const wmsReserveStatus = ref(0)
+const orderPayable = ref(true)
 let countdownTimer = null
+let expireHandled = false
+let serverTimeOffsetMs = 0
+let paymentExpiryAtMs = Number.NaN
 
 // 格式化剩余时间
 const formatRemainTime = computed(() => {
@@ -175,6 +197,14 @@ const availableAccounts = computed(() => (finance.value.accounts || []).filter(i
 const allocationTotal = computed(() => selectedAccountIds.value.reduce(
   (sum, id) => sum + Number(allocationAmounts.value[id] || 0), 0,
 ))
+const availableCreditAmount = computed(() => Math.max(0, Number(finance.value.credit?.availableAmount || 0)))
+const stockReady = computed(() => wmsReserveStatus.value === 2)
+const stockFailed = computed(() => wmsReserveStatus.value === 3)
+const reserveStateClass = computed(() => stockReady.value ? 'is-ready' : (stockFailed.value ? 'is-failed' : 'is-waiting'))
+const reserveTitle = computed(() => stockReady.value ? '库存预占成功' : (stockFailed.value ? '库存预占失败' : 'WMS 正在预占库存'))
+const reserveDescription = computed(() => stockReady.value
+  ? 'WMS 已确认库存预占'
+  : (stockFailed.value ? '当前订单不可支付，请返回订单详情处理或联系客户经理' : '本地库存已占用，可先完成支付；WMS 结果将异步更新'))
 
 onLoad(async (options) => {
   orderId.value = Number(options.orderId) || null
@@ -197,21 +227,67 @@ onUnmounted(() => {
   if (countdownTimer) clearInterval(countdownTimer)
 })
 
+/**
+ * 使用后端校准后的本地时钟刷新倒计时，避免应用切到后台后定时器暂停导致时间漂移。
+ */
 function startCountdown() {
+  if (countdownTimer || paymentExpired.value) return
   countdownTimer = setInterval(() => {
-    remainTime.value--
+    remainTime.value = Math.max(0, Math.ceil(
+      (paymentExpiryAtMs - (Date.now() + serverTimeOffsetMs)) / 1000,
+    ))
     if (remainTime.value <= 0) {
       clearInterval(countdownTimer)
-      uni.showModal({
-        title: '提示',
-        content: '订单已超时，请重新下单',
-        showCancel: false,
-        success: () => {
-          navigator.back()
-        }
-      })
+      countdownTimer = null
+      handlePaymentExpired()
     }
   }, 1000)
+}
+
+function handlePaymentExpired() {
+  paymentExpired.value = true
+  if (expireHandled) return
+  expireHandled = true
+  uni.showModal({
+    title: '支付时间已结束',
+    content: '该订单已超过 15 分钟支付期限，请到订单详情查看后端最终处理状态。',
+    showCancel: false,
+    success: () => {
+      navigator.redirectTo(routes.order.detail(orderId.value))
+    }
+  })
+}
+
+/**
+ * 订单已离开待付款状态时停止支付，并引导用户查看后端最终状态。
+ */
+function handlePaymentUnavailable() {
+  orderPayable.value = false
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+  uni.showModal({
+    title: '订单当前不可支付',
+    content: '订单状态已发生变化，请到订单详情查看处理结果。',
+    showCancel: false,
+    success: () => navigator.redirectTo(routes.order.detail(orderId.value)),
+  })
+}
+
+function syncPaymentCountdown(order) {
+  const explicitExpiryAt = order.paymentExpiresAt ? new Date(order.paymentExpiresAt).getTime() : Number.NaN
+  const createdAt = order.createdAt ? new Date(order.createdAt).getTime() : Number.NaN
+  paymentExpiryAtMs = Number.isNaN(explicitExpiryAt) ? createdAt + 15 * 60 * 1000 : explicitExpiryAt
+  if (Number.isNaN(paymentExpiryAtMs)) return
+  const serverAt = order.serverTime ? new Date(order.serverTime).getTime() : Number.NaN
+  if (!Number.isNaN(serverAt)) serverTimeOffsetMs = serverAt - Date.now()
+  remainTime.value = Math.max(0, Math.ceil((paymentExpiryAtMs - (Date.now() + serverTimeOffsetMs)) / 1000))
+  if (remainTime.value <= 0) {
+    handlePaymentExpired()
+  } else {
+    startCountdown()
+  }
 }
 
 /**
@@ -223,6 +299,12 @@ async function loadOrderInfo() {
     orderNo.value = res.orderNo || ''
     payAmount.value = Number(res.payableAmount || 0)
     payMode.value = res.paymentMode || payMode.value
+    wmsReserveStatus.value = Number(res.wmsReserveStatus || 0)
+    if (Number(res.orderStatus) !== ORDER_STATUS.PENDING_PAYMENT) {
+      handlePaymentUnavailable()
+      return
+    }
+    syncPaymentCountdown(res)
   } catch (e) {
     console.error('加载订单信息失败:', e)
     uni.showToast({ title: e.message || '加载订单信息失败', icon: 'none' })
@@ -234,11 +316,24 @@ async function loadOrderInfo() {
  * 授信与账户余额走内部确定性支付；现款支付等待外部支付渠道回调。
  */
 async function handleConfirmPay() {
+  if (!orderPayable.value) {
+    handlePaymentUnavailable()
+    return
+  }
+  if (paymentExpired.value || remainTime.value <= 0) {
+    handlePaymentExpired()
+    return
+  }
+  if (stockFailed.value) {
+    uni.showToast({ title: '库存预占失败，暂不能支付', icon: 'none' })
+    return
+  }
   paying.value = true
 
   try {
     if (payMode.value === PAYMENT_MODE.CREDIT) {
       if (Number(finance.value.credit?.status) !== 1) throw new Error('主体授信当前不可用')
+      if (Number(payAmount.value) > availableCreditAmount.value) throw new Error('订单金额超过主体剩余可用授信')
       await confirmDealerOrderPayment({
         orderId: orderId.value,
         clientRequestId: `credit-pay-${orderId.value}-${Date.now()}`,
@@ -247,6 +342,16 @@ async function handleConfirmPay() {
       return handlePaid()
     }
     if (payMode.value === PAYMENT_MODE.COMBINATION) {
+      if (selectedAccountIds.value.length === 0) throw new Error('请至少选择一个余额账户')
+      for (const id of selectedAccountIds.value) {
+        const account = availableAccounts.value.find(item => item.accountCustomerId === id)
+        const amount = Number(allocationAmounts.value[id])
+        if (!account) throw new Error('存在不可用的余额账户，请刷新后重试')
+        if (!Number.isFinite(amount) || amount <= 0) throw new Error('每个账户的分摊金额必须大于 0')
+        if (amount - Number(account.availableBalance || 0) > 0.005) {
+          throw new Error(`${account.isMaster ? '主账户' : (account.realName || account.username)}分摊金额超过可用余额`)
+        }
+      }
       if (Math.abs(allocationTotal.value - Number(payAmount.value)) >= 0.005) {
         throw new Error('账户分摊合计必须等于订单应付金额')
       }
@@ -261,7 +366,7 @@ async function handleConfirmPay() {
       })
       return handlePaid()
     }
-    uni.showModal({ title: '提示', content: '现款支付渠道正在对接中，请稍后再试或联系客服', showCancel: false })
+    throw new Error('现款支付渠道尚未完成生产联调')
   } catch (e) {
     console.error('支付失败:', e)
     uni.showToast({ title: e.message || '支付失败', icon: 'none' })
@@ -299,7 +404,7 @@ function autoAllocate() {
   }
 }
 function handlePaid() {
-  uni.showToast({ title: '支付成功', icon: 'success' })
+  uni.showToast({ title: stockReady.value ? '支付成功' : '支付成功，库存确认中', icon: 'success' })
   setTimeout(() => navigator.redirectTo(routes.order.detail(orderId.value)), 500)
 }
 </script>
@@ -406,6 +511,28 @@ function handlePaid() {
   }
 }
 
+.reserve-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 24rpx 16px;
+  padding: 14px 15px;
+  border-radius: 12px;
+  color: #676A73;
+  background: #FFFFFF;
+  box-shadow: 0 4px 16px rgba(17, 18, 22, 0.045);
+}
+.reserve-banner.is-ready { color: #327052; background: #F1F8F4; }
+.reserve-banner.is-failed { color: #A23A37; background: #FFF4F3; }
+.reserve-indicator { display: flex; width: 24px; height: 24px; flex: 0 0 24px; align-items: center; justify-content: center; }
+.reserve-copy { min-width: 0; flex: 1; }
+.reserve-title, .reserve-desc { display: block; }
+.reserve-title { color: #111216; font-size: 14px; font-weight: 650; }
+.reserve-desc { margin-top: 3px; font-size: 11px; line-height: 17px; }
+.refresh-link { color: #D7192D; font-size: 12px; }
+.reserve-spinner { width: 16px; height: 16px; border: 2px solid #E4E6EB; border-top-color: #D7192D; border-radius: 50%; animation: reserve-spin .8s linear infinite; }
+@keyframes reserve-spin { to { transform: rotate(360deg); } }
+
 .balance-source { display: flex; align-items: center; gap: 12px; min-height: 58px; border-top: 1px solid #EEF0F2; }
 .source-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 4px; color: #2A2E35; font-size: 13px; }
 .source-copy text + text { color: #92979F; font-size: 11px; }
@@ -498,7 +625,10 @@ function handlePaid() {
 .confirm-pay-btn {
   width: 100%;
   height: 92rpx;
-  line-height: 92rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
   background: var(--primary-color);
   color: #fff;
   font-size: 34rpx;
@@ -509,5 +639,18 @@ function handlePaid() {
   &[disabled] {
     opacity: 0.6;
   }
+}
+
+.channel-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 24rpx 24rpx;
+  padding: 12px 14px;
+  border: 1px solid #F1D4A8;
+  border-radius: 10px;
+  background: #FFF8EB;
+  color: #8A5200;
+  font-size: 14px;
 }
 </style>

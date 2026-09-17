@@ -111,7 +111,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
-import { useCart } from '../../composables/useCart.js'
+import { useCart } from '@/shared/composables/useCart.js'
 import { navigator } from '../../../../app/navigation/navigator.js'
 import { routes } from '../../../../app/config/routes.js'
 import { getCategoryList, getGoodsList } from '../../api/productApi.js'

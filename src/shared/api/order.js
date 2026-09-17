@@ -10,7 +10,7 @@
  * - 本文件负责转换为后端 PascalCase DTO
  * - 响应统一转换为 camelCase 领域模型
  */
-import { dispatch } from '../../../shared/api/dispatchClient.js'
+import { dispatch } from './dispatchClient.js'
 
 // ==================== 内部工具函数 ====================
 

@@ -151,6 +151,13 @@
                     }
                 },
                 {
+                    "path": "pages/split/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
                     "path": "pages/after-sale/apply",
                     "style": {
                         "navigationStyle": "custom",

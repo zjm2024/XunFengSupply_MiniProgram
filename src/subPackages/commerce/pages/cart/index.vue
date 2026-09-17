@@ -295,7 +295,7 @@
 <script setup>
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { onHide, onShow, onUnload } from '@dcloudio/uni-app'
-import { useCart } from '../../composables/useCart.js'
+import { useCart } from '@/shared/composables/useCart.js'
 import { PageStatus } from '../../../../shared/model/pageState.js'
 import { navigator } from '../../../../app/navigation/navigator.js'
 import { routes } from '../../../../app/config/routes.js'

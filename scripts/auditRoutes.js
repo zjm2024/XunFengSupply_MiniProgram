@@ -123,9 +123,9 @@ function checkUnregisteredPages(pagesJson) {
     if (!fs.existsSync(dir)) continue
     walkDir(dir, (filePath) => {
       if (!filePath.endsWith('.vue')) return
-      // 跳过 components 子目录（局部组件不需要在 pages.json 注册）
+      // 跳过 components/tabs 子目录（局部组件不需要在 pages.json 注册）
       const relForComponentCheck = path.relative(ROOT, filePath).replace(/\\/g, '/')
-      if (/\/components\//.test(relForComponentCheck)) return
+      if (/\/(components|tabs)\//.test(relForComponentCheck)) return
       const rel = relForComponentCheck.replace(/\.vue$/, '')
       if (!registeredSet.has(rel)) {
         warn(`页面文件未在 pages.json 注册: ${rel}`)

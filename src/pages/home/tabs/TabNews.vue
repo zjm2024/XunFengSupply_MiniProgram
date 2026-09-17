@@ -43,7 +43,7 @@
 import { ref, watch } from 'vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
-import { getNewsList } from '@/subPackages/content/api/news.js'
+import { getNewsList } from '@/shared/api/news.js'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import noNotificationSvg from '../../../shared/assets/illustrations/no-notification.svg?raw'

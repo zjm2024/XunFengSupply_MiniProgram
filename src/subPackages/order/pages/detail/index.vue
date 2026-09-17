@@ -227,8 +227,12 @@ const actionButtons = computed(() => {
     return detail.value.allowedActions.map(action => {
       const actionMap = {
         'pay': { key: 'pay', label: '立即付款', type: 'primary' },
+        'waitStock': { key: 'waitStock', label: '等待库存预占', type: 'disabled' },
+        'splitFulfillment': { key: 'splitFulfillment', label: '安排多地配送', type: 'primary' },
+        'viewFulfillmentSplits': { key: 'splitFulfillment', label: '查看配送单', type: 'default' },
         'cancel': { key: 'cancel', label: '取消订单', type: 'default' },
         'confirm_receipt': { key: 'receive', label: '确认收货', type: 'primary' },
+        'confirmReceipt': { key: 'receive', label: '确认收货', type: 'primary' },
         'logistics': { key: 'logistics', label: '查看物流', type: 'default' },
         'after_sale': { key: 'afterSale', label: '申请售后', type: 'default' },
       }
@@ -304,6 +308,13 @@ async function handleAction(key) {
     case 'pay':
       navigator.navigateTo(routes.order.pay(orderId.value))
       break
+    case 'waitStock':
+      uni.showToast({ title: 'WMS 正在预占库存，请稍后刷新', icon: 'none' })
+      loadOrderDetail()
+      break
+    case 'splitFulfillment':
+      navigator.navigateTo(routes.order.fulfillmentSplit(orderId.value))
+      break
     case 'cancel':
       navigator.navigateTo(routes.order.cancelOrder(orderId.value))
       break
@@ -347,26 +358,26 @@ async function handleAction(key) {
 .order-initializing { min-height: 68vh; }
 
 .status-header {
-  padding: 40rpx 32rpx;
-  color: #fff;
+  margin: 12px;
+  padding: 20px 18px;
+  color: var(--text-primary);
+  background: #fff;
+  border: 1px solid rgba(215, 25, 45, 0.16);
+  border-left: 4px solid var(--primary-color);
+  border-radius: 14px;
 
-  &.status-10, &.status-20 { background: linear-gradient(135deg, #E6A23C, #F5DAB1); }
-  &.status-11 { background: linear-gradient(135deg, #F56C6C, #FDE2E2); }
-  &.status-40 { background: linear-gradient(135deg, #409EFF, #B3D8FF); }
-  &.status-60 { background: linear-gradient(135deg, #67C23A, #C2E7B0); }
-  &.status-90 { background: linear-gradient(135deg, #E6A23C, #F5DAB1); }
-  &.status-91 { background: linear-gradient(135deg, #909399, #D3D4D6); }
+  &.status-11, &.status-91 { border-left-color: #8B8E96; }
 
   .status-text {
     display: block;
-    font-size: 36rpx;
+    font-size: 22px;
     font-weight: 700;
     margin-bottom: 10rpx;
   }
 
   .status-desc {
-    font-size: 26rpx;
-    opacity: 0.9;
+    font-size: 14px;
+    color: var(--text-secondary);
   }
 }
 
@@ -578,7 +589,10 @@ async function handleAction(key) {
 .action-btn {
   min-width: 180rpx;
   height: 68rpx;
-  line-height: 68rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
   font-size: 28rpx;
   border-radius: 34rpx;
   border: none;
