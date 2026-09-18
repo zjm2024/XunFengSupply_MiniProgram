@@ -11,11 +11,25 @@
     <template #content>
       <AppContent>
         <view class="pay-page">
-          <!-- 支付金额展示 -->
+          <!-- 支付金额与付款时限 -->
           <view class="amount-section">
             <text class="pay-label">{{ payMode === 1 ? '应付金额' : '赊账金额' }}</text>
             <text class="amount">¥{{ Number(payAmount || 0).toFixed(2) }}</text>
-            <text class="order-no">订单号: {{ orderNo }}</text>
+            <text class="order-no">订单号 {{ orderNo }}</text>
+            <view v-if="!paymentExpired && remainTime > 0" class="deadline-panel">
+              <view class="deadline-copy">
+                <text class="deadline-label">剩余支付时间</text>
+                <text class="deadline-note">逾期订单将自动关闭</text>
+              </view>
+              <text class="deadline-time">{{ formatRemainTime }}</text>
+            </view>
+            <view v-else-if="paymentExpired" class="deadline-panel is-expired">
+              <view class="deadline-copy">
+                <text class="deadline-label">支付时间已结束</text>
+                <text class="deadline-note">请返回订单详情查看处理结果</text>
+              </view>
+              <AppIcon name="warning" :size="18" color="#B42318" />
+            </view>
           </view>
 
           <!-- 现款支付方式 -->
@@ -55,7 +69,7 @@
             <view class="credit-card-display">
               <view class="credit-header">
                 <text class="credit-title">授信账户</text>
-                <text class="credit-level">{{ userStore.creditLevel }}</text>
+                <text v-if="userStore.creditLevel" class="credit-level">{{ userStore.creditLevel }}</text>
               </view>
               <view class="credit-rows">
             <view class="credit-row">
@@ -80,13 +94,7 @@
 
           <view v-if="payMode === PAYMENT_MODE.CASH" class="channel-notice">
             <AppIcon name="info" :size="16" color="#B76500" />
-            <text>现款支付渠道尚未完成生产联调，当前不可发起支付。</text>
-          </view>
-
-          <view class="reserve-banner" :class="reserveStateClass">
-            <view class="reserve-indicator"><text v-if="!stockReady && !stockFailed" class="reserve-spinner"></text><AppIcon v-else :name="stockReady ? 'check' : 'warning'" :size="18" /></view>
-            <view class="reserve-copy"><text class="reserve-title">{{ reserveTitle }}</text><text class="reserve-desc">{{ reserveDescription }}</text></view>
-            <text v-if="!stockReady" class="refresh-link" @tap="loadOrderInfo">更新状态</text>
+            <text>当前订单暂不支持在线付款，请联系客户经理处理。</text>
           </view>
 
           <view class="pay-methods" v-if="payMode === PAYMENT_MODE.COMBINATION">
@@ -118,18 +126,8 @@
             </view>
           </view>
 
-          <!-- 倒计时提示（待付款订单） -->
-          <view class="expire-tip" v-if="!paymentExpired && remainTime > 0">
-            <AppIcon name="clock" :size="14" color="#E6A23C" />
-            <text>请在 <text class="time-highlight">{{ formatRemainTime }}</text> 内完成支付，超时订单将自动取消</text>
-          </view>
-          <view class="expire-tip is-expired" v-else-if="paymentExpired">
-            <AppIcon name="warning" :size="14" color="#C83B3B" />
-            <text>支付时间已结束，请返回订单详情查看最新处理状态</text>
-          </view>
-
           <!-- 底部占位 -->
-          <view style="height: 140rpx;" />
+          <view class="bottom-space" />
         </view>
       </AppContent>
     </template>
@@ -137,10 +135,10 @@
       <FixedActionBar>
         <button 
           class="confirm-pay-btn" 
-          :disabled="paying || !orderPayable || stockFailed || paymentExpired || (payMode === PAYMENT_MODE.CASH && !cashPaymentAvailable)"
+          :disabled="paying || !orderPayable || paymentExpired || (payMode === PAYMENT_MODE.CASH && !cashPaymentAvailable)"
           @click="handleConfirmPay"
         >
-          {{ paying ? '支付中...' : (paymentExpired ? '支付时间已结束' : (stockFailed ? '库存预占失败' : (payMode === PAYMENT_MODE.CASH && !cashPaymentAvailable ? '现款渠道暂未开放' : (payMode === PAYMENT_MODE.CREDIT ? '确认授信支付' : '确认支付')))) }}
+          {{ paying ? '支付中...' : (paymentExpired ? '支付时间已结束' : (payMode === PAYMENT_MODE.CASH && !cashPaymentAvailable ? '暂不支持在线付款' : (payMode === PAYMENT_MODE.CREDIT ? '确认授信支付' : '确认支付'))) }}
         </button>
       </FixedActionBar>
     </template>
@@ -176,20 +174,18 @@ const finance = ref({ credit: {}, accounts: [] })
 const cashPaymentAvailable = false
 const selectedAccountIds = ref([])
 const allocationAmounts = ref({})
-const wmsReserveStatus = ref(0)
 const orderPayable = ref(true)
 let countdownTimer = null
 let expireHandled = false
 let serverTimeOffsetMs = 0
 let paymentExpiryAtMs = Number.NaN
 
-// 格式化剩余时间
+/** 将十五分钟付款时限格式化为移动端易读的“分:秒”。 */
 const formatRemainTime = computed(() => {
-  if (remainTime.value <= 0) return '00:00:00'
-  const h = Math.floor(remainTime.value / 3600)
-  const m = Math.floor((remainTime.value % 3600) / 60)
+  if (remainTime.value <= 0) return '00:00'
+  const m = Math.floor(remainTime.value / 60)
   const s = remainTime.value % 60
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 })
 const availableAccounts = computed(() => (finance.value.accounts || []).filter(item =>
   item.accountStatus === 1 && item.financeStatus === 1 && item.canParticipateCombinationPay,
@@ -198,14 +194,6 @@ const allocationTotal = computed(() => selectedAccountIds.value.reduce(
   (sum, id) => sum + Number(allocationAmounts.value[id] || 0), 0,
 ))
 const availableCreditAmount = computed(() => Math.max(0, Number(finance.value.credit?.availableAmount || 0)))
-const stockReady = computed(() => wmsReserveStatus.value === 2)
-const stockFailed = computed(() => wmsReserveStatus.value === 3)
-const reserveStateClass = computed(() => stockReady.value ? 'is-ready' : (stockFailed.value ? 'is-failed' : 'is-waiting'))
-const reserveTitle = computed(() => stockReady.value ? '库存预占成功' : (stockFailed.value ? '库存预占失败' : 'WMS 正在预占库存'))
-const reserveDescription = computed(() => stockReady.value
-  ? 'WMS 已确认库存预占'
-  : (stockFailed.value ? '当前订单不可支付，请返回订单详情处理或联系客户经理' : '本地库存已占用，可先完成支付；WMS 结果将异步更新'))
-
 onLoad(async (options) => {
   orderId.value = Number(options.orderId) || null
   payMode.value = Number(options.paymentMode) || PAYMENT_MODE.CASH
@@ -299,7 +287,6 @@ async function loadOrderInfo() {
     orderNo.value = res.orderNo || ''
     payAmount.value = Number(res.payableAmount || 0)
     payMode.value = res.paymentMode || payMode.value
-    wmsReserveStatus.value = Number(res.wmsReserveStatus || 0)
     if (Number(res.orderStatus) !== ORDER_STATUS.PENDING_PAYMENT) {
       handlePaymentUnavailable()
       return
@@ -322,10 +309,6 @@ async function handleConfirmPay() {
   }
   if (paymentExpired.value || remainTime.value <= 0) {
     handlePaymentExpired()
-    return
-  }
-  if (stockFailed.value) {
-    uni.showToast({ title: '库存预占失败，暂不能支付', icon: 'none' })
     return
   }
   paying.value = true
@@ -404,253 +387,56 @@ function autoAllocate() {
   }
 }
 function handlePaid() {
-  uni.showToast({ title: stockReady.value ? '支付成功' : '支付成功，库存确认中', icon: 'success' })
+  uni.showToast({ title: '支付成功', icon: 'success' })
   setTimeout(() => navigator.redirectTo(routes.order.detail(orderId.value)), 500)
 }
 </script>
 
 <style lang="scss" scoped>
-.pay-page {
-  min-height: 100%;
-  background: var(--bg-color);
-}
-
-.amount-section {
-  text-align: center;
-  padding: 40rpx 32rpx;
-  background: linear-gradient(135deg, #C41E3A 0%, #9A1729 100%);
-  border-radius: 12rpx;
-  margin: 16rpx 24rpx;
-  
-  .pay-label {
-    display: block;
-    font-size: 28rpx;
-    color: rgba(255,255,255,0.8);
-    margin-bottom: 16rpx;
-  }
-  
-  .amount {
-    display: block;
-    font-size: 64rpx;
-    font-weight: 700;
-    color: #fff;
-    margin-bottom: 12rpx;
-  }
-  
-  .order-no {
-    font-size: 24rpx;
-    color: rgba(255,255,255,0.6);
-  }
-}
-
-.pay-methods, .credit-info {
-  background: #fff;
-  margin: 24rpx;
-  border-radius: 12rpx;
-  padding: 28rpx 32rpx;
-  
-  .method-title {
-    font-size: 30rpx;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 24rpx;
-  }
-}
-
-.method-item {
-  display: flex;
-  align-items: center;
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid var(--border-color);
-  
-  &:last-child { border-bottom: none; }
-  
-  &.active .method-name { color: var(--primary-color); }
-  
-  .method-icon {
-    width: 64rpx;
-    height: 64rpx;
-    border-radius: 12rpx;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 20rpx;
-    
-    &.wechat { background: #07C160; color: #fff; }
-    &.alipay { background: #E8F1FF; }
-    &.bank-card { background: #F2F3F5; color: #4E5664; }
-  }
-  
-  .method-name {
-    flex: 1;
-    font-size: 30rpx;
-    color: var(--text-primary);
-  }
-  
-  .check-circle {
-    width: 40rpx;
-    height: 40rpx;
-    border-radius: 50%;
-    border: 2rpx solid var(--border-color);
-    
-    &.checked {
-      background: var(--primary-color);
-      border-color: var(--primary-color);
-      position: relative;
-      
-      &::after {
-        content: '✓';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        color: #fff;
-        font-size: 24rpx;
-      }
-    }
-  }
-}
-
-.reserve-banner {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 12px 24rpx 16px;
-  padding: 14px 15px;
-  border-radius: 12px;
-  color: #676A73;
-  background: #FFFFFF;
-  box-shadow: 0 4px 16px rgba(17, 18, 22, 0.045);
-}
-.reserve-banner.is-ready { color: #327052; background: #F1F8F4; }
-.reserve-banner.is-failed { color: #A23A37; background: #FFF4F3; }
-.reserve-indicator { display: flex; width: 24px; height: 24px; flex: 0 0 24px; align-items: center; justify-content: center; }
-.reserve-copy { min-width: 0; flex: 1; }
-.reserve-title, .reserve-desc { display: block; }
-.reserve-title { color: #111216; font-size: 14px; font-weight: 650; }
-.reserve-desc { margin-top: 3px; font-size: 11px; line-height: 17px; }
-.refresh-link { color: #D7192D; font-size: 12px; }
-.reserve-spinner { width: 16px; height: 16px; border: 2px solid #E4E6EB; border-top-color: #D7192D; border-radius: 50%; animation: reserve-spin .8s linear infinite; }
-@keyframes reserve-spin { to { transform: rotate(360deg); } }
-
-.balance-source { display: flex; align-items: center; gap: 12px; min-height: 58px; border-top: 1px solid #EEF0F2; }
-.source-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 4px; color: #2A2E35; font-size: 13px; }
-.source-copy text + text { color: #92979F; font-size: 11px; }
-.source-input { width: 96px; height: 34px; box-sizing: border-box; border: 1px solid #DDE0E4; border-radius: 9px; padding: 0 9px; text-align: right; }
-.allocation-summary { display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid #EEF0F2; color: #555B64; font-size: 12px; }
-
-.credit-card-display {
-  .credit-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24rpx;
-    
-    .credit-title {
-      font-size: 30rpx;
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    
-    .credit-level {
-      font-size: 24rpx;
-      color: var(--primary-color);
-      background: rgba(196, 30, 58, 0.08);
-      padding: 4rpx 16rpx;
-      border-radius: 16rpx;
-    }
-  }
-  
-  .credit-rows {
-    .credit-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 16rpx 0;
-      border-bottom: 1rpx solid var(--border-color);
-      
-      &:last-child { border-bottom: none; }
-      
-      .cr-label {
-        font-size: 28rpx;
-        color: var(--text-secondary);
-      }
-      
-      .cr-value {
-        font-size: 30rpx;
-        font-weight: 600;
-        color: var(--text-primary);
-        
-        &.primary { color: var(--primary-color); }
-        &.warn { color: #E6A23C; }
-      }
-    }
-  }
-  
-  .credit-tips {
-    display: flex;
-    align-items: flex-start;
-    margin-top: 20rpx;
-    padding: 16rpx;
-    background: var(--bg-color);
-    border-radius: 8rpx;
-    
-    text {
-      font-size: 22rpx;
-      color: var(--text-placeholder);
-      margin-left: 8rpx;
-      line-height: 1.5;
-    }
-  }
-}
-
-.expire-tip {
-  display: flex;
-  align-items: center;
-  margin: 0 24rpx;
-  padding: 20rpx 24rpx;
-  background: #FDF6EC;
-  border-radius: 8rpx;
-  
-  text {
-    font-size: 24rpx;
-    color: #E6A23C;
-    margin-left: 8rpx;
-    
-    .time-highlight {
-      font-weight: 700;
-    }
-  }
-}
-
-.confirm-pay-btn {
-  width: 100%;
-  height: 92rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1.2;
-  background: var(--primary-color);
-  color: #fff;
-  font-size: 34rpx;
-  font-weight: 600;
-  border-radius: 46rpx;
-  border: none;
-  
-  &[disabled] {
-    opacity: 0.6;
-  }
-}
-
-.channel-notice {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 24rpx 24rpx;
-  padding: 12px 14px;
-  border: 1px solid #F1D4A8;
-  border-radius: 10px;
-  background: #FFF8EB;
-  color: #8A5200;
-  font-size: 14px;
-}
+.pay-page { width: 100%; max-width: 760px; min-height: 100%; margin: 0 auto; padding: 12px 14px 28px; box-sizing: border-box; }
+.amount-section { padding: 24px 20px 18px; border-radius: var(--radius-feature, 18px); color: #FFF; background: linear-gradient(145deg, #C9152B 0%, #A50F22 100%); box-shadow: 0 12px 28px rgba(174, 20, 38, .16); text-align: center; }
+.pay-label, .amount, .order-no, .deadline-label, .deadline-note { display: block; }
+.pay-label { color: rgba(255,255,255,.8); font-size: var(--type-caption-size, 12px); }
+.amount { margin-top: 8px; font-size: 34px; font-weight: 760; line-height: 44px; font-variant-numeric: tabular-nums; letter-spacing: -.5px; }
+.order-no { margin-top: 5px; color: rgba(255,255,255,.68); font-size: var(--type-micro-size, 11px); }
+.deadline-panel { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 20px; padding: 12px 14px; border: 1px solid rgba(255,255,255,.2); border-radius: var(--radius-control, 10px); background: rgba(255,255,255,.11); text-align: left; }
+.deadline-panel.is-expired { color: #B42318; background: #FFF; }
+.deadline-copy { min-width: 0; }
+.deadline-label { font-size: var(--type-body-small-size, 13px); font-weight: 700; }
+.deadline-note { margin-top: 2px; color: rgba(255,255,255,.7); font-size: var(--type-micro-size, 11px); }
+.deadline-panel.is-expired .deadline-note { color: #8B5A55; }
+.deadline-time { flex: 0 0 auto; font-size: 25px; font-weight: 760; font-variant-numeric: tabular-nums; letter-spacing: .5px; }
+.pay-methods, .credit-info { margin-top: 14px; padding: 17px 16px; border-radius: var(--radius-card, 14px); background: var(--surface-card, #FFF); box-shadow: var(--shadow-sm); }
+.method-title, .credit-title { color: var(--type-title-color); font-size: var(--type-card-title-size, 16px); font-weight: 700; }
+.method-item { display: flex; min-height: 58px; align-items: center; border-bottom: 1px solid #EEF0F2; }
+.method-item:last-child { border-bottom: 0; }
+.method-item.active .method-name { color: var(--color-brand, #D7192D); font-weight: 650; }
+.method-icon { display: flex; width: 36px; height: 36px; flex: 0 0 36px; align-items: center; justify-content: center; margin-right: 12px; border-radius: var(--radius-control, 10px); }
+.method-icon.wechat { color: #FFF; background: #07C160; }
+.method-icon.alipay { background: #EAF3FF; }
+.method-icon.bank-card { color: #4E5664; background: #F2F3F5; }
+.method-name { min-width: 0; flex: 1; color: var(--type-body-color); font-size: var(--type-body-size, 14px); }
+.check-circle { position: relative; width: 20px; height: 20px; border: 1px solid var(--color-border, #DDE0E4); border-radius: 50%; box-sizing: border-box; }
+.check-circle.checked { border-color: var(--color-brand, #D7192D); background: var(--color-brand, #D7192D); }
+.check-circle.checked::after { content: '✓'; position: absolute; top: 50%; left: 50%; color: #FFF; font-size: 12px; transform: translate(-50%, -52%); }
+.credit-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.credit-level { padding: 3px 9px; border-radius: var(--radius-full, 999px); color: var(--color-brand, #D7192D); background: #FFF0F2; font-size: var(--type-micro-size, 11px); }
+.credit-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 44px; border-bottom: 1px solid #EEF0F2; }
+.credit-row:last-child { border-bottom: 0; }
+.cr-label { color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); }
+.cr-value { color: var(--type-title-color); font-size: var(--type-body-size, 14px); font-weight: 650; font-variant-numeric: tabular-nums; }
+.cr-value.primary { color: var(--color-brand, #D7192D); }
+.cr-value.warn { color: #9A5A00; }
+.credit-tips { display: flex; align-items: flex-start; gap: 7px; margin-top: 12px; padding: 10px 11px; border-radius: var(--radius-control, 10px); background: var(--surface-subtle, #F7F8FA); }
+.credit-tips text { color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); line-height: var(--type-micro-line-height, 16px); }
+.balance-source { display: flex; min-height: 58px; align-items: center; gap: 10px; border-top: 1px solid #EEF0F2; }
+.source-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3px; color: var(--type-body-color); font-size: var(--type-body-small-size, 13px); }
+.source-copy text + text { color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
+.source-input { width: 92px; height: 36px; padding: 0 9px; border: 1px solid var(--color-border); border-radius: var(--radius-control); box-sizing: border-box; background: var(--surface-subtle); font-size: var(--type-body-size); text-align: right; }
+.allocation-summary { display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid #EEF0F2; color: var(--type-secondary-color); font-size: var(--type-caption-size, 12px); }
+.channel-notice { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; padding: 12px 14px; border-radius: var(--radius-control, 10px); color: #8A5200; background: #FFF8EB; font-size: var(--type-body-small-size, 13px); line-height: 20px; }
+.bottom-space { height: 74px; }
+.confirm-pay-btn { display: flex; width: 100%; height: 48px; align-items: center; justify-content: center; margin: 0; border: 0; border-radius: var(--radius-card, 14px); color: #FFF; background: var(--color-brand, #D7192D); font-size: var(--type-button-size, 14px); font-weight: 700; line-height: 1; }
+.confirm-pay-btn[disabled] { color: #A8ABB2; background: #ECEEF2; opacity: 1; }
+@media (min-width: 800px) { .pay-page { padding: 20px 20px 40px; } .amount-section { padding: 30px 28px 22px; } .pay-methods, .credit-info { padding: 20px 22px; } }
 </style>

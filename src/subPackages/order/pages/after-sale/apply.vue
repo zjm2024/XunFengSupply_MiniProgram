@@ -21,12 +21,19 @@
           </view>
 
           <!-- 已选商品展示 -->
-          <view class="selected-goods" v-if="selectedGoods">
-            <AppProductImage class="goods-image" :src="selectedGoods.goodsImage" mode="aspectFill" />
+          <view
+            v-for="item in afterSaleItems"
+            :key="item.orderItemId"
+            class="selected-goods"
+            :class="{ active: selectedGoods?.orderItemId === item.orderItemId }"
+            @tap="selectGoods(item)"
+          >
+            <AppProductImage class="goods-image" :src="item.imageUrl" mode="aspectFill" />
             <view class="goods-info">
-              <text class="goods-name">{{ selectedGoods.goodsName }}</text>
-              <text class="sku-name">{{ selectedGoods.skuName }}</text>
+              <text class="goods-name">{{ item.productName }}</text>
+              <text class="sku-name">{{ item.skuName }} · 可申请 {{ item.availableQuantity }} 件</text>
             </view>
+            <view class="select-mark">{{ selectedGoods?.orderItemId === item.orderItemId ? '已选择' : '选择' }}</view>
           </view>
 
           <!-- 售后类型选择 -->
@@ -47,14 +54,18 @@
             </view>
           </view>
 
-          <!-- 退款金额（退货退款时显示） -->
-          <view class="amount-section" v-if="form.type === 1">
+          <!-- 申请数量与预计退款金额 -->
+          <view class="amount-section" v-if="selectedGoods">
+            <view class="quantity-row">
+              <text class="section-label">申请数量</text>
+              <input class="quantity-input" type="number" :value="form.quantity" @input="setQuantity($event.detail.value)" />
+            </view>
             <text class="section-label">退款金额</text>
             <view class="amount-display">
               <text class="amount-symbol">¥</text>
-              <text class="amount-value">{{ (selectedGoods?.price || 0 / 100).toFixed(2) }}</text>
+              <text class="amount-value">{{ estimatedRefundAmount.toFixed(2) }}</text>
             </view>
-            <text class="amount-tip">（该商品实际支付金额，不可修改）</text>
+            <text class="amount-tip">最终退款金额以审核结果为准</text>
           </view>
 
           <!-- 售后原因 -->
@@ -65,27 +76,6 @@
               v-model="form.reason"
               placeholder="请详细描述问题原因"
               maxlength="100"
-            />
-          </view>
-
-          <!-- 凭证图片上传 -->
-          <view class="evidence-section">
-            <text class="section-label">问题凭证</text>
-          <FileUploader
-              v-model="form.images" 
-              :maxCount="5"
-              tips="请上传能反映问题的照片（最多5张），如：商品破损照片等"
-            />
-          </view>
-
-          <!-- 补充说明 -->
-          <view class="desc-section">
-            <text class="section-label">补充说明</text>
-            <textarea 
-              class="desc-textarea" 
-              v-model="form.description"
-              placeholder="选填：补充说明情况"
-              maxlength="200"
             />
           </view>
 
@@ -111,9 +101,7 @@
 <script setup>
 import { reactive, ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-// TODO: 接入后端可售后商品接口后可启用
-// import { applyAfterSale, getAfterSaleableItems } from '../../api/afterSaleApi.js'
-import FileUploader from '../../../../shared/ui/FileUploader/FileUploader.vue'
+import { applyAfterSale, getAfterSaleableItems } from '../../api/afterSaleApi.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -125,27 +113,31 @@ import { routes } from '@/app/config/routes.js'
 
 // 售后类型选项
 const afterSaleTypes = [
-  { value: 1, label: '退货退款', icon: '📦', desc: '退回商品，全额退款' },
-  { value: 2, label: '换货补发', icon: '🔄', desc: '退回问题品，重新发货' },
-  { value: 3, label: '仅退款', icon: '💰', desc: '无需退货，直接退款' }
+  { value: 1, label: '仅退款', icon: '¥', desc: '无需退回商品，审核后退款' },
+  { value: 2, label: '退货退款', icon: '↩', desc: '退回商品，验收后退款' },
 ]
 
 const orderId = ref('')
 const selectedOrder = ref(null)
 const selectedGoods = ref(null)
+const afterSaleItems = ref([])
 const submitting = ref(false)
 
 const form = reactive({
   type: 1,
   reason: '',
-  description: '',
-  images: [],
   quantity: 1
 })
 
 // 是否可以提交
 const canSubmit = computed(() => {
-  return form.type && form.reason.trim() && selectedGoods.value
+  return form.type && form.reason.trim() && selectedGoods.value && form.quantity > 0
+})
+
+/** 按当前申请数量估算退款金额，实际金额仍以后端审核为准。 */
+const estimatedRefundAmount = computed(() => {
+  if (!selectedGoods.value || selectedGoods.value.availableQuantity <= 0) return 0
+  return Number(selectedGoods.value.refundAmount || 0) / selectedGoods.value.availableQuantity * form.quantity
 })
 
 onLoad((options) => {
@@ -155,8 +147,31 @@ onLoad((options) => {
   }
 })
 
-// TODO: 待接入后端可售后商品接口（getAfterSaleableItems）
-function loadAfterSaleableItems(orderId) {}
+/** 加载当前订单可申请售后的商品，并默认选中第一项。 */
+async function loadAfterSaleableItems(currentOrderId) {
+  try {
+    afterSaleItems.value = await getAfterSaleableItems(currentOrderId)
+    selectedOrder.value = { orderId: Number(currentOrderId) }
+    selectGoods(afterSaleItems.value[0] || null)
+    if (!afterSaleItems.value.length) uni.showToast({ title: '该订单暂无可申请售后的商品', icon: 'none' })
+  } catch (error) {
+    afterSaleItems.value = []
+    selectedGoods.value = null
+    uni.showToast({ title: error?.message || '售后商品加载失败', icon: 'none' })
+  }
+}
+
+/** 切换本次申请的商品并恢复其最大可申请数量。 */
+function selectGoods(item) {
+  selectedGoods.value = item
+  form.quantity = item ? Math.max(1, Number(item.availableQuantity || 1)) : 1
+}
+
+/** 将申请数量限制在当前商品的可售后数量内。 */
+function setQuantity(rawValue) {
+  const maximum = Number(selectedGoods.value?.availableQuantity || 1)
+  form.quantity = Math.min(maximum, Math.max(1, Math.floor(Number(rawValue) || 1)))
+}
 
 function goSelectOrder() {
   navigator.navigateTo(routes.order.list({ selectMode: 'afterSale' }), {
@@ -171,13 +186,28 @@ function goSelectOrder() {
   })
 }
 
-// TODO: 待接入后端售后申请接口（applyAfterSale）
+/** 提交售后申请并跳转至售后记录页。 */
 async function handleSubmit() {
   if (!canSubmit.value) {
     uni.showToast({ title: '请完善必填信息', icon: 'none' })
     return
   }
-  uni.showToast({ title: '售后功能暂未开放', icon: 'none' })
+  submitting.value = true
+  try {
+    await applyAfterSale({
+      orderId: Number(orderId.value),
+      afterSaleType: form.type,
+      reason: form.reason.trim(),
+      clientRequestId: `after-sale-${orderId.value}-${Date.now()}`,
+      items: [{ orderItemId: selectedGoods.value.orderItemId, quantity: form.quantity }],
+    })
+    uni.showToast({ title: '售后申请已提交', icon: 'success' })
+    setTimeout(() => navigator.redirectTo(routes.order.afterSaleList()), 500)
+  } catch (error) {
+    uni.showToast({ title: error?.message || '售后申请提交失败', icon: 'none' })
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 
@@ -239,6 +269,42 @@ async function handleSubmit() {
       margin-top: 8rpx;
     }
   }
+}
+
+.selected-goods.active {
+  outline: 1px solid rgba(215, 25, 45, .32);
+  background: #FFF8F9;
+}
+
+.select-mark {
+  flex: 0 0 auto;
+  color: var(--color-brand, #D7192D);
+  font-size: var(--type-caption-size, 12px);
+  font-weight: 650;
+}
+
+.quantity-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #EEF0F2;
+}
+
+.quantity-row .section-label { margin-bottom: 0; }
+
+.quantity-input {
+  width: 72px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border, #DDE0E4);
+  border-radius: var(--radius-control, 10px);
+  box-sizing: border-box;
+  background: var(--surface-subtle, #F7F8FA);
+  font-size: var(--type-body-size, 14px);
+  text-align: center;
 }
 
 .type-section, .amount-section, .reason-section, .evidence-section, .desc-section {

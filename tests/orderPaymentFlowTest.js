@@ -21,19 +21,31 @@ describe('下单支付流程契约', () => {
     expect(source).not.toMatch(/setInterval\s*\([^)]*loadOrderInfo/s)
   })
 
-  it('WMS 处理中不应阻止支付，只有失败状态才禁用支付', () => {
+  it('支付页不应向客户展示内部库存系统状态', () => {
     const source = readSource('src/subPackages/order/pages/pay/index.vue')
 
-    expect(source).toContain('paying || !orderPayable || stockFailed || paymentExpired')
-    expect(source).not.toContain('paying || !stockReady')
-    expect(source).toContain('本地库存已占用，可先完成支付')
+    expect(source).toContain('paying || !orderPayable || paymentExpired')
+    expect(source).not.toContain('WMS 正在预占库存')
+    expect(source).not.toContain('本地库存已占用')
+    expect(source).not.toContain('更新状态')
   })
 
   it('倒计时归零只提示期限结束，不应主动取消订单或宣称取消完成', () => {
     const source = readSource('src/subPackages/order/pages/pay/index.vue')
 
-    expect(source).toContain('请到订单详情查看后端最终处理状态')
+    expect(source).toContain('请到订单详情查看处理结果')
     expect(source).not.toContain('系统已取消')
     expect(source).not.toMatch(/handlePaymentExpired[\s\S]*cancelOrder\(/)
+  })
+
+  it('订单详情和配送安排只展示客户可理解的状态', () => {
+    const detailSource = readSource('src/subPackages/order/pages/detail/index.vue')
+    const splitSource = readSource('src/subPackages/order/pages/split/index.vue')
+
+    expect(detailSource).not.toContain("'WMS': 'WMS'")
+    expect(detailSource).not.toContain('状态变更为')
+    expect(splitSource).not.toContain('确认拆单并推送 WMS')
+    expect(splitSource).not.toContain('warehouse-code')
+    expect(splitSource).toContain('确认配送安排')
   })
 })

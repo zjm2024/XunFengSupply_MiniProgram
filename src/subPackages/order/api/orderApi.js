@@ -47,6 +47,10 @@ function normalizeOrder(order = {}) {
     createdTime: order.createdTime ?? order.CreatedTime,
     paymentExpiresAt: order.paymentExpiresAt ?? order.PaymentExpiresAt ?? null,
     serverTime: order.serverTime ?? order.ServerTime ?? null,
+    stockConfirmedAt: order.stockConfirmedAt ?? order.StockConfirmedAt ?? null,
+    shippedAt: order.shippedAt ?? order.ShippedAt ?? null,
+    completedAt: order.completedAt ?? order.CompletedAt ?? null,
+    cancelledAt: order.cancelledAt ?? order.CancelledAt ?? null,
     itemCount: number(order.itemCount ?? order.ItemCount),
     totalQuantity: number(order.totalQuantity ?? order.TotalQuantity),
     totalAmount: number(order.totalAmount ?? order.TotalAmount),
@@ -211,7 +215,7 @@ export function getOrderList(params = {}) {
 /**
  * 获取订单详情（含归属校验）
  * @param {number} orderId - 订单ID
- * @returns {Promise<Object>} 订单详情含明细、状态日志、发货信息、可执行操作
+ * @returns {Promise<Object>} 客户可见订单详情，包含商品、发货摘要和可执行操作
  */
 export function getOrderDetail(orderId) {
   const id = Number(orderId)

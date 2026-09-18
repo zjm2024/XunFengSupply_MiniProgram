@@ -90,7 +90,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import AppProductImage from '../../../../shared/ui/AppProductImage/AppProductImage.vue'
-import QuantityStepper from '../QuantityStepper/QuantityStepper.vue'
+import QuantityStepper from '@/shared/ui/QuantityStepper/QuantityStepper.vue'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },

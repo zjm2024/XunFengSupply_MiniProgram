@@ -1,7 +1,7 @@
 ﻿﻿<!--
   订单详情页面（分包：orderSub）
   对应业务流程节点：
-  订单履约发货 → 查看完整订单详情、物流轨迹、操作日志
+  订单履约发货 → 查看客户可见订单信息、物流进度与可执行操作
 -->
 <template>
   <AppPageShell>
@@ -18,12 +18,12 @@
           </view>
 
           <!-- 物流信息 -->
-          <view class="logistics-card" v-if="detail.shipments && detail.shipments.length > 0">
+          <view class="logistics-card" v-if="detail.shipments && detail.shipments.length > 0" @tap="handleAction('logistics')">
             <view class="logistics-info">
               <AppIcon name="shipping" :size="20" color="#67C23A" />
               <view class="logistics-text">
-                <text class="logistics-company">{{ detail.shipments[0]?.carrierName || '暂无物流信息' }}</text>
-                <text class="tracking-no" v-if="detail.shipments[0]?.trackingNo">运单号: {{ detail.shipments[0].trackingNo }}</text>
+                <text class="logistics-company">{{ detail.shipments[0]?.carrierName || '物流运输中' }}</text>
+                <text class="tracking-no" v-if="detail.shipments[0]?.trackingNo">运单号 {{ detail.shipments[0].trackingNo }}</text>
               </view>
               <AppIcon name="chevron-right" :size="16" color="#CCC" />
             </view>
@@ -86,16 +86,19 @@
             </view>
           </view>
 
-          <!-- 状态日志 -->
-          <view class="info-card" v-if="detail.statusLogs && detail.statusLogs.length > 0">
-            <view class="card-title">操作日志</view>
+          <!-- 客户可见的订单进度，不展示内部系统状态与处理日志 -->
+          <view class="info-card" v-if="customerTimeline.length > 0">
+            <view class="card-title">订单进度</view>
             <view
-              class="log-item"
-              v-for="(log, idx) in detail.statusLogs"
-              :key="idx"
+              class="timeline-item"
+              v-for="item in customerTimeline"
+              :key="item.key"
             >
-              <text class="log-time">{{ formatTime(log.createdAt) }}</text>
-              <text class="log-text">{{ getStatusLogText(log) }}</text>
+              <view class="timeline-dot" />
+              <view class="timeline-copy">
+                <text class="timeline-title">{{ item.title }}</text>
+                <text class="timeline-time">{{ item.time ? formatTime(item.time) : item.description }}</text>
+              </view>
             </view>
           </view>
 
@@ -128,7 +131,7 @@
           </view>
 
           <!-- 底部占位，避免内容被 FixedActionBar 遮挡 -->
-          <view style="height: 100rpx;" v-if="actionButtons.length > 0" />
+          <view class="bottom-space" v-if="actionButtons.length > 0" />
         </view>
 
         <AppInitializing
@@ -147,6 +150,7 @@
           :key="action.key"
           class="action-btn"
           :class="action.type"
+          :disabled="action.type === 'disabled'"
           @click="handleAction(action.key)"
         >{{ action.label }}</button>
       </FixedActionBar>
@@ -158,7 +162,7 @@
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getOrderDetail, confirmReceipt, generateClientRequestId } from '../../api/orderApi.js'
-import { ORDER_STATUS, ORDER_STATUS_MAP, PAYMENT_MODE } from '@/app/config/constant.js'
+import { FULFILLMENT_STATUS, ORDER_STATUS, ORDER_STATUS_MAP, PAYMENT_MODE, PAYMENT_STATUS } from '@/app/config/constant.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -168,9 +172,12 @@ import AppInitializing from '@/shared/ui/AppInitializing/AppInitializing.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import { batchAddToCart } from '@/shared/api/cartApi.js'
+import { buildReorderCartItems } from '../../domain/reorderCart.js'
 
 const orderId = ref(null)
 const detail = ref(null)
+const reordering = ref(false)
 
 onLoad(async (options) => {
   if (options.orderId) {
@@ -209,68 +216,93 @@ const orderStatusDesc = computed(() => {
     [ORDER_STATUS.DRAFT]: '订单已创建',
     [ORDER_STATUS.PENDING_REVIEW]: '您的订单正在由品牌方审核中',
     [ORDER_STATUS.REVIEW_REJECTED]: '订单审核未通过',
-    [ORDER_STATUS.PENDING_PAYMENT]: '请在规定时间内完成付款',
-    [ORDER_STATUS.PROCESSING]: '品牌方正在为您安排发货',
+    [ORDER_STATUS.PENDING_PAYMENT]: '请在付款时限内完成支付',
+    [ORDER_STATUS.PROCESSING]: processingStatusDescription.value,
     [ORDER_STATUS.COMPLETED]: '订单已完成，感谢您的购买',
-    [ORDER_STATUS.CANCELLING]: '订单取消中',
+    [ORDER_STATUS.CANCELLING]: '订单正在关闭，退款将按原支付方式处理',
     [ORDER_STATUS.CANCELLED]: '订单已取消',
   }
   return map[detail.value?.orderStatus] || ''
+})
+
+/** 根据客户可理解的履约阶段生成状态说明，屏蔽内部系统与消息处理细节。 */
+const processingStatusDescription = computed(() => {
+  const fulfillmentStatus = Number(detail.value?.fulfillmentStatus || 0)
+  if (fulfillmentStatus >= FULFILLMENT_STATUS.SHIPPED) return '商品已发出，请留意物流进度'
+  if (fulfillmentStatus >= FULFILLMENT_STATUS.PICKING) return '商品正在备货，请耐心等待发出'
+  return '订单已确认，正在为您安排发货'
+})
+
+/** 仅使用客户旅程节点生成时间线，不渲染 ERP、WMS、Outbox 等内部日志。 */
+const customerTimeline = computed(() => {
+  if (!detail.value) return []
+  const order = detail.value
+  const timeline = [{ key: 'created', title: '订单已提交', time: order.createdAt }]
+  if (Number(order.paymentStatus) === PAYMENT_STATUS.CONFIRMED) {
+    timeline.push({ key: 'paid', title: '付款已完成', description: '付款信息已确认' })
+  }
+  if (order.stockConfirmedAt) {
+    timeline.push({ key: 'stock-confirmed', title: '商品已确认', time: order.stockConfirmedAt })
+  }
+  if (order.shippedAt) {
+    timeline.push({ key: 'shipped', title: '商品已发出', time: order.shippedAt })
+  }
+  if (order.completedAt) {
+    timeline.push({ key: 'completed', title: '订单已完成', time: order.completedAt })
+  }
+  if (order.cancelledAt) {
+    timeline.push({ key: 'cancelled', title: '订单已取消', time: order.cancelledAt })
+  }
+  return timeline
 })
 
 // 可用操作按钮（基于后端 AllowedActions 或前端状态映射）
 const actionButtons = computed(() => {
   if (!detail.value) return []
 
+  const reorderAction = {
+    key: 'reorder',
+    label: reordering.value ? '加入中…' : '再来一单',
+    type: reordering.value ? 'disabled' : 'default',
+  }
+
   // 优先使用后端返回的 AllowedActions
   if (detail.value.allowedActions && detail.value.allowedActions.length > 0) {
-    return detail.value.allowedActions.map(action => {
+    const mappedActions = detail.value.allowedActions.map(action => {
       const actionMap = {
         'pay': { key: 'pay', label: '立即付款', type: 'primary' },
-        'waitStock': { key: 'waitStock', label: '等待库存预占', type: 'disabled' },
         'splitFulfillment': { key: 'splitFulfillment', label: '安排多地配送', type: 'primary' },
-        'viewFulfillmentSplits': { key: 'splitFulfillment', label: '查看配送单', type: 'default' },
+        'viewFulfillmentSplits': { key: 'splitFulfillment', label: '查看配送安排', type: 'default' },
         'cancel': { key: 'cancel', label: '取消订单', type: 'default' },
         'confirm_receipt': { key: 'receive', label: '确认收货', type: 'primary' },
         'confirmReceipt': { key: 'receive', label: '确认收货', type: 'primary' },
-        'logistics': { key: 'logistics', label: '查看物流', type: 'default' },
+        'logistics': detail.value.shipments?.length ? null : { key: 'logistics', label: '查看物流', type: 'default' },
         'after_sale': { key: 'afterSale', label: '申请售后', type: 'default' },
+        'afterSale': { key: 'afterSale', label: '申请售后', type: 'default' },
       }
-      return actionMap[action] || { key: action, label: action, type: 'default' }
-    })
+      return actionMap[action] || null
+    }).filter(Boolean)
+    return [reorderAction, ...mappedActions]
+      .sort((left, right) => Number(left.type === 'primary') - Number(right.type === 'primary'))
   }
 
   // 降级：前端状态映射
   const s = detail.value.orderStatus
-  const actions = []
+  const actions = [reorderAction]
   if (s === ORDER_STATUS.PENDING_PAYMENT) actions.push({ key: 'pay', label: '立即付款', type: 'primary' })
   if ([ORDER_STATUS.PENDING_REVIEW, ORDER_STATUS.PENDING_PAYMENT].includes(s)) {
     actions.push({ key: 'cancel', label: '取消订单', type: 'default' })
   }
-  if (s === ORDER_STATUS.PROCESSING) actions.push({ key: 'receive', label: '确认收货', type: 'primary' })
-  if ([ORDER_STATUS.PROCESSING, ORDER_STATUS.COMPLETED].includes(s)) {
+  const fulfillmentStatus = Number(detail.value.fulfillmentStatus || 0)
+  if (s === ORDER_STATUS.PROCESSING && fulfillmentStatus >= FULFILLMENT_STATUS.SHIPPED) {
+    actions.push({ key: 'receive', label: '确认收货', type: 'primary' })
+  }
+  if (fulfillmentStatus >= FULFILLMENT_STATUS.SHIPPED) {
     actions.push({ key: 'logistics', label: '查看物流', type: 'default' })
+    actions.push({ key: 'afterSale', label: '申请售后', type: 'default' })
   }
   return actions
 })
-
-/**
- * 获取状态日志文本
- */
-function getStatusLogText(log) {
-  const typeText = {
-    'ORDER': '订单',
-    'PAYMENT': '支付',
-    'REFUND': '退款',
-    'ERP': 'ERP',
-    'WMS': 'WMS',
-    'FULFILLMENT': '履约',
-    'CANCELLATION': '取消',
-  }
-  const prefix = typeText[log.statusType] || log.statusType
-  const remark = log.remark ? ` - ${log.remark}` : ''
-  return `${prefix}状态变更为 ${log.toStatus}${remark}`
-}
 
 function paymentModeText(mode) {
   return ({
@@ -303,14 +335,37 @@ function goToProductDetail(item) {
   navigator.navigateTo(routes.commerce.productDetail(productId))
 }
 
+/**
+ * 将原订单中的普通商品按原数量一次性加入购物车，并进入购物车确认当前价格与库存。
+ * 赠品不直接加购，促销资格会在重新结算时由服务端计算。
+ */
+async function reorderToCart() {
+  if (reordering.value) return
+  const items = buildReorderCartItems(detail.value?.items)
+  if (!items.length) {
+    uni.showToast({ title: '该订单暂无可再次购买的商品', icon: 'none' })
+    return
+  }
+
+  reordering.value = true
+  try {
+    await batchAddToCart({ items, clientRequestId: generateClientRequestId() })
+    uni.showToast({ title: '已加入购物车', icon: 'success' })
+    setTimeout(() => navigator.navigateTo(routes.commerce.cart()), 350)
+  } catch (error) {
+    uni.showToast({ title: error?.message || '商品状态已变化，请稍后重试', icon: 'none' })
+  } finally {
+    reordering.value = false
+  }
+}
+
 async function handleAction(key) {
   switch (key) {
+    case 'reorder':
+      await reorderToCart()
+      break
     case 'pay':
       navigator.navigateTo(routes.order.pay(orderId.value))
-      break
-    case 'waitStock':
-      uni.showToast({ title: 'WMS 正在预占库存，请稍后刷新', icon: 'none' })
-      loadOrderDetail()
       break
     case 'splitFulfillment':
       navigator.navigateTo(routes.order.fulfillmentSplit(orderId.value))
@@ -339,8 +394,12 @@ async function handleAction(key) {
       })
       break
     case 'logistics':
-      // 物流信息已在详情页展示，滚动到顶部
-      uni.pageScrollTo({ scrollTop: 0, duration: 300 })
+      if (detail.value?.shipments?.[0]?.trackingNo) {
+        copyText(detail.value.shipments[0].trackingNo)
+        uni.showToast({ title: '运单号已复制', icon: 'none' })
+      } else {
+        uni.showToast({ title: '暂未生成物流信息', icon: 'none' })
+      }
       break
     case 'afterSale':
       navigator.navigateTo(routes.order.afterSaleApply(orderId.value))
@@ -608,5 +667,63 @@ async function handleAction(key) {
     color: var(--text-primary);
     border: 1rpx solid var(--border-color);
   }
+}
+</style>
+
+<style lang="scss" scoped>
+/* 成品页覆盖层：统一使用项目字体与间距 token，并保持 390px/800px 两档布局。 */
+.order-detail-page { width: 100%; max-width: 1120px; min-height: 100%; margin: 0 auto; padding: 12px 14px 28px; box-sizing: border-box; background: transparent; }
+.status-header { margin: 0 0 14px; padding: 20px 18px; border: 0; border-left: 4px solid var(--color-brand, #D7192D); border-radius: var(--radius-feature, 18px); background: var(--surface-card, #FFF); box-shadow: var(--shadow-sm); }
+.status-header .status-text { margin-bottom: 5px; color: var(--type-title-color); font-size: var(--type-page-title-size, 20px); line-height: var(--type-page-title-line-height, 32px); }
+.status-header .status-desc { color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); line-height: var(--type-body-small-line-height, 20px); }
+.logistics-card, .address-card, .goods-card, .info-card, .price-card { margin: 0 0 12px; padding: 16px; border-radius: var(--radius-card, 14px); background: var(--surface-card, #FFF); box-shadow: var(--shadow-sm); box-sizing: border-box; }
+.logistics-card:active { opacity: .72; }
+.logistics-info { min-height: 42px; }
+.logistics-info .logistics-text { margin-left: 12px; }
+.logistics-info .logistics-text .logistics-company { color: var(--type-title-color); font-size: var(--type-body-size, 14px); font-weight: 650; }
+.logistics-info .logistics-text .tracking-no { margin-top: 3px; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
+.address-card { gap: 11px; }
+.address-card .address-icon-wrap { margin: 0; padding-top: 1px; }
+.address-card .address-detail .contact-row { margin-bottom: 5px; }
+.address-card .address-detail .contact-row .name { margin-right: 10px; color: var(--type-title-color); font-size: var(--type-label-size, 15px); }
+.address-card .address-detail .contact-row .phone { color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); }
+.address-card .address-detail .address-text { color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); line-height: 20px; }
+.goods-card .card-title, .info-card .card-title { margin-bottom: 10px; color: var(--type-title-color); font-size: var(--type-card-title-size, 16px); line-height: var(--type-card-title-line-height, 24px); }
+.goods-item { min-height: 82px; padding: 12px 0; border-bottom: 1px solid #EEF0F2; }
+.goods-item .goods-image { width: 78px; height: 78px; border-radius: var(--radius-control, 10px); }
+.goods-item .goods-info { display: flex; min-width: 0; flex-direction: column; margin-left: 13px; }
+.goods-item .goods-info .goods-name { color: var(--type-title-color); font-size: var(--type-body-size, 14px); line-height: 20px; }
+.goods-item .goods-info .sku-name { margin-top: 4px; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
+.goods-item .goods-info .price-row { margin-top: auto; padding-top: 8px; }
+.goods-item .goods-info .price-row .price { color: var(--color-brand, #D7192D); font-size: var(--type-label-size, 15px); }
+.goods-item .goods-info .price-row .qty { color: var(--type-secondary-color); font-size: var(--type-caption-size, 12px); }
+.info-row, .price-row { gap: 18px; padding: 8px 0; }
+.info-row .info-label, .price-row .price-label { flex: 0 0 auto; color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); }
+.info-row .info-value, .price-row .price-value { min-width: 0; color: var(--type-title-color); font-size: var(--type-body-small-size, 13px); text-align: right; overflow-wrap: anywhere; }
+.price-row.total { margin-top: 7px; padding-top: 14px; border-top: 1px solid #EEF0F2; }
+.price-row .price-value.highlight { color: var(--color-brand, #D7192D); font-size: var(--type-money-size, 18px); }
+.timeline-item { position: relative; display: flex; gap: 12px; min-height: 48px; padding-bottom: 8px; }
+.timeline-item:not(:last-child)::before { content: ''; position: absolute; top: 17px; left: 5px; bottom: -2px; width: 1px; background: #E6E8EB; }
+.timeline-dot { position: relative; z-index: 1; width: 11px; height: 11px; flex: 0 0 11px; margin-top: 5px; border: 3px solid #FFE3E7; border-radius: 50%; background: var(--color-brand, #D7192D); box-sizing: border-box; }
+.timeline-copy { min-width: 0; flex: 1; }
+.timeline-title, .timeline-time { display: block; }
+.timeline-title { color: var(--type-title-color); font-size: var(--type-body-small-size, 13px); font-weight: 650; }
+.timeline-time { margin-top: 2px; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
+.bottom-space { height: 76px; }
+.action-btn { display: flex; min-width: 0; height: 44px; flex: 1 1 0; align-items: center; justify-content: center; margin: 0; padding: 0 10px; border: 1px solid var(--color-border, #DDE0E4); border-radius: var(--radius-control, 10px); box-sizing: border-box; color: var(--type-title-color); background: #FFF; font-size: var(--type-button-size, 14px); font-weight: 650; line-height: 1; white-space: nowrap; }
+.action-btn.primary { border-color: var(--color-brand, #D7192D); color: #FFF; background: var(--color-brand, #D7192D); }
+.action-btn.default { border-color: var(--color-border, #DDE0E4); color: var(--type-title-color); background: #FFF; }
+.action-btn.disabled { color: #A8ABB2; background: #ECEEF2; }
+@media (min-width: 800px) {
+  .order-detail-page { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr); align-items: start; gap: 14px; padding: 20px; }
+  .status-header, .logistics-card, .address-card, .goods-card { grid-column: 1; }
+  .info-card, .price-card { grid-column: 2; }
+  .status-header { grid-row: 1; }
+  .logistics-card { grid-row: 2; }
+  .address-card { grid-row: 3; }
+  .goods-card { grid-row: 4 / span 4; }
+  .info-card { margin-bottom: 0; }
+  .price-card { margin-bottom: 0; }
+  .bottom-space { display: none; }
 }
 </style>

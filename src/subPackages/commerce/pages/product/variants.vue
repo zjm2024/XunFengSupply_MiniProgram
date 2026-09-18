@@ -146,7 +146,7 @@ import AppPageState from '../../../../shared/ui/AppPageState/AppPageState.vue'
 import appHeader from '../../../../shared/ui/AppHeader/AppHeader.vue'
 import fixedActionBar from '../../../../shared/ui/FixedActionBar/FixedActionBar.vue'
 import AppProductImage from '../../../../shared/ui/AppProductImage/AppProductImage.vue'
-import quantityStepper from '../../components/QuantityStepper/QuantityStepper.vue'
+import quantityStepper from '@/shared/ui/QuantityStepper/QuantityStepper.vue'
 import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
 
 const productId = ref(0)
