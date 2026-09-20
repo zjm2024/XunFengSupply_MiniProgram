@@ -1,4 +1,4 @@
-﻿﻿<!--
+﻿﻿﻿﻿<!--
   订单详情页面（分包：orderSub）
   对应业务流程节点：
   订单履约发货 → 查看客户可见订单信息、物流进度与可执行操作
@@ -74,7 +74,7 @@
             </view>
             <view class="info-row">
               <text class="info-label">下单时间</text>
-              <text class="info-value">{{ formatTime(detail.createdAt) }}</text>
+              <text class="info-value">{{ formatDateTime(detail.createdAt) }}</text>
             </view>
             <view class="info-row">
               <text class="info-label">结算方式</text>
@@ -97,7 +97,7 @@
               <view class="timeline-dot" />
               <view class="timeline-copy">
                 <text class="timeline-title">{{ item.title }}</text>
-                <text class="timeline-time">{{ item.time ? formatTime(item.time) : item.description }}</text>
+                <text class="timeline-time">{{ item.time ? formatDateTime(item.time) : item.description }}</text>
               </view>
             </view>
           </view>
@@ -174,6 +174,8 @@ import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { batchAddToCart } from '@/shared/api/cartApi.js'
 import { buildReorderCartItems } from '../../domain/reorderCart.js'
+import { formatDateTime } from '../../../../shared/utils/format.js'
+
 
 const orderId = ref(null)
 const detail = ref(null)
@@ -310,16 +312,6 @@ function paymentModeText(mode) {
     [PAYMENT_MODE.CREDIT]: '授信支付',
     [PAYMENT_MODE.COMBINATION]: '账户组合支付',
   })[Number(mode)] || '未知方式'
-}
-
-/**
- * 格式化时间
- */
-function formatTime(timeStr) {
-  if (!timeStr) return ''
-  const d = new Date(timeStr)
-  const pad = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
 function copyText(text) {

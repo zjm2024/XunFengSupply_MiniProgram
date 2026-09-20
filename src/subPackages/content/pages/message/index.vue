@@ -115,7 +115,7 @@ import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getMessageList, getUnreadCount, markAllAsRead, markAsRead } from '../../api/message.js'
 import { useMessageStore } from '../../model/messageStore.js'
-import { formatRelativeTime } from '../../../../shared/utils/format.js'
+import { formatRelativeTime, parseUtcToLocal } from '../../../../shared/utils/format.js'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -234,7 +234,7 @@ async function requestPage(targetPage) {
     )))
     const items = results.flatMap(result => pick(result, 'items', 'Items', []))
       .map(normalizeMessage)
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort((a, b) => parseUtcToLocal(b.createdAt).getTime() - parseUtcToLocal(a.createdAt).getTime())
     return {
       items,
       totalCount: results.reduce((sum, result) => sum + Number(pick(result, 'totalCount', 'TotalCount', 0)), 0),

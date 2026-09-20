@@ -98,6 +98,7 @@ import { useUserStore } from '@/shared/session/userStore.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { getDealerInventoryDetail } from '../../api/inventory.js'
+import { formatDate, formatDateTime } from '../../../../shared/utils/format.js'
 
 const userStore = useUserStore()
 const skuId = ref(0)
@@ -140,20 +141,6 @@ function businessTypeText(type) {
   })[type] || '库存变动'
 }
 function formatQty(value) { return Number(value || 0).toLocaleString('zh-CN') }
-function formatDate(value) {
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return String(value)
-  const pad = n => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
-}
-function formatDateTime(value) {
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return String(value)
-  const pad = n => String(n).padStart(2, '0')
-  return `${formatDate(value)} ${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
 </script>
 
 <style lang="scss" scoped>

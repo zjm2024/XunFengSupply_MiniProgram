@@ -54,7 +54,7 @@
                 <AppProductImage class="goods-image" :src="item.firstItemImageUrl" mode="aspectFill" />
                 <view class="goods-copy">
                   <text class="goods-name">{{ item.firstItemProductName || '售后商品' }}</text>
-                  <text class="goods-count">{{ item.itemCount || 1 }} 种商品 · {{ formatTime(item.createdAt) }}</text>
+                  <text class="goods-count">{{ item.itemCount || 1 }} 种商品 · {{ formatDate(item.createdAt) }}</text>
                   <text class="reason">{{ item.reason || '未填写补充原因' }}</text>
                 </view>
               </view>
@@ -119,6 +119,7 @@ import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
+import { formatDate } from '../../../../shared/utils/format.js'
 
 const STATUS = Object.freeze({ APPLIED: 0, PENDING_REVIEW: 1, PENDING_RETURN: 2, RETURNING: 3, RECEIVED: 4, REFUNDING: 5, COMPLETED: 6, REJECTED: 7, FAILED: 8, CLOSED: 9 })
 const statusTabs = [
@@ -209,13 +210,6 @@ function canCancel(status) { return [STATUS.APPLIED, STATUS.PENDING_REVIEW].incl
 function formatMoney(value) {
   const number = Number(value)
   return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-function formatTime(value) {
-  if (!value) return '申请时间待同步'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return String(value)
-  const pad = number => String(number).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 function viewOrder(item) { navigator.navigateTo(routes.order.detail(item.orderId)) }
 function viewCompletedOrders() { navigator.navigateTo(routes.order.list({ status: ORDER_STATUS.COMPLETED })) }

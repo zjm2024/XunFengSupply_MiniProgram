@@ -14,7 +14,7 @@ import {
   getSettlementOverview,
   getCreditInfo
 } from '../api/settlement.js'
-import { formatMoney, formatMonth } from '../../../shared/utils/format.js'
+import { formatMoney, formatMonth, parseUtcToLocal } from '../../../shared/utils/format.js'
 import { addCreditScore, deductCreditScore } from '../../../shared/utils/business.js'
 
 export function useSettlement() {
@@ -177,9 +177,9 @@ export function useSettlement() {
    */
   function getRemainingDays(dueDate) {
     if (!dueDate) return 0
-    const due = new Date(dueDate)
-    const now = new Date()
-    const diff = Math.ceil((due - now) / (24 * 60 * 60 * 1000))
+    const due = parseUtcToLocal(dueDate).getTime()
+    if (Number.isNaN(due)) return 0
+    const diff = Math.ceil((due - Date.now()) / (24 * 60 * 60 * 1000))
     return diff
   }
 

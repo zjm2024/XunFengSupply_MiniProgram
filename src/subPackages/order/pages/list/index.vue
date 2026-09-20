@@ -66,7 +66,7 @@
                       {{ order.parentOrderId ? '拆分子单' : `拆分订单 · ${order.splitOrderCount}单` }}
                     </text>
                   </view>
-                  <text class="order-time">{{ formatTime(order.createdAt || order.createdTime) }}</text>
+                  <text class="order-time">{{ formatDateTime(order.createdAt || order.createdTime) }}</text>
                 </view>
                 <StatusTag :type="getStatusType(order.orderStatus)" :text="getStatusText(order.orderStatus)" />
               </view>
@@ -139,6 +139,7 @@ import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
+import { formatDateTime } from '../../../../shared/utils/format.js'
 
 const allTabs = Object.freeze([
   { value: null, label: '全部' },
@@ -266,14 +267,6 @@ function formatMoney(value) {
   const number = Number(value)
   return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
-function formatTime(value) {
-  if (!value) return '时间待同步'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return String(value)
-  const pad = number => String(number).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
-
 function getActions(status) {
   if (selectMode.value === 'afterSale') return []
   const map = {

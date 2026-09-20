@@ -20,7 +20,7 @@
               <view class="bill-hero">
                 <view class="hero-head">
                   <view>
-                    <text class="hero-label">{{ formatPeriod(bill.billPeriod) }}对账单</text>
+                    <text class="hero-label">{{ formatMonthDisplay(String(bill.billPeriod).slice(0, 7)) }}对账单</text>
                     <text class="hero-no">{{ bill.billNo || `账单 ${bill.billId}` }}</text>
                   </view>
                   <StatusTag :type="statusType(bill.status)" :text="statusText(bill.status)" />
@@ -46,7 +46,7 @@
               <view class="content-grid">
                 <view class="info-card">
                   <text class="card-title">账单信息</text>
-                  <view class="info-row"><text>账单周期</text><text>{{ formatPeriod(bill.billPeriod) }}</text></view>
+                  <view class="info-row"><text>账单周期</text><text>{{ formatMonthDisplay(String(bill.billPeriod).slice(0, 7)) }}</text></view>
                   <view class="info-row"><text>生成时间</text><text>{{ formatDateTime(bill.generatedAt) }}</text></view>
                   <view v-if="bill.settledAt" class="info-row"><text>结清时间</text><text>{{ formatDateTime(bill.settledAt) }}</text></view>
                   <view v-if="bill.closedAt" class="info-row"><text>关闭时间</text><text>{{ formatDateTime(bill.closedAt) }}</text></view>
@@ -124,6 +124,7 @@ import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import { PageStatus } from '@/shared/model/pageState.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import { formatDate, formatDateTime, formatMonthDisplay } from '../../../../shared/utils/format.js'
 
 const billId = ref(0)
 const pageState = ref(PageStatus.LOADING)
@@ -160,9 +161,6 @@ async function loadDetail() {
 }
 
 function formatMoney(value) { const number = Number(value); return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
-function formatPeriod(value) { const [year, month] = String(value || '').slice(0, 7).split('-'); return year && month ? `${year}年${month}月` : '-' }
-function formatDate(value) { if (!value) return '-'; const date = new Date(value); if (Number.isNaN(date.getTime())) return String(value); const pad = number => String(number).padStart(2, '0'); return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` }
-function formatDateTime(value) { if (!value) return '-'; const date = new Date(value); if (Number.isNaN(date.getTime())) return String(value); const pad = number => String(number).padStart(2, '0'); return `${formatDate(value)} ${pad(date.getHours())}:${pad(date.getMinutes())}` }
 function statusText(status) { return ({ 0: '未结清', 1: '已结清', 2: '已关闭' })[status] || '未知状态' }
 function statusType(status) { return ({ 0: 'warning', 1: 'success', 2: 'info' })[status] || 'default' }
 function businessTypeText(type) { return ({ order: '订单入账', order_charge: '授信订单入账', payment: '支付记录', repayment: '授信还款', refund: '退款记录', adjustment: '财务调整' })[String(type || '').toLowerCase()] || '财务明细' }

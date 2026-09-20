@@ -46,7 +46,7 @@
                       <view class="method-mark"><AppIcon :name="methodIcon(record.payMethod)" :size="20" /></view>
                       <view class="method-copy">
                         <text class="method-name">{{ payMethodText(record.payMethod) }}</text>
-                        <text class="record-time">{{ formatDateTime(record.createdAt) }}</text>
+                        <text class="record-time">{{ formatDateTime(record.createdAt, 'YYYY-MM-DD HH:mm') }}</text>
                       </view>
                       <text class="status-tag" :class="`status-${record.status}`">{{ statusText(record.status) }}</text>
                     </view>
@@ -85,6 +85,7 @@ import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import { PageStatus } from '@/shared/model/pageState.js'
 import { getRechargeList } from '../../api/settlement.js'
+import { formatDateTime } from '../../../../shared/utils/format.js'
 
 const tabs = Object.freeze([
   { key: 'all', label: '全部', status: undefined },
@@ -151,14 +152,6 @@ async function fetchPage(append) {
 function formatMoney(value) {
   const number = Number(value)
   return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-function formatDateTime(value) {
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return String(value)
-  const pad = number => String(number).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
 function statusText(status) {

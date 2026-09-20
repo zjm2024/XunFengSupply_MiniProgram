@@ -1,4 +1,4 @@
-﻿<!--
+﻿﻿<!--
   付款页面（分包：paySub）
   对应业务流程节点：
   购物车&下单结算 → 结算二选一【现款支付 / 授信赊账】
@@ -149,6 +149,7 @@
 import { ref, computed, onUnmounted } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getOrderDetail } from '../../api/orderApi.js'
+import { parseUtcToLocal } from '../../../../shared/utils/format.js'
 import { useUserStore } from '@/shared/session/userStore.js'
 import { PAYMENT_MODE, ORDER_STATUS } from '@/app/config/constant.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
@@ -264,11 +265,11 @@ function handlePaymentUnavailable() {
 }
 
 function syncPaymentCountdown(order) {
-  const explicitExpiryAt = order.paymentExpiresAt ? new Date(order.paymentExpiresAt).getTime() : Number.NaN
-  const createdAt = order.createdAt ? new Date(order.createdAt).getTime() : Number.NaN
+  const explicitExpiryAt = order.paymentExpiresAt ? parseUtcToLocal(order.paymentExpiresAt).getTime() : Number.NaN
+  const createdAt = order.createdAt ? parseUtcToLocal(order.createdAt).getTime() : Number.NaN
   paymentExpiryAtMs = Number.isNaN(explicitExpiryAt) ? createdAt + 15 * 60 * 1000 : explicitExpiryAt
   if (Number.isNaN(paymentExpiryAtMs)) return
-  const serverAt = order.serverTime ? new Date(order.serverTime).getTime() : Number.NaN
+  const serverAt = order.serverTime ? parseUtcToLocal(order.serverTime).getTime() : Number.NaN
   if (!Number.isNaN(serverAt)) serverTimeOffsetMs = serverAt - Date.now()
   remainTime.value = Math.max(0, Math.ceil((paymentExpiryAtMs - (Date.now() + serverTimeOffsetMs)) / 1000))
   if (remainTime.value <= 0) {

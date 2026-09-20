@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿<template>
+﻿﻿﻿﻿﻿﻿﻿<template>
   <AppPageShell>
     <template #header>
       <AppHeader title="对账账单" :show-back="true" />
@@ -116,6 +116,7 @@ import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import { PageStatus } from '@/shared/model/pageState.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import { formatDate, formatMonthDisplay } from '../../../../shared/utils/format.js'
 
 const now = new Date()
 const currentMonth = ref(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
@@ -168,10 +169,7 @@ function onMonthChange(event) {
 
 function changeStatus(key) { activeStatus.value = key }
 function goToDetail(billId) { navigator.navigateTo(routes.account.billDetail(billId)) }
-function formatMonthDisplay(value) { const [year, month] = String(value || '').split('-'); return year && month ? `${year}年${month}月` : '-' }
-function formatPeriod(value) { return formatMonthDisplay(String(value || '').slice(0, 7)) }
 function formatMoney(value) { const number = Number(value); return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
-function formatDate(value) { if (!value) return '-'; const date = new Date(value); if (Number.isNaN(date.getTime())) return String(value); const pad = number => String(number).padStart(2, '0'); return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` }
 function statusText(status) { return ({ 0: '未结清', 1: '已结清', 2: '已关闭' })[status] || '未知状态' }
 function statusType(status) { return ({ 0: 'warning', 1: 'success', 2: 'info' })[status] || 'default' }
 </script>

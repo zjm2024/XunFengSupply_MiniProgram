@@ -104,7 +104,7 @@
                       </view>
                     </view>
                   </view>
-                  <text class="promotion-time">有效期至 {{ formatPromotionTime(promotion.endTime) }}</text>
+                  <text class="promotion-time">有效期至 {{ formatDate(promotion.endTime, 'YYYY.MM.DD') }}</text>
                 </view>
                 <text class="promotion-notice">实际赠品与优惠以下单确认页实时计算结果为准</text>
               </view>
@@ -220,6 +220,7 @@ import AppProductImage from '../../../../shared/ui/AppProductImage/AppProductIma
 import AppImageViewer from '../../../../shared/ui/AppImageViewer/AppImageViewer.vue'
 import SingleSkuPurchaseSheet from '../../components/SingleSkuPurchaseSheet/SingleSkuPurchaseSheet.vue'
 import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
+import { formatDate } from '../../../../shared/utils/format.js'
 
 const productId = ref(0)
 const product = ref(null)
@@ -387,14 +388,6 @@ function giftStockText(gift) {
   if (!gift.isAvailable) return '已下架'
   if (!gift.isStockSufficient) return '赠品库存紧张'
   return gift.availableStock <= 20 ? `仅余 ${gift.availableStock}` : '赠品有货'
-}
-
-function formatPromotionTime(value) {
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10)
-  const pad = number => String(number).padStart(2, '0')
-  return `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())}`
 }
 
 function onSwiperChange(event) {

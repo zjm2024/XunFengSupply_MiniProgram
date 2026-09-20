@@ -40,7 +40,7 @@
                     </view>
                     <text class="flow-desc">{{ item.remark || businessDescription(item.businessType) }}</text>
                     <view class="flow-meta">
-                      <text>{{ formatTime(item.createdAt) }}</text>
+                      <text>{{ formatDateTime(item.createdAt) }}</text>
                       <text v-if="item.businessNo">业务单号 {{ item.businessNo }}</text>
                     </view>
                   </view>
@@ -74,6 +74,7 @@ import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import { PageStatus } from '@/shared/model/pageState.js'
 import { getFundFlowList } from '../../api/settlement.js'
+import { formatDateTime } from '../../../../shared/utils/format.js'
 
 const filters = Object.freeze([
   { label: '全部', value: '' },
@@ -154,13 +155,7 @@ function formatChange(item) {
 function formatMoney(value) {
   return Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
-function formatTime(value) {
-  if (!value) return '--'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return String(value)
-  const pad = number => String(number).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
+
 </script>
 
 <style lang="scss" scoped>

@@ -85,6 +85,7 @@ import { PageStatus } from '@/shared/model/pageState.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { getDealerInventoryList } from '../../api/inventory.js'
+import { formatDate } from '../../../../shared/utils/format.js'
 
 const tabs = Object.freeze([
   { key: 'all', label: '全部库存' },
@@ -151,13 +152,6 @@ function clearSearch() { keywordInput.value = ''; keyword.value = ''; reload() }
 function changeTab(key) { if (key === activeTab.value) return; activeTab.value = key; reload() }
 function openDetail(skuId) { navigator.navigateTo(routes.account.inventoryDetail(skuId)) }
 function formatQty(value) { return Number(value || 0).toLocaleString('zh-CN') }
-function formatDate(value) {
-  if (!value) return '-'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return String(value)
-  const pad = n => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
-}
 </script>
 
 <style lang="scss" scoped>
