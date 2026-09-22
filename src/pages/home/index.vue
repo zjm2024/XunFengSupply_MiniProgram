@@ -113,12 +113,12 @@ let resizeListener = null
 
 function checkScreenSize() {
   // #ifdef H5
-  isLargeScreen.value = window.innerWidth >= 820
+  // isLargeScreen.value = window.innerWidth >= 820
   // #endif
 
   // #ifdef MP-WEIXIN || APP-PLUS
   try {
-    isLargeScreen.value = uni.getSystemInfoSync().windowWidth >= 820
+    isLargeScreen.value = false
   } catch (_) {
     isLargeScreen.value = false
   }

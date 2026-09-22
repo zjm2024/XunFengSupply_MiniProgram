@@ -112,10 +112,10 @@
               </view>
             </view>
 
-            <view class="deep-category-hint">
+            <!-- <view class="deep-category-hint">
               <AppIcon name="filter" :size="17" />
               <text>分类页展示前三层，更深层级请在商品列表筛选</text>
-            </view>
+            </view> -->
           </view>
         </scroll-view>
       </view>
@@ -292,7 +292,6 @@ function openCategoryProducts(category) {
 .tab-page {
   display: flex;
   width: 100%;
-  max-width: 1180px;
   min-height: 100%;
   margin: 0 auto;
   padding: 4px 12px calc(76px + env(safe-area-inset-bottom));
@@ -324,11 +323,10 @@ function openCategoryProducts(category) {
   width: 92px;
   height: 100%;
   flex: 0 0 92px;
-  background: #eceef0;
 }
 
 .primary-list {
-  padding: 7px 0 18px;
+  padding: 7px 0 35px;
 }
 
 .primary-item {
@@ -642,7 +640,7 @@ function openCategoryProducts(category) {
 
 @media screen and (min-width: 821px) {
   .tab-page {
-    padding: 6px 24px 20px;
+    padding: 6px 0 20px;
   }
 
   .category-layout {

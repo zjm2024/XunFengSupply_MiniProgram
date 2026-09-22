@@ -130,9 +130,9 @@ function getItemIcon(item) {
   position: relative;
   z-index: 100;
   padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
-  border-top: 1px solid rgba(42, 44, 51, 0.08);
-  background: #fff;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04);
+  // border-top: 1px solid rgba(42, 44, 51, 0.08);
+  background: var(--home-bg);
+  // box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04);
 }
 
 .responsive-nav--bottom .nav-list {
