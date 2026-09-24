@@ -21,7 +21,7 @@
         v-for="(url, index) in fileList"
         :key="index"
       >
-        <image class="preview-img" :src="url" mode="aspectFill" @click="previewImage(index)" />
+        <AppImage class="preview-img" width="100%" height="100%" :src="url" mode="aspectFill" @click="previewImage(index)" />
         <view class="delete-btn" v-if="!disabled" @click.stop="removeFile(index)">
           <view class="delete-icon">×</view>
         </view>
@@ -47,6 +47,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { uploadFile as uploadFileApi } from '../../api/uploadClient.js'
+import AppImage from '../AppImage/AppImage.vue'
 
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },

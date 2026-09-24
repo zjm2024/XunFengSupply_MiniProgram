@@ -345,6 +345,13 @@
                     }
                 },
                 {
+                    "path": "pages/manual/pdf-preview",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
                     "path": "pages/message/index",
                     "style": {
                         "navigationStyle": "custom",

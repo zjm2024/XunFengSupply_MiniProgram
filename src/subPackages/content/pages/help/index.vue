@@ -109,7 +109,7 @@
                 class="guide-item"
                 @click="openGuide(guide)"
               >
-                <image class="guide-cover" :src="guide.cover" mode="aspectFill" />
+                <AppImage class="guide-cover" width="100%" height="100%" :src="guide.cover" mode="aspectFill" />
                 <view class="guide-info">
                   <text class="guide-name">{{ guide.name }}</text>
                   <text class="guide-desc">{{ guide.desc }}</text>
@@ -132,6 +132,7 @@ import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import statusTagNew from '@/shared/ui/StatusTag/StatusTag.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppImage from '@/shared/ui/AppImage/AppImage.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 

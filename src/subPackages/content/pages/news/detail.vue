@@ -44,6 +44,9 @@ import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import { getNewsDetail } from '../../api/news.js'
 import { navigator } from '@/app/navigation/navigator.js'
+import { cacheRichTextImages, sanitizeRichTextImages } from '@/shared/utils/resourceCache.js'
+
+const imagePlaceholder = '/static/images/image-placeholder.svg'
 
 const articleId = ref('')
 const loading = ref(false)
@@ -69,7 +72,11 @@ async function loadDetail() {
   loading.value = true
   errorText.value = ''
   try {
-    detail.value = await getNewsDetail(articleId.value)
+    const result = await getNewsDetail(articleId.value)
+    detail.value = result
+      ? { ...result, content: sanitizeRichTextImages(result.content, imagePlaceholder) }
+      : result
+    if (result) void cacheNewsResources(result).catch(error => console.warn('[NewsDetail] 图片缓存失败:', error))
     if (!detail.value) errorText.value = '新闻不存在或已下线'
   } catch (error) {
     console.error('[NewsDetail] 加载公告详情失败:', error)
@@ -77,6 +84,16 @@ async function loadDetail() {
   } finally {
     loading.value = false
   }
+}
+
+async function cacheNewsResources(result) {
+  const [coverUrl, content] = await Promise.all([
+    // 封面由 AppProductImage 负责缓存，这里只处理富文本图片。
+    Promise.resolve(result.coverUrl || result.imageUrl || ''),
+    cacheRichTextImages(result.content, { fallbackUrl: imagePlaceholder }),
+  ])
+  if (detail.value?.id !== result.id) return
+  detail.value = { ...detail.value, coverUrl, content }
 }
 
 /** 返回资讯列表。 */

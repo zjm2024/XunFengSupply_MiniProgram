@@ -77,6 +77,7 @@ export const NEWS = '/subPackages/content/pages/news/index'
 export const NEWS_DETAIL = '/subPackages/content/pages/news/detail'
 export const MANUAL = '/subPackages/content/pages/manual/index'
 export const MANUAL_PREVIEW = '/subPackages/content/pages/manual/preview'
+export const MANUAL_PDF_PREVIEW = '/subPackages/content/pages/manual/pdf-preview'
 export const MESSAGE = '/subPackages/content/pages/message/index'
 export const HELP = '/subPackages/content/pages/help/index'
 export const ABOUT = '/subPackages/content/pages/about/index'
@@ -91,7 +92,7 @@ export const REGISTERED_ROUTES = Object.freeze([
   ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
   DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, SECURITY,
   RECHARGE, RECHARGE_RECORDS, FUND_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS,
-  NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MESSAGE, HELP, ABOUT,
+  NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MANUAL_PDF_PREVIEW, MESSAGE, HELP, ABOUT,
 ])
 
 // ==================== 内部集合（用于高效查询）====================
@@ -405,7 +406,14 @@ export const ROUTE_META = Object.freeze({
     owner: null,
   },
   [MANUAL_PREVIEW]: {
-    title: '手册预览',
+    title: '产品手册预览',
+    requireAuth: true,
+    requireSign: false,
+    allowFrozen: false,
+    owner: null,
+  },
+  [MANUAL_PDF_PREVIEW]: {
+    title: '产品手册预览',
     requireAuth: true,
     requireSign: false,
     allowFrozen: false,
@@ -682,6 +690,10 @@ export const routes = {
     manualPreview: (manualId, { needConfirm = false } = {}) => {
       const id = assertValidId(manualId, 'content.manualPreview')
       return withQuery(MANUAL_PREVIEW, { manualId: id, needConfirm })
+    },
+    manualPdfPreview: (manualId) => {
+      const id = assertValidId(manualId, 'content.manualPdfPreview')
+      return withQuery(MANUAL_PDF_PREVIEW, { manualId: id })
     },
     messages: () => MESSAGE,
     help: () => HELP,

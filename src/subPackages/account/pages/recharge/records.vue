@@ -30,19 +30,16 @@
           </view>
 
           <view class="content-wrap">
-            <view class="record-summary">
+            <!-- <view class="record-summary">
               <view>
                 <text class="summary-label">当前筛选</text>
                 <text class="summary-title">{{ activeTabLabel }}</text>
               </view>
               <text class="summary-count">{{ totalCount }} 条记录</text>
-            </view>
+            </view> -->
 
             <AppPageState
               :state="pageState"
-              title="暂无充值记录"
-              :description="pageState === PageStatus.ERROR ? loadError : '充值提交并进入财务系统后，将在这里显示状态'"
-              action-text="重新加载"
               icon-type="default"
               @retry="reload"
               @action="reload"

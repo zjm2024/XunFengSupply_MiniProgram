@@ -95,7 +95,7 @@ async function openNewsList() {
 .news-title { margin-top: 6px; color: #17191e; font-size: 25px; font-weight: 800; line-height: 1.3; }
 .news-subtitle { margin-top: 6px; color: #858993; font-size: 12px; line-height: 1.55; }
 .news-grid { display: grid; gap: 14px; margin-top: 4px; }
-.large-news-card { overflow: hidden; border: 1px solid #E8EBF1; border-radius: 20px; background: #FFFFFF; box-shadow: 0 8px 24px rgba(45,40,42,.055); transition: transform 160ms ease, opacity 160ms ease; }
+.large-news-card { overflow: hidden; border: 1px solid #E8EBF1; border-radius: 10px; background: #FFFFFF; box-shadow: 0 8px 24px rgba(45,40,42,.055); transition: transform 160ms ease, opacity 160ms ease; }
 .large-card-media { position: relative; width: 100%; height: 190px; overflow: hidden; background: #EEF0F3; }
 .large-card-cover { display: block; width: 100%; height: 100%; background: #EEF0F3; }
 .large-card-badge { position: absolute; left: 14px; top: 14px; padding: 5px 11px; border-radius: 14px; color: #FFFFFF; background: rgba(31,35,41,.68); font-size: 10px; font-weight: 700; }

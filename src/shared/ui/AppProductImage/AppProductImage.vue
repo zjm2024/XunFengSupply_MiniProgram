@@ -3,7 +3,7 @@
     <image
       v-if="hasUsableImage"
       class="app-product-image__source"
-      :src="src"
+      :src="displaySrc"
       :mode="mode"
       :lazy-load="lazyLoad"
       @error="handleImageError"
@@ -18,6 +18,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import AppIcon from '../AppIcon/AppIcon.vue'
+import { getCachedResource, getCachedResourcePath } from '@/shared/utils/resourceCache.js'
 
 const props = defineProps({
   src: { type: String, default: '' },
@@ -29,7 +30,9 @@ const props = defineProps({
 })
 
 const imageFailed = ref(false)
-const hasUsableImage = computed(() => Boolean(props.src?.trim()) && !imageFailed.value)
+const displaySrc = ref('')
+let cacheRequestId = 0
+const hasUsableImage = computed(() => Boolean(displaySrc.value?.trim()) && !imageFailed.value)
 const hasKnownStock = computed(() => props.stock !== undefined && props.stock !== null && props.stock !== '')
 const isOutOfStock = computed(() => (
   props.showStockBadge
@@ -37,9 +40,16 @@ const isOutOfStock = computed(() => (
   && Number(props.stock) <= 0
 ))
 
-watch(() => props.src, () => {
+watch(() => props.src, async (source) => {
+  const requestId = ++cacheRequestId
+  const remoteUrl = String(source || '').trim()
   imageFailed.value = false
-})
+  displaySrc.value = getCachedResourcePath(remoteUrl, { kind: 'image' }) || remoteUrl
+  if (!remoteUrl) return
+
+  const cachedUrl = await getCachedResource(remoteUrl, { kind: 'image' })
+  if (requestId === cacheRequestId && cachedUrl) displaySrc.value = cachedUrl
+}, { immediate: true })
 
 function handleImageError() {
   imageFailed.value = true

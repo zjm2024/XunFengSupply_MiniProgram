@@ -17,7 +17,7 @@
       v-if="!hasError"
       class="app-image"
       :class="{ 'is-loading': isLoading }"
-      :src="src"
+      :src="displaySrc"
       :mode="mode"
       :lazy-load="lazyLoad"
       :show-menu-by-longpress="showMenuByLongpress"
@@ -36,6 +36,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import AppIcon from '../AppIcon/AppIcon.vue'
+import { getCachedResource, getCachedResourcePath } from '@/shared/utils/resourceCache.js'
 
 const props = defineProps({
   // 图片地址
@@ -84,6 +85,8 @@ const emit = defineEmits(['load', 'error'])
 
 const isLoading = ref(true)
 const hasError = ref(false)
+const displaySrc = ref('')
+let cacheRequestId = 0
 
 // 规范化尺寸单位
 const normalizeSize = (value) => {
@@ -122,10 +125,16 @@ function handleError(event) {
 }
 
 // 监听 src 变化重置状态
-watch(() => props.src, () => {
+watch(() => props.src, async (source) => {
+  const requestId = ++cacheRequestId
   isLoading.value = true
   hasError.value = false
-})
+  displaySrc.value = getCachedResourcePath(String(source || '').trim(), { kind: 'image' }) || String(source || '').trim()
+  if (!displaySrc.value) return
+
+  const cachedUrl = await getCachedResource(displaySrc.value, { kind: 'image' })
+  if (requestId === cacheRequestId && cachedUrl) displaySrc.value = cachedUrl
+}, { immediate: true })
 </script>
 
 <style lang="scss" scoped>

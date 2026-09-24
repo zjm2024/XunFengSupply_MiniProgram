@@ -1,5 +1,11 @@
 <template>
   <view class="home-tab tab-page">
+    <view class="feature-strip">
+      <view v-for="feature in features" :key="feature.label" class="feature-item">
+        <AppIcon :name="feature.icon" :size="18" />
+        <text>{{ feature.label }}</text>
+      </view>
+    </view>
     <view class="entry-grid card-wrap">
       <view class="entry-card card-left order-card" hover-class="card--pressed" @click="openProductList">
         <view class="entry-copy">
@@ -53,12 +59,7 @@
       </view>
     </view>
 
-    <view class="feature-strip">
-      <view v-for="feature in features" :key="feature.label" class="feature-item">
-        <AppIcon :name="feature.icon" :size="18" />
-        <text>{{ feature.label }}</text>
-      </view>
-    </view>
+
 
   </view>
 </template>
@@ -194,7 +195,7 @@ async function openManualList() {
 .visual-ring--large { top: -34px; right: -36px; width: 112px; height: 112px; }
 .visual-ring--small { bottom: -20px; left: -18px; width: 58px; height: 58px; }
 
-.feature-strip { display: none; margin-top: 18px; padding: 12px 18px; justify-content: space-around; border-radius: 18px; }
+.feature-strip { display: none; margin-bottom: 18px; padding: 12px 18px; justify-content: space-around; border-radius: 18px; }
 .feature-item { gap: 8px; color: #676b74; font-size: 12px; }
 .feature-item :deep(.app-icon) { color: var(--color-brand, #d7192d); }
 

@@ -16,8 +16,7 @@
 
       <view class="profile-main" hover-class="item--pressed" @tap="openProfile">
         <view class="avatar-wrap">
-          <image v-if="userStore.avatarUrl" class="avatar-image" :src="userStore.avatarUrl" mode="aspectFill" />
-         <image v-else class="avatar-image" src="/src/static/images/logo.png" mode="aspectFill" />
+          <AppImage class="avatar-image" width="100%" height="100%" :src="userStore.avatarUrl || '/static/images/logo.png'" mode="aspectFill" />
         </view>
         <view class="profile-copy">
           <view class="name-row">
@@ -122,6 +121,7 @@ import { getOrderCounts } from '@/shared/api/order.js'
 import { getAfterSaleCount } from '@/shared/api/afterSale.js'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppInitializing from '@/shared/ui/AppInitializing/AppInitializing.vue'
+import AppImage from '@/shared/ui/AppImage/AppImage.vue'
 
 const props = defineProps({ active: { type: Boolean, default: false } })
 const userStore = useUserStore()

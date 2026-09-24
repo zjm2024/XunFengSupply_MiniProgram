@@ -15,7 +15,7 @@
       :disable-touch="normalizedImages.length <= 1 || scaleFor(activeIndex) > 1.01"
       @change="handleChange"
     >
-      <swiper-item v-for="(image, index) in normalizedImages" :key="`${image}-${index}`">
+      <swiper-item v-for="(image, index) in displayImages" :key="`${image}-${index}`">
         <view class="viewer-slide">
           <movable-area v-if="!failedImages[index]" class="viewer-movable-area" scale-area @tap.stop="handleImageTap(index)">
             <movable-view
@@ -57,6 +57,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import AppIcon from '../AppIcon/AppIcon.vue'
+import { getCachedResource } from '@/shared/utils/resourceCache.js'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -69,12 +70,16 @@ const emit = defineEmits(['update:modelValue', 'change', 'close'])
 const activeIndex = ref(0)
 const failedImages = ref({})
 const imageScales = ref({})
+const cachedImages = ref([])
 const lastTapTime = ref(0)
 const lastTapIndex = ref(-1)
+let cacheRequestId = 0
 
 const normalizedImages = computed(() => props.images
   .map(image => String(image || '').trim())
   .filter(Boolean))
+
+const displayImages = computed(() => normalizedImages.value.map((url, index) => cachedImages.value[index] || url))
 
 const safeAreaInsets = (() => {
   if (typeof uni === 'undefined') return { top: 0, bottom: 0 }
@@ -167,12 +172,17 @@ watch(
 
 watch(
   () => props.images,
-  () => {
+  async () => {
+    const requestId = ++cacheRequestId
     failedImages.value = {}
     imageScales.value = {}
+    cachedImages.value = [...normalizedImages.value]
     activeIndex.value = clampIndex(activeIndex.value)
+
+    const cached = await Promise.all(normalizedImages.value.map(url => getCachedResource(url, { kind: 'image' })))
+    if (requestId === cacheRequestId) cachedImages.value = cached
   },
-  { deep: true },
+  { deep: true, immediate: true },
 )
 </script>
 

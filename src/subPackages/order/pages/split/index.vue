@@ -42,7 +42,7 @@
                     <text class="address-detail">{{ valueOf(split, 'fullAddress', 'FullAddress', '') }}</text>
                   </view>
                   <view v-for="item in itemsOf(split)" :key="`${splitIdOf(split)}-${itemIdOf(item)}`" class="readonly-item">
-                    <image class="item-image" :src="valueOf(item, 'imageUrl', 'ImageUrl', '')" mode="aspectFill" />
+                    <AppImage class="item-image" width="100%" height="100%" :src="valueOf(item, 'imageUrl', 'ImageUrl', '')" mode="aspectFill" />
                     <view class="item-copy">
                       <text class="item-name">{{ valueOf(item, 'productName', 'ProductName', '') }}</text>
                       <text class="item-spec">{{ valueOf(item, 'skuName', 'SkuName', '') }}</text>
@@ -77,7 +77,7 @@
                 <view class="product-grid">
                   <view v-for="item in sourceItems" :key="itemIdOf(item)" class="product-card">
                     <view class="product-head">
-                      <image class="item-image product-image" :src="valueOf(item, 'imageUrl', 'ImageUrl', '')" mode="aspectFill" />
+                      <AppImage class="item-image product-image" width="100%" height="100%" :src="valueOf(item, 'imageUrl', 'ImageUrl', '')" mode="aspectFill" />
                       <view class="item-copy">
                         <view class="item-title-line">
                           <text class="item-name">{{ valueOf(item, 'productName', 'ProductName', '') }}</text>
@@ -178,6 +178,7 @@ import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import AppImage from '@/shared/ui/AppImage/AppImage.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import QuantityStepper from '@/shared/ui/QuantityStepper/QuantityStepper.vue'
 import { navigator } from '@/app/navigation/navigator.js'

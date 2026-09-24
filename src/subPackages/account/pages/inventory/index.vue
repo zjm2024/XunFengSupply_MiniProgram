@@ -28,14 +28,13 @@
           </view>
 
           <view class="content-wrap">
-            <view class="result-head">
+            <!-- <view class="result-head">
               <text>{{ activeTabLabel }}</text><text>{{ totalCount }} 个规格</text>
-            </view>
+            </view> -->
             <AppPageState
               :state="pageState"
               title="暂无库存"
               :description="pageState === PageStatus.ERROR ? loadError : '采购订单确认收货后，商品会自动进入这里'"
-              action-text="重新加载"
               @retry="reload"
               @action="reload"
             >
@@ -196,7 +195,7 @@ function formatQty(value) { return Number(value || 0).toLocaleString('zh-CN') }
 .quantity-row view { min-width: 0; }
 .quantity-row text { display: block; overflow: hidden; color: #92969D; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .quantity-row text + text { margin-top: 3px; color: #3D434B; font-size: 11px; font-weight: 660; }
-.quantity-row .primary-qty text + text { color: #1F6848; }
+.quantity-row .primary-qty text + text { color: #000000; }
 .card-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; color: #9A9EA5; font-size: 8px; }
 .load-status { padding: 20px 0 2px; color: #9B9FA6; font-size: 10px; text-align: center; }
 @media screen and (min-width: 720px) {

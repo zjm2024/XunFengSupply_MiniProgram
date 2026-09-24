@@ -103,9 +103,24 @@ export function getCachedResource(url, options = {}) {
 
 const imageSourcePattern = /(<img\b[^>]*?\s+src\s*=\s*)(["'])([^"']+)\2/gi
 
+function normalizeRichText(source) {
+  return source
+    .replace(/\\(["'])/g, '$1')
+    .replace(/&quot;/gi, '"')
+}
+
+/** 先把富文本图片替换为占位图，避免 APP 首次渲染直接请求失效的第三方地址。 */
+export function sanitizeRichTextImages(content, fallbackUrl = '') {
+  const source = normalizeRichText(typeof content === 'string' ? content : '')
+  if (!source || !fallbackUrl || isH5()) return source
+  return source.replace(imageSourcePattern, (full, prefix, quote, url) => (
+    isRemoteUrl(url) ? `${prefix}${quote}${fallbackUrl}${quote}` : full
+  ))
+}
+
 /** 下载并替换富文本中的图片地址，失败时保留原始 URL。 */
 export async function cacheRichTextImages(content, options = {}) {
-  const source = typeof content === 'string' ? content : ''
+  const source = normalizeRichText(typeof content === 'string' ? content : '')
   if (!source || isH5()) return source
 
   const matches = [...source.matchAll(imageSourcePattern)]

@@ -1,6 +1,6 @@
 <template>
   <view class="page">
-    <app-header :show-back="true" title="手册详情" @back="goBack" />
+    <app-header :show-back="true" title="产品手册详情" @back="goBack" />
     <scroll-view class="page-scroll" scroll-y>
       <view v-if="loading" class="state-box"><text>正在加载手册...</text></view>
       <view v-else-if="errorText" class="state-box" @click="loadDetail">
@@ -17,7 +17,7 @@
           <text v-else class="empty-content">暂无正文，请打开附件查看</text>
         </view>
 
-        <button v-if="detail.fileUrl" class="download-button" @click="openFile">
+        <button v-if="detail.fileUrl" class="download-button" @tap="openFile">
           <AppIcon name="download" :size="17" />
           <text>打开 PDF 手册</text>
         </button>
@@ -35,7 +35,8 @@ import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import { getManualDetail } from '../../api/manual.js'
 import { navigator } from '@/app/navigation/navigator.js'
-import { cacheRichTextImages, getCachedResource, getCachedResourcePath } from '@/shared/utils/resourceCache.js'
+import { routes } from '@/app/config/routes.js'
+import { cacheRichTextImages, getCachedResource, sanitizeRichTextImages } from '@/shared/utils/resourceCache.js'
 
 const imagePlaceholder = '/static/images/image-placeholder.svg'
 
@@ -61,6 +62,8 @@ async function loadDetail() {
   try {
     const result = await getManualDetail(manualId.value)
     detail.value = result
+      ? { ...result, content: sanitizeRichTextImages(result.content, imagePlaceholder) }
+      : result
     if (result) void cacheDetailResources(result).catch(error => console.warn('[ManualDetail] 图片缓存失败:', error))
     if (!detail.value) errorText.value = '手册不存在或已下架'
   } catch (error) {
@@ -81,50 +84,24 @@ async function cacheDetailResources(result) {
   detail.value = { ...detail.value, coverUrl, content }
 }
 
-function openFile() {
+async function openFile() {
   const url = detail.value?.fileUrl
-  if (!url) return
-
-  // #ifdef H5
-  window.open(url, '_blank')
-  // #endif
-  // #ifdef APP-PLUS
-  const cachedPath = getCachedResourcePath(url, { kind: 'pdf' })
-  if (cachedPath) {
-    openLocalFile(cachedPath)
+  const id = detail.value?.id || manualId.value
+  if (!url) {
+    uni.showToast({ title: '当前手册没有 PDF 附件', icon: 'none' })
+    return
+  }
+  if (!id) {
+    uni.showToast({ title: '缺少手册编号', icon: 'none' })
     return
   }
 
-  // 优先交给系统 PDF/浏览器直接打开；同时后台缓存，避免用户先看到下载按钮。
-  if (typeof plus !== 'undefined' && typeof plus.runtime?.openURL === 'function') {
-    plus.runtime.openURL(url, () => openLocalFileAfterDownload(url))
-    void getCachedResource(url, { kind: 'pdf', maxAge: 7 * 24 * 60 * 60 * 1000 })
-    return
+  const target = routes.content.manualPdfPreview(id)
+  const navigated = await navigator.navigateTo(target)
+  if (!navigated) {
+    console.warn('[ManualDetail] PDF 预览页导航失败:', { id, target })
+    uni.showToast({ title: 'PDF 预览页打开失败', icon: 'none' })
   }
-
-  openLocalFileAfterDownload(url)
-  // #endif
-}
-
-function openLocalFileAfterDownload(url) {
-  uni.showLoading({ title: '准备预览...' })
-  getCachedResource(url, { kind: 'pdf', maxAge: 7 * 24 * 60 * 60 * 1000 }).then(openLocalFile).catch(() => {
-    uni.showToast({ title: '手册打开失败', icon: 'none' })
-  }).finally(() => {
-    uni.hideLoading()
-  })
-}
-
-function openLocalFile(filePath) {
-  if (!filePath) {
-    uni.showToast({ title: '手册打开失败', icon: 'none' })
-    return
-  }
-  uni.openDocument({
-    filePath,
-    showMenu: true,
-    fail: () => uni.showToast({ title: '暂不支持预览该文件', icon: 'none' }),
-  })
 }
 
 function goBack() { navigator.back() }
