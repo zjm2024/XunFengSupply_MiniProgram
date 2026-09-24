@@ -65,7 +65,7 @@ async function openProductList() { await navigator.navigateTo(routes.commerce.pr
 </script>
 
 <style lang="scss" scoped>
-.tab-page { width: 100%; max-width: 1180px; min-height: 100%; margin: 0 auto; padding: 18px 16px calc(80px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+.tab-page { width: 100%; min-height: 100%; margin: 0 auto; padding: 18px 16px 0; box-sizing: border-box; }
 .page-heading, .section-heading, .cart-item, .item-price-row, .cart-action, .primary-button { display: flex; align-items: center; }
 .page-heading { justify-content: space-between; gap: 18px; padding: 20px; border: 1px solid rgba(255,255,255,.86); border-radius: 24px; background: linear-gradient(145deg, rgba(255,255,255,.94), rgba(255,246,229,.86)); box-shadow: 0 14px 36px rgba(55,40,43,.06); }
 .heading-copy { display: flex; min-width: 0; flex-direction: column; }

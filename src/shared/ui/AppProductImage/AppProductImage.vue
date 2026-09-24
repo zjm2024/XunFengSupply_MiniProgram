@@ -5,6 +5,7 @@
       class="app-product-image__source"
       :src="src"
       :mode="mode"
+      :lazy-load="lazyLoad"
       @error="handleImageError"
     />
     <view v-else class="app-product-image__fallback">
@@ -21,6 +22,7 @@ import AppIcon from '../AppIcon/AppIcon.vue'
 const props = defineProps({
   src: { type: String, default: '' },
   mode: { type: String, default: 'aspectFit' },
+  lazyLoad: { type: Boolean, default: false },
   stock: { type: [Number, String], default: undefined },
   showStockBadge: { type: Boolean, default: true },
   fallbackIconSize: { type: Number, default: 28 },

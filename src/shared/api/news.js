@@ -1,13 +1,9 @@
 /**
- * 新闻/公告/产品手册相关接口
+ * 新闻资讯接口。
  *
- * 后端映射：
- *   Module: System
- *   - Mini.AnnouncementController → GetList / GetDetail
- *
- * ⚠️ 参数由页面层构建 PascalCase 实体，API 层直接透传
+ * APP 只调用我们的 ThirdParty/Mini.NewsController，
+ * 不直接访问第三方域名，也不感知第三方字段结构。
  */
-
 import { dispatch } from './dispatchClient.js'
 
 export const ANNOUNCEMENT_TYPE = Object.freeze({
@@ -17,74 +13,99 @@ export const ANNOUNCEMENT_TYPE = Object.freeze({
   SETTLEMENT: 4,
 })
 
-const TYPE_ALIAS = Object.freeze({
-  policy: ANNOUNCEMENT_TYPE.POLICY,
-  product: ANNOUNCEMENT_TYPE.NEWS,
-  news: ANNOUNCEMENT_TYPE.NEWS,
-  new: ANNOUNCEMENT_TYPE.NEW_PRODUCT,
-  settlement: ANNOUNCEMENT_TYPE.SETTLEMENT,
-})
-
-const TYPE_LABEL = Object.freeze({
-  [ANNOUNCEMENT_TYPE.POLICY]: '政策公告',
-  [ANNOUNCEMENT_TYPE.NEWS]: '产品新闻',
-  [ANNOUNCEMENT_TYPE.NEW_PRODUCT]: '新品上新',
-  [ANNOUNCEMENT_TYPE.SETTLEMENT]: '结算通知',
-})
-
-function normalizeType(type) {
-  if (type === undefined || type === null || type === '' || type === 'all') return null
-  return typeof type === 'string' ? (TYPE_ALIAS[type] ?? Number(type)) : Number(type)
+function normalizeDate(value) {
+  return value ? String(value).slice(0, 10) : ''
 }
 
-function normalizeAnnouncement(item) {
-  const type = Number(item?.type || 0)
-  const publishTime = item?.publishTime || ''
+/** 补全第三方返回的协议相对地址和站内相对地址。 */
+function normalizeRemoteUrl(value, baseUrl = '') {
+  const url = String(value || '').trim()
+  if (!url || /^(https?:|data:|blob:)/i.test(url)) return url
+  if (url.startsWith('//')) return `https:${url}`
+
+  const origin = String(baseUrl || '').match(/^(https?:\/\/[^/]+)/i)?.[1] || ''
+  if (!origin) return url
+  return url.startsWith('/') ? `${origin}${url}` : `${origin}/${url}`
+}
+
+function normalizeArticle(item) {
+  const id = item?.id ?? item?.cid ?? item?.articleId ?? item?.announcementId ?? ''
+  const articleUrl = normalizeRemoteUrl(item?.articleUrl || item?.url || '')
+  const categoryId = item?.categoryId ?? item?.typeCode ?? ''
+  const categoryTitle = item?.categoryTitle || item?.type || '品牌资讯'
+  const summary = item?.summary || item?.description || item?.desc || ''
+  const coverUrl = normalizeRemoteUrl(
+    item?.coverUrl || item?.imageUrl || item?.cover || item?.image || '',
+    articleUrl,
+  )
+  const publishedAt = item?.publishedAt || item?.publishTime || item?.date || ''
   return {
     ...item,
-    id: item?.announcementId,
-    typeCode: type,
-    type: TYPE_LABEL[type] || '系统公告',
-    date: publishTime ? String(publishTime).slice(0, 10) : '',
+    id: String(id),
+    categoryId: String(categoryId),
+    categoryTitle,
+    title: item?.title || '',
+    summary,
+    content: item?.content || '',
+    publishedAt,
+    desc: summary,
+    type: categoryTitle,
+    typeCode: categoryId,
+    date: normalizeDate(publishedAt),
+    coverUrl,
+    imageUrl: coverUrl,
+    articleUrl,
     isManual: false,
   }
 }
 
-// ==================== 新闻/公告接口 ====================
+function normalizeCategory(category) {
+  return {
+    ...category,
+    id: String(category?.id ?? category?.cid ?? ''),
+    label: category?.title || category?.name || '未命名分类',
+    children: Array.isArray(category?.children)
+      ? category.children.map(normalizeCategory)
+      : [],
+  }
+}
 
-/**
- * 获取新闻/公告列表（分页）
- * @param {Object} params - 后端实体参数（PascalCase）
- * @param {string} [params.Type] - 类型筛选：all/product/new/policy/manual
- * @param {number} [params.PageNum] - 页码
- * @param {number} [params.PageSize] - 每页条数
- * @returns {Promise<{ total, items }>}
- */
-export function getNewsList(params) {
+/** 获取新闻分类树 */
+export function getNewsCategories(languageCode = 'zh-cn') {
+  return dispatch('ThirdParty', 'Mini.NewsController', 'GetCategories', {
+    languageCode,
+  }).then(result => {
+    const root = result?.root ? normalizeCategory(result.root) : null
+    const categories = Array.isArray(result?.categories) && result.categories.length
+      ? result.categories.map(normalizeCategory)
+      : (root?.children || [])
+    return { root, categories }
+  })
+}
+
+/** 获取新闻列表 */
+export function getNewsList(params = {}) {
   const source = params || {}
-  return dispatch('System', 'Mini.AnnouncementController', 'GetList', {
-    pageNum: source.pageNum ?? source.PageNum ?? source.page ?? 1,
-    pageSize: source.pageSize ?? source.PageSize ?? 20,
-    type: normalizeType(source.type ?? source.Type),
-    languageCode: source.languageCode ?? source.LanguageCode ?? 'zh-CN',
+  const categoryId = source.categoryId ?? source.category_id ?? null
+  return dispatch('ThirdParty', 'Mini.NewsController', 'GetArticles', {
+    categoryId: categoryId || undefined,
+    page: Math.max(Number(source.pageNum ?? source.page ?? 1), 1),
+    perPage: Math.min(Math.max(Number(source.pageSize ?? source.perPage ?? 20), 1), 100),
+    languageCode: source.languageCode ?? source.lang ?? 'zh-cn',
   }).then(result => ({
     ...result,
-    items: Array.isArray(result?.items) ? result.items.map(normalizeAnnouncement) : [],
+    items: Array.isArray(result?.items) ? result.items.map(normalizeArticle) : [],
   }))
 }
 
-/**
- * 获取新闻详情
- * @param {number} newsId - 新闻ID
- * @returns {Promise<Object>} 新闻详情
- */
-export function getNewsDetail(newsId, languageCode = 'zh-CN') {
-  return dispatch('System', 'Mini.AnnouncementController', 'GetDetail', {
-    announcementId: newsId,
-    languageCode,
-  }).then(item => (item ? normalizeAnnouncement(item) : item))
-}
+/** 获取新闻详情 */
+export function getNewsDetail(articleId, languageCode = 'zh-cn') {
+  if (articleId === undefined || articleId === null || String(articleId).trim() === '') {
+    return Promise.reject(new Error('新闻编号不能为空'))
+  }
 
-// 产品手册后端暂未发布接口，待后端契约对齐后实现
-// - getManualList / getManualDownloadUrl
-// 详见 docs/MINI_API_CONTRACT.md "后端缺口" 章节
+  return dispatch('ThirdParty', 'Mini.NewsController', 'GetDetail', {
+    articleId: String(articleId),
+    languageCode,
+  }).then(item => (item ? normalizeArticle(item) : item))
+}

@@ -31,6 +31,7 @@
         'is-transparent': transparent,
         'has-shadow': showShadow,
         'is-landscape': layout.isLandscape,
+        'is-searchable': searchable,
       }
     ]"
     :style="headerStyle"
@@ -293,7 +294,7 @@ const titleStyle = computed(() => {
 // ==================== 样式对象 ====================
 
 const headerStyle = computed(() => ({
-  backgroundColor: props.transparent ? 'transparent' : '#f7f8fa',
+  backgroundColor: props.transparent ? 'transparent' : 'var(--surface-page, #F4F5F8)',
 }))
 
 const navBarStyle = computed(() => ({
@@ -378,7 +379,7 @@ onUnmounted(() => {
   position: relative;
   z-index: 100;
   color: #4f545c;
-  background: #f7f8fa;
+  background: var(--surface-page, #F4F5F8);
   flex-shrink: 0;
 
   &.theme-light {
@@ -419,7 +420,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   width: 100%;
-  padding: 6px 12px;
+  --header-side-padding: 12px;
+  padding: 6px var(--header-side-padding);
   box-sizing: border-box;
 }
 
@@ -436,19 +438,22 @@ onUnmounted(() => {
 }
 
 .nav-search {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--header-side-padding) + 48px);
+  left: calc(var(--header-side-padding) + 48px);
   display: flex;
   min-width: 0;
-  max-width: 680px;
-  height: 44px;
-  flex: 1;
+  height: 40px;
   align-items: center;
   gap: 8px;
-  margin: 0 6px 0 4px;
+  margin: 0 auto;
   padding: 0 12px;
   border: 1px solid #e2e5e8;
-  border-radius: 22px;
+  border-radius: 20px;
   background: #ffffff;
   box-sizing: border-box;
+  transform: translateY(-50%);
 }
 
 .nav-search-icon,
@@ -642,7 +647,8 @@ onUnmounted(() => {
 
 @media screen and (min-width: 768px) {
   .nav-bar {
-    padding: 8px 28px;
+    --header-side-padding: 28px;
+    padding: 8px var(--header-side-padding);
   }
 
   .icon-btn {
@@ -651,18 +657,16 @@ onUnmounted(() => {
   }
 
   .nav-search {
-    height: 48px;
-    margin-right: 12px;
-    margin-left: 10px;
     padding: 0 16px;
-    border-radius: 24px;
+    border-radius: 20px;
   }
 }
 
 @media screen and (min-width: 1180px) {
   .nav-bar {
-    padding-right: 36px;
-    padding-left: 36px;
+    --header-side-padding: 36px;
+    padding-right: var(--header-side-padding);
+    padding-left: var(--header-side-padding);
   }
 }
 </style>

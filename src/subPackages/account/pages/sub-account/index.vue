@@ -5,7 +5,13 @@
     </template>
 
     <template #content>
-      <AppContent>
+      <AppContent
+        :refresher-enabled="true"
+        :refresher-triggered="isRefreshing"
+        @refresherrefresh="handleRefresh"
+        @refresherrestore="handleRefresherRestore"
+        @refresherabort="handleRefresherRestore"
+      >
         <view class="content">
           <!-- 加载中状态 -->
           <AppPageState
@@ -141,6 +147,7 @@ import { getSubAccountList, toggleSubAccountStatus } from '../../api/subAccount.
 import { routes } from '@/app/config/routes.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { useUserStore } from '@/shared/session/userStore.js'
+import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
 import {
   changeDealerFrozenBalance,
   getDealerFinanceContext,
@@ -150,6 +157,7 @@ import {
 const accountList = ref([])
 const userStore = useUserStore()
 const loading = ref(false)
+const isRefreshing = ref(false)
 const finance = ref({ accounts: [], currentAccount: null })
 
 const totalCount = computed(() => accountList.value.length)
@@ -184,6 +192,22 @@ async function loadSubAccounts() {
   } finally {
     loading.value = false
   }
+}
+
+async function handleRefresh() {
+  if (isRefreshing.value) return
+  const startedAt = Date.now()
+  isRefreshing.value = true
+  try {
+    await loadSubAccounts()
+  } finally {
+    await waitForRefreshAnimation(startedAt)
+    isRefreshing.value = false
+  }
+}
+
+function handleRefresherRestore() {
+  if (!loading.value) isRefreshing.value = false
 }
 
 function formatMoney(value) {

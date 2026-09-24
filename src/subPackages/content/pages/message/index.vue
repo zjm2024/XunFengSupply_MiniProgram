@@ -11,7 +11,15 @@
     </template>
 
     <template #content>
-      <AppContent padding="12px var(--page-padding-x, 16px) 32px" @scrolltolower="loadMore">
+      <AppContent
+        padding="12px var(--page-padding-x, 16px) 32px"
+        :refresher-enabled="true"
+        :refresher-triggered="isRefreshing"
+        @refresherrefresh="handleRefresh"
+        @refresherrestore="handleRefresherRestore"
+        @refresherabort="handleRefresherRestore"
+        @scrolltolower="loadMore"
+      >
         <view class="message-page">
           <view class="category-grid">
             <view
@@ -125,6 +133,7 @@ import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustratio
 import noMessageSvg from '../../../../shared/assets/illustrations/no-message.svg?raw'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
 
 const messageStore = useMessageStore()
 const pageSize = 20
@@ -149,6 +158,7 @@ const currentType = ref('')
 const messageList = ref([])
 const loading = ref(false)
 const loadingMore = ref(false)
+const isRefreshing = ref(false)
 const markingAll = ref(false)
 const hasMore = ref(true)
 const pageNum = ref(1)
@@ -215,6 +225,22 @@ async function refreshPage() {
   hasMore.value = true
   messageList.value = []
   await Promise.all([loadMessages(false), loadUnreadCount()])
+}
+
+async function handleRefresh() {
+  if (isRefreshing.value) return
+  const startedAt = Date.now()
+  isRefreshing.value = true
+  try {
+    await refreshPage()
+  } finally {
+    await waitForRefreshAnimation(startedAt)
+    isRefreshing.value = false
+  }
+}
+
+function handleRefresherRestore() {
+  if (!loading.value && !loadingMore.value) isRefreshing.value = false
 }
 
 async function switchType(type) {

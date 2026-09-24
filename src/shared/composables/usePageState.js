@@ -212,6 +212,7 @@ export function usePageState(fetchFn, options = {}) {
    * @returns {Promise<boolean>} 是否成功
    */
   async function refresh() {
+    hasMore.value = true
     // 如果已有数据，标记为 stale
     if (hasData.value) {
       _hasStaleContent.value = true

@@ -5,7 +5,14 @@
     </template>
 
     <template #content>
-      <AppContent padding="16px var(--page-padding-x, 16px) 30px">
+      <AppContent
+        padding="16px var(--page-padding-x, 16px) 30px"
+        :refresher-enabled="true"
+        :refresher-triggered="isRefreshing"
+        @refresherrefresh="handleRefresh"
+        @refresherrestore="handleRefresherRestore"
+        @refresherabort="handleRefresherRestore"
+      >
         <view class="bill-page">
           <view class="toolbar-card">
             <view>
@@ -117,6 +124,7 @@ import { PageStatus } from '@/shared/model/pageState.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { formatDate, formatMonthDisplay } from '../../../../shared/utils/format.js'
+import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
 const now = new Date()
 const currentMonth = ref(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
@@ -125,6 +133,7 @@ const totalCount = ref(0)
 const activeStatus = ref('all')
 const pageState = ref(PageStatus.LOADING)
 const loadError = ref('')
+const isRefreshing = ref(false)
 const overview = reactive({ totalAmount: 0, paidAmount: 0, outstandingAmount: 0 })
 const statusTabs = Object.freeze([
   { key: 'all', label: '全部' },
@@ -159,6 +168,22 @@ async function loadBillList() {
     loadError.value = error?.message || '账单读取失败，请稍后重试'
     pageState.value = PageStatus.ERROR
   }
+}
+
+async function handleRefresh() {
+  if (isRefreshing.value) return
+  const startedAt = Date.now()
+  isRefreshing.value = true
+  try {
+    await loadBillList()
+  } finally {
+    await waitForRefreshAnimation(startedAt)
+    isRefreshing.value = false
+  }
+}
+
+function handleRefresherRestore() {
+  if (pageState.value !== PageStatus.LOADING) isRefreshing.value = false
 }
 
 function onMonthChange(event) {

@@ -74,7 +74,7 @@ $content-max-width-landscape: 1120px;   // iPad 横屏/大屏
 /**
  * @deprecated 使用 content-padding 替代
  */
-@mixin ipad-padding($horizontal: 32rpx, $vertical: 24rpx) {
+@mixin ipad-padding($horizontal: 32px, $vertical: 24px) {
   padding: $vertical $horizontal;
 }
 
@@ -88,7 +88,7 @@ $content-max-width-landscape: 1120px;   // iPad 横屏/大屏
 /**
  * @deprecated 使用 responsive-container 替代
  */
-@mixin max-width-ipad($max-width: 700rpx) {
+@mixin max-width-ipad($max-width: 700px) {
   max-width: $max-width;
   margin-left: auto;
   margin-right: auto;

@@ -129,7 +129,7 @@ function getItemIcon(item) {
 .responsive-nav--bottom {
   position: relative;
   z-index: 100;
-  padding: 6px 10px calc(6px + env(safe-area-inset-bottom));
+  padding: var(--home-bottom-nav-padding, 6px) 10px calc(var(--home-bottom-nav-padding, 6px) + env(safe-area-inset-bottom));
   // border-top: 1px solid rgba(42, 44, 51, 0.08);
   background: var(--home-bg);
   // box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04);
@@ -146,7 +146,7 @@ function getItemIcon(item) {
 .responsive-nav--bottom .nav-item {
   flex: 1;
   min-width: 0;
-  height: 48px;
+  height: var(--home-bottom-nav-item-height, 48px);
   flex-direction: column;
   gap: 3px;
   border-radius: 0;

@@ -5,7 +5,15 @@
     </template>
 
     <template #content>
-      <AppContent padding="0 0 30px">
+      <AppContent
+        padding="0 0 30px"
+        :refresher-enabled="true"
+        :refresher-triggered="isRefreshing"
+        @refresherrefresh="handleRefresh"
+        @refresherrestore="handleRefresherRestore"
+        @refresherabort="handleRefresherRestore"
+        @scrolltolower="loadMore"
+      >
         <view class="records-page">
           <view class="filter-wrap">
             <scroll-view class="filter-scroll" scroll-x :show-scrollbar="false">
@@ -77,7 +85,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { onReachBottom, onShow } from '@dcloudio/uni-app'
+import { onShow } from '@dcloudio/uni-app'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -86,6 +94,7 @@ import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import { PageStatus } from '@/shared/model/pageState.js'
 import { getRechargeList } from '../../api/settlement.js'
 import { formatDateTime } from '../../../../shared/utils/format.js'
+import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
 const tabs = Object.freeze([
   { key: 'all', label: '全部', status: undefined },
@@ -101,6 +110,7 @@ const pageNum = ref(1)
 const pageSize = 12
 const hasMore = ref(false)
 const loadingMore = ref(false)
+const isRefreshing = ref(false)
 const pageState = ref(PageStatus.LOADING)
 const loadError = ref('')
 const activeTabLabel = computed(() => tabs.find(tab => tab.key === activeTab.value)?.label || '全部')
@@ -108,7 +118,6 @@ const activeTabLabel = computed(() => tabs.find(tab => tab.key === activeTab.val
 onShow(() => {
   if (pageState.value === PageStatus.LOADING) reload()
 })
-onReachBottom(loadMore)
 
 function changeTab(key) {
   if (key === activeTab.value) return
@@ -121,6 +130,22 @@ async function reload() {
   records.value = []
   pageState.value = PageStatus.LOADING
   await fetchPage(false)
+}
+
+async function handleRefresh() {
+  if (isRefreshing.value) return
+  const startedAt = Date.now()
+  isRefreshing.value = true
+  try {
+    await reload()
+  } finally {
+    await waitForRefreshAnimation(startedAt)
+    isRefreshing.value = false
+  }
+}
+
+function handleRefresherRestore() {
+  if (!loadingMore.value && pageState.value !== PageStatus.LOADING) isRefreshing.value = false
 }
 
 async function loadMore() {

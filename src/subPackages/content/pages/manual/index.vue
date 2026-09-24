@@ -1,20 +1,64 @@
-﻿﻿<template>
+<template>
   <AppPageShell>
     <template #header>
       <app-header title="产品手册" :show-back="true" />
     </template>
 
     <template #content>
-      <AppContent>
-        <view class="content">
-          <view v-for="item in manuals" :key="item.id" class="manual-item" @click="preview(item)">
-            <view class="pdf-icon"><text>PDF</text></view>
-            <view class="manual-info">
-              <text class="manual-title">{{ item.title }}</text>
-              <text class="manual-meta">{{ item.size }} · 更新于 {{ item.date }}</text>
+      <AppContent
+        :refresher-enabled="true"
+        :refresher-triggered="isRefreshing"
+        @refresherrefresh="handleRefresh"
+        @refresherrestore="handleRefresherRestore"
+        @refresherabort="handleRefresherRestore"
+        @scrolltolower="handleLoadMore"
+      >
+        <view class="manual-page">
+          <scroll-view v-if="categories.length > 1" class="category-tabs" scroll-x>
+            <view class="category-tabs-inner">
+              <button
+                v-for="category in categories"
+                :key="category.id"
+                class="category-btn"
+                :class="{ 'is-active': selectedCategoryId === category.id }"
+                @click="selectCategory(category.id)"
+              >{{ category.title }}</button>
             </view>
-            <button class="preview-btn">预览</button>
-          </view>
+          </scroll-view>
+
+          <AppPageState
+            :state="pageStatus.status.value"
+            :has-stale-content="pageStatus.hasStaleContent.value"
+            icon-type="product"
+            action-text="重新加载"
+            :fullscreen="false"
+            @retry="handleRetry"
+          >
+            <view class="manual-list">
+              <view
+                v-for="item in manuals"
+                :key="item.id"
+                class="manual-item"
+                hover-class="card--pressed"
+                @click="preview(item)"
+              >
+                <AppProductImage class="manual-cover" :src="item.coverUrl" mode="aspectFit" lazy-load :fallback-icon-size="28" />
+                <view class="manual-copy">
+                  <text class="manual-title">{{ item.title }}</text>
+                  <text class="manual-meta">{{ item.date ? `更新于 ${item.date}` : '暂无发布日期' }}</text>
+                  <text v-if="item.fileUrl" class="manual-file-hint">支持在线预览</text>
+                </view>
+                <AppIcon name="chevron-right" :size="18" class="manual-arrow" />
+              </view>
+              <text v-if="pageStatus.isLoadingMore.value" class="list-status">正在加载更多...</text>
+              <text v-else-if="!pageStatus.hasMore.value && manuals.length" class="list-status">已展示全部手册</text>
+            </view>
+            <template #skeleton>
+              <view class="manual-list">
+                <view v-for="item in 4" :key="item" class="manual-skeleton" />
+              </view>
+            </template>
+          </AppPageState>
         </view>
       </AppContent>
     </template>
@@ -22,79 +66,130 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
+import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
+import { usePageState } from '@/shared/composables/usePageState.js'
+import { getManualCategories, getManualList } from '../../api/manual.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import { getCachedResource } from '@/shared/utils/resourceCache.js'
+import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
 
-const manuals = ref([
-  { id: '1', title: '2026 产品电子手册', size: '18.6 MB', date: '08/10' },
-  { id: '2', title: '2026 秋季新品图册', size: '12.3 MB', date: '08/05' },
-  { id: '3', title: '技术参数说明书', size: '5.8 MB', date: '07/20' }
+const ROOT_CATEGORY_ID = 'd244l5QtSn'
+const categoryTree = ref([])
+const selectedCategoryId = ref(ROOT_CATEGORY_ID)
+const isRefreshing = ref(false)
+
+const categories = computed(() => [
+  { id: ROOT_CATEGORY_ID, title: '全部手册' },
+  ...categoryTree.value,
 ])
 
-function preview(item) {
-  navigator.navigateTo(routes.content.manualPreview(item.id))
+const pageStatus = usePageState(async ({ page = 1, pageSize = 10 } = {}) => {
+  const result = await getManualList({
+    categoryId: selectedCategoryId.value,
+    pageNum: page,
+    pageSize,
+  })
+  const items = Array.isArray(result?.items) ? result.items : []
+  void cacheManualCovers(items, selectedCategoryId.value)
+  return items
+}, { autoLoad: false, pageSize: 10 })
+
+const manuals = computed(() => Array.isArray(pageStatus.data.value) ? pageStatus.data.value : [])
+
+onMounted(loadPage)
+
+async function loadPage() {
+  try {
+    const categoryResult = await getManualCategories()
+    const rootChildren = Array.isArray(categoryResult?.root?.children)
+      ? categoryResult.root.children
+      : []
+    const categories = Array.isArray(categoryResult?.categories)
+      ? categoryResult.categories
+      : []
+    categoryTree.value = categories.length > 0 ? categories : rootChildren
+    await pageStatus.refresh()
+  } catch (error) {
+    console.error('[Manual] 产品手册加载失败:', error)
+    pageStatus.setError(error)
+  }
+}
+
+/** 后台缓存封面，不阻塞列表首屏显示。 */
+async function cacheManualCovers(items, categoryId) {
+  const cached = await Promise.all(items.map(async (item) => ({
+    id: item.id,
+    coverUrl: await getCachedResource(item.coverUrl, { kind: 'image' }),
+  })))
+  const cachedMap = new Map(cached.map(item => [item.id, item.coverUrl]))
+  if (selectedCategoryId.value !== categoryId) return
+  pageStatus.data.value = manuals.value.map(item => cachedMap.has(item.id)
+    ? { ...item, coverUrl: cachedMap.get(item.id) }
+    : item)
+}
+
+async function selectCategory(categoryId) {
+  if (categoryId === selectedCategoryId.value) return
+  selectedCategoryId.value = categoryId
+  pageStatus.reset()
+  await pageStatus.refresh()
+}
+
+function handleLoadMore() {
+  pageStatus.loadMore()
+}
+
+async function handleRefresh() {
+  if (isRefreshing.value) return
+  const startedAt = Date.now()
+  isRefreshing.value = true
+  try {
+    await pageStatus.refresh()
+  } finally {
+    await waitForRefreshAnimation(startedAt)
+    isRefreshing.value = false
+  }
+}
+
+function handleRefresherRestore() {
+  if (!pageStatus.isRefreshing.value) isRefreshing.value = false
+}
+
+function handleRetry() {
+  loadPage()
+}
+
+async function preview(item) {
+  if (item?.id) await navigator.navigateTo(routes.content.manualPreview(item.id))
 }
 </script>
 
 <style lang="scss" scoped>
-.content {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-.manual-item {
-  display: grid;
-  grid-template-columns: 48px 1fr auto;
-  gap: 10px;
-  align-items: center;
-  background: white;
-  border: 1px solid #EFEFF1;
-  border-radius: 12px;
-  padding: 14px;
-  margin-bottom: 10px;
-
-  &:active {
-    background: #FCFCFD;
-  }
-}
-
-.pdf-icon {
-  width: 44px;
-  height: 52px;
-  border: 1px solid #DEDFE3;
-  border-radius: 6px;
-  display: grid;
-  place-items: center;
-  color: #D7192D;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.manual-title {
-  font-size: 15px;
-  color: #111216;
-  display: block;
-}
-
-.manual-meta {
-  color: #5E626B;
-  font-size: 12px;
-  margin-top: 2px;
-  display: block;
-}
-
-.preview-btn {
-  border: none;
-  color: #D7192D;
-  background: transparent;
-  font-size: 14px;
-  padding: 8px;
-
-  &:active {
-    opacity: 0.7;
-  }
-}
+.manual-page { width: 100%; max-width: 1120px; padding: 12px 16px calc(30px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+.category-tabs { width: 100%; margin-bottom: 14px; white-space: nowrap; }
+.category-tabs-inner { display: flex; gap: 8px; width: max-content; }
+.category-btn { min-height: 34px; padding: 0 16px; border: 1px solid #E5E6EB; border-radius: 17px; color: #666A73; background: #FFF; font-size: 12px; line-height: 34px; }
+.category-btn::after { border: 0; }
+.category-btn.is-active { border-color: #D7192D; color: #FFF; background: #D7192D; font-weight: 700; }
+.manual-list { display: grid; gap: 12px; }
+.manual-item { display: flex; min-height: 92px; align-items: center; gap: 12px; padding: 12px; border: 1px solid #E8EBF1; border-radius: 16px; background: #FFF; box-shadow: 0 6px 18px rgba(45,40,42,.04); }
+.manual-cover { width: 70px; height: 82px; flex: 0 0 70px; border-radius: 10px; background: #F1F3F6; }
+.manual-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; }
+.manual-title { overflow: hidden; color: #17191E; font-size: 15px; font-weight: 750; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.manual-meta, .manual-file-hint { margin-top: 7px; color: #9699A1; font-size: 11px; }
+.manual-file-hint { color: #D7192D; }
+.manual-arrow { flex: 0 0 auto; color: #A0A3AA; }
+.list-status { padding: 8px 0; color: #9A9CA3; font-size: 11px; text-align: center; }
+.state-box { display: flex; min-height: 300px; align-items: center; justify-content: center; flex-direction: column; gap: 9px; color: #94979F; font-size: 12px; }
+.state-title { color: #454850; font-size: 15px; font-weight: 700; }
+.manual-skeleton { height: 106px; border-radius: 16px; background: linear-gradient(90deg, #F7F7F8 25%, #EFEFF1 50%, #F7F7F8 75%); background-size: 200% 100%; animation: manual-skeleton-shimmer 1.5s infinite; }
+.card--pressed { opacity: .9; transform: scale(.985); }
+@keyframes manual-skeleton-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 </style>

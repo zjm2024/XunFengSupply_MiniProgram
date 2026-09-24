@@ -32,6 +32,11 @@
       :scroll-top="listScrollTop"
       @scroll="handleListScroll"
       @scrolltolower="loadMore"
+      :refresher-enabled="true"
+      :refresher-triggered="isRefreshing"
+      @refresherrefresh="handleRefresh"
+      @refresherrestore="handleRefresherRestore"
+      @refresherabort="handleRefresherRestore"
       enhanced
       enable-back-to-top
     >
@@ -122,6 +127,7 @@ import ProductFilterDrawer from '../../components/ProductFilterDrawer/ProductFil
 import ProductSearchLanding from '../../components/ProductSearchLanding/ProductSearchLanding.vue'
 import AppSvgIllustration from '../../../../shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import noSearchResultSvg from '../../../../shared/assets/illustrations/no-search-result.svg?raw'
+import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
 const SORT_QUERY = Object.freeze({
   default: { field: '', order: '', label: '综合排序' },
@@ -169,6 +175,7 @@ const filterDrawerVisible = ref(false)
 // 商品列表
 const products = ref([])
 const loading = ref(false)
+const isRefreshing = ref(false)
 const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
@@ -440,7 +447,23 @@ function refreshProducts() {
   page.value = 1
   hasMore.value = true
   scrollToTop()
-  loadProducts(false)
+  return loadProducts(false)
+}
+
+async function handleRefresh() {
+  if (isRefreshing.value) return
+  const startedAt = Date.now()
+  isRefreshing.value = true
+  try {
+    if (!showSearchLanding.value) await refreshProducts()
+  } finally {
+    await waitForRefreshAnimation(startedAt)
+    isRefreshing.value = false
+  }
+}
+
+function handleRefresherRestore() {
+  if (!loading.value) isRefreshing.value = false
 }
 
 function findCategoryPath(nodes, targetId, path = []) {

@@ -311,6 +311,7 @@ import AppSvgIllustration from '../../../../shared/ui/AppSvgIllustration/AppSvgI
 import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
 import { groupItemsBySpu } from '../../model/cartGrouping.js'
 import cartEmptySvg from '../../../../shared/assets/illustrations/empty-cart.svg?raw'
+import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
 // ==================== Cart Hook ====================
 const {
@@ -398,17 +399,19 @@ async function refreshCart() {
 
 async function onPullRefresh() {
   if (isRefreshing.value) return
+  const startedAt = Date.now()
   isRefreshing.value = true
   activeActionItemId.value = null
   try {
     await refreshCart()
   } finally {
+    await waitForRefreshAnimation(startedAt)
     isRefreshing.value = false
   }
 }
 
 function finishPullRefresh() {
-  isRefreshing.value = false
+  if (!cartStore.loading) isRefreshing.value = false
 }
 
 /** 重试 flush */

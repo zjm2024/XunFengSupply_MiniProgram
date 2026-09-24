@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360" fill="none">
+  <rect width="640" height="360" rx="24" fill="#F3F4F6"/>
+  <rect x="226" y="96" width="188" height="140" rx="18" stroke="#B6B9C0" stroke-width="12"/>
+  <circle cx="286" cy="146" r="18" fill="#B6B9C0"/>
+  <path d="m244 212 46-46 34 34 28-28 44 40" stroke="#B6B9C0" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="320" y="292" text-anchor="middle" fill="#989BA3" font-family="Arial, sans-serif" font-size="24">图片暂不可用</text>
+</svg>

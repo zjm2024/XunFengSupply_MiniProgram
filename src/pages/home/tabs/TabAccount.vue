@@ -3,8 +3,8 @@
     <AppInitializing
       v-if="showInitialLoading"
       class="account-initializing"
-      title="正在加载个人中心"
-      description="正在同步账户与经营数据"
+      :title="accountCopy.loading.title"
+      :description="accountCopy.loading.description"
       :fill="true"
       :compact="true"
     />
@@ -26,7 +26,7 @@
           </view>
           <view class="identity-row">
             <text class="level-tag">{{ dealerLevel }}</text>
-            <text class="account-role">{{ userStore.isMainAccount ? '主账号' : '子账号' }}</text>
+            <text class="account-role">{{ userStore.isMainAccount ? accountCopy.roles.main : accountCopy.roles.sub }}</text>
           </view>
           <text class="account-identity">{{ accountIdentity }}</text>
         </view>
@@ -34,25 +34,13 @@
 
       <view v-if="!userStore.isAccountNormal || finance.credit?.isFrozen" class="account-notice">
         <AppIcon name="alert-circle" :size="16" color="#9A3B35" />
-        <text>{{ !userStore.isAccountNormal ? '当前账号状态异常，部分采购能力已暂停' : '主体授信已冻结，暂不可提交采购订单' }}</text>
+        <text>{{ accountNoticeText }}</text>
       </view>
 
       <view class="profile-metrics">
-        <view class="profile-metric" @tap="goToRecharge">
-          <text class="metric-value">{{ formatCompactMoney(finance.credit?.availableAmount) }}</text>
-          <text class="metric-label">可用授信</text>
-        </view>
-        <view class="profile-metric" @tap="goToFundFlow">
-          <text class="metric-value">{{ formatCompactMoney(finance.subjectAvailableBalance) }}</text>
-          <text class="metric-label">主体余额</text>
-        </view>
-        <view class="profile-metric" @tap="goToInventory">
-          <text class="metric-value">{{ formatQuantity(inventoryOverview?.availableQuantity) }}<text class="metric-unit">件</text></text>
-          <text class="metric-label">可用库存</text>
-        </view>
-        <view class="profile-metric">
-          <text class="metric-value">{{ userStore.creditScore || 0 }}<text class="metric-unit">分</text></text>
-          <text class="metric-label">信誉分</text>
+        <view v-for="item in metricEntries" :key="item.key" class="profile-metric" @tap="item.action && item.action()">
+          <text class="metric-value">{{ item.value }}<text v-if="item.unit" class="metric-unit">{{ item.unit }}</text></text>
+          <text class="metric-label">{{ item.label }}</text>
         </view>
       </view>
     </view>
@@ -61,14 +49,14 @@
       <view v-if="userStore.hasPermission('ORDER_VIEW')" class="order-card">
         <view class="card-heading" hover-class="item--pressed" @tap="goToOrders()">
           <view>
-            <text class="card-title">我的订单</text>
+            <text class="card-title">{{ accountCopy.sections.orders }}</text>
           </view>
-          <view class="heading-link"><text>全部订单</text><AppIcon name="chevron-right" :size="16" /></view>
+          <view class="heading-link"><text>{{ accountCopy.actions.allOrders }}</text><AppIcon name="chevron-right" :size="16" /></view>
         </view>
         <view class="order-status-grid">
           <view
             v-for="item in orderShortcuts"
-            :key="item.label"
+            :key="item.key"
             class="order-status"
             :class="{ 'has-count': item.count > 0 }"
             hover-class="item--pressed"
@@ -76,7 +64,7 @@
           >
             <view class="status-icon-wrap">
               <AppIcon :name="item.icon" :size="23" />
-              <text v-if="item.count > 0" class="status-badge">{{ formatCount(item.count) }}</text>
+              <!-- <text v-if="item.count > 0" class="status-badge">{{ formatCount(item.count) }}</text> -->
             </view>
             <text>{{ item.label }}</text>
           </view>
@@ -86,16 +74,16 @@
       <view class="function-card">
       <view class="card-heading" hover-class="item--pressed" @tap="functionsExpanded = !functionsExpanded">
         <view>
-          <text class="card-title">我的功能</text>
+          <text class="card-title">{{ accountCopy.sections.functions }}</text>
         </view>
         <view class="collapse-button">
-          <text>{{ functionsExpanded ? '收起' : '展开' }}</text>
+          <text>{{ functionsExpanded ? accountCopy.actions.collapse : accountCopy.actions.expand }}</text>
           <AppIcon :name="functionsExpanded ? 'chevron-down' : 'chevron-right'" :size="15" />
         </view>
       </view>
 
       <view v-show="functionsExpanded" class="function-grid">
-        <view v-for="item in functionEntries" :key="item.label" class="function-item" hover-class="item--pressed" @tap="item.action">
+        <view v-for="item in functionEntries" :key="item.key" class="function-item" hover-class="item--pressed" @tap="item.action">
           <view class="function-icon" :class="item.tone"><AppIcon :name="item.icon" :size="23" /></view>
           <text>{{ item.label }}</text>
         </view>
@@ -105,26 +93,13 @@
       <view class="service-card">
         <view class="card-heading static">
           <view>
-            <text class="card-title">服务中心</text>
+            <text class="card-title">{{ accountCopy.sections.service }}</text>
           </view>
         </view>
         <view class="service-links">
-          <view class="service-link" hover-class="item--pressed" @tap="goToAfterSales">
-            <view class="service-link-icon"><AppIcon name="profile-after-sales" :size="23" /></view>
-            <view class="service-link-copy">
-              <text>售后服务</text>
-              <text>{{ pendingAfterSaleCount ? `${pendingAfterSaleCount} 条处理中` : '申请与进度查询' }}</text>
-            </view>
-            <AppIcon name="chevron-right" :size="16" color="#A0A7AF" />
-          </view>
-          <view class="service-link" hover-class="item--pressed" @tap="goToHelp">
-            <view class="service-link-icon"><AppIcon name="profile-help" :size="23" /></view>
-            <view class="service-link-copy"><text>帮助中心</text><text>采购与售后帮助</text></view>
-            <AppIcon name="chevron-right" :size="16" color="#A0A7AF" />
-          </view>
-          <view class="service-link" hover-class="item--pressed" @tap="goToInvoice">
-            <view class="service-link-icon"><AppIcon name="profile-invoice" :size="23" /></view>
-            <view class="service-link-copy"><text>发票中心</text><text>企业抬头与开票记录</text></view>
+          <view v-for="item in serviceEntries" :key="item.key" class="service-link" hover-class="item--pressed" @tap="item.action">
+            <view class="service-link-icon"><AppIcon :name="item.icon" :size="23" /></view>
+            <view class="service-link-copy"><text>{{ item.label }}</text><text>{{ item.description }}</text></view>
             <AppIcon name="chevron-right" :size="16" color="#A0A7AF" />
           </view>
         </view>
@@ -159,11 +134,50 @@ const dashboardLoading = ref(false)
 const dashboardInitialized = ref(false)
 const functionsExpanded = ref(true)
 
-const displayName = computed(() => userStore.displayName || userStore.realName || userStore.username || '经销商')
-const dealerLevel = computed(() => userStore.creditLevel || '认证经销商')
-const accountIdentity = computed(() => {
-  return dealerCode.value ? `客户编号 ${dealerCode.value}` : '客户编号待同步'
+const accountCopy = Object.freeze({
+  loading: {
+    title: '正在加载个人中心',
+    description: '正在同步账户与经营数据',
+  },
+  fallback: {
+    displayName: '经销商',
+    dealerLevel: '认证经销商',
+    accountIdentity: '客户编号待同步',
+  },
+  roles: { main: '主账号', sub: '子账号' },
+  notice: {
+    abnormal: '当前账号状态异常，部分采购能力已暂停',
+    frozen: '主体授信已冻结，暂不可提交采购订单',
+  },
+  metrics: {
+    credit: '可用授信',
+    balance: '主体余额',
+    inventory: '可用库存',
+    score: '信誉分',
+    inventoryUnit: '件',
+    scoreUnit: '分',
+  },
+  sections: { orders: '我的订单', functions: '我的功能', service: '服务中心' },
+  actions: { allOrders: '全部订单', expand: '展开', collapse: '收起' },
+  services: {
+    afterSales: '售后服务',
+    afterSalesDescription: '申请与进度查询',
+    afterSalesProcessing: count => `${count} 条处理中`,
+    help: '帮助中心',
+    helpDescription: '采购与售后帮助',
+    invoice: '发票中心',
+    invoiceDescription: '企业抬头与开票记录',
+  },
 })
+
+const displayName = computed(() => userStore.displayName || userStore.realName || userStore.username || accountCopy.fallback.displayName)
+const dealerLevel = computed(() => userStore.creditLevel || accountCopy.fallback.dealerLevel)
+const accountIdentity = computed(() => {
+  return dealerCode.value ? `客户编号 ${dealerCode.value}` : accountCopy.fallback.accountIdentity
+})
+const accountNoticeText = computed(() => (
+  !userStore.isAccountNormal ? accountCopy.notice.abnormal : accountCopy.notice.frozen
+))
 const pendingAfterSaleCount = computed(() => (
   Number(afterSaleCounts.pendingReview || 0)
   + Number(afterSaleCounts.pendingReturn || 0)
@@ -171,6 +185,23 @@ const pendingAfterSaleCount = computed(() => (
   + Number(afterSaleCounts.refunding || 0)
 ))
 const showInitialLoading = computed(() => props.active && dashboardLoading.value && !dashboardInitialized.value)
+const metricEntries = computed(() => [
+  { key: 'credit', value: formatCompactMoney(finance.value?.credit?.availableAmount), label: accountCopy.metrics.credit, action: goToRecharge },
+  { key: 'balance', value: formatCompactMoney(finance.value?.subjectAvailableBalance), label: accountCopy.metrics.balance, action: goToFundFlow },
+  { key: 'inventory', value: formatQuantity(inventoryOverview.value?.availableQuantity), unit: accountCopy.metrics.inventoryUnit, label: accountCopy.metrics.inventory, action: goToInventory },
+  { key: 'score', value: String(userStore.creditScore || 0), unit: accountCopy.metrics.scoreUnit, label: accountCopy.metrics.score },
+])
+const serviceEntries = computed(() => [
+  {
+    key: 'after-sales',
+    label: accountCopy.services.afterSales,
+    description: pendingAfterSaleCount.value ? accountCopy.services.afterSalesProcessing(pendingAfterSaleCount.value) : accountCopy.services.afterSalesDescription,
+    icon: 'profile-after-sales',
+    action: goToAfterSales,
+  },
+  { key: 'help', label: accountCopy.services.help, description: accountCopy.services.helpDescription, icon: 'profile-help', action: goToHelp },
+  { key: 'invoice', label: accountCopy.services.invoice, description: accountCopy.services.invoiceDescription, icon: 'profile-invoice', action: goToInvoice },
+])
 
 watch(() => props.active, active => {
   if (active) loadDashboard()
@@ -239,29 +270,28 @@ function goToMessages() { return navigator.navigateTo(routes.content.messages())
 function goToHelp() { return navigator.navigateTo(routes.content.help()) }
 
 const orderShortcuts = computed(() => [
-  { label: '待审核', count: orderCounts.pendingReviewCount, icon: 'order-pending-payment', action: () => goToOrders(ORDER_STATUS.PENDING_REVIEW) },
-  { label: '待付款', count: orderCounts.pendingPaymentCount, icon: 'order-pending-payment', action: () => goToOrders(ORDER_STATUS.PENDING_PAYMENT) },
-  { label: '履约中', count: orderCounts.processingCount, icon: 'order-shipped', action: () => goToOrders(ORDER_STATUS.PROCESSING) },
-  { label: '已完成', count: orderCounts.completedCount, icon: 'order-signed', action: () => goToOrders(ORDER_STATUS.COMPLETED) },
+  { key: 'all', label: '全部', count: orderCounts.allCount, icon: 'profile-orders', action: () => goToOrders() },
+  { key: 'pending-payment', label: '待付款', count: orderCounts.pendingPaymentCount, icon: 'order-pending-payment', action: () => goToOrders(ORDER_STATUS.PENDING_PAYMENT) },
+  { key: 'processing', label: '履约中', count: orderCounts.processingCount, icon: 'order-shipped', action: () => goToOrders(ORDER_STATUS.PROCESSING) },
+  { key: 'completed', label: '已完成', count: orderCounts.completedCount, icon: 'order-signed', action: () => goToOrders(ORDER_STATUS.COMPLETED) },
 ])
 
 const functionEntries = computed(() => [
-  ...(userStore.hasPermission('INVENTORY_VIEW') ? [{ label: '库存管理', icon: 'profile-inventory', tone: 'primary', action: goToInventory }] : []),
+  ...(userStore.hasPermission('INVENTORY_VIEW') ? [{ key: 'inventory', label: '库存管理', icon: 'profile-inventory', tone: 'primary', action: goToInventory }] : []),
   ...(userStore.hasPermission('BALANCE_VIEW') ? [
-    { label: '充值中心', icon: 'profile-recharge', tone: 'primary', action: goToRecharge },
-    { label: '对账账单', icon: 'profile-bill', action: goToBill },
-    { label: '资金流水', icon: 'profile-fund-flow', action: goToFundFlow },
+    { key: 'recharge', label: '充值中心', icon: 'profile-recharge', tone: 'primary', action: goToRecharge },
+    { key: 'bill', label: '对账账单', icon: 'profile-bill', action: goToBill },
+    { key: 'fund-flow', label: '资金流水', icon: 'profile-fund-flow', action: goToFundFlow },
   ] : []),
-  { label: '收货地址', icon: 'profile-address', action: goToAddress },
-  { label: '优惠券', icon: 'profile-voucher', action: goToVoucher },
-  ...(userStore.isMainAccount ? [{ label: '子账号', icon: 'profile-sub-account', action: goToSubAccount }] : []),
-  // { label: '消息中心', icon: 'profile-message', action: goToMessages },
+  { key: 'address', label: '收货地址', icon: 'profile-address', action: goToAddress },
+  // { key: 'voucher', label: '优惠券', icon: 'profile-voucher', action: goToVoucher },
+  ...(userStore.isMainAccount ? [{ key: 'sub-account', label: '子账号', icon: 'profile-sub-account', action: goToSubAccount }] : []),
 ])
 
 </script>
 
 <style lang="scss" scoped>
-.tab-page { width: 100%; max-width: 1180px; min-height: 100%; margin: 0 auto; padding: 0 14px calc(82px + env(safe-area-inset-bottom)); box-sizing: border-box; background: transparent; }
+.tab-page { width: 100%; min-height: 100%; margin: 0 auto; padding: 0 14px; box-sizing: border-box; background: transparent; }
 .account-initializing { min-height: calc(100vh - 138px - env(safe-area-inset-bottom)); }
 .profile-hero { position: relative; overflow: hidden; margin: 0 -14px; padding: 12px 18px 24px; background: transparent; }
 .hero-decoration { position: absolute; border-radius: 50%; background: rgba(255,255,255,.38); pointer-events: none; }.hero-decoration--large { top: -58px; right: -40px; width: 190px; height: 190px; }.hero-decoration--small { right: 118px; bottom: 34px; width: 44px; height: 44px; background: rgba(185,207,231,.25); }
@@ -276,11 +306,12 @@ const functionEntries = computed(() => [
 .metric-value, .metric-label { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.metric-value { color: var(--type-title-color, #1B1C20); font-size: var(--type-label-size, 15px); font-weight: 760; font-variant-numeric: tabular-nums; }.metric-unit { margin-left: 2px; font-size: var(--type-micro-size, 11px); font-weight: 620; }.metric-label { margin-top: 5px; color: var(--type-secondary-color, #62666F); font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); }
 .core-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }.order-card, .service-card, .function-card, .account-service-card { border-radius: 18px; background: #FFF; box-shadow: 0 8px 24px rgba(48,65,82,.04); }
 .order-card, .service-card { padding: 16px; }.card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }.card-heading.static { pointer-events: none; }.card-title, .card-subtitle { display: block; }.card-title { color: var(--type-title-color, #1B1C20); font-size: var(--type-card-title-size, 16px); line-height: var(--type-card-title-line-height, 24px); font-weight: 740; }.card-subtitle { margin-top: 4px; color: var(--type-muted-color, #969AA3); font-size: var(--type-micro-size, 11px); }.heading-link, .collapse-button { display: flex; align-items: center; gap: 2px; color: var(--type-secondary-color, #62666F); font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); }
+.order-card .card-title, .function-card .card-title, .order-card .heading-link, .function-card .collapse-button { color: #111216; }
 .card-title { position: relative; padding-left: 10px; }.card-title::before { content: ''; position: absolute; top: 3px; bottom: 3px; left: 0; width: 3px; border-radius: 2px; background: #D7192D; }
 .heading-link, .collapse-button { min-height: 30px; padding: 0 2px 0 8px; }
-.order-status-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); margin-top: 17px; padding: 15px 0 3px; border-top: 1px solid #EFF1F3; }.order-status { position: relative; display: flex; min-width: 0; min-height: 62px; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: var(--type-secondary-color, #62666F); font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); }.order-status:not(:last-child)::after { content: ''; position: absolute; top: 10px; right: 0; width: 1px; height: 34px; background: #F0F1F3; }.status-icon-wrap { position: relative; display: grid; width: 32px; height: 32px; place-items: center; color: #3F4853; }.order-status.has-count .status-icon-wrap { color: #D7192D; }.status-badge { position: absolute; top: -3px; right: -4px; display: inline-flex; min-width: 18px; height: 18px; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid #FFF; border-radius: 10px; color: #FFF; background: #D7192D; box-sizing: border-box; font-size: 10px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.order-status-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); margin-top: 17px; padding: 15px 0 3px; border-top: 1px solid #EFF1F3; }.order-status { position: relative; display: flex; min-width: 0; min-height: 62px; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: #111216; font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); }.order-status:not(:last-child)::after { content: ''; position: absolute; top: 10px; right: 0; width: 1px; height: 34px; background: #F0F1F3; }.status-icon-wrap { position: relative; display: grid; width: 32px; height: 32px; place-items: center; color: #111216; }.order-card .order-status.has-count .status-icon-wrap { color: #111216; }.status-badge { position: absolute; top: -3px; right: -4px; display: inline-flex; min-width: 18px; height: 18px; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid #FFF; border-radius: 10px; color: #FFF; background: #D7192D; box-sizing: border-box; font-size: 10px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
 .service-links { margin-top: 10px; }.service-link { display: grid; grid-template-columns: 30px minmax(0,1fr) 16px; align-items: center; gap: 10px; min-height: 62px; border-top: 1px solid #EFF0F2; }.service-link-icon { display: grid; width: 30px; height: 30px; place-items: center; color: var(--icon-primary, #303238); }.service-link-copy { min-width: 0; }.service-link-copy text { display: block; }.service-link-copy text:first-child { color: var(--type-title-color, #1B1C20); font-size: var(--type-body-small-size, 13px); line-height: var(--type-body-small-line-height, 20px); font-weight: 650; }.service-link-copy text:last-child { margin-top: 2px; overflow: hidden; color: var(--type-muted-color, #969AA3); font-size: var(--type-micro-size, 11px); line-height: var(--type-micro-line-height, 16px); text-overflow: ellipsis; white-space: nowrap; }
-.function-card, .account-service-card { padding: 16px; }.function-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); row-gap: 10px; margin-top: 17px; padding-top: 13px; border-top: 1px solid #EFF1F3; }.function-item { position: relative; display: flex; min-width: 0; min-height: 68px; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: var(--type-secondary-color, #62666F); font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); text-align: center; }.function-icon { display: grid; width: 38px; height: 34px; place-items: center; color: #414A55; }.function-icon.primary { color: #D7192D; }
+.function-card, .account-service-card { padding: 16px; }.function-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); row-gap: 10px; margin-top: 17px; padding-top: 13px; border-top: 1px solid #EFF1F3; }.function-item { position: relative; display: flex; min-width: 0; min-height: 68px; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: #111216; font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); text-align: center; }.function-icon, .function-icon.primary { display: grid; width: 38px; height: 34px; place-items: center; color: #111216; }
 .account-service-card { margin-bottom: 4px; }.updating-text { color: var(--type-muted-color, #969AA3); font-size: var(--type-micro-size, 11px); }.account-service-grid { display: grid; grid-template-columns: 1fr; margin-top: 11px; }.account-service-item { display: grid; grid-template-columns: 30px minmax(0,1fr) 16px; align-items: center; gap: 10px; min-height: 62px; border-top: 1px solid #EFF0F2; }.account-service-icon { display: grid; width: 30px; height: 30px; place-items: center; color: var(--icon-primary, #303238); }.account-service-copy { min-width: 0; }.account-service-copy text { display: block; }.account-service-copy text:first-child { color: var(--type-title-color, #1B1C20); font-size: var(--type-body-small-size, 13px); font-weight: 650; }.account-service-copy text:last-child { margin-top: 2px; color: var(--type-muted-color, #969AA3); font-size: var(--type-micro-size, 11px); }
 .item--pressed { opacity: .65; }.function-card, .function-grid { transition: opacity .18s ease, transform .18s ease; }
 @media screen and (min-width: 600px) {

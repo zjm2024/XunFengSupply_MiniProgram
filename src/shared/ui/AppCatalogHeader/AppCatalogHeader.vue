@@ -167,8 +167,7 @@ watch(() => props.theme, applyStatusBarStyle)
   position: relative;
   z-index: 120;
   flex-shrink: 0;
-  border-bottom: 1px solid #eef0f2;
-  background: #fff;
+  background: var(--surface-page, #F4F5F8);
 }
 
 .app-catalog-header.is-sticky {
@@ -214,12 +213,16 @@ watch(() => props.theme, applyStatusBarStyle)
   min-height: 44px;
 }
 
-.search-nav { gap: 8px; }
+.search-nav {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
+  gap: 8px;
+}
 
 .catalog-cart-button {
   position: relative;
   width: 40px;
-  height: 42px;
+  height: 40px;
   flex-shrink: 0;
   justify-content: center;
   color: #34373d;
@@ -258,20 +261,20 @@ watch(() => props.theme, applyStatusBarStyle)
 .search-box {
   display: flex;
   min-width: 0;
-  height: 44px;
-  flex: 1;
+  width: 100%;
+  height: 40px;
   align-items: center;
   gap: 8px;
-  padding-left: 14px;
+  padding: 0 12px;
   overflow: hidden;
-  border: 1px solid #eff1f3;
-  border-radius: 22px;
-  background: #f4f5f6;
+  border: 1px solid #e2e5e8;
+  border-radius: 20px;
+  background: #ffffff;
 }
 
 .search-icon {
   flex-shrink: 0;
-  color: #777c84;
+  color: #8b9199;
 }
 
 .search-input {
@@ -279,13 +282,13 @@ watch(() => props.theme, applyStatusBarStyle)
   height: 100%;
   flex: 1;
   border: none;
-  color: #202226;
+  color: #252a31;
   font-size: 14px;
   background: transparent;
 }
 
 .search-input::placeholder {
-  color: #9a9fa7;
+  color: #a2a7ae;
 }
 
 .search-keyword-chip {
@@ -494,7 +497,9 @@ watch(() => props.theme, applyStatusBarStyle)
     gap: 6px;
   }
 
-  .catalog-cart-button { width: 36px; height: 40px; }
+  .search-nav { grid-template-columns: 40px minmax(0, 1fr) 40px; }
+
+  .catalog-cart-button { width: 40px; height: 40px; }
 
   .search-box {
     height: 40px;
@@ -517,14 +522,14 @@ watch(() => props.theme, applyStatusBarStyle)
   }
 
   .search-box {
-    height: 48px;
-    border-radius: 24px;
-    padding-left: 16px;
+    height: 40px;
+    border-radius: 20px;
+    padding: 0 12px;
   }
 
   .catalog-cart-button {
-    width: 44px;
-    height: 48px;
+    width: 40px;
+    height: 40px;
   }
 
   .search-submit {

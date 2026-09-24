@@ -292,9 +292,10 @@ function openCategoryProducts(category) {
 .tab-page {
   display: flex;
   width: 100%;
-  min-height: 100%;
+  height: 100%;
+  min-height: 0;
   margin: 0 auto;
-  padding: 4px 12px calc(76px + env(safe-area-inset-bottom));
+  padding: 4px 12px 0;
   flex-direction: column;
   box-sizing: border-box;
 }
@@ -312,8 +313,9 @@ function openCategoryProducts(category) {
 
 .category-layout {
   display: flex;
-  height: calc(100vh - 154px);
-  min-height: 460px;
+  min-height: 0;
+  flex: 1;
+  height: auto;
   overflow: hidden;
   border-radius: 20px;
   background: #f2f3f4;
@@ -644,8 +646,8 @@ function openCategoryProducts(category) {
   }
 
   .category-layout {
-    height: calc(100vh - 102px);
-    min-height: 590px;
+    height: auto;
+    min-height: 0;
     border-radius: 24px;
   }
 

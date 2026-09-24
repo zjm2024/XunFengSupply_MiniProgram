@@ -5,36 +5,32 @@
     </template>
 
     <template #content>
-      <AppContent>
+      <AppContent
+        :refresher-enabled="true"
+        :refresher-triggered="isRefreshing"
+        @refresherrefresh="handleRefresh"
+        @refresherrestore="handleRefresherRestore"
+        @refresherabort="handleRefresherRestore"
+        @scrolltolower="handleLoadMore"
+      >
         <view class="news-content">
           <!-- Tab 切换 -->
           <scroll-view class="segment-tabs" scroll-x>
-            <button
-              v-for="tab in tabs"
-              :key="tab.key"
-              class="tab-btn"
-              :class="{ 'is-active': activeTab === tab.key }"
-              @click="activeTab = tab.key"
-            >{{ tab.label }}</button>
+            <view class="segment-tabs-inner">
+              <button
+                v-for="tab in tabs"
+                :key="tab.key"
+                class="tab-btn"
+                :class="{ 'is-active': activeTab === tab.key }"
+                @click="activeTab = tab.key"
+              >{{ tab.label }}</button>
+            </view>
           </scroll-view>
-
-          <!-- 头条新闻（仅全部 tab 显示） -->
-          <view v-if="activeTab === 'all'" class="news-hero" @click="goToDetail(heroNews)">
-            <view class="hero-photo">
-              <text class="hero-badge">K-900</text>
-            </view>
-            <view class="hero-body">
-              <text class="hero-tag">产品新闻 · {{ heroNews.date }}</text>
-              <text class="hero-title">{{ heroNews.title }}</text>
-              <text class="hero-desc">{{ heroNews.desc }}</text>
-              <text class="hero-action">阅读全文 →</text>
-            </view>
-          </view>
 
           <!-- 新闻列表：使用 AppPageState 统一状态管理 -->
           <app-page-state
-            :state="pageStatus.status"
-            :has-stale-content="pageStatus.hasStaleContent"
+            :state="pageStatus.status.value"
+            :has-stale-content="pageStatus.hasStaleContent.value"
             icon-type="message"
             action-text="重新加载"
             :fullscreen="false"
@@ -42,16 +38,23 @@
           >
             <!-- 正常内容 -->
             <view class="news-list">
-              <view v-for="item in pageStatus.data" :key="item.id" class="news-item" @click="goToDetail(item)">
-                <view class="item-thumb" :class="item.thumbClass"></view>
+              <view v-for="item in listNews" :key="item.id" class="news-item" @click="goToDetail(item)">
+                <AppProductImage
+                  class="item-thumb"
+                  :src="item.coverUrl || item.imageUrl"
+                  mode="aspectFill"
+                  lazy-load
+                  :fallback-icon-size="34"
+                />
                 <view class="item-info">
-                  <text class="item-type">{{ item.type }}</text>
+                  <view class="item-meta">
+                    <text class="item-type">{{ item.categoryTitle || item.type || '品牌资讯' }}</text>
+                    <text class="item-date">{{ item.date || item.publishedAt || '最新发布' }}</text>
+                  </view>
                   <text class="item-title">{{ item.title }}</text>
-                  <text class="item-date">{{ item.date }}</text>
+                  <text v-if="item.summary || item.desc" class="item-summary">{{ item.summary || item.desc }}</text>
                 </view>
 
-                <!-- 手册类型显示预览按钮 -->
-                <button v-if="item.isManual" class="preview-btn" @click.stop="previewManual(item)">预览</button>
               </view>
             </view>
 
@@ -78,41 +81,34 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
+import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import { usePageState } from '@/shared/composables/usePageState.js'
-import { getNewsList } from '../../api/news.js'
+import { getNewsCategories, getNewsList } from '../../api/news.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
 
-const tabs = [
+const defaultTabs = Object.freeze([
   { key: 'all', label: '全部' },
-  { key: 'product', label: '产品新闻' },
-  { key: 'new', label: '上新' },
-  { key: 'policy', label: '政策公告' },
-  { key: 'settlement', label: '结算通知' }
-]
+])
+
+const tabs = ref([...defaultTabs])
 
 const activeTab = ref('all')
-
-const heroNews = ref({
-  id: '1',
-  type: '产品新闻',
-  date: '2026-08-10',
-  title: '2026 秋季新品系列发布',
-  desc: '全新比赛级羽毛球与专业装备正式发布，为经销商提供更完整的产品组合。'
-})
+const isRefreshing = ref(false)
 
 // 使用 usePageState 管理列表数据加载状态
 const pageStatus = usePageState(async ({ page = 1, pageSize = 20 } = {}) => {
-  // 后端真实接口：System / Mini.AnnouncementController / GetList
+  // 后端真实接口：ThirdParty / Mini.NewsController / GetArticles
   const res = await getNewsList({
     pageNum: page,
     pageSize,
-    type: activeTab.value,
+    categoryId: activeTab.value === 'all' ? undefined : activeTab.value,
   })
 
   // 统一分页适配：后端可能返回 { list, total } 或直接返回数组
@@ -127,12 +123,57 @@ const pageStatus = usePageState(async ({ page = 1, pageSize = 20 } = {}) => {
 
   // 空数组
   return []
-}, { autoLoad: true })
+}, { autoLoad: false })
+
+const listNews = computed(() => pageStatus.data.value || [])
+
+async function loadCategories() {
+  try {
+    const result = await getNewsCategories()
+    const categories = Array.isArray(result?.categories) ? result.categories : []
+    tabs.value = [
+      ...defaultTabs,
+      ...categories
+        .filter(item => item?.id && item?.label)
+        .map(item => ({ key: item.id, label: item.label })),
+    ]
+    if (!tabs.value.some(item => item.key === activeTab.value)) {
+      activeTab.value = 'all'
+    }
+  } catch (error) {
+    console.warn('[News] 新闻分类加载失败:', error)
+  }
+}
+
+onMounted(async () => {
+  await loadCategories()
+  await pageStatus.refresh()
+})
 
 // 监听 Tab 切换时重新加载
 watch(activeTab, () => {
   pageStatus.refresh()
 })
+
+async function handleRefresh() {
+  if (isRefreshing.value) return
+  const startedAt = Date.now()
+  isRefreshing.value = true
+  try {
+    await pageStatus.refresh()
+  } finally {
+    await waitForRefreshAnimation(startedAt)
+    isRefreshing.value = false
+  }
+}
+
+function handleRefresherRestore() {
+  if (!pageStatus.isRefreshing.value) isRefreshing.value = false
+}
+
+function handleLoadMore() {
+  pageStatus.loadMore()
+}
 
 /** 重试加载 */
 function handleRetry() {
@@ -145,124 +186,115 @@ function goToDetail(item) {
   navigator.navigateTo(routes.content.newsDetail(item.id))
 }
 
-/**
- * 手册预览跳转。
- * 注意：item.id 为新闻 ID（newsId），仅在 isManual=true 时代表手册 ID。
- * 预览页本身需通过后端二次校验真实 manualId。
- */
-function previewManual(item) {
-  if (!item?.isManual || !item.id) {
-    uni.showToast({ title: '当前条目不是手册', icon: 'none' })
-    return
-  }
-  navigator.navigateTo(routes.content.manualPreview(item.id))
-}
 </script>
 
 <style lang="scss" scoped>
 .news-content {
-  padding-bottom: env(safe-area-inset-bottom);
+  padding: 8px 16px calc(30px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
 }
 
-.segment-tabs {
+.news-intro {
   display: flex;
-  gap: 18px;
-  border-bottom: 1px solid #EFEFF1;
-  margin-bottom: 16px;
+  flex-direction: column;
+  padding: 8px 2px 18px;
+}
+
+.news-kicker { color: #c61d32; font-size: 11px; font-weight: 800; letter-spacing: 2px; }
+.news-title { margin-top: 5px; color: #111216; font-size: 26px; font-weight: 800; }
+.news-subtitle { margin-top: 5px; color: #858993; font-size: 13px; }
+
+.article-meta, .item-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #9699a1;
+  font-size: 11px;
+}
+
+.article-category, .item-type { color: #c61d32; font-weight: 700; }
+
+.segment-tabs {
+  width: 100%;
+  padding: 0 2px 4px;
+  margin-bottom: 14px;
   white-space: nowrap;
+}
+
+.segment-tabs-inner {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+}
+
+.result-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 22px;
+  margin-bottom: 12px;
+  color: #9699a1;
+  font-size: 12px;
 }
 
 .tab-btn {
-  min-height: 42px; /* 稳定 px */
-  padding: 0;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  margin-right: 6px;
+  padding: 0 16px;
   white-space: nowrap;
-  border: none;
-  background: transparent;
-  color: #5E626B;
-  font-size: 14px;
+  border: 1px solid #E5E6EB;
+  border-radius: 17px;
+  background: #FFFFFF;
+  color: #767a84;
+  font-size: 13px;
+  line-height: 32px;
+
+  &::after { border: 0; }
 
   &.is-active {
-    color: #D7192D;
-    border-bottom: 2px solid #D7192D;
-    font-weight: 650;
+    color: #FFFFFF;
+    border-color: #D7192D;
+    background: #D7192D;
+    box-shadow: 0 3px 10px rgba(215, 25, 45, .22);
+    font-weight: 700;
   }
 }
-
-/* 头条 */
-.news-hero {
-  background: white;
-  border: 1px solid #EFEFF1;
-  border-radius: 12px;
-  overflow: hidden;
-  margin-bottom: 14px;
-
-  /* 平板端双栏 */
-  @media screen and (min-width: 840px) {
-    display: grid;
-    grid-template-columns: 1.15fr 1fr;
-  }
-}
-
-.hero-photo {
-  min-height: 220px; /* 稳定 px */
-  display: grid;
-  place-items: center;
-  color: white;
-  font-size: 42px; /* 稳定 px */
-  font-weight: 800;
-  letter-spacing: -2px;
-  background: radial-gradient(circle at 65% 55%, #fff 0 7%, transparent 8%), linear-gradient(145deg, #111216 45%, #2c2f34 46% 58%, #9a0f20 59% 61%, #111216 62%);
-}
-
-.hero-badge { font-size: 42px; }
-
-.hero-body { padding: 18px; display: flex; flex-direction: column; justify-content: center; }
-
-.hero-tag { color: #D7192D; font-size: 12px; font-weight: 600; }
-.hero-title { font-size: 21px; font-weight: 600; color: #111216; margin: 5px 0 8px; line-height: 1.35; }
-.hero-desc { color: #5E626B; font-size: 14px; line-height: 1.6; }
-.hero-action { color: #D7192D; font-size: 14px; padding: 14px 0 0; border: none; background: transparent; text-align: left; }
 
 /* 列表 */
-.news-list { display: grid; gap: 10px; }
+.news-list { display: grid; gap: 14px; }
 
 .news-item {
-  display: grid;
-  grid-template-columns: 88px 1fr;
-  gap: 12px;
-  align-items: center;
+  display: block;
+  overflow: hidden;
   background: white;
-  border: 1px solid #EFEFF1;
-  border-radius: 12px;
-  padding: 10px;
-
-  &.has-manual { grid-template-columns: 48px 1fr auto; }
+  border: 1px solid #ececef;
+  border-radius: 16px;
+  padding: 0;
+  box-shadow: 0 8px 22px rgba(30, 32, 38, .045);
 }
 
 .item-thumb {
-  width: 88px;
-  height: 72px;
-  border-radius: 8px;
-
-  &.red { background: linear-gradient(145deg, #111 35%, #a40f20 36% 42%, #25282e 43%); }
-  &.dark { background: linear-gradient(160deg, #111 50%, #d7192d 51% 53%, #333 54%); }
+  width: 100%;
+  height: 190px;
+  border-radius: 0;
+  display: block;
+  background: linear-gradient(135deg, #262a33, #c21e35);
 }
 
-.item-info { min-width: 0; }
+.item-thumb :deep(.app-product-image__fallback) { border-radius: inherit; }
 
-.item-type { color: #D7192D; font-size: 12px; font-weight: 600; display: block; }
-.item-title { font-size: 14px; color: #111216; margin: 4px 0; line-height: 1.45; display: block; }
-.item-date { color: #989BA3; font-size: 12px; }
+.item-info { min-width: 0; padding: 14px 16px 16px; }
 
-.preview-btn {
-  border: none;
-  color: #D7192D;
-  background: transparent;
-  font-size: 14px;
-  padding: 8px;
-
-  &:active { opacity: 0.7; }
-}
+.item-title { display: -webkit-box; overflow: hidden; color: #17191e; font-size: 18px; font-weight: 750; margin: 8px 0 6px; line-height: 1.45; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.item-summary { display: -webkit-box; overflow: hidden; color: #6F747E; font-size: 13px; line-height: 1.6; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 
 .bottom-spacer { height: 24px; }
 
@@ -275,17 +307,14 @@ function previewManual(item) {
 }
 
 .skeleton-news-item {
-  display: grid;
-  grid-template-columns: 88px 1fr;
-  gap: 12px;
-  align-items: center;
+  display: block;
+  overflow: hidden;
   background: white;
-  border-radius: 12px;
-  padding: 10px;
+  border-radius: 20px;
 
   .skeleton-thumb {
-    width: 88px;
-    height: 72px;
+    width: 100%;
+    height: 190px;
     background: linear-gradient(90deg, #F7F7F8 25%, #EFEFF1 50%, #F7F7F8 75%);
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.5s infinite;
@@ -296,6 +325,7 @@ function previewManual(item) {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    padding: 14px 16px 16px;
 
     .skeleton-line {
       height: 14px;
@@ -309,5 +339,22 @@ function previewManual(item) {
       &.skeleton-date { width: 45%; }
     }
   }
+}
+
+@media screen and (min-width: 700px) {
+  .news-content { padding-left: 24px; padding-right: 24px; }
+  .news-item {
+    display: flex;
+    align-items: stretch;
+    gap: 16px;
+    padding: 16px;
+  }
+  .item-thumb, .skeleton-thumb {
+    width: 200px;
+    height: 120px;
+    flex: 0 0 200px;
+    border-radius: 8px;
+  }
+  .item-info { flex: 1; padding: 0; }
 }
 </style>

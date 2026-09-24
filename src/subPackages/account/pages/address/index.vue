@@ -5,7 +5,14 @@
     </template>
 
     <template #content>
-      <AppContent padding="16px var(--page-padding-x, 16px) 28px">
+      <AppContent
+        padding="16px var(--page-padding-x, 16px) 28px"
+        :refresher-enabled="true"
+        :refresher-triggered="isRefreshing"
+        @refresherrefresh="handleRefresh"
+        @refresherrestore="handleRefresherRestore"
+        @refresherabort="handleRefresherRestore"
+      >
         <view class="address-page">
           <view v-if="selectMode" class="select-notice">
             <AppIcon name="location" :size="17" color="#4F6475" />
@@ -84,6 +91,7 @@ import { deleteAddress, getAddressList, setDefaultAddress } from '../../api/addr
 import noAddressSvg from '../../../../shared/assets/illustrations/no-address.svg?raw'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
 
 const addressList = ref([])
 const pageState = ref(PageStatus.LOADING)
@@ -91,6 +99,7 @@ const loadError = ref('')
 const selectMode = ref(false)
 const pendingSavedAddressId = ref(0)
 const returningSelection = ref(false)
+const isRefreshing = ref(false)
 
 const stateDescription = computed(() => (
   pageState.value === PageStatus.ERROR
@@ -121,6 +130,22 @@ async function loadAddresses() {
     loadError.value = error?.message || '地址加载失败，请稍后重试'
     pageState.value = PageStatus.ERROR
   }
+}
+
+async function handleRefresh() {
+  if (isRefreshing.value) return
+  const startedAt = Date.now()
+  isRefreshing.value = true
+  try {
+    await loadAddresses()
+  } finally {
+    await waitForRefreshAnimation(startedAt)
+    isRefreshing.value = false
+  }
+}
+
+function handleRefresherRestore() {
+  if (pageState.value !== PageStatus.LOADING) isRefreshing.value = false
 }
 
 async function selectAddress(item) {

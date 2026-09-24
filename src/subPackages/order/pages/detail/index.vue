@@ -9,8 +9,10 @@
       <AppHeader title="订单详情" :show-back="true" />
     </template>
     <template #content>
-      <AppContent>
-        <view class="order-detail-page" v-if="detail">
+      <AppContent padding="0">
+        <view class="order-detail-page" :class="{ 'has-logistics': detail?.shipments?.length > 0 }" v-if="detail">
+          <view class="detail-columns">
+            <view class="detail-main-column">
           <!-- 状态栏 -->
           <view class="status-header" :class="'status-' + detail.orderStatus">
             <text class="status-text">{{ orderStatusText }}</text>
@@ -46,27 +48,55 @@
           <!-- 商品列表 -->
           <view class="goods-card">
             <view class="card-title">商品信息</view>
-            <view
-              class="goods-item"
-              v-for="item in detail.items"
-              :key="item.orderItemId"
-            >
-              <view class="goods-image-link" @click="goToProductDetail(item)">
-                <AppProductImage class="goods-image" :src="item.imageUrl" mode="aspectFill" />
-              </view>
-              <view class="goods-info">
-                <text class="goods-name">{{ item.productName }}</text>
-                <text class="sku-name">{{ item.skuName }}</text>
-                <view class="price-row">
-                  <text class="price">¥{{ Number(item.salePrice || 0).toFixed(2) }}</text>
-                  <text class="qty">x{{ item.quantity }}</text>
+            <view v-if="productGroups.length" class="spu-order-list">
+              <view v-for="group in productGroups" :key="group.key" class="spu-order-card">
+                <view class="spu-order-header" @tap="toggleProductGroup(group.key)">
+                  <view class="spu-image-link" @tap.stop="goToProductDetail(group.items[0])">
+                    <AppProductImage class="spu-image" :src="group.image" mode="aspectFill" />
+                  </view>
+                  <view class="spu-order-copy">
+                    <text class="spu-order-name">{{ group.name }}</text>
+                    <text class="spu-order-meta">{{ group.items.length }} 个 SKU · 共 {{ group.totalQuantity }} 件</text>
+                  </view>
+                  <text class="spu-order-total">¥{{ group.totalAmount.toFixed(2) }}</text>
+                  <view class="spu-collapse-button">
+                    <AppIcon
+                      name="chevron-right"
+                      :size="16"
+                      class="spu-collapse-icon"
+                      :class="{ expanded: !isProductGroupCollapsed(group.key) }"
+                    />
+                  </view>
+                </view>
+
+                <view v-show="!isProductGroupCollapsed(group.key)" class="sku-order-list">
+                  <view
+                    v-for="item in group.items"
+                    :key="item.orderItemId || item.skuId"
+                    class="goods-item"
+                  >
+                    <view class="goods-image-link" @tap="goToProductDetail(item)">
+                      <AppProductImage class="goods-image" :src="item.image" mode="aspectFill" />
+                    </view>
+                    <view class="goods-info">
+                      <text class="goods-name">{{ item.skuName || '默认规格' }}</text>
+                      <text class="sku-name">SKU：{{ item.skuCode || item.skuId || '-' }}</text>
+                      <view class="price-row">
+                        <text class="price">¥{{ Number(item.salePrice || 0).toFixed(2) }}</text>
+                        <text class="qty">x{{ item.quantity }}</text>
+                      </view>
+                    </view>
+                  </view>
                 </view>
               </view>
             </view>
           </view>
 
+            </view>
+
+            <view class="detail-side-column">
           <!-- 订单信息 -->
-          <view class="info-card">
+          <view class="info-card order-info-card">
             <view class="card-title">订单信息</view>
             <view class="info-row">
               <text class="info-label">订单编号</text>
@@ -87,7 +117,7 @@
           </view>
 
           <!-- 客户可见的订单进度，不展示内部系统状态与处理日志 -->
-          <view class="info-card" v-if="customerTimeline.length > 0">
+          <view class="info-card timeline-card" v-if="customerTimeline.length > 0">
             <view class="card-title">订单进度</view>
             <view
               class="timeline-item"
@@ -103,7 +133,7 @@
           </view>
 
           <!-- 价格明细 -->
-          <view class="price-card">
+          <view class="price-card summary-card">
             <view class="price-row">
               <text class="price-label">商品总额</text>
               <text class="price-value">¥{{ Number(detail.goodsAmount || 0).toFixed(2) }}</text>
@@ -127,6 +157,9 @@
             <view class="price-row" v-if="detail.refundedAmount > 0">
               <text class="price-label">已退款</text>
               <text class="price-value">¥{{ Number(detail.refundedAmount || 0).toFixed(2) }}</text>
+            </view>
+          </view>
+
             </view>
           </view>
 
@@ -180,6 +213,7 @@ import { formatDateTime } from '../../../../shared/utils/format.js'
 const orderId = ref(null)
 const detail = ref(null)
 const reordering = ref(false)
+const collapsedProductGroups = ref({})
 
 onLoad(async (options) => {
   if (options.orderId) {
@@ -195,6 +229,7 @@ async function loadOrderDetail() {
   try {
     const res = await getOrderDetail(orderId.value)
     detail.value = res
+    collapsedProductGroups.value = {}
   } catch (e) {
     console.error('加载订单详情失败:', e)
     uni.showToast({ title: e.message || '加载失败', icon: 'none' })
@@ -388,7 +423,7 @@ async function handleAction(key) {
     case 'logistics':
       if (detail.value?.shipments?.[0]?.trackingNo) {
         copyText(detail.value.shipments[0].trackingNo)
-        uni.showToast({ title: '运单号已复制', icon: 'none' })
+        uni.showToast({ title: '复制成功', icon: 'none' })
       } else {
         uni.showToast({ title: '暂未生成物流信息', icon: 'none' })
       }
@@ -396,6 +431,59 @@ async function handleAction(key) {
     case 'afterSale':
       navigator.navigateTo(routes.order.afterSaleApply(orderId.value))
       break
+  }
+}
+const productGroups = computed(() => {
+  const groups = new Map()
+  const items = Array.isArray(detail.value?.items) ? detail.value.items : []
+  items.forEach((source, index) => {
+    const item = source || {}
+    const productId = Number(item.productId ?? item.ProductId ?? 0)
+    const skuId = Number(item.skuId ?? item.SkuId ?? 0)
+    const rawProductName = item.productName || item.ProductName || ''
+    const productName = rawProductName || item.skuName || item.SkuName || '采购商品'
+    const key = productId > 0
+      ? `spu-${productId}`
+      : rawProductName
+        ? `spu-name-${rawProductName}`
+        : `sku-${skuId || index}`
+    if (!groups.has(key)) {
+      groups.set(key, {
+        key,
+        productId: productId || null,
+        name: productName,
+        image: item.imageUrl || item.ImageUrl || item.image || '',
+        items: [],
+      })
+    }
+    groups.get(key).items.push({
+      ...item,
+      orderItemId: item.orderItemId ?? item.OrderItemId,
+      productId,
+      skuId,
+      image: item.imageUrl || item.ImageUrl || item.image || groups.get(key).image,
+      skuName: item.skuName || item.SkuName || '',
+      skuCode: item.skuCode || item.SkuCode || item.code || item.Code || '',
+      salePrice: Number(item.salePrice ?? item.SalePrice ?? item.price ?? item.Price ?? 0),
+      quantity: Number(item.quantity ?? item.Quantity ?? 0),
+      lineTotal: Number(item.totalAmount ?? item.TotalAmount ?? item.subTotal ?? item.SubTotal ?? 0),
+    })
+  })
+  return Array.from(groups.values()).map(group => ({
+    ...group,
+    totalQuantity: group.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
+    totalAmount: group.items.reduce((sum, item) => sum + (Number(item.lineTotal) || (Number(item.salePrice) || 0) * (Number(item.quantity) || 0)), 0),
+  }))
+})
+
+function isProductGroupCollapsed(groupKey) {
+  return collapsedProductGroups.value[groupKey] !== false
+}
+
+function toggleProductGroup(groupKey) {
+  collapsedProductGroups.value = {
+    ...collapsedProductGroups.value,
+    [groupKey]: !isProductGroupCollapsed(groupKey),
   }
 }
 </script>
@@ -664,11 +752,11 @@ async function handleAction(key) {
 
 <style lang="scss" scoped>
 /* 成品页覆盖层：统一使用项目字体与间距 token，并保持 390px/800px 两档布局。 */
-.order-detail-page { width: 100%; max-width: 1120px; min-height: 100%; margin: 0 auto; padding: 12px 14px 28px; box-sizing: border-box; background: transparent; }
-.status-header { margin: 0 0 14px; padding: 20px 18px; border: 0; border-left: 4px solid var(--color-brand, #D7192D); border-radius: var(--radius-feature, 18px); background: var(--surface-card, #FFF); box-shadow: var(--shadow-sm); }
-.status-header .status-text { margin-bottom: 5px; color: var(--type-title-color); font-size: var(--type-page-title-size, 20px); line-height: var(--type-page-title-line-height, 32px); }
+.order-detail-page { width: 100%; max-width: 1120px; min-height: 0; margin: 0 auto; padding: 10px 16px calc(22px + env(safe-area-inset-bottom)); box-sizing: border-box; background: transparent; }
+.status-header { display: flex; min-height: 78px; margin: 0 0 10px; padding: 15px 18px; align-items: flex-start; justify-content: center; flex-direction: column; border: 0; border-top: 3px solid var(--color-brand, #D7192D); border-radius: var(--radius-feature, 18px); background: var(--surface-card, #FFF); box-shadow: var(--shadow-sm); }
+.status-header .status-text { margin-bottom: 5px; color: var(--type-title-color); font-size: var(--type-page-title-size, 20px); font-weight: 750; line-height: var(--type-page-title-line-height, 32px); }
 .status-header .status-desc { color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); line-height: var(--type-body-small-line-height, 20px); }
-.logistics-card, .address-card, .goods-card, .info-card, .price-card { margin: 0 0 12px; padding: 16px; border-radius: var(--radius-card, 14px); background: var(--surface-card, #FFF); box-shadow: var(--shadow-sm); box-sizing: border-box; }
+.logistics-card, .address-card, .goods-card, .info-card, .price-card { margin: 0 0 10px; padding: 14px; border-radius: var(--radius-card, 14px); background: var(--surface-card, #FFF); box-shadow: var(--shadow-sm); box-sizing: border-box; }
 .logistics-card:active { opacity: .72; }
 .logistics-info { min-height: 42px; }
 .logistics-info .logistics-text { margin-left: 12px; }
@@ -680,7 +768,21 @@ async function handleAction(key) {
 .address-card .address-detail .contact-row .name { margin-right: 10px; color: var(--type-title-color); font-size: var(--type-label-size, 15px); }
 .address-card .address-detail .contact-row .phone { color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); }
 .address-card .address-detail .address-text { color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); line-height: 20px; }
-.goods-card .card-title, .info-card .card-title { margin-bottom: 10px; color: var(--type-title-color); font-size: var(--type-card-title-size, 16px); line-height: var(--type-card-title-line-height, 24px); }
+.goods-card .card-title, .info-card .card-title { display: flex; margin-bottom: 10px; align-items: center; gap: 8px; color: var(--type-title-color); font-size: var(--type-card-title-size, 16px); line-height: var(--type-card-title-line-height, 24px); }
+.goods-card .card-title::before, .info-card .card-title::before { width: 3px; height: 16px; flex: 0 0 3px; border-radius: 2px; background: var(--color-brand, #D7192D); content: ''; }
+.spu-order-list { display: flex; flex-direction: column; gap: 8px; }
+.spu-order-card { overflow: hidden; border-radius: 12px; background: var(--surface-subtle, #F7F8FA); }
+.spu-order-header { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto 28px; align-items: center; gap: 10px; min-height: 68px; padding: 8px; box-sizing: border-box; }
+.spu-image-link { width: 52px; height: 52px; overflow: hidden; border-radius: 9px; background: #FFF; }
+.spu-image { width: 100%; height: 100%; }
+.spu-order-copy { min-width: 0; }
+.spu-order-name { display: block; overflow: hidden; color: var(--type-title-color); font-size: var(--type-body-size, 14px); font-weight: 650; line-height: 20px; text-overflow: ellipsis; white-space: nowrap; }
+.spu-order-meta { display: block; margin-top: 3px; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
+.spu-order-total { color: var(--type-title-color); font-size: var(--type-body-small-size, 13px); font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.spu-collapse-button { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 50%; color: var(--type-secondary-color); background: #FFF; }
+.spu-collapse-icon { transition: transform 180ms ease; }
+.spu-collapse-icon.expanded { transform: rotate(90deg); }
+.sku-order-list { padding: 0 8px 8px; border-top: 1px solid #EEF0F2; background: #FFF; }
 .goods-item { min-height: 82px; padding: 12px 0; border-bottom: 1px solid #EEF0F2; }
 .goods-item .goods-image { width: 78px; height: 78px; border-radius: var(--radius-control, 10px); }
 .goods-item .goods-info { display: flex; min-width: 0; flex-direction: column; margin-left: 13px; }
@@ -689,8 +791,8 @@ async function handleAction(key) {
 .goods-item .goods-info .price-row { margin-top: auto; padding-top: 8px; }
 .goods-item .goods-info .price-row .price { color: var(--color-brand, #D7192D); font-size: var(--type-label-size, 15px); }
 .goods-item .goods-info .price-row .qty { color: var(--type-secondary-color); font-size: var(--type-caption-size, 12px); }
-.info-row, .price-row { gap: 18px; padding: 8px 0; }
-.info-row .info-label, .price-row .price-label { flex: 0 0 auto; color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); }
+.info-row, .price-row { gap: 18px; padding: 9px 0; }
+.info-row .info-label, .price-row .price-label { flex: 0 0 76px; color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); }
 .info-row .info-value, .price-row .price-value { min-width: 0; color: var(--type-title-color); font-size: var(--type-body-small-size, 13px); text-align: right; overflow-wrap: anywhere; }
 .price-row.total { margin-top: 7px; padding-top: 14px; border-top: 1px solid #EEF0F2; }
 .price-row .price-value.highlight { color: var(--color-brand, #D7192D); font-size: var(--type-money-size, 18px); }
@@ -706,16 +808,36 @@ async function handleAction(key) {
 .action-btn.primary { border-color: var(--color-brand, #D7192D); color: #FFF; background: var(--color-brand, #D7192D); }
 .action-btn.default { border-color: var(--color-border, #DDE0E4); color: var(--type-title-color); background: #FFF; }
 .action-btn.disabled { color: #A8ABB2; background: #ECEEF2; }
-@media (min-width: 800px) {
-  .order-detail-page { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr); align-items: start; gap: 14px; padding: 20px; }
-  .status-header, .logistics-card, .address-card, .goods-card { grid-column: 1; }
-  .info-card, .price-card { grid-column: 2; }
-  .status-header { grid-row: 1; }
-  .logistics-card { grid-row: 2; }
-  .address-card { grid-row: 3; }
-  .goods-card { grid-row: 4 / span 4; }
-  .info-card { margin-bottom: 0; }
-  .price-card { margin-bottom: 0; }
+ .detail-columns { display: flex; flex-direction: column; gap: 10px; }
+ .detail-main-column, .detail-side-column { display: flex; min-width: 0; flex-direction: column; gap: 10px; }
+ .detail-main-column > *, .detail-side-column > * { margin: 0; }
+
+@media (min-width: 720px) {
+  .order-detail-page { padding: 14px 20px 20px; }
+  .detail-columns { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); align-items: start; gap: 10px 14px; }
+  .detail-main-column, .detail-side-column { gap: 10px; }
   .bottom-space { display: none; }
+}
+
+@media (min-width: 720px) and (max-width: 1023px) {
+  .order-detail-page { padding: 12px 14px 18px; }
+  .detail-columns { grid-template-columns: minmax(0, 1fr) minmax(260px, .78fr); gap: 8px 10px; }
+  .logistics-card, .address-card, .goods-card, .info-card, .price-card { padding: 12px; }
+  .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) auto 26px; gap: 8px; min-height: 62px; }
+  .spu-image-link { width: 48px; height: 48px; }
+}
+
+@media (max-width: 719px) {
+  .order-detail-page { padding-right: 12px; padding-left: 12px; }
+  .status-header { min-height: 72px; padding: 13px 15px; }
+  .logistics-card, .address-card, .goods-card, .info-card, .price-card { padding: 12px; }
+  .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) auto 26px; gap: 8px; min-height: 62px; }
+  .spu-image-link { width: 48px; height: 48px; }
+  .spu-order-total { font-size: 12px; }
+  .goods-item .goods-image { width: 64px; height: 64px; }
+  .goods-item .goods-info { margin-left: 10px; }
+  .goods-item .goods-info .goods-name { font-size: 13px; line-height: 18px; }
+  .goods-item .goods-info .price-row .price { font-size: 14px; }
+  .bottom-space { height: 64px; }
 }
 </style>

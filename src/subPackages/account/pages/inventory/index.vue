@@ -13,14 +13,18 @@
       />
     </template>
     <template #content>
-      <AppContent padding="0 0 32px">
+      <AppContent
+        padding="0 0 32px"
+        :refresher-enabled="true"
+        :refresher-triggered="isRefreshing"
+        @refresherrefresh="handleRefresh"
+        @refresherrestore="handleRefresherRestore"
+        @refresherabort="handleRefresherRestore"
+        @scrolltolower="loadMore"
+      >
         <view class="inventory-page">
           <view class="toolbar">
-            <scroll-view class="tab-scroll" scroll-x :show-scrollbar="false">
-              <view class="tabs">
-                <view v-for="tab in tabs" :key="tab.key" class="tab" :class="{ active: activeTab === tab.key }" @tap="changeTab(tab.key)">{{ tab.label }}</view>
-              </view>
-            </scroll-view>
+            <StatusTabBar :items="tabs" :model-value="activeTab" :max-width="700" :item-width="88" @change="changeTab" />
           </view>
 
           <view class="content-wrap">
@@ -74,18 +78,20 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { onReachBottom, onShow } from '@dcloudio/uni-app'
+import { onShow } from '@dcloudio/uni-app'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
 import { PageStatus } from '@/shared/model/pageState.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { getDealerInventoryList } from '../../api/inventory.js'
 import { formatDate } from '../../../../shared/utils/format.js'
+import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
 const tabs = Object.freeze([
   { key: 'all', label: '全部库存' },
@@ -102,12 +108,12 @@ const keyword = ref('')
 const activeTab = ref('all')
 const pageState = ref(PageStatus.LOADING)
 const loadingMore = ref(false)
+const isRefreshing = ref(false)
 const hasMore = ref(false)
 const loadError = ref('')
 const activeTabLabel = computed(() => tabs.find(item => item.key === activeTab.value)?.label || '全部库存')
 
 onShow(() => { if (pageState.value === PageStatus.LOADING) reload() })
-onReachBottom(loadMore)
 
 async function reload() {
   pageNum.value = 1
@@ -126,6 +132,22 @@ async function reload() {
     loadError.value = error?.message || '库存读取失败，请稍后重试'
     pageState.value = PageStatus.ERROR
   }
+}
+
+async function handleRefresh() {
+  if (isRefreshing.value) return
+  const startedAt = Date.now()
+  isRefreshing.value = true
+  try {
+    await reload()
+  } finally {
+    await waitForRefreshAnimation(startedAt)
+    isRefreshing.value = false
+  }
+}
+
+function handleRefresherRestore() {
+  if (!loadingMore.value && pageState.value !== PageStatus.LOADING) isRefreshing.value = false
 }
 
 async function loadMore() {
@@ -156,16 +178,12 @@ function formatQty(value) { return Number(value || 0).toLocaleString('zh-CN') }
 
 <style lang="scss" scoped>
 .inventory-page { width: 100%; }
-.toolbar { position: sticky; z-index: 4; top: 0; padding: 8px var(--page-padding-x,16px); border-bottom: 1px solid #ECEEF1; background: rgba(255,255,255,.96); }
-.tab-scroll { width: 100%; max-width: 1080px; margin: 0 auto; white-space: nowrap; }
-.tabs { display: flex; width: max-content; gap: 7px; }
-.tab { padding: 8px 12px; border: 1px solid #E3E5E8; border-radius: 10px; color: #696F78; background: #FFF; font-size: 11px; }
-.tab.active { border-color: #D7192D; color: #FFF; background: #D7192D; font-weight: 650; }
-.content-wrap { width: 100%; max-width: 1080px; margin: 0 auto; padding: 16px var(--page-padding-x,16px) 30px; box-sizing: border-box; }
+.toolbar { position: sticky; z-index: 4; top: 0; padding: 7px var(--page-padding-x,16px) 12px; background: var(--surface-page, #F4F5F8); }
+.content-wrap { width: 100%; max-width: 820px; margin: 0 auto; padding: 8px var(--page-padding-x,16px) 30px; box-sizing: border-box; }
 .result-head { display: flex; justify-content: space-between; margin: 0 2px 11px; color: #8C9199; font-size: 10px; }
 .result-head text:first-child { color: #343941; font-size: 13px; font-weight: 680; }
 .stock-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; }
-.stock-card { display: grid; grid-template-columns: 94px minmax(0,1fr); gap: 13px; padding: 13px; border: 1px solid #E6E8EB; border-radius: 17px; background: #FFF; box-shadow: 0 7px 23px rgba(25,31,39,.035); }
+.stock-card { display: grid; grid-template-columns: 94px minmax(0,1fr); gap: 13px; padding: 14px; border: 0; border-radius: 17px; background: #FFF; box-shadow: 0 7px 22px rgba(25,31,39,.045); }
 .pressed { opacity: .7; transform: scale(.995); }
 .product-image { width: 94px; height: 112px; border-radius: 12px; }
 .product-copy { min-width: 0; }
@@ -179,12 +197,12 @@ function formatQty(value) { return Number(value || 0).toLocaleString('zh-CN') }
 .quantity-row text { display: block; overflow: hidden; color: #92969D; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .quantity-row text + text { margin-top: 3px; color: #3D434B; font-size: 11px; font-weight: 660; }
 .quantity-row .primary-qty text + text { color: #1F6848; }
-.card-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 9px; padding-top: 8px; border-top: 1px solid #F0F1F2; color: #9A9EA5; font-size: 8px; }
+.card-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; color: #9A9EA5; font-size: 8px; }
 .load-status { padding: 20px 0 2px; color: #9B9FA6; font-size: 10px; text-align: center; }
 @media screen and (min-width: 720px) {
-  .toolbar { padding-top: 14px; padding-bottom: 14px; }
-  .stock-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 15px; }
-  .stock-card { grid-template-columns: 108px minmax(0,1fr); padding: 15px; }
+  .toolbar { padding-top: 9px; padding-bottom: 14px; }
+  .stock-grid { gap: 14px; }
+  .stock-card { grid-template-columns: 108px minmax(0,1fr); padding: 16px; }
   .product-image { width: 108px; height: 128px; }
 }
 </style>

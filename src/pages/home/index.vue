@@ -36,8 +36,11 @@
 
         <scroll-view
           class="home-scroll"
-          :class="{ 'home-scroll--integrated': currentTabLayout.integratedBackground }"
-          scroll-y
+          :class="{
+            'home-scroll--integrated': currentTabLayout.integratedBackground,
+            'home-scroll--category': activeTab === 'category',
+          }"
+          :scroll-y="activeTab !== 'category'"
           :show-scrollbar="false"
           :enable-back-to-top="true"
         >
@@ -168,6 +171,9 @@ onUnmounted(() => {
 <style lang="scss" scoped>
 .home-page {
   --home-bg: #f4f5f6;
+  --home-bottom-nav-item-height: 48px;
+  --home-bottom-nav-padding: 6px;
+  --home-bottom-nav-height: calc(var(--home-bottom-nav-item-height) + var(--home-bottom-nav-padding) + var(--home-bottom-nav-padding));
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -181,6 +187,10 @@ onUnmounted(() => {
 .home-page--integrated {
   /* 状态栏、顶部、个人信息和内容区共用一张底，避免色块断层。 */
   --home-bg: #f2f5f9;
+}
+
+.home-page.is-large-screen {
+  --home-bottom-nav-height: 0px;
 }
 
 .home-layout,
@@ -223,9 +233,21 @@ onUnmounted(() => {
   background: var(--home-bg);
 }
 
+.home-scroll--category .tab-stage {
+  height: 100%;
+  min-height: 0;
+  padding-bottom: 0;
+}
+
+.home-scroll--category :deep(.category-tab) {
+  height: 100%;
+  min-height: 0;
+}
+
 .tab-stage {
   width: 100%;
   min-height: 100%;
+  padding-bottom: calc(var(--home-bottom-nav-height) + env(safe-area-inset-bottom));
   box-sizing: border-box;
   display: flex;
   justify-content: center;

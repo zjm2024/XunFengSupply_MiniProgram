@@ -1,14 +1,12 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="售后服务" :show-back="true" />
-    </template>
-
-    <template #content>
-      <AppContent padding="8px var(--page-padding-x, 16px) 28px">
-        <view class="after-sale-page">
-          <scroll-view class="status-tabs" scroll-x :show-scrollbar="false">
+      <view class="after-sale-header">
+        <AppHeader title="售后服务" :show-back="true" />
+        <view class="filter-panel">
+          <scroll-view class="status-tabs" scroll-x :show-scrollbar="false" scroll-with-animation>
             <view class="tabs-inner">
+              <view class="tabs-indicator" :style="tabsIndicatorStyle" />
               <view
                 v-for="tab in statusTabs"
                 :key="String(tab.value)"
@@ -18,7 +16,25 @@
               >{{ tab.label }}</view>
             </view>
           </scroll-view>
+        </view>
+      </view>
+    </template>
 
+    <template #content>
+      <AppContent
+        padding="8px var(--page-padding-x, 16px) 28px"
+        :refresher-enabled="true"
+        :refresher-triggered="isRefreshing"
+        @refresherrefresh="handleRefresh"
+        @refresherrestore="handleRefresherRestore"
+        @refresherabort="handleRefresherRestore"
+        @scrolltolower="loadMore"
+      >
+        <view
+          class="after-sale-page"
+          @touchstart="handleStatusTouchStart"
+          @touchend="handleStatusTouchEnd"
+        >
           <view v-if="loading && afterSaleList.length === 0" class="skeleton-grid">
             <view v-for="i in 3" :key="i" class="skeleton-card">
               <view class="skeleton-line short" />
@@ -94,11 +110,6 @@
             </template>
           </AppPageState>
 
-          <view v-if="afterSaleList.length" class="load-more" @tap="loadMore">
-            <text v-if="loading">正在加载…</text>
-            <text v-else-if="hasMore">加载更多记录</text>
-            <text v-else>已展示全部 {{ totalCount }} 条售后记录</text>
-          </view>
         </view>
       </AppContent>
     </template>
@@ -106,7 +117,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { ORDER_STATUS } from '@/app/config/constant.js'
 import { navigator } from '@/app/navigation/navigator.js'
@@ -120,6 +131,7 @@ import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import { formatDate } from '../../../../shared/utils/format.js'
+import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
 const STATUS = Object.freeze({ APPLIED: 0, PENDING_REVIEW: 1, PENDING_RETURN: 2, RETURNING: 3, RECEIVED: 4, REFUNDING: 5, COMPLETED: 6, REJECTED: 7, FAILED: 8, CLOSED: 9 })
 const statusTabs = [
@@ -133,10 +145,17 @@ const statusTabs = [
 const currentStatus = ref(null)
 const afterSaleList = ref([])
 const loading = ref(false)
+const isRefreshing = ref(false)
 const loadError = ref('')
 const hasMore = ref(true)
 const totalCount = ref(0)
 const page = reactive({ current: 1, pageSize: 10 })
+const swipeStart = ref({ x: 0, y: 0 })
+const currentTabIndex = computed(() => Math.max(0, statusTabs.findIndex(tab => tab.value === currentStatus.value)))
+const tabsIndicatorStyle = computed(() => ({
+  width: '72px',
+  transform: `translateX(${4 + currentTabIndex.value * 74}px)`,
+}))
 
 onShow(() => resetAndLoad())
 
@@ -146,6 +165,23 @@ function switchStatus(status) {
   resetAndLoad()
 }
 
+function handleStatusTouchStart(event) {
+  const touch = event?.touches?.[0]
+  if (!touch) return
+  swipeStart.value = { x: touch.clientX, y: touch.clientY }
+}
+
+function handleStatusTouchEnd(event) {
+  const touch = event?.changedTouches?.[0] || event?.touches?.[0]
+  if (!touch) return
+  const deltaX = touch.clientX - swipeStart.value.x
+  const deltaY = touch.clientY - swipeStart.value.y
+  if (Math.abs(deltaX) < 48 || Math.abs(deltaX) <= Math.abs(deltaY)) return
+  const nextIndex = currentTabIndex.value + (deltaX < 0 ? 1 : -1)
+  if (nextIndex < 0 || nextIndex >= statusTabs.length) return
+  switchStatus(statusTabs[nextIndex].value)
+}
+
 async function resetAndLoad() {
   page.current = 1
   afterSaleList.value = []
@@ -153,6 +189,22 @@ async function resetAndLoad() {
   hasMore.value = true
   loadError.value = ''
   await loadRecords()
+}
+
+async function handleRefresh() {
+  if (isRefreshing.value) return
+  const startedAt = Date.now()
+  isRefreshing.value = true
+  try {
+    await resetAndLoad()
+  } finally {
+    await waitForRefreshAnimation(startedAt)
+    isRefreshing.value = false
+  }
+}
+
+function handleRefresherRestore() {
+  if (!loading.value) isRefreshing.value = false
 }
 
 async function loadRecords() {
@@ -233,11 +285,14 @@ function confirmCancel(item) {
 </script>
 
 <style lang="scss" scoped>
+.after-sale-header { background: var(--surface-page, #F4F5F8); }
 .after-sale-page { width: 100%; max-width: 1160px; margin: 0 auto; padding-bottom: env(safe-area-inset-bottom); }
-.status-tabs { width: 100%; padding: 4px 0 8px; white-space: nowrap; }
-.tabs-inner { display: inline-flex; min-width: max-content; gap: 7px; }
-.tab-item { display: inline-flex; flex: 0 0 auto; height: 35px; align-items: center; padding: 0 13px; border: 1px solid #E3E5E8; border-radius: 11px; color: #707680; background: #FFF; font-size: 11px; white-space: nowrap; }
-.tab-item.active { border-color: #D7192D; color: #FFF; background: #D7192D; font-weight: 650; }
+.filter-panel { padding: 7px var(--page-padding-x, 16px) 12px; background: var(--surface-page, #F4F5F8); }
+.status-tabs { width: 100%; white-space: nowrap; }
+.tabs-inner { position: relative; display: flex; width: max-content; min-width: max-content; margin: 0 auto; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; box-sizing: border-box; background: #E8EAED; }
+.tabs-indicator { position: absolute; z-index: 0; top: 4px; left: 0; height: 36px; border-radius: 999px; background: #FFF; box-shadow: 0 3px 9px rgba(35, 40, 47, .12); transition: transform .24s cubic-bezier(.2,.8,.2,1); pointer-events: none; }
+.tab-item { position: relative; z-index: 1; display: inline-flex; flex: 0 0 72px; width: 72px; height: 36px; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 999px; color: #707680; background: transparent; font-size: 11px; white-space: nowrap; transition: color .16s ease; }
+.tab-item.active { color: #20242A; font-weight: 700; }
 .after-sale-grid, .skeleton-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
 .after-sale-card { padding: 16px; border: 1px solid #E5E7EA; border-radius: 19px; background: #FFF; box-shadow: 0 10px 28px rgba(25,30,37,.045); }
 .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -274,5 +329,8 @@ function confirmCancel(item) {
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media screen and (min-width: 720px) {
   .after-sale-grid, .skeleton-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 15px; }
+}
+@media screen and (max-width: 380px) {
+  .tab-item { min-width: 64px; padding: 0 9px; font-size: 10px; }
 }
 </style>
