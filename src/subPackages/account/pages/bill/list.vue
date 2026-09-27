@@ -72,7 +72,7 @@
                     <view class="bill-identity">
                       <view class="bill-icon"><AppIcon name="receipt" :size="21" /></view>
                       <view>
-                        <text class="bill-period">{{ formatPeriod(bill.billPeriod) }}对账单</text>
+                        <text class="bill-period">{{ formatMonthDisplay(bill.billPeriod) }}对账单</text>
                         <text class="bill-no">{{ bill.billNo || `账单 ${bill.billId}` }}</text>
                       </view>
                     </view>

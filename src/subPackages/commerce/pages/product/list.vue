@@ -77,16 +77,11 @@
         />
       </view>
 
-      <!-- 加载更多 -->
-      <view v-if="loading && products.length > 0" class="load-more">
-        <view class="loading-spinner small"></view>
-        <text class="load-more-text">加载更多...</text>
-      </view>
-
-      <!-- 没有更多了 -->
-      <view v-else-if="!hasMore && products.length > 0" class="no-more">
-        <text class="no-more-text">— 没有更多了 —</text>
-      </view>
+      <AppLoadMore
+        v-if="products.length > 0"
+        :status="loadMoreStatus"
+        @retry="loadMore"
+      />
       </template>
       </view>
     </scroll-view>
@@ -126,6 +121,7 @@ import AppProductCard from '../../../../shared/ui/AppProductCard/AppProductCard.
 import ProductFilterDrawer from '../../components/ProductFilterDrawer/ProductFilterDrawer.vue'
 import ProductSearchLanding from '../../components/ProductSearchLanding/ProductSearchLanding.vue'
 import AppSvgIllustration from '../../../../shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
+import AppLoadMore from '../../../../shared/ui/AppLoadMore/AppLoadMore.vue'
 import noSearchResultSvg from '../../../../shared/assets/illustrations/no-search-result.svg?raw'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
@@ -180,6 +176,7 @@ const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 const hasMore = ref(true)
+const loadMoreError = ref(false)
 const listScrollTop = ref(0)
 const showBackToTop = ref(false)
 let currentListScrollTop = 0
@@ -190,6 +187,12 @@ const cartCount = computed(() => cartStore.cartBadgeCount)
 
 // 计算是否还有更多
 const canLoadMore = computed(() => hasMore.value && !loading.value)
+const loadMoreStatus = computed(() => {
+  if (loading.value && products.value.length > 0) return 'loading'
+  if (loadMoreError.value) return 'error'
+  if (!hasMore.value && products.value.length > 0) return 'no-more'
+  return 'idle'
+})
 const activeSort = computed(() => SORT_QUERY[sortKey.value] || SORT_QUERY.default)
 const activeStockFilterLabel = computed(() => STOCK_FILTER_LABELS[stockFilter.value] || '')
 const activeFilterCount = computed(() => Number(activeCategoryPath.value.length > 0) + Number(Boolean(stockFilter.value)))
@@ -250,6 +253,7 @@ async function loadProducts(isLoadMore = false) {
   const requestId = ++productRequestId
   const targetPage = isLoadMore ? page.value + 1 : 1
   loading.value = true
+  if (isLoadMore) loadMoreError.value = false
 
   try {
     const params = {
@@ -290,12 +294,15 @@ async function loadProducts(isLoadMore = false) {
 
       total.value = totalCount || 0
       hasMore.value = products.value.length < total.value
+      loadMoreError.value = false
     }
   } catch (err) {
     if (requestId !== productRequestId) return
     console.error('[ProductList] 加载商品列表失败:', err)
     if (!isLoadMore) {
       products.value = []
+    } else {
+      loadMoreError.value = true
     }
     uni.showToast({
       title: '加载失败，请重试',
@@ -446,6 +453,7 @@ function clearFilters() {
 function refreshProducts() {
   page.value = 1
   hasMore.value = true
+  loadMoreError.value = false
   scrollToTop()
   return loadProducts(false)
 }

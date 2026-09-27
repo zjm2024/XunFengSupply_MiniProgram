@@ -1,14 +1,23 @@
 <template>
   <view class="app-product-image">
     <image
-      v-if="hasUsableImage"
+      v-if="hasImageSource && !imageFailed"
       class="app-product-image__source"
+      :class="{ 'is-loading': isLoading }"
       :src="displaySrc"
       :mode="mode"
       :lazy-load="lazyLoad"
+      @load="handleImageLoad"
       @error="handleImageError"
     />
-    <view v-else class="app-product-image__fallback">
+    <view
+      v-if="hasImageSource && !imageFailed && isLoading"
+      class="app-product-image__loading"
+      aria-label="图片加载中"
+    >
+      <view class="app-product-image__spinner" />
+    </view>
+    <view v-if="!hasImageSource || imageFailed" class="app-product-image__fallback">
       <AppIcon name="image" :size="fallbackIconSize" :stroke-width="1.6" />
     </view>
     <text v-if="isOutOfStock" class="app-product-image__stock-badge">暂无库存</text>
@@ -30,9 +39,10 @@ const props = defineProps({
 })
 
 const imageFailed = ref(false)
+const isLoading = ref(false)
 const displaySrc = ref('')
 let cacheRequestId = 0
-const hasUsableImage = computed(() => Boolean(displaySrc.value?.trim()) && !imageFailed.value)
+const hasImageSource = computed(() => Boolean(displaySrc.value?.trim()))
 const hasKnownStock = computed(() => props.stock !== undefined && props.stock !== null && props.stock !== '')
 const isOutOfStock = computed(() => (
   props.showStockBadge
@@ -44,15 +54,27 @@ watch(() => props.src, async (source) => {
   const requestId = ++cacheRequestId
   const remoteUrl = String(source || '').trim()
   imageFailed.value = false
+  isLoading.value = Boolean(remoteUrl)
   displaySrc.value = getCachedResourcePath(remoteUrl, { kind: 'image' }) || remoteUrl
-  if (!remoteUrl) return
+  if (!remoteUrl) {
+    isLoading.value = false
+    return
+  }
 
   const cachedUrl = await getCachedResource(remoteUrl, { kind: 'image' })
   if (requestId === cacheRequestId && cachedUrl) displaySrc.value = cachedUrl
 }, { immediate: true })
 
+/** 图片加载成功。 */
+function handleImageLoad() {
+  isLoading.value = false
+  imageFailed.value = false
+}
+
+/** 图片加载失败。 */
 function handleImageError() {
   imageFailed.value = true
+  isLoading.value = false
 }
 </script>
 
@@ -74,6 +96,32 @@ function handleImageError() {
 
 .app-product-image__source {
   display: block;
+  transition: opacity 160ms ease;
+
+  &.is-loading {
+    opacity: 0;
+  }
+}
+
+.app-product-image__loading {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  background: #f3f4f5;
+}
+
+.app-product-image__spinner {
+  width: 30rpx;
+  height: 30rpx;
+  border: 3rpx solid #e4e6ea;
+  border-top-color: var(--brand-primary, #d7192d);
+  border-radius: 50%;
+  animation: app-product-image-spin 0.8s linear infinite;
 }
 
 .app-product-image__fallback {
@@ -81,6 +129,10 @@ function handleImageError() {
   place-items: center;
   color: #b6b9c0;
   background: #f3f4f5;
+}
+
+@keyframes app-product-image-spin {
+  to { transform: rotate(360deg); }
 }
 
 .app-product-image__stock-badge {

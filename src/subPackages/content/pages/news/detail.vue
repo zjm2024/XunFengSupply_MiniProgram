@@ -93,6 +93,7 @@ async function cacheNewsResources(result) {
     cacheRichTextImages(result.content, { fallbackUrl: imagePlaceholder }),
   ])
   if (detail.value?.id !== result.id) return
+  // 缓存完成后必须回写正文，否则页面仍会继续使用占位图或远程地址。
   detail.value = { ...detail.value, coverUrl, content }
 }
 

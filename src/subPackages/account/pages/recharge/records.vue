@@ -68,11 +68,11 @@
               </template>
             </AppPageState>
 
-            <view v-if="pageState === PageStatus.CONTENT" class="load-status">
-              <text v-if="loadingMore">正在加载…</text>
-              <text v-else-if="hasMore">上拉加载更多</text>
-              <text v-else>已展示全部记录</text>
-            </view>
+            <AppLoadMore
+              v-if="pageState === PageStatus.CONTENT"
+              :status="loadingMore ? 'loading' : (!hasMore ? 'no-more' : 'idle')"
+              @retry="loadMore"
+            />
           </view>
         </view>
       </AppContent>
@@ -88,6 +88,7 @@ import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import { PageStatus } from '@/shared/model/pageState.js'
 import { getRechargeList } from '../../api/settlement.js'
 import { formatDateTime } from '../../../../shared/utils/format.js'

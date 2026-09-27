@@ -67,7 +67,11 @@
                 </view>
               </template>
             </AppPageState>
-            <view v-if="pageState === PageStatus.CONTENT" class="load-status">{{ loadingMore ? '正在加载…' : (hasMore ? '上拉加载更多' : '已展示全部库存') }}</view>
+            <AppLoadMore
+              v-if="pageState === PageStatus.CONTENT"
+              :status="loadingMore ? 'loading' : (!hasMore ? 'no-more' : 'idle')"
+              @retry="loadMore"
+            />
           </view>
         </view>
       </AppContent>
@@ -84,6 +88,7 @@ import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
 import { PageStatus } from '@/shared/model/pageState.js'
 import { navigator } from '@/app/navigation/navigator.js'

@@ -108,10 +108,11 @@
             </template>
           </AppPageState>
 
-          <view v-if="messageList.length > 0" class="load-state">
-            <text v-if="loadingMore">正在加载…</text>
-            <text v-else-if="!hasMore">没有更多消息了</text>
-          </view>
+          <AppLoadMore
+            v-if="messageList.length > 0"
+            :status="loadingMore ? 'loading' : (!hasMore ? 'no-more' : 'idle')"
+            @retry="loadMore"
+          />
         </view>
       </AppContent>
     </template>
@@ -130,6 +131,7 @@ import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
+import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import noMessageSvg from '../../../../shared/assets/illustrations/no-message.svg?raw'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'

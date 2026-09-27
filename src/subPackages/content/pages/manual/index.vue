@@ -50,8 +50,11 @@
                 </view>
                 <AppIcon name="chevron-right" :size="18" class="manual-arrow" />
               </view>
-              <text v-if="pageStatus.isLoadingMore.value" class="list-status">正在加载更多...</text>
-              <text v-else-if="!pageStatus.hasMore.value && manuals.length" class="list-status">已展示全部手册</text>
+              <AppLoadMore
+                v-if="manuals.length"
+                :status="pageStatus.isLoadingMore.value ? 'loading' : (!pageStatus.hasMore.value ? 'no-more' : 'idle')"
+                @retry="handleLoadMore"
+              />
             </view>
             <template #skeleton>
               <view class="manual-list">
@@ -73,6 +76,7 @@ import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
+import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import { usePageState } from '@/shared/composables/usePageState.js'
 import { getManualCategories, getManualList } from '../../api/manual.js'
 import { navigator } from '@/app/navigation/navigator.js'

@@ -36,9 +36,13 @@
                 :src="image"
                 mode="aspectFit"
                 :show-menu-by-longpress="true"
+                @load="markImageLoaded(index)"
                 @error="markImageFailed(index)"
               />
             </movable-view>
+            <view v-if="loadingImages[index] && !failedImages[index]" class="viewer-loading" aria-label="图片加载中">
+              <view class="viewer-spinner" />
+            </view>
           </movable-area>
           <view v-else class="viewer-fallback">
             <AppIcon name="image" :size="48" color="#6D6E73" />
@@ -69,6 +73,7 @@ const emit = defineEmits(['update:modelValue', 'change', 'close'])
 
 const activeIndex = ref(0)
 const failedImages = ref({})
+const loadingImages = ref({})
 const imageScales = ref({})
 const cachedImages = ref([])
 const lastTapTime = ref(0)
@@ -143,8 +148,15 @@ function handleImageTap(index) {
   lastTapIndex.value = index
 }
 
+/** 标记预览图片加载失败。 */
 function markImageFailed(index) {
   failedImages.value = { ...failedImages.value, [index]: true }
+  loadingImages.value = { ...loadingImages.value, [index]: false }
+}
+
+/** 标记预览图片加载成功。 */
+function markImageLoaded(index) {
+  loadingImages.value = { ...loadingImages.value, [index]: false }
 }
 
 function closeViewer() {
@@ -175,6 +187,10 @@ watch(
   async () => {
     const requestId = ++cacheRequestId
     failedImages.value = {}
+    loadingImages.value = normalizedImages.value.reduce((result, _, index) => {
+      result[index] = true
+      return result
+    }, {})
     imageScales.value = {}
     cachedImages.value = [...normalizedImages.value]
     activeIndex.value = clampIndex(activeIndex.value)

@@ -14,7 +14,7 @@
 <template>
   <view class="app-image-wrapper" :style="wrapperStyle">
     <image
-      v-if="!hasError"
+      v-if="hasSource && !hasError"
       class="app-image"
       :class="{ 'is-loading': isLoading }"
       :src="displaySrc"
@@ -24,10 +24,10 @@
       @load="handleLoad"
       @error="handleError"
     />
-    <view v-else class="app-image-error" :style="errorStyle">
+    <view v-if="!hasSource || hasError" class="app-image-error" :style="errorStyle">
       <AppIcon name="image" :size="errorIconSize" color="currentColor" />
     </view>
-    <view v-if="isLoading && !hasError" class="app-image-loading">
+    <view v-if="hasSource && isLoading && !hasError" class="app-image-loading">
       <view class="loading-spinner" />
     </view>
   </view>
@@ -87,6 +87,7 @@ const isLoading = ref(true)
 const hasError = ref(false)
 const displaySrc = ref('')
 let cacheRequestId = 0
+const hasSource = computed(() => Boolean(displaySrc.value?.trim()))
 
 // 规范化尺寸单位
 const normalizeSize = (value) => {
@@ -127,10 +128,11 @@ function handleError(event) {
 // 监听 src 变化重置状态
 watch(() => props.src, async (source) => {
   const requestId = ++cacheRequestId
-  isLoading.value = true
   hasError.value = false
-  displaySrc.value = getCachedResourcePath(String(source || '').trim(), { kind: 'image' }) || String(source || '').trim()
-  if (!displaySrc.value) return
+  const remoteUrl = String(source || '').trim()
+  displaySrc.value = getCachedResourcePath(remoteUrl, { kind: 'image' }) || remoteUrl
+  isLoading.value = Boolean(remoteUrl)
+  if (!remoteUrl) return
 
   const cachedUrl = await getCachedResource(displaySrc.value, { kind: 'image' })
   if (requestId === cacheRequestId && cachedUrl) displaySrc.value = cachedUrl
