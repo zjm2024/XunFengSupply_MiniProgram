@@ -71,7 +71,7 @@ const { layout, safeArea } = useResponsive()
   // 横屏模式：限制最大宽度并居中
   &.is-landscape {
     &.breakpoint-expanded {
-      max-width: 1366px;
+      max-width: var(--page-shell-max-width, 1366px);
       margin: 0 auto;
       box-shadow: 0 0 32px rgba(17, 18, 22, 0.05);
     }

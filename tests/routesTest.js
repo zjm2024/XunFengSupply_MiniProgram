@@ -54,6 +54,7 @@ import {
   VOUCHER,
   LANGUAGE,
   SETTINGS,
+  NOTIFICATION_SETTINGS,
   // content 分包
   NEWS,
   NEWS_DETAIL,
@@ -61,6 +62,7 @@ import {
   MANUAL_PREVIEW,
   MANUAL_PDF_PREVIEW,
   MESSAGE,
+  MESSAGE_DETAIL,
   HELP,
   ABOUT,
   // 集合
@@ -192,6 +194,10 @@ describe('Routes - content 分包常量', () => {
     expect(MESSAGE).toBe('/subPackages/content/pages/message/index')
   })
 
+  it('MESSAGE_DETAIL 指向正确路径', () => {
+    expect(MESSAGE_DETAIL).toBe('/subPackages/content/pages/message/detail')
+  })
+
   it('HELP 指向正确路径', () => {
     expect(HELP).toBe('/subPackages/content/pages/help/index')
   })
@@ -210,14 +216,14 @@ describe('Routes - REGISTERED_ROUTES 完整性', () => {
       ORDER_LIST, ORDER_DETAIL, PAY_PAGE, FULFILLMENT_SPLIT, APPLY_AFTER_SALE, AFTER_SALE_LIST, CANCEL_ORDER,
       ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
       DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, SECURITY,
-      RECHARGE, RECHARGE_RECORDS, FUND_FLOW, CREDIT_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS,
-      NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MANUAL_PDF_PREVIEW, MESSAGE, HELP, ABOUT,
+      RECHARGE, RECHARGE_RECORDS, FUND_FLOW, CREDIT_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS, NOTIFICATION_SETTINGS,
+      NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MANUAL_PDF_PREVIEW, MESSAGE, MESSAGE_DETAIL, HELP, ABOUT,
     ]
     expect(REGISTERED_ROUTES).toEqual(expected)
   })
 
-  it('应包含 45 个路由', () => {
-    expect(REGISTERED_ROUTES.length).toBe(45)
+  it('应包含 47 个路由', () => {
+    expect(REGISTERED_ROUTES.length).toBe(47)
   })
 
   it('不应有重复路由', () => {
@@ -522,6 +528,11 @@ describe('Routes - 必填 ID 缺失时抛错', () => {
     expect(() => routes.account.billDetail('')).toThrow()
   })
 
+  it('content.messageDetail(id) 应包含 messageId 参数', () => {
+    const url = routes.content.messageDetail(100)
+    expect(url).toBe(`${MESSAGE_DETAIL}?messageId=100`)
+  })
+
   it('account.inventoryDetail() 缺少 ID 应抛错', () => {
     expect(() => routes.account.inventoryDetail()).toThrow()
     expect(() => routes.account.inventoryDetail(null)).toThrow()
@@ -538,6 +549,12 @@ describe('Routes - 必填 ID 缺失时抛错', () => {
     expect(() => routes.content.newsDetail()).toThrow()
     expect(() => routes.content.newsDetail(null)).toThrow()
     expect(() => routes.content.newsDetail('')).toThrow()
+  })
+
+  it('content.messageDetail() 缺少 ID 应抛错', () => {
+    expect(() => routes.content.messageDetail()).toThrow()
+    expect(() => routes.content.messageDetail(null)).toThrow()
+    expect(() => routes.content.messageDetail('')).toThrow()
   })
 
   it('content.manualPreview() 缺少 ID 应抛错', () => {

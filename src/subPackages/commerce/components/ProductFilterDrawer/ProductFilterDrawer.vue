@@ -307,10 +307,8 @@ watch(() => props.visible, (visible) => {
   overflow: hidden;
   flex-direction: column;
   border-radius: 24px 24px 0 0;
-  background: rgba(248, 249, 251, .92);
+  background: var(--sheet-surface, #FFFFFF);
   box-shadow: 0 -18px 50px rgba(17, 18, 22, .16);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
   animation: drawer-up 180ms cubic-bezier(.2, .8, .2, 1) both;
 }
 
@@ -329,7 +327,7 @@ watch(() => props.visible, (visible) => {
 .drawer-header {
   justify-content: space-between;
   padding: 19px 18px 16px;
-  background: rgba(255, 255, 255, .68);
+  background: var(--sheet-surface, #FFFFFF);
 }
 
 .drawer-title,
@@ -368,7 +366,7 @@ watch(() => props.visible, (visible) => {
   overflow: hidden;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
-  background: rgba(248,249,251,.9);
+  background: var(--sheet-surface, #FFFFFF);
 }
 
 .filter-section {
@@ -594,7 +592,7 @@ watch(() => props.visible, (visible) => {
 .drawer-footer {
   gap: 10px;
   padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
-  background: rgba(255, 255, 255, .68);
+  background: var(--sheet-surface, #FFFFFF);
 }
 
 .reset-button,

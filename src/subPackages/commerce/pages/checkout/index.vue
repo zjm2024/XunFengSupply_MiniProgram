@@ -682,13 +682,16 @@ function autoAllocatePayment() {
 }
 
 function toggleCheckoutGroup(groupKey) {
+  const collapsed = isCheckoutGroupCollapsed(groupKey)
   collapsedCheckoutGroupKeys.value = {
     ...collapsedCheckoutGroupKeys.value,
-    [groupKey]: !collapsedCheckoutGroupKeys.value[groupKey],
+    [groupKey]: !collapsed,
   }
 }
 
 function isCheckoutGroupCollapsed(groupKey) {
+  // 商品清单默认折叠，只有用户主动点击后才展开。
+  if (!Object.prototype.hasOwnProperty.call(collapsedCheckoutGroupKeys.value, groupKey)) return true
   return Boolean(collapsedCheckoutGroupKeys.value[groupKey])
 }
 

@@ -71,6 +71,7 @@ export const VOUCHER = '/subPackages/account/pages/voucher/index'
 export const SUB_ACCOUNT_FORM = '/subPackages/account/pages/sub-account/sub-account-form/index'
 export const LANGUAGE = '/subPackages/account/pages/language/index'
 export const SETTINGS = '/subPackages/account/pages/settings/index'
+export const NOTIFICATION_SETTINGS = '/subPackages/account/pages/notification-settings/index'
 
 // ==================== content：资讯分包 ====================
 
@@ -80,6 +81,7 @@ export const MANUAL = '/subPackages/content/pages/manual/index'
 export const MANUAL_PREVIEW = '/subPackages/content/pages/manual/preview'
 export const MANUAL_PDF_PREVIEW = '/subPackages/content/pages/manual/pdf-preview'
 export const MESSAGE = '/subPackages/content/pages/message/index'
+export const MESSAGE_DETAIL = '/subPackages/content/pages/message/detail'
 export const HELP = '/subPackages/content/pages/help/index'
 export const ABOUT = '/subPackages/content/pages/about/index'
 
@@ -92,8 +94,8 @@ export const REGISTERED_ROUTES = Object.freeze([
   ORDER_LIST, ORDER_DETAIL, PAY_PAGE, FULFILLMENT_SPLIT, APPLY_AFTER_SALE, AFTER_SALE_LIST, CANCEL_ORDER,
   ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
   DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, SECURITY,
-  RECHARGE, RECHARGE_RECORDS, FUND_FLOW, CREDIT_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS,
-  NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MANUAL_PDF_PREVIEW, MESSAGE, HELP, ABOUT,
+  RECHARGE, RECHARGE_RECORDS, FUND_FLOW, CREDIT_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS, NOTIFICATION_SETTINGS,
+  NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MANUAL_PDF_PREVIEW, MESSAGE, MESSAGE_DETAIL, HELP, ABOUT,
 ])
 
 // ==================== 内部集合（用于高效查询）====================
@@ -360,6 +362,13 @@ export const ROUTE_META = Object.freeze({
     allowFrozen: false,
     owner: null,
   },
+  [NOTIFICATION_SETTINGS]: {
+    title: '消息通知',
+    requireAuth: true,
+    requireSign: false,
+    allowFrozen: false,
+    owner: null,
+  },
   [SUB_ACCOUNT_FORM]: {
     title: '新增/编辑子账户',
     requireAuth: true,
@@ -430,6 +439,13 @@ export const ROUTE_META = Object.freeze({
   },
   [MESSAGE]: {
     title: '消息中心',
+    requireAuth: true,
+    requireSign: false,
+    allowFrozen: false,
+    owner: null,
+  },
+  [MESSAGE_DETAIL]: {
+    title: '消息详情',
     requireAuth: true,
     requireSign: false,
     allowFrozen: false,
@@ -683,6 +699,7 @@ export const routes = {
     voucher: () => VOUCHER,
     language: () => LANGUAGE,
     settings: () => SETTINGS,
+    notificationSettings: () => NOTIFICATION_SETTINGS,
   },
 
   content: {
@@ -706,6 +723,10 @@ export const routes = {
       return withQuery(MANUAL_PDF_PREVIEW, { manualId: id })
     },
     messages: () => MESSAGE,
+    messageDetail: (messageId) => {
+      const id = assertValidId(messageId, 'content.messageDetail')
+      return withQuery(MESSAGE_DETAIL, { messageId: id })
+    },
     help: () => HELP,
     about: () => ABOUT,
   },

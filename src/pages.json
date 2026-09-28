@@ -316,6 +316,13 @@
                         "navigationStyle": "custom",
                         "navigationBarTitleText": ""
                     }
+                },
+                {
+                    "path": "pages/notification-settings/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
                 }
             ]
         },
@@ -360,6 +367,13 @@
                 },
                 {
                     "path": "pages/message/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/message/detail",
                     "style": {
                         "navigationStyle": "custom",
                         "navigationBarTitleText": ""

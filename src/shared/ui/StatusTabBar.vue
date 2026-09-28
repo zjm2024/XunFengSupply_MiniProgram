@@ -16,7 +16,12 @@
         :class="{ active: isActive(getItemValue(item)) }"
         @tap="select(getItemValue(item))"
       >
-        <text>{{ item.label }}</text>
+        <text class="status-tab-label">{{ item.label }}</text>
+        <text
+          v-if="hasCount(item)"
+          class="status-tab-count"
+          :class="{ active: isActive(getItemValue(item)) }"
+        >{{ formatCount(item.count) }}</text>
       </view>
     </view>
   </scroll-view>
@@ -43,6 +48,16 @@ function isActive(value) {
 
 function getItemValue(item) {
   return Object.prototype.hasOwnProperty.call(item, 'value') ? item.value : item.key
+}
+
+function hasCount(item) {
+  const count = Number(item?.count)
+  return Number.isFinite(count) && count > 0
+}
+
+function formatCount(count) {
+  const value = Number(count)
+  return value > 99 ? '99+' : String(value)
 }
 
 function select(value) {
@@ -114,6 +129,27 @@ function getPoint(touch) {
 
 .status-tab-item.active { color: #FFF; background: var(--color-brand, #D7192D); font-weight: 750; }
 .status-tab-item:active { transform: scale(.96); }
+
+.status-tab-label { line-height: 18px; }
+
+.status-tab-count {
+  display: inline-flex;
+  min-width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 5px;
+  padding: 0 4px;
+  border-radius: 8px;
+  color: var(--color-brand, #D7192D);
+  background: rgba(215, 25, 45, .1);
+  box-sizing: border-box;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+.status-tab-count.active { color: #FFF; background: rgba(255, 255, 255, .22); }
 
 @media screen and (max-width: 380px) {
   .status-tab-track { gap: 6px; }

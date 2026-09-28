@@ -24,6 +24,12 @@
 
           <AppListGroup title="支持与信息">
             <AppListItem
+              label="消息通知"
+              description="管理订单、审核、账单和公告提醒"
+              icon="bell"
+              @tap="goToNotificationSettings"
+            />
+            <AppListItem
               label="帮助中心"
               description="采购、支付与售后常见问题"
               icon="help"
@@ -34,6 +40,16 @@
               value="V 1.0.0"
               icon="info"
               @tap="goToAbout"
+            />
+          </AppListGroup>
+
+          <AppListGroup title="通用设置">
+            <AppListItem
+              label="清除缓存"
+              description="清理图片、资讯附件和搜索历史等临时数据"
+              :value="cacheSummary.label"
+              icon="trash"
+              @tap="handleClearCache"
             />
           </AppListGroup>
 
@@ -50,6 +66,8 @@
 </template>
 
 <script setup>
+import { onShow } from '@dcloudio/uni-app'
+import { ref } from 'vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -58,8 +76,14 @@ import AppListItem from '@/shared/ui/AppListItem/AppListItem.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { useUserStore } from '@/shared/session/userStore.js'
+import { clearAppCache, getCacheSummary } from '@/shared/utils/cacheManager.js'
 
 const userStore = useUserStore()
+const cacheSummary = ref(getCacheSummary())
+
+onShow(() => {
+  cacheSummary.value = getCacheSummary()
+})
 
 function goToProfile() {
   navigator.navigateTo(routes.account.profile())
@@ -69,12 +93,34 @@ function goToSecurity() {
   navigator.navigateTo(routes.account.security())
 }
 
+function goToNotificationSettings() {
+  navigator.navigateTo(routes.account.notificationSettings())
+}
+
 function goToHelp() {
   navigator.navigateTo(routes.content.help())
 }
 
 function goToAbout() {
   navigator.navigateTo(routes.content.about())
+}
+
+function handleClearCache() {
+  uni.showModal({
+    title: '清除缓存',
+    content: '将清理图片、资讯附件和搜索历史等临时数据，不会退出登录，也不会删除购物车、待付款订单和通知设置。确定继续吗？',
+    success: async (res) => {
+      if (!res.confirm) return
+      try {
+        await clearAppCache()
+        cacheSummary.value = getCacheSummary()
+        uni.showToast({ title: '缓存已清除', icon: 'success' })
+      } catch (error) {
+        console.error('[Settings] 清除缓存失败:', error)
+        uni.showToast({ title: '清除失败，请稍后重试', icon: 'none' })
+      }
+    },
+  })
 }
 
 function handleLogout() {

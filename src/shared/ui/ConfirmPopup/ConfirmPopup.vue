@@ -153,7 +153,7 @@ function handleOverlayClick() {
   max-width: 560px;
   max-height: 88vh;
   overflow-y: auto;
-  background: var(--surface-card, #FFFFFF);
+  background: var(--modal-surface, #FFFFFF);
   border-radius: 18px 18px 0 0;
   padding: 22px 18px calc(18px + env(safe-area-inset-bottom));
   box-shadow: var(--shadow-lg, 0 12px 32px rgba(17, 18, 22, 0.12));
@@ -254,7 +254,7 @@ function handleOverlayClick() {
 }
 
 .btn-cancel {
-  background: var(--surface-card, #FFFFFF);
+  background: var(--modal-surface, #FFFFFF);
   color: var(--primary-color, #D7192D);
   border: 1px solid var(--primary-color, #D7192D);
   

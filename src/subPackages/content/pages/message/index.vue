@@ -4,9 +4,8 @@
       <AppHeader
         title="消息中心"
         :show-back="true"
-        :action-text="unreadCount > 0 ? '全部已读' : ''"
-        :action-disabled="markingAll"
-        @action="handleMarkAllRead"
+        action-text="通知设置"
+        @action="goToNotificationSettings"
       />
     </template>
 
@@ -21,47 +20,22 @@
         @scrolltolower="loadMore"
       >
         <view class="message-page">
-          <view class="category-grid">
+          <view class="message-filter-toolbar">
+            <StatusTabBar
+              :items="messageTabs"
+              :model-value="currentType"
+              :max-width="700"
+              @change="switchType"
+            />
             <view
-              v-for="category in categories"
-              :key="category.key"
-              class="category-card"
-              :class="{ active: currentType === category.value }"
-              hover-class="card--pressed"
-              @tap="switchType(category.value)"
+              v-if="unreadCount > 0"
+              class="mark-all-read"
+              :class="{ disabled: markingAll }"
+              hover-class="mark-all-read--pressed"
+              @tap="handleMarkAllRead"
             >
-              <view class="category-icon" :class="category.tone">
-                <AppIcon :name="category.icon" :size="27" :stroke-width="1.8" />
-              </view>
-              <view class="category-copy">
-                <view class="category-title-row">
-                  <text class="category-title">{{ category.title }}</text>
-                  <text v-if="category.badge" class="category-badge">{{ category.badge }}</text>
-                </view>
-                <text class="category-summary">{{ category.summary }}</text>
-              </view>
-              <AppIcon name="chevron-right" :size="17" color="#A5ABB3" />
+              全部已读
             </view>
-          </view>
-
-          <scroll-view class="filter-scroll" scroll-x :show-scrollbar="false">
-            <view class="filter-row">
-              <view
-                v-for="tab in msgTypes"
-                :key="String(tab.value)"
-                class="filter-item"
-                :class="{ active: currentType === tab.value }"
-                hover-class="filter-item--pressed"
-                @tap="switchType(tab.value)"
-              >
-                {{ tab.label }}
-              </view>
-            </view>
-          </scroll-view>
-
-          <view class="section-heading">
-            <text class="section-title">{{ currentTypeLabel }}</text>
-            <text v-if="totalCount > 0" class="section-meta">{{ totalCount }} 条</text>
           </view>
 
           <view v-if="loading && messageList.length === 0" class="message-skeleton" aria-label="正在加载消息">
@@ -132,6 +106,7 @@ import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
+import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
 import noMessageSvg from '../../../../shared/assets/illustrations/no-message.svg?raw'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
@@ -168,9 +143,6 @@ const totalCount = ref(0)
 const unreadCount = ref(0)
 const loadMoreError = ref(false)
 
-const currentTypeLabel = computed(() => (
-  msgTypes.find(item => item.value === currentType.value)?.label || '全部'
-) + '消息')
 const loadMoreStatus = computed(() => {
   if (loadMoreError.value) return 'error'
   if (loadingMore.value) return 'loading'
@@ -178,26 +150,20 @@ const loadMoreStatus = computed(() => {
   return 'idle'
 })
 
-const categories = computed(() => [
-  {
-    key: 'business',
-    value: 'business',
-    title: '业务消息',
-    summary: '订单、审核与账单进度',
-    icon: 'message',
-    tone: 'business',
-    badge: '',
-  },
-  {
-    key: 'system',
-    value: 4,
-    title: '系统公告',
-    summary: '平台通知与服务变更',
-    icon: 'announcement',
-    tone: 'system',
-    badge: '',
-  },
-])
+const messageTabs = computed(() => {
+  const counts = messageStore.typeUnreadCount || {}
+  const businessCount = ['order', 'audit', 'bill']
+    .reduce((sum, key) => sum + Number(counts[key] || 0), 0)
+  const countMap = {
+    '': unreadCount.value,
+    business: businessCount,
+    1: Number(counts.order || 0),
+    2: Number(counts.audit || 0),
+    3: Number(counts.bill || 0),
+    4: Number(counts.announcement || 0),
+  }
+  return msgTypes.map(item => ({ ...item, count: countMap[item.value] || 0 }))
+})
 
 onShow(() => refreshPage())
 
@@ -213,6 +179,10 @@ function normalizeMessage(item) {
     try { templateParams = JSON.parse(rawParams) } catch (_) { templateParams = {} }
   }
 
+  const orderId = templateParams.orderId ?? templateParams.OrderId
+  const billId = templateParams.billId ?? templateParams.BillId
+  const relatedId = orderId ?? billId ?? templateParams.relatedId ?? templateParams.RelatedId ?? null
+
   return {
     messageId: Number(pick(item, 'messageId', 'MessageId', 0)),
     title: String(pick(item, 'title', 'Title', '消息通知')),
@@ -220,11 +190,8 @@ function normalizeMessage(item) {
     type: Number(pick(item, 'msgType', 'MsgType', 0)),
     isRead: Boolean(pick(item, 'isRead', 'IsRead', false)),
     createdAt: pick(item, 'createdAt', 'CreatedAt', ''),
-    relatedId: templateParams.orderId
-      ?? templateParams.OrderId
-      ?? templateParams.billId
-      ?? templateParams.BillId
-      ?? null,
+    relatedId,
+    relatedKind: orderId ? 'order' : billId ? 'bill' : null,
   }
 }
 
@@ -314,7 +281,25 @@ async function loadMessages(append = false) {
 async function loadUnreadCount() {
   try {
     const result = await getUnreadCount()
-    unreadCount.value = Number(result?.unreadCount ?? result?.UnreadCount ?? result ?? 0)
+    const source = result?.data ?? result?.Data ?? result
+    const typedCounts = source?.typeUnreadCount
+      ?? source?.TypeUnreadCount
+      ?? source?.counts
+      ?? source?.Counts
+    if (typedCounts && typeof typedCounts === 'object' && !Array.isArray(typedCounts)) {
+      const counts = {
+        order: Number(typedCounts.order ?? typedCounts.Order ?? typedCounts[1] ?? 0),
+        audit: Number(typedCounts.audit ?? typedCounts.Audit ?? typedCounts[2] ?? 0),
+        bill: Number(typedCounts.bill ?? typedCounts.Bill ?? typedCounts[3] ?? 0),
+        announcement: Number(typedCounts.announcement ?? typedCounts.Announcement ?? typedCounts[4] ?? 0),
+      }
+      messageStore.setUnreadCount(counts)
+      unreadCount.value = messageStore.unreadCount
+      return
+    }
+    unreadCount.value = Number(source?.unreadCount ?? source?.UnreadCount ?? source ?? 0)
+    // 旧接口只有总未读数，清掉上一次会话残留的分类数，避免徽标显示过期数据。
+    messageStore.setUnreadCount({ order: 0, audit: 0, bill: 0, announcement: 0 })
     messageStore.setUnreadCount(unreadCount.value)
   } catch (error) {
     console.error('[MessageCenter] 加载未读数失败:', error)
@@ -331,6 +316,10 @@ function getTypeMeta(type) {
   return typeMeta[type] || { label: '消息通知', icon: 'bell', tone: 'default' }
 }
 
+function goToNotificationSettings() {
+  navigator.navigateTo(routes.account.notificationSettings())
+}
+
 async function goToDetail(item) {
   if (!item.isRead) {
     try {
@@ -345,12 +334,15 @@ async function goToDetail(item) {
     }
   }
 
-  if (!item.relatedId) return
-  const routeMap = {
-    1: () => navigator.navigateTo(routes.order.detail(item.relatedId)),
-    3: () => navigator.navigateTo(routes.account.billList()),
+  if ((item.relatedKind === 'order' || item.type === 1) && item.relatedId) {
+    navigator.navigateTo(routes.order.detail(item.relatedId))
+    return
   }
-  routeMap[item.type]?.()
+  if ((item.relatedKind === 'bill' || item.type === 3) && item.relatedId) {
+    navigator.navigateTo(routes.account.billDetail(item.relatedId))
+    return
+  }
+  navigator.navigateTo(routes.content.messageDetail(item.messageId))
 }
 
 async function handleMarkAllRead() {
@@ -378,69 +370,25 @@ async function handleMarkAllRead() {
 
 .message-page {
   width: 100%;
-  max-width: 880px;
   min-height: 100%;
   margin: 0 auto;
   padding-bottom: env(safe-area-inset-bottom);
   box-sizing: border-box;
 }
 
-.category-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-.category-card {
-  display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) 18px;
-  min-height: 96px;
-  align-items: center;
-  gap: 13px;
-  padding: 16px;
-  border-radius: var(--radius-feature, 18px);
-  background: var(--glass-card-background, rgba(255,255,255,.74));
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  box-sizing: border-box;
-  transition: border-color var(--transition-fast, 120ms) ease, transform var(--transition-fast, 120ms) ease;
-}
-
-.category-card.active {
-  border-color: rgba(215, 25, 45, 0.28);
-}
-
-.category-icon,
 .message-icon {
   display: grid;
   place-items: center;
   color: var(--icon-primary, #303238);
 }
 
-.category-icon.business { color: var(--primary-color, #d7192d); }
-.category-icon.system { color: #9a6b22; }
-.category-copy { min-width: 0; }
-.category-title-row { display: flex; min-width: 0; align-items: center; gap: 7px; }
-.category-title { color: var(--type-title-color, #1b1c20); font-size: var(--type-card-title-size, 16px); font-weight: 700; line-height: var(--type-card-title-line-height, 24px); }
-.category-summary { display: block; margin-top: 4px; overflow: hidden; color: var(--type-secondary-color, #62666f); font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); text-overflow: ellipsis; white-space: nowrap; }
-.category-badge { display: grid; min-width: 18px; height: 18px; padding: 0 5px; place-items: center; border-radius: 9px; color: #fff; background: var(--primary-color, #d7192d); box-sizing: border-box; font-size: 10px; font-weight: 700; line-height: 1; }
-
-.filter-scroll {
-  width: 100%;
-  margin: 16px 0 2px;
-  white-space: nowrap;
-}
-
-.filter-row { display: inline-flex; min-width: 100%; align-items: center; gap: 8px; }
-.filter-item { display: inline-flex; min-width: 54px; height: 34px; align-items: center; justify-content: center; padding: 0 14px; border: 1px solid transparent; border-radius: 17px; color: var(--type-secondary-color, #62666f); background: rgba(255, 255, 255, 0.72); box-sizing: border-box; font-size: var(--type-caption-size, 12px); font-weight: 500; }
-.filter-item.active { border-color: rgba(215, 25, 45, 0.14); color: var(--primary-color, #d7192d); background: #fff; font-weight: 650; }
-.filter-item--pressed,
 .card--pressed { opacity: 0.7; transform: scale(0.99); }
 
-.section-heading { display: flex; align-items: center; justify-content: space-between; margin: 20px 2px 10px; }
-.section-title { color: var(--type-title-color, #1b1c20); font-size: var(--type-section-title-size, 18px); font-weight: 700; line-height: var(--type-section-title-line-height, 26px); }
-.section-meta { color: var(--type-muted-color, #969aa3); font-size: var(--type-caption-size, 12px); }
+.message-filter-toolbar { display: flex; min-width: 0; align-items: center; gap: 8px; margin: 4px 0 14px; }
+.message-filter-toolbar :deep(.status-tab-bar) { min-width: 0; flex: 1; }
+.mark-all-read { flex: none; padding: 4px 0 4px 4px; color: var(--primary-color, #d7192d); font-size: 12px; line-height: 18px; white-space: nowrap; }
+.mark-all-read.disabled { opacity: .45; }
+.mark-all-read--pressed { opacity: .62; }
 
 .message-list,
 .message-skeleton { display: grid; grid-template-columns: 1fr; gap: 10px; }
@@ -478,16 +426,10 @@ async function handleMarkAllRead() {
 }
 
 @media screen and (min-width: 600px) {
-  .category-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-  .category-card { min-height: 108px; padding: 18px 20px; }
   .message-list,
   .message-skeleton { gap: 12px; }
   .message-item,
   .skeleton-card { min-height: 120px; padding: 18px 20px; }
 }
 
-@media screen and (min-width: 960px) {
-  .message-list,
-  .message-skeleton { grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: stretch; }
-}
 </style>
