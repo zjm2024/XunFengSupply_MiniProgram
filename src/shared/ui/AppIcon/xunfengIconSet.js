@@ -41,8 +41,8 @@ export const illustrationRegistry = Object.freeze({
 // 个人中心 SVG 图标资源
 import afterSalesSvg from '../../assets/icon/after-sales.svg?raw'
 import billAccountFlowSvg from '../../assets/icon/bill-account-flow.svg?raw'
+import creditConsumptionRecordSvg from '../../assets/icon/credit-consumption-record.svg?raw'
 import couponSvg from '../../assets/icon/coupon.svg?raw'
-import dataManagementSvg from '../../assets/icon/data-management.svg?raw'
 import inventoryManagementSvg from '../../assets/icon/inventory-management.svg?raw'
 import messageSvg from '../../assets/icon/message.svg?raw'
 import myInvoiceSvg from '../../assets/icon/my-invoice.svg?raw'
@@ -54,6 +54,9 @@ import signedSvg from '../../assets/icon/signed.svg?raw'
 import transactionFailedSvg from '../../assets/icon/transaction-failed.svg?raw'
 import transactionSuccessSvg from '../../assets/icon/transaction-success.svg?raw'
 import allOrderSvg from '../../assets/icon/all-order.svg?raw'
+import investMoneySvg from '../../assets/icon/invest-money.svg?raw'
+import reconciliationSvg from '../../assets/icon/reconciliation.svg?raw'
+import helpSvg from '../../assets/icon/help.svg?raw'
 
 /**
  * 薰风商城图标集。
@@ -143,13 +146,14 @@ const tabIconPaths = Object.freeze({
 const accountIconPaths = Object.freeze({
   'profile-after-sales': createSvgAssetIcon(afterSalesSvg),
   'profile-invoice': createSvgAssetIcon(myInvoiceSvg),
-  'profile-bill': createSvgAssetIcon(myInvoiceSvg),
+  'profile-bill': createSvgAssetIcon(reconciliationSvg),
   'profile-fund-flow': createSvgAssetIcon(billAccountFlowSvg),
+  'profile-credit-flow': createSvgAssetIcon(creditConsumptionRecordSvg),
   'profile-inventory': createSvgAssetIcon(inventoryManagementSvg),
   'profile-voucher': createSvgAssetIcon(couponSvg),
   'profile-security': createSvgAssetIcon(securityCenterSvg),
   'profile-message': createSvgAssetIcon(messageSvg),
-  'profile-recharge': createSvgAssetIcon(dataManagementSvg),
+  'profile-recharge': createSvgAssetIcon(investMoneySvg),
   'order-pending-payment': createSvgAssetIcon(pendingPaymentSvg),
   'order-pending-shipment': createSvgAssetIcon(pendingShipmentSvg),
   'order-shipped': createSvgAssetIcon(shippedSvg),
@@ -175,7 +179,7 @@ export const xunfengIconMap = Object.freeze({
   // 个人中心专用图标占位：后续补充高品质 SVG 时只替换这里的映射即可。
   'profile-orders': createSvgAssetIcon(allOrderSvg),
   'profile-sub-account': coreIconPaths.users,
-  'profile-help': coreIconPaths.help,
+  'profile-help': createSvgAssetIcon(helpSvg),
   'profile-address': coreIconPaths.address,
   package: coreIconPaths.product,
   box: coreIconPaths.product,

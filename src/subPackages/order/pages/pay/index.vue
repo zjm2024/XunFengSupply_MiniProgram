@@ -407,7 +407,7 @@ function handlePaid() {
 .deadline-note { margin-top: 2px; color: rgba(255,255,255,.7); font-size: var(--type-micro-size, 11px); }
 .deadline-panel.is-expired .deadline-note { color: #8B5A55; }
 .deadline-time { flex: 0 0 auto; font-size: 25px; font-weight: 760; font-variant-numeric: tabular-nums; letter-spacing: .5px; }
-.pay-methods, .credit-info { margin-top: 14px; padding: 17px 16px; border-radius: var(--radius-card, 14px); background: var(--surface-card, #FFF); box-shadow: var(--shadow-sm); }
+.pay-methods, .credit-info { margin-top: 14px; padding: 17px 16px; border-radius: var(--radius-card, 14px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .method-title, .credit-title { color: var(--type-title-color); font-size: var(--type-card-title-size, 16px); font-weight: 700; }
 .method-item { display: flex; min-height: 58px; align-items: center; border-bottom: 1px solid #EEF0F2; }
 .method-item:last-child { border-bottom: 0; }

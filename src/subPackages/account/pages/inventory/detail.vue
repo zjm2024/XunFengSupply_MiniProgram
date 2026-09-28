@@ -145,7 +145,7 @@ function formatQty(value) { return Number(value || 0).toLocaleString('zh-CN') }
 
 <style lang="scss" scoped>
 .detail-page { width: 100%; max-width: 1080px; margin: 0 auto; }
-.hero-card,.quantity-card,.section-card { border: 1px solid #E5E7EA; background: #FFF; box-shadow: 0 8px 25px rgba(24,30,38,.04); }
+.hero-card,.quantity-card,.section-card { background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .hero-card { display: grid; grid-template-columns: 110px minmax(0,1fr); gap: 15px; padding: 15px; border-radius: 19px; }
 .hero-image { width: 110px; height: 132px; border-radius: 14px; }
 .hero-copy { min-width: 0; }
@@ -156,7 +156,7 @@ function formatQty(value) { return Number(value || 0).toLocaleString('zh-CN') }
 .specs text { padding: 4px 7px; border-radius: 7px; color: #66717B; background: #F1F3F4; font-size: 9px; }
 .updated { margin-top: 15px; color: #9A9EA5; font-size: 9px; }
 .quantity-card { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); margin-top: 14px; overflow: hidden; border-radius: 17px; }
-.quantity-card > view { padding: 15px; border-right: 1px solid #ECEDEF; border-bottom: 1px solid #ECEDEF; background: #FAFAFB; }
+.quantity-card > view { padding: 15px; border-right: 0; border-bottom: 0; background: rgba(255,255,255,.28); }
 .quantity-card > view:nth-child(2n) { border-right: 0; }
 .quantity-card > view:nth-last-child(-n+2) { border-bottom: 0; }
 .quantity-card text { display: block; color: #898E96; font-size: 9px; }

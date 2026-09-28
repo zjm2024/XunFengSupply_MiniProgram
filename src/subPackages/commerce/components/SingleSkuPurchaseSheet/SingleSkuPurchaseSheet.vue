@@ -226,7 +226,10 @@ function formatMoney(value) {
   box-sizing: border-box;
   overflow: hidden;
   border-radius: 22px 22px 0 0;
-  background: var(--surface-card, #FFFFFF);
+  background: rgba(255,255,255,.84);
+  box-shadow: 0 -14px 36px rgba(55,65,80,.12);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
   transform-origin: center bottom;
   animation: xf-sku-sheet-in 260ms cubic-bezier(.2, .8, .2, 1) both;
 }
@@ -274,7 +277,9 @@ function formatMoney(value) {
   margin: 6px 0 14px;
   padding: 12px;
   border-radius: 16px;
-  background: var(--surface-subtle, #F7F8FA);
+  background: rgba(247,248,250,.58);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .summary-image {

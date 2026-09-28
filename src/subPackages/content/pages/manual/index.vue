@@ -187,7 +187,7 @@ async function preview(item) {
 .category-btn::after { border: 0; }
 .category-btn.is-active { border-color: #D7192D; color: #FFF; background: #D7192D; font-weight: 700; }
 .manual-list { display: grid; gap: 12px; }
-.manual-item { display: flex; min-height: 92px; align-items: center; gap: 12px; padding: 12px; border: 1px solid #E8EBF1; border-radius: 16px; background: #FFF; box-shadow: 0 6px 18px rgba(45,40,42,.04); }
+.manual-item { display: flex; min-height: 92px; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .manual-cover { width: 70px; height: 82px; flex: 0 0 70px; border-radius: 10px; background: #F1F3F6; }
 .manual-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; }
 .manual-title { overflow: hidden; color: #17191E; font-size: 15px; font-weight: 750; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }

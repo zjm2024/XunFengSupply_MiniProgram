@@ -31,7 +31,7 @@ function save() { uni.showToast({ title: '资料已更新', icon: 'success' }) }
 .page-scroll { flex: 1; min-height: 0; }
 .content { padding: 24rpx 32rpx; max-width: 1200rpx; margin: 0 auto; }
 
-.form-card { background: white; border: 2rpx solid #EFEFF1; border-radius: 24rpx; overflow: hidden; }
+.form-card { background: rgba(255,255,255,.74); border-radius: 24rpx; overflow: hidden; box-shadow: 0 10px 28px rgba(55,65,80,.07); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .data-row {
   display: grid; grid-template-columns: 1fr auto; gap: 20rpx;
   padding: 26rpx 32rpx; border-top: 2rpx solid #EFEFF1;

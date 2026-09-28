@@ -93,8 +93,10 @@ const stockText = computed(() => {
   box-sizing: border-box;
   overflow: hidden;
   border-radius: 12px;
-  background: #fff;
-  box-shadow: 0 6px 22px rgba(17, 18, 22, 0.05);
+  background: var(--glass-card-background, rgba(255, 255, 255, 0.74));
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55, 65, 80, 0.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
   transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
 }
 
@@ -107,7 +109,6 @@ const stockText = computed(() => {
 .app-product-card--row {
   display: flex;
   min-height: 154px;
-  border: 1px solid rgba(24, 27, 31, 0.035);
   border-radius: 14px;
   box-shadow: none;
 }

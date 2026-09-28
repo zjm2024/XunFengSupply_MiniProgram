@@ -82,7 +82,9 @@ function goBack() {
 <style lang="scss" scoped>
 .frozen-page {
   min-height: 100%;
-  background: #fff;
+  padding: 24px 16px 32px;
+  box-sizing: border-box;
+  background: var(--bg-color);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -109,11 +111,14 @@ function goBack() {
   }
   
   .frozen-tips {
-    width: 620rpx;
-    background: #FFF7F7;
+    width: min(620rpx, 100%);
+    box-sizing: border-box;
+    background: rgba(255,247,247,.72);
     border-radius: 12rpx;
     padding: 28rpx 32rpx;
     margin-bottom: 60rpx;
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
     
     .tips-title {
       display: block;

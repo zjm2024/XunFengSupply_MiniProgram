@@ -63,7 +63,11 @@ page,
   --bg-subtle: #{tokens.$color-bg-subtle};
   --bg-pressed: #{tokens.$color-bg-pressed};
   --surface-page: #{tokens.$color-bg-page};
-  --surface-card: #{tokens.$color-bg-card};
+  --surface-card: rgba(255, 255, 255, 0.74);
+  --surface-card-strong: rgba(255, 255, 255, 0.84);
+  --glass-card-background: rgba(255, 255, 255, 0.74);
+  --glass-card-blur: blur(16px);
+  --glass-card-shadow: 0 10px 28px rgba(55, 65, 80, 0.07);
   --surface-subtle: #{tokens.$color-bg-subtle};
   --surface-muted: #{tokens.$color-bg-subtle};
 
@@ -79,7 +83,7 @@ page,
   --color-divider: #{tokens.$color-gray-100};
 
   /* 阴影 */
-  --shadow-sm: #{tokens.$shadow-card};
+  --shadow-sm: var(--glass-card-shadow);
   --shadow-md: 0 4px 16px rgba(17, 18, 22, 0.06);
   --shadow-lg: #{tokens.$shadow-float};
   --shadow-primary: 0 4px 16px rgba(215, 25, 45, 0.10);

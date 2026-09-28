@@ -144,11 +144,13 @@ function selectLanguage(lang) {
 
 /* 语言列表 */
 .lang-list {
-  background: white;
-  border: 1px solid #EFEFF1; /* 稳定 px */
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: 12px;
   overflow: hidden;
   margin-bottom: 12px;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .lang-item {
@@ -210,10 +212,12 @@ function selectLanguage(lang) {
 
 /* 提示卡片 */
 .tips-card {
-  background: white;
-  border: 1px solid #EFEFF1; /* 稳定 px */
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: 12px;
   padding: 16px;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .tips-title {

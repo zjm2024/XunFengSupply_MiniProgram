@@ -197,7 +197,7 @@ async function handleSubmit() {
   min-height: 88rpx;
   padding: 24rpx 28rpx;
   border-radius: 10rpx;
-  background: #fff;
+  background: rgba(255,255,255,.68);
   border: 1rpx solid transparent;
   transition: background 180ms ease, border-color 180ms ease;
 
@@ -235,11 +235,14 @@ async function handleSubmit() {
 }
 
 .reason-input-block {
-  background: #fff;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: 10rpx;
   padding: 28rpx 32rpx;
   margin: 0 32rpx 16rpx;
   animation: slide-down 220ms cubic-bezier(.2, .8, .2, 1) both;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 
   @keyframes slide-down {
     from {

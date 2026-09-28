@@ -373,11 +373,13 @@ async function toggleStatus(account) {
 /* 统计卡片 */
 .stats-card,
 .section-card {
-  background: white;
-  border: 1px solid #EFEFF1;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 12px;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .stats-title,

@@ -244,10 +244,12 @@ async function submitForm() {
 <style lang="scss" scoped>
 
 .form-card {
-  background: white;
-  border: 1px solid #EFEFF1;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: 12px;
   padding: 16px;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .form-group {
@@ -305,8 +307,11 @@ async function submitForm() {
   align-items: flex-start;
   gap: 8px;
   padding: 10px;
-  border: 1px solid #EFEFF1;
+  border: 0;
   border-radius: 8px;
+  background: rgba(255,255,255,.58);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 
   &.disabled { opacity: 0.55; }
 }

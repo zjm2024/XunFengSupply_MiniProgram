@@ -500,10 +500,13 @@ function toggleProductGroup(groupKey) {
 .order-initializing { min-height: 68vh; }
 
 .logistics-card, .address-card, .goods-card, .info-card, .price-card {
-  background: #fff;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   margin: 16rpx 24rpx;
   border-radius: 12rpx;
   padding: 28rpx 32rpx;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 
   .card-title {
     font-size: 15px;
@@ -732,7 +735,7 @@ function toggleProductGroup(groupKey) {
 <style lang="scss" scoped>
 /* 成品页覆盖层：统一使用项目字体与间距 token，并保持 390px/800px 两档布局。 */
 .order-detail-page { width: 100%; max-width: 1120px; min-height: 0; margin: 0 auto; padding: 10px 16px calc(22px + env(safe-area-inset-bottom)); box-sizing: border-box; background: transparent; }
-.logistics-card, .address-card, .goods-card, .info-card, .price-card { margin: 0 0 10px; padding: 14px; border-radius: var(--radius-card, 14px); background: var(--surface-card, #FFF); box-shadow: var(--shadow-sm); box-sizing: border-box; }
+.logistics-card, .address-card, .goods-card, .info-card, .price-card { margin: 0 0 10px; padding: 14px; border-radius: var(--radius-card, 14px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-sizing: border-box; }
 .logistics-card:active { opacity: .72; }
 .logistics-info { min-height: 42px; }
 .logistics-info .logistics-text { margin-left: 12px; }
@@ -747,7 +750,7 @@ function toggleProductGroup(groupKey) {
 .goods-card .card-title, .info-card .card-title { display: flex; margin-bottom: 10px; align-items: center; gap: 8px; color: var(--type-title-color); font-size: var(--type-card-title-size, 16px); line-height: var(--type-card-title-line-height, 24px); }
 .goods-card .card-title::before, .info-card .card-title::before { width: 3px; height: 16px; flex: 0 0 3px; border-radius: 2px; background: var(--color-brand, #D7192D); content: ''; }
 .spu-order-list { display: flex; flex-direction: column; gap: 8px; }
-.spu-order-card { overflow: hidden; border-radius: 12px; background: var(--surface-subtle, #F7F8FA); }
+.spu-order-card { overflow: hidden; border-radius: 12px; background: rgba(255,255,255,.34); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
 .spu-order-header { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto 28px; align-items: center; gap: 10px; min-height: 68px; padding: 8px; box-sizing: border-box; }
 .spu-image-link { width: 52px; height: 52px; overflow: hidden; border-radius: 9px; background: #FFF; }
 .spu-image { width: 100%; height: 100%; }
@@ -758,7 +761,7 @@ function toggleProductGroup(groupKey) {
 .spu-collapse-button { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 50%; color: var(--type-secondary-color); background: #FFF; }
 .spu-collapse-icon { transition: transform 180ms ease; }
 .spu-collapse-icon.expanded { transform: rotate(90deg); }
-.sku-order-list { padding: 0 8px 8px; border-top: 1px solid #EEF0F2; background: #FFF; }
+.sku-order-list { padding: 0 8px 8px; border-top: 1px solid rgba(255,255,255,.38); background: transparent; }
 .goods-item { min-height: 82px; padding: 12px 0; border-bottom: 1px solid #EEF0F2; }
 .goods-item .goods-image { width: 78px; height: 78px; border-radius: var(--radius-control, 10px); }
 .goods-item .goods-info { display: flex; min-width: 0; flex-direction: column; margin-left: 13px; }

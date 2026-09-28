@@ -363,7 +363,7 @@ async function goToCart() {
 
 <style lang="scss" scoped>
 .batch-layout { display: flex; flex-direction: column; gap: 12px; padding: 12px 0 24px; }
-.product-card, .batch-toolbar, .sku-group-card { background: var(--surface-card); border-radius: var(--radius-card); box-shadow: 0 2px 10px rgba(17, 18, 22, 0.035); }
+.product-card, .batch-toolbar, .sku-group-card { background: var(--glass-card-background, rgba(255,255,255,.74)); border-radius: var(--radius-card); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .product-card { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: 14px; padding: 14px; }
 .product-image { width: 88px; height: 88px; border-radius: 10px; background: var(--surface-muted); }
 .product-info { min-width: 0; }

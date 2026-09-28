@@ -1,16 +1,21 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader
-        title="我的库存"
-        :show-back="true"
-        :searchable="true"
-        :search-value="keywordInput"
-        search-placeholder="搜索商品、规格或 SKU"
-        @update:search-value="keywordInput = $event"
-        @search="applySearch"
-        @clear-search="clearSearch"
-      />
+      <view class="inventory-header">
+        <AppHeader
+          title="我的库存"
+          :show-back="true"
+          :searchable="true"
+          :search-value="keywordInput"
+          search-placeholder="搜索商品、规格或 SKU"
+          @update:search-value="keywordInput = $event"
+          @search="applySearch"
+          @clear-search="clearSearch"
+        />
+        <view class="filter-panel">
+          <StatusTabBar :items="tabs" :model-value="activeTab" :max-width="700" :item-width="88" @change="changeTab" />
+        </view>
+      </view>
     </template>
     <template #content>
       <AppContent
@@ -23,10 +28,6 @@
         @scrolltolower="loadMore"
       >
         <view class="inventory-page">
-          <view class="toolbar">
-            <StatusTabBar :items="tabs" :model-value="activeTab" :max-width="700" :item-width="88" @change="changeTab" />
-          </view>
-
           <view class="content-wrap">
             <!-- <view class="result-head">
               <text>{{ activeTabLabel }}</text><text>{{ totalCount }} 个规格</text>
@@ -192,13 +193,14 @@ function formatQty(value) { return Number(value || 0).toLocaleString('zh-CN') }
 </script>
 
 <style lang="scss" scoped>
+.inventory-header { background: var(--surface-page, #F4F5F8); }
+.filter-panel { padding: 7px var(--page-padding-x, 16px) 12px; background: var(--surface-page, #F4F5F8); }
 .inventory-page { width: 100%; }
-.toolbar { position: sticky; z-index: 4; top: 0; padding: 7px var(--page-padding-x,16px) 12px; background: var(--surface-page, #F4F5F8); }
 .content-wrap { width: 100%; max-width: 820px; margin: 0 auto; padding: 8px var(--page-padding-x,16px) 30px; box-sizing: border-box; }
 .result-head { display: flex; justify-content: space-between; margin: 0 2px 11px; color: #8C9199; font-size: 10px; }
 .result-head text:first-child { color: #343941; font-size: 13px; font-weight: 680; }
 .stock-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; }
-.stock-card { display: grid; grid-template-columns: 94px minmax(0,1fr); gap: 13px; padding: 14px; border: 0; border-radius: 17px; background: #FFF; box-shadow: 0 7px 22px rgba(25,31,39,.045); }
+.stock-card { display: grid; grid-template-columns: 94px minmax(0,1fr); gap: 13px; padding: 14px; border-radius: 17px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .pressed { opacity: .7; transform: scale(.995); }
 .product-image { width: 94px; height: 112px; border-radius: 12px; }
 .product-copy { min-width: 0; }
@@ -215,7 +217,6 @@ function formatQty(value) { return Number(value || 0).toLocaleString('zh-CN') }
 .card-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; color: #9A9EA5; font-size: 8px; }
 .load-status { padding: 20px 0 2px; color: #9B9FA6; font-size: 10px; text-align: center; }
 @media screen and (min-width: 720px) {
-  .toolbar { padding-top: 9px; padding-bottom: 14px; }
   .stock-grid { gap: 14px; }
   .stock-card { grid-template-columns: 108px minmax(0,1fr); padding: 16px; }
   .product-image { width: 108px; height: 128px; }

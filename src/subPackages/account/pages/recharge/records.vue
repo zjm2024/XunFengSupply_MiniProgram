@@ -1,7 +1,12 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="充值记录" :show-back="true" />
+      <view class="records-header">
+        <AppHeader title="充值记录" :show-back="true" />
+        <view class="filter-panel">
+          <StatusTabBar :items="tabs" :model-value="activeTab" :max-width="700" @change="changeTab" />
+        </view>
+      </view>
     </template>
 
     <template #content>
@@ -15,10 +20,6 @@
         @scrolltolower="loadMore"
       >
         <view class="records-page">
-          <view class="filter-wrap">
-            <StatusTabBar :items="tabs" :model-value="activeTab" :max-width="700" @change="changeTab" />
-          </view>
-
           <view class="content-wrap">
             <view class="record-summary">
               <view>
@@ -196,7 +197,8 @@ function methodIcon(method) {
 
 <style lang="scss" scoped>
 .records-page { width: 100%; }
-.filter-wrap { position: sticky; z-index: 4; top: 0; padding: 8px var(--page-padding-x, 16px); background: rgba(248,249,251,.96); box-sizing: border-box; }
+.records-header { background: var(--surface-page, #F4F5F8); }
+.filter-panel { padding: 7px var(--page-padding-x, 16px) 12px; background: var(--surface-page, #F4F5F8); }
 .content-wrap { width: 100%; max-width: 1080px; margin: 0 auto; padding: 16px var(--page-padding-x, 16px) 30px; box-sizing: border-box; }
 .record-summary { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 .summary-label, .summary-title { display: block; }
@@ -204,7 +206,7 @@ function methodIcon(method) {
 .summary-title { margin-top: 3px; color: #202329; font-size: 18px; font-weight: 720; }
 .summary-count { color: #7C818A; font-size: 11px; }
 .record-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.record-card { padding: 16px; border: 1px solid #E7E8EB; border-radius: 17px; background: #FFFFFF; box-shadow: 0 7px 22px rgba(24,29,37,.04); }
+.record-card { padding: 16px; border-radius: 17px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .card-top { display: grid; grid-template-columns: 42px minmax(0,1fr) auto; align-items: center; gap: 11px; }
 .method-mark { display: grid; width: 42px; height: 42px; place-items: center; border-radius: 13px; color: #40566B; background: #EEF3F5; }
 .method-copy { min-width: 0; }
@@ -222,8 +224,6 @@ function methodIcon(method) {
 .detail-row > text:last-child { min-width: 0; overflow: hidden; color: #555B64; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 .load-status { padding: 20px 0 4px; color: #9A9EA6; font-size: 11px; text-align: center; }
 @media screen and (min-width: 720px) {
-  .filter-wrap { padding-top: 14px; padding-bottom: 14px; }
-  .filter-tabs { margin: 0 auto; }
   .record-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
   .record-card { padding: 18px; }
 }

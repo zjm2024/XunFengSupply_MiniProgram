@@ -398,24 +398,26 @@ async function submitSplits() {
 .split-card,
 .empty-address-card {
   border-radius: 16px;
-  background: #fff;
-  box-shadow: 0 5px 18px rgba(17, 18, 22, .045);
+  background: var(--glass-card-background, rgba(255,255,255,.74));
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .state-card,
 .notice-card { padding: 24px 18px; color: #676a73; font-size: 14px; text-align: center; }
-.notice-card { margin-bottom: 12px; color: #9a5a00; background: #fffaf2; }
+.notice-card { margin-bottom: 12px; color: #9a5a00; background: rgba(255,250,242,.72); }
 .hero-card { padding: 20px 18px; margin-bottom: 14px; }
 .eyebrow { display: block; color: #d7192d; font-size: var(--type-caption, 12px); font-weight: 650; }
 .hero-title { display: block; margin-top: 6px; color: #111216; font-size: 22px; font-weight: 750; }
 .hero-copy { display: block; margin-top: 8px; color: #676a73; font-size: var(--type-body-small, 13px); line-height: 20px; }
-.hero-summary { display: flex; align-items: center; margin-top: 18px; padding: 13px 16px; border-radius: 12px; background: #f7f8fa; }
+.hero-summary { display: flex; align-items: center; margin-top: 18px; padding: 13px 16px; border-radius: 12px; background: rgba(247,248,250,.56); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 .hero-summary > view:not(.summary-divider) { display: flex; flex: 1; align-items: baseline; justify-content: center; gap: 4px; }
 .summary-value { color: #111216; font-size: 18px; font-weight: 750; font-variant-numeric: tabular-nums; }
 .summary-label { color: #676a73; font-size: 12px; }
 .summary-divider { width: 1px; height: 22px; background: #e4e6eb; }
 
-.guide-card { padding: 14px 16px; margin-bottom: 16px; background: #fff7f8; }
+.guide-card { padding: 14px 16px; margin-bottom: 16px; background: rgba(255,247,248,.64); }
 .guide-item { display: flex; align-items: flex-start; gap: 9px; color: #5f5053; font-size: 12px; line-height: 18px; }
 .guide-item + .guide-item { margin-top: 7px; }
 .guide-number { display: flex; width: 18px; height: 18px; flex: 0 0 18px; align-items: center; justify-content: center; border-radius: 50%; color: #fff; background: #d7192d; font-size: 11px; font-weight: 700; }

@@ -122,7 +122,7 @@ function showPreparing() {
 
 <style lang="scss" scoped>
 .invoice-page { width: 100%; max-width: 1160px; margin: 0 auto; padding-bottom: env(safe-area-inset-bottom); }
-.invoice-hero { padding: 20px; border: 1px solid #E5E7EA; border-top: 3px solid #D7192D; border-radius: 20px; color: #20242A; background: #FFF; box-shadow: 0 10px 28px rgba(24,29,36,.05); }
+.invoice-hero { padding: 20px; border-top: 3px solid #D7192D; border-radius: 20px; color: #20242A; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .hero-top { display: flex; align-items: center; justify-content: space-between; }
 .hero-icon { display: grid; width: 48px; height: 48px; place-items: center; color: #D7192D; }
 .readiness-tag { padding: 6px 9px; border: 1px solid #F1D8DB; border-radius: 999px; color: #A82A37; background: #FFF7F8; font-size: 9px; }
@@ -136,12 +136,12 @@ function showPreparing() {
 .hero-button.primary { border: 1px solid #D7192D; color: #FFF; background: #D7192D; }
 .hero-button.ghost { border: 1px solid #E6BCC1; color: #A82734; background: #FFF; }
 .capability-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; margin-top: 13px; }
-.capability-card { min-width: 0; padding: 14px 10px; border: 1px solid #E5E7EA; border-radius: 16px; background: #FFF; box-shadow: 0 8px 22px rgba(24,29,36,.035); text-align: center; }
+.capability-card { min-width: 0; padding: 14px 10px; border-radius: 16px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); text-align: center; }
 .capability-icon { display: grid; width: 38px; height: 38px; margin: 0 auto; place-items: center; border-radius: 12px; color: #55616E; background: #EFF2F4; }
 .capability-title, .capability-desc { display: block; }
 .capability-title { margin-top: 9px; color: #292E35; font-size: 11px; font-weight: 680; }
 .capability-desc { display: none; margin-top: 5px; color: #969BA3; font-size: 9px; line-height: 1.45; }
-.workspace-card, .guide-card { margin-top: 15px; padding: 17px; border: 1px solid #E5E7EA; border-radius: 19px; background: #FFF; box-shadow: 0 9px 26px rgba(25,30,37,.04); }
+.workspace-card, .guide-card { margin-top: 15px; padding: 17px; border-radius: 19px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .workspace-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .section-title, .section-desc { display: block; }
 .section-title { color: #22262C; font-size: 16px; font-weight: 730; }
@@ -164,7 +164,7 @@ function showPreparing() {
 .step-number { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 11px; color: #555F6B; background: #EFF2F4; font-size: 9px; font-weight: 720; }
 .step-copy text { display: block; }.step-copy text:first-child { color: #2A2F36; font-size: 12px; font-weight: 660; }.step-copy text:last-child { margin-top: 4px; color: #969BA3; font-size: 9px; line-height: 1.45; }
 .step-arrow { display: none; }
-.notice-card { display: flex; align-items: flex-start; gap: 9px; margin-top: 14px; padding: 13px 14px; border: 1px solid #E5E7EA; border-radius: 14px; color: #707780; background: #F7F8F9; font-size: 9px; line-height: 1.65; }
+.notice-card { display: flex; align-items: flex-start; gap: 9px; margin-top: 14px; padding: 13px 14px; border-radius: 14px; color: #707780; background: rgba(255,255,255,.56); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); font-size: 9px; line-height: 1.65; }
 @media screen and (min-width: 720px) {
   .invoice-hero { padding: 24px; }.capability-grid { gap: 14px; }.capability-card { padding: 17px; text-align: left; }.capability-icon { margin: 0; }.capability-desc { display: block; }
   .workspace-card, .guide-card { padding: 21px; }

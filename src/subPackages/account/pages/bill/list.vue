@@ -243,12 +243,12 @@ function statusType(status) { return ({ 0: 'warning', 1: 'success', 2: 'info' })
 
 <style lang="scss" scoped>
 .bill-page { width: 100%; max-width: 1100px; margin: 0 auto; }
-.toolbar-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 13px; padding: 14px 15px; border: 1px solid #E7E9EC; border-radius: 15px; background: #FFFFFF; }
+.toolbar-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 13px; padding: 14px 15px; border-radius: 15px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .toolbar-label, .toolbar-desc { display: block; }
 .toolbar-label { color: #22262D; font-size: 14px; font-weight: 680; }
 .toolbar-desc { margin-top: 3px; color: #999DA5; font-size: 10px; }
 .month-trigger { display: flex; height: 38px; align-items: center; gap: 7px; padding: 0 11px; border: 1px solid #DFE2E6; border-radius: 11px; color: #4C525B; background: #F8F9FA; font-size: 12px; }
-.overview-card { overflow: hidden; border: 1px solid #E5E7EA; border-top: 3px solid #D7192D; border-radius: 20px; color: #20242A; background: #FFFFFF; box-shadow: 0 10px 28px rgba(24,29,37,.05); }
+.overview-card { overflow: hidden; border-top: 3px solid #D7192D; border-radius: 20px; color: #20242A; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .overview-main { padding: 21px 19px 17px; }
 .overview-label, .overview-amount, .overview-period { display: block; }
 .overview-label { color: #797F88; font-size: 11px; }
@@ -265,7 +265,7 @@ function statusType(status) { return ({ 0: 'warning', 1: 'success', 2: 'info' })
 .filter-tab { display: flex; min-width: 66px; height: 36px; align-items: center; justify-content: center; padding: 0 13px; border: 1px solid #E1E3E7; border-radius: 11px; color: #696E77; background: #FFFFFF; box-sizing: border-box; font-size: 12px; }
 .filter-tab.active { border-color: #D7192D; color: #FFFFFF; background: #D7192D; font-weight: 650; }
 .bill-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; }
-.bill-card { padding: 17px; border: 1px solid #E6E8EB; border-radius: 18px; background: #FFFFFF; box-shadow: 0 7px 24px rgba(24,29,37,.04); }
+.bill-card { padding: 17px; border-radius: 18px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .bill-card--pressed { opacity: .72; transform: scale(.995); }
 .bill-card-head, .bill-identity, .bill-foot, .bill-foot > view { display: flex; align-items: center; }
 .bill-card-head { justify-content: space-between; gap: 12px; }

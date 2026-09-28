@@ -217,7 +217,7 @@ async function submitRepayment(account, amount) {
 
 <style lang="scss" scoped>
 .detail-page { width: 100%; max-width: 1080px; margin: 0 auto; }
-.bill-hero { overflow: hidden; border: 1px solid #E5E7EA; border-top: 3px solid #D7192D; border-radius: 20px; color: #20242A; background: #FFFFFF; box-shadow: 0 10px 28px rgba(24,29,37,.05); }
+.bill-hero { overflow: hidden; border-top: 3px solid #D7192D; border-radius: 20px; color: #20242A; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .hero-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 19px 19px 0; }
 .hero-label, .hero-no { display: block; }
 .hero-label { color: #252A31; font-size: 15px; font-weight: 680; }
@@ -238,7 +238,7 @@ async function submitRepayment(account, amount) {
 .notice-title { font-size: 12px; font-weight: 680; }
 .notice-desc { margin-top: 4px; color: #8A7A5C; font-size: 10px; line-height: 16px; }
 .content-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 14px; margin-top: 14px; }
-.info-card, .items-card { padding: 17px; border: 1px solid #E7E8EB; border-radius: 18px; background: #FFFFFF; box-shadow: 0 7px 24px rgba(24,29,37,.04); }
+.info-card, .items-card { padding: 17px; border-radius: 18px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .card-title, .card-desc { display: block; }
 .card-title { color: #24282F; font-size: 15px; font-weight: 700; }
 .card-desc { margin-top: 3px; color: #9A9EA5; font-size: 10px; }

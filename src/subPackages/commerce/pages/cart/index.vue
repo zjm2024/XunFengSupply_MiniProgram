@@ -837,8 +837,10 @@ onBeforeUnmount(() => {
 .spu-card {
   overflow: hidden;
   border-radius: $radius-card;
-  background: $color-bg-card;
-  box-shadow: 0 5px 18px rgba(17, 18, 22, 0.045);
+  background: var(--glass-card-background, rgba(255,255,255,.74));
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .spu-header {
@@ -998,9 +1000,8 @@ onBeforeUnmount(() => {
   grid-template-columns: 22px 84px minmax(0, 1fr);
   gap: 12px;
   padding: 14px;
-  background: $color-bg-card;
+  background: transparent;
   border-radius: $radius-card;
-  box-shadow: 0 5px 18px rgba(17, 18, 22, 0.045);
 
   &.is-invalid {
     grid-template-columns: 84px minmax(0, 1fr) auto;
@@ -1153,9 +1154,11 @@ onBeforeUnmount(() => {
 // ==================== 汇总卡 ====================
 .summary-card {
   padding: 18px;
-  background: $color-bg-card;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: $radius-card;
-  box-shadow: 0 5px 18px rgba(17, 18, 22, 0.045);
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .summary-heading {

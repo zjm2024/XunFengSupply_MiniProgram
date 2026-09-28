@@ -284,11 +284,12 @@ function goToDetail(item) {
 .news-item {
   display: block;
   overflow: hidden;
-  background: white;
-  border: 1px solid #ececef;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: 16px;
   padding: 0;
-  box-shadow: 0 8px 22px rgba(30, 32, 38, .045);
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .item-thumb {
@@ -319,8 +320,11 @@ function goToDetail(item) {
 .skeleton-news-item {
   display: block;
   overflow: hidden;
-  background: white;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: 20px;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 
   .skeleton-thumb {
     width: 100%;

@@ -283,7 +283,7 @@ const functionEntries = computed(() => [
     { key: 'recharge', label: '充值中心', icon: 'profile-recharge', tone: 'primary', action: goToRecharge },
     { key: 'bill', label: '对账账单', icon: 'profile-bill', action: goToBill },
     { key: 'fund-flow', label: '资金流水', icon: 'profile-fund-flow', action: goToFundFlow },
-    { key: 'credit-flow', label: '授信流水', icon: 'profile-fund-flow', action: goToCreditFlow },
+    { key: 'credit-flow', label: '授信流水', icon: 'profile-credit-flow', action: goToCreditFlow },
   ] : []),
   { key: 'address', label: '收货地址', icon: 'profile-address', action: goToAddress },
   // { key: 'voucher', label: '优惠券', icon: 'profile-voucher', action: goToVoucher },
@@ -306,7 +306,7 @@ const functionEntries = computed(() => [
 .profile-metrics { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); margin-top: 19px; }
 .profile-metric { position: relative; min-width: 0; padding: 5px 3px; text-align: center; }.profile-metric:not(:last-child)::after { content: ''; position: absolute; top: 9px; right: 0; width: 1px; height: 28px; background: rgba(87,108,130,.13); }
 .metric-value, .metric-label { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.metric-value { color: var(--type-title-color, #1B1C20); font-size: var(--type-label-size, 15px); font-weight: 760; font-variant-numeric: tabular-nums; }.metric-unit { margin-left: 2px; font-size: var(--type-micro-size, 11px); font-weight: 620; }.metric-label { margin-top: 5px; color: var(--type-secondary-color, #62666F); font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); }
-.core-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }.order-card, .service-card, .function-card, .account-service-card { border-radius: 18px; background: #FFF; box-shadow: 0 8px 24px rgba(48,65,82,.04); }
+.core-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }.order-card, .service-card, .function-card, .account-service-card { border-radius: 18px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .order-card, .service-card { padding: 16px; }.card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }.card-heading.static { pointer-events: none; }.card-title, .card-subtitle { display: block; }.card-title { color: var(--type-title-color, #1B1C20); font-size: var(--type-card-title-size, 16px); line-height: var(--type-card-title-line-height, 24px); font-weight: 740; }.card-subtitle { margin-top: 4px; color: var(--type-muted-color, #969AA3); font-size: var(--type-micro-size, 11px); }.heading-link, .collapse-button { display: flex; align-items: center; gap: 2px; color: var(--type-secondary-color, #62666F); font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); }
 .order-card .card-title, .function-card .card-title, .order-card .heading-link, .function-card .collapse-button { color: #111216; }
 .card-title { position: relative; padding-left: 10px; }.card-title::before { content: ''; position: absolute; top: 3px; bottom: 3px; left: 0; width: 3px; border-radius: 2px; background: #D7192D; }

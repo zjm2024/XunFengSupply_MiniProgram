@@ -19,6 +19,13 @@
   <view class="app-content" :class="[`content-${layout.breakpoint}`]">
     <!-- 内容居中容器（平板端生效） -->
     <view class="content-inner" :style="containerStyle">
+      <view
+        v-if="refresherEnabled && refresherTriggered"
+        class="app-refresher-indicator"
+        aria-label="刷新中"
+      >
+        <AppIcon name="refresh" :size="20" color="#737A84" />
+      </view>
       <scroll-view
         class="content-scroll"
         scroll-y
@@ -29,7 +36,7 @@
         :refresher-enabled="refresherEnabled"
         :refresher-triggered="refresherTriggered"
         :refresher-background="refresherBackground"
-        refresher-default-style="black"
+        refresher-default-style="none"
         @scroll="handleScroll"
         @scrolltolower="emit('scrolltolower')"
         @refresherrefresh="emit('refresherrefresh')"
@@ -48,6 +55,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useResponsive } from '../../composables/useResponsive.js'
+import AppIcon from '../AppIcon/AppIcon.vue'
 
 const props = defineProps({
   /** 自定义内边距，格式: '16px' 或 '16px 24px' */
@@ -126,10 +134,31 @@ function handleScroll(e) {
 }
 
 .content-inner {
+  position: relative;
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.app-refresher-indicator {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  left: 50%;
+  display: flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #FFF;
+  transform: translateX(-50%);
+  animation: app-refresher-spin 900ms linear infinite;
+}
+
+@keyframes app-refresher-spin {
+  to { transform: translateX(-50%) rotate(360deg); }
 }
 
 .content-scroll {

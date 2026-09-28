@@ -104,8 +104,8 @@ async function openManualList() {
 
 .entry-card,
 .feature-strip {
-  background: rgba(255, 255, 255, 0.72);
-  box-shadow: 0 16px 42px rgba(51, 39, 42, 0.065), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  background: var(--glass-card-background, rgba(255, 255, 255, 0.74));
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55, 65, 80, 0.07));
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
 }

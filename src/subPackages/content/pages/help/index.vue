@@ -253,11 +253,12 @@ function openGuide(guide) {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: white;
-  border: 1px solid #EFEFF1; /* 稳定 px */
+  background: rgba(255,255,255,.68);
   border-radius: 10px;
   padding: 10px 14px;
   margin-bottom: 16px;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .search-icon {
@@ -316,11 +317,12 @@ function openGuide(guide) {
 }
 
 .category-item {
-  background: white;
-  border: 1px solid #EFEFF1;
+  background: rgba(255,255,255,.68);
   border-radius: 9px;
   padding: 14px 8px;
   text-align: center;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 
   &:active {
     border-color: #D7192D;
@@ -348,10 +350,12 @@ function openGuide(guide) {
 
 /* 热门问题 */
 .question-list {
-  background: white;
-  border: 1px solid #EFEFF1; /* 稳定 px */
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .question-item {
@@ -407,10 +411,12 @@ function openGuide(guide) {
 
 /* 联系客服 */
 .contact-card {
-  background: white;
-  border: 1px solid #EFEFF1; /* 稳定 px */
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: 12px;
   overflow: hidden;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .contact-item {
@@ -465,10 +471,11 @@ function openGuide(guide) {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: white;
-  border: 1px solid #EFEFF1;
+  background: rgba(255,255,255,.68);
   border-radius: 9px;
   padding: 10px;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 
   &:active {
     border-color: #D7192D;

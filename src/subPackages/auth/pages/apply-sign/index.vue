@@ -381,9 +381,11 @@ onUnload(() => {
 
 .progress-card,
 .form-card {
-  background: $color-bg-card;
-  border: 2rpx solid $color-gray-100;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: $radius-card;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .progress-card {

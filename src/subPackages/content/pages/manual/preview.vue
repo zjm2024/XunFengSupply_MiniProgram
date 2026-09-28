@@ -120,7 +120,7 @@ function goBack() { navigator.back() }
 <style lang="scss" scoped>
 .page { display: flex; height: 100vh; height: 100dvh; overflow: hidden; flex-direction: column; background: #F4F5F7; }
 .page-scroll { flex: 1; min-height: 0; }
-.content { min-height: calc(100% - 24px); margin: 12px; padding: 26px 22px calc(52px + env(safe-area-inset-bottom)); box-sizing: border-box; border-radius: 20px; background: #FFF; box-shadow: 0 8px 28px rgba(31,35,41,.045); }
+.content { min-height: calc(100% - 24px); margin: 12px; padding: 26px 22px calc(52px + env(safe-area-inset-bottom)); box-sizing: border-box; border-radius: 20px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .cover { display: block; width: 100%; height: 360px; margin-bottom: 22px; border-radius: 14px; background: #EEF0F3; }
 .manual-title { display: block; color: #17191E; font-size: 24px; font-weight: 800; line-height: 1.4; }
 .manual-meta { display: block; margin-top: 9px; color: #8A919C; font-size: 12px; }

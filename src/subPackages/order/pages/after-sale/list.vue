@@ -269,7 +269,7 @@ function confirmCancel(item) {
 .after-sale-page { width: 100%; max-width: 1160px; margin: 0 auto; padding-bottom: env(safe-area-inset-bottom); }
 .filter-panel { padding: 7px var(--page-padding-x, 16px) 12px; background: var(--surface-page, #F4F5F8); }
 .after-sale-grid, .skeleton-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
-.after-sale-card { padding: 16px; border: 1px solid #E5E7EA; border-radius: 19px; background: #FFF; box-shadow: 0 10px 28px rgba(25,30,37,.045); }
+.after-sale-card { padding: 16px; border-radius: 19px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .identify-copy { min-width: 0; }
 .type-line { display: flex; min-width: 0; align-items: center; gap: 8px; }
@@ -298,7 +298,7 @@ function confirmCancel(item) {
 .action-btn::after, .empty-action::after { border: 0; }
 .empty-action { border-color: #D7192D; color: #FFF; background: #D7192D; }
 .load-more { display: flex; min-height: 50px; align-items: center; justify-content: center; color: #969BA3; font-size: 10px; }
-.skeleton-card { padding: 16px; border: 1px solid #ECEDEF; border-radius: 19px; background: #FFF; }
+.skeleton-card { padding: 16px; border-radius: 19px; background: var(--glass-card-background, rgba(255,255,255,.74)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .skeleton-main { display: flex; gap: 13px; margin: 16px 0; }.skeleton-image { width: 72px; height: 72px; flex: none; border-radius: 13px; background: #F0F1F3; }.skeleton-copy { flex: 1; padding-top: 7px; }
 .skeleton-line { height: 12px; margin-bottom: 10px; border-radius: 6px; background: linear-gradient(90deg,#F2F3F4 25%,#E8EAEC 50%,#F2F3F4 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }.skeleton-line.short { width: 42%; }.skeleton-line.medium { width: 65%; }.skeleton-line.tiny { width: 28%; margin: 0; }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }

@@ -63,7 +63,7 @@ function handleTap(event) {
   min-height: var(--list-item-height, 56px);
   padding: 10px 16px;
   gap: 12px;
-  background: var(--surface-card, #FFFFFF);
+  background: transparent;
 }
 
 .app-list-item::after {

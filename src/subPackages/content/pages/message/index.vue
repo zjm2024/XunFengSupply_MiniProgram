@@ -398,10 +398,11 @@ async function handleMarkAllRead() {
   align-items: center;
   gap: 13px;
   padding: 16px;
-  border: 1px solid rgba(217, 220, 226, 0.8);
   border-radius: var(--radius-feature, 18px);
-  background: #fff;
-  box-shadow: 0 8px 26px rgba(35, 42, 51, 0.035);
+  background: var(--glass-card-background, rgba(255,255,255,.74));
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   box-sizing: border-box;
   transition: border-color var(--transition-fast, 120ms) ease, transform var(--transition-fast, 120ms) ease;
 }
@@ -444,7 +445,7 @@ async function handleMarkAllRead() {
 .message-list,
 .message-skeleton { display: grid; grid-template-columns: 1fr; gap: 10px; }
 .message-item,
-.skeleton-card { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: flex-start; gap: 12px; min-height: 112px; padding: 16px; border: 1px solid rgba(226, 228, 232, 0.84); border-radius: var(--radius-card, 14px); background: #fff; box-sizing: border-box; }
+.skeleton-card { display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: flex-start; gap: 12px; min-height: 112px; padding: 16px; border-radius: var(--radius-card, 14px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-sizing: border-box; }
 .message-item.unread { border-left: 3px solid var(--primary-color, #d7192d); padding-left: 14px; }
 .message-icon { width: 32px; height: 32px; }
 .tone-order { color: #496f9b; }

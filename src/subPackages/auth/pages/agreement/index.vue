@@ -151,10 +151,19 @@ function getSignAgreementContent() {
 <style lang="scss" scoped>
 .agreement-page {
   min-height: 100%;
-  background: #fff;
+  padding: 12px;
+  box-sizing: border-box;
+  background: var(--bg-color);
   
   .content {
-    padding-bottom: 60rpx;
+    min-height: calc(100% - 24px);
+    padding: 0 0 60rpx;
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--glass-card-background, rgba(255,255,255,.74));
+    box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
   }
 }
 </style>

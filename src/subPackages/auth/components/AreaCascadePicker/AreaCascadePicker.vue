@@ -215,7 +215,7 @@ function confirmSelection() {
   align-items: center;
   justify-content: space-between;
   gap: $space-2;
-  background: $color-bg-card;
+  background: rgba(255,255,255,.82);
   border: 2rpx solid $color-border-default;
   border-radius: $radius-control;
   transition: border-color $duration-normal $easing-standard;
@@ -239,6 +239,9 @@ function confirmSelection() {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  box-shadow: 0 -14px 36px rgba(55,65,80,.12);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
   color: $color-text-primary;
   font-size: $font-size-body-m;
   line-height: $line-height-body-m;

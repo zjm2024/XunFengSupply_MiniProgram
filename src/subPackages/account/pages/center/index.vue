@@ -268,7 +268,7 @@ function handleLogout() {
 
 <style lang="scss" scoped>
 .center-page { width: 100%; max-width: 1160px; margin: 0 auto; padding-bottom: env(safe-area-inset-bottom); }
-.account-hero { padding: 18px; border-radius: 22px; background: linear-gradient(145deg, #FFFFFF 0%, #F7F8FA 100%); box-shadow: 0 14px 36px rgba(24, 29, 37, .06); }
+.account-hero { padding: 18px; border-radius: 22px; background: linear-gradient(145deg, rgba(255,255,255,.82), rgba(247,248,250,.68)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .identity-row { display: grid; grid-template-columns: 50px minmax(0, 1fr) 36px; align-items: center; gap: 12px; }
 .avatar { display: grid; width: 50px; height: 50px; place-items: center; border-radius: 16px; color: #FFF; background: linear-gradient(145deg, #424A56, #181C22); font-size: 19px; font-weight: 760; box-shadow: inset 0 1px 0 rgba(255,255,255,.2); }
 .identity-copy { min-width: 0; }
@@ -287,8 +287,8 @@ function handleLogout() {
 .credit-line { display: flex; align-items: center; gap: 10px; margin-top: 13px; color: #8C9199; font-size: 9px; }
 .progress-track { flex: 1; max-width: 180px; height: 5px; overflow: hidden; border-radius: 999px; background: #E5E7EA; }
 .progress-value { height: 100%; border-radius: inherit; background: #D7192D; transition: width .25s ease; }
-.finance-secondary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); overflow: hidden; border: 1px solid #E7E8EA; border-radius: 14px; background: #E7E8EA; gap: 1px; }
-.finance-secondary > view { min-width: 0; padding: 11px 9px; background: rgba(255,255,255,.78); }
+.finance-secondary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); overflow: hidden; border-radius: 14px; background: rgba(255,255,255,.36); gap: 1px; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.finance-secondary > view { min-width: 0; padding: 11px 9px; background: rgba(255,255,255,.48); }
 .finance-secondary text { display: block; color: #8B9098; font-size: 9px; }
 .finance-secondary text + text { margin-top: 5px; overflow: hidden; color: #282D34; font-size: 12px; font-weight: 690; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
 .business-section, .service-section { margin-top: 24px; }
@@ -298,8 +298,8 @@ function handleLogout() {
 .section-desc { margin-top: 4px; color: #969BA3; font-size: 10px; }
 .section-kicker { color: #B1B5BB; font-size: 8px; font-weight: 700; letter-spacing: 1.5px; }
 .business-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
-.business-card { min-width: 0; padding: 15px; border-radius: 18px; background: #FFF; box-shadow: 0 9px 25px rgba(27,32,39,.04); transition: transform .16s ease, opacity .16s ease; }
-.business-card.inventory { background: linear-gradient(145deg, #FBFDFC, #F2F7F5); }
+.business-card { min-width: 0; padding: 15px; border-radius: 18px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); transition: transform .16s ease, opacity .16s ease; }
+.business-card.inventory { background: linear-gradient(145deg, rgba(251,253,252,.72), rgba(242,247,245,.64)); }
 .business-card-head { display: flex; align-items: center; justify-content: space-between; }
 .business-icon { display: grid; width: 40px; height: 40px; place-items: center; border-radius: 13px; color: #414B57; background: #EEF1F4; }
 .business-card.inventory .business-icon { color: #2F6751; background: #E1EEE8; }
@@ -309,7 +309,7 @@ function handleLogout() {
 .business-value { margin-top: 6px; color: #171A1F; font-size: 16px; font-weight: 740; }
 .business-help { margin-top: 5px; color: #92979F; font-size: 9px; }
 .section-head.compact { margin-bottom: 10px; }
-.service-panel { display: grid; grid-template-columns: 1fr; overflow: hidden; border-radius: 18px; background: #FFF; box-shadow: 0 8px 24px rgba(24,29,36,.035); }
+.service-panel { display: grid; grid-template-columns: 1fr; overflow: hidden; border-radius: 18px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .service-row { display: grid; grid-template-columns: 39px minmax(0,1fr) 18px; align-items: center; gap: 11px; min-height: 67px; padding: 11px 14px; border-bottom: 1px solid #EEF0F2; box-sizing: border-box; }
 .service-row:last-child { border-bottom: 0; }
 .service-row--pressed { background: #F6F7F8; }
@@ -318,7 +318,7 @@ function handleLogout() {
 .service-label, .service-help { display: block; }
 .service-label { color: #282C32; font-size: 13px; font-weight: 650; }
 .service-help { margin-top: 3px; overflow: hidden; color: #9A9EA5; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
-.logout-btn { display: flex; width: 100%; height: 48px; align-items: center; justify-content: center; gap: 8px; margin: 24px 0 0; border-radius: 14px; color: #636A74; background: #FFF; font-size: 13px; box-shadow: 0 4px 12px rgba(24,29,36,.04); }
+.logout-btn { display: flex; width: 100%; height: 48px; align-items: center; justify-content: center; gap: 8px; margin: 24px 0 0; border-radius: 14px; color: #636A74; background: rgba(255,255,255,.68); font-size: 13px; box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); }
 .logout-btn::after { border: 0; }
 .footer-note { display: block; margin: 14px 0 4px; color: #A5A9B0; font-size: 9px; text-align: center; }
 @media screen and (min-width: 720px) {

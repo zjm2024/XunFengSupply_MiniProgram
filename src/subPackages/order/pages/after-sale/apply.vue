@@ -220,10 +220,13 @@ async function handleSubmit() {
 }
 
 .select-order-section {
-  background: #fff;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: 12rpx;
   overflow: hidden;
   margin-bottom: 16rpx;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   
   .select-trigger {
     display: flex;
@@ -242,10 +245,13 @@ async function handleSubmit() {
 
 .selected-goods {
   display: flex;
-  background: #fff;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: 12rpx;
   padding: 24rpx;
   margin-bottom: 16rpx;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   
   .goods-image {
     width: 160rpx;
@@ -275,7 +281,9 @@ async function handleSubmit() {
 
 .selected-goods.active {
   outline: 1px solid rgba(215, 25, 45, .32);
-  background: #FFF8F9;
+  background: rgba(255,248,249,.7);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 
 .select-mark {
@@ -310,10 +318,13 @@ async function handleSubmit() {
 }
 
 .type-section, .amount-section, .reason-section, .evidence-section, .desc-section {
-  background: #fff;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: 12rpx;
   padding: 28rpx 32rpx;
   margin-bottom: 16rpx;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
   
   .section-label {
     display: block;
@@ -431,7 +442,7 @@ async function handleSubmit() {
 .reason-section {
   border-radius: 17px;
   margin-bottom: 12px;
-  box-shadow: 0 7px 22px rgba(25, 30, 37, .045);
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
 }
 
 .select-order-section .select-trigger { min-height: 52px; padding: 14px 16px; box-sizing: border-box; }

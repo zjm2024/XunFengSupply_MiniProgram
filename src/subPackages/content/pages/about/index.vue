@@ -42,31 +42,24 @@
                 <text class="contact-icon">📍</text>
                 <view class="contact-detail">
                   <text class="contact-label">公司地址</text>
-                  <text class="contact-value">广东省广州市天河区体育西路XXX号</text>
+                  <text class="contact-value">广州市番禺区南村镇万惠二路103号2栋209</text>
                 </view>
               </view>
 
               <view class="contact-item">
                 <text class="contact-icon">📞</text>
                 <view class="contact-detail">
-                  <text class="contact-label">联系电话</text>
-                  <text class="contact-value">400-888-8888</text>
+                  <text class="contact-label">品牌热线</text>
+                  <text class="contact-value">86-(20)38106798</text>
                 </view>
               </view>
 
-              <view class="contact-item">
-                <text class="contact-icon">✉️</text>
-                <view class="contact-detail">
-                  <text class="contact-label">电子邮箱</text>
-                  <text class="contact-value">business@xunfeng.com</text>
-                </view>
-              </view>
 
               <view class="contact-item">
                 <text class="contact-icon">🌐</text>
                 <view class="contact-detail">
                   <text class="contact-label">官方网站</text>
-                  <text class="contact-value link" @click="openWebsite">www.xunfeng.com</text>
+                  <text class="contact-value link" @click="openWebsite">www.kumpoo.com</text>
                 </view>
               </view>
             </view>
@@ -222,11 +215,13 @@ function viewTerms() {
 
 /* 信息卡片 */
 .info-card, .link-card {
-  background: white;
-  border: 1px solid #EFEFF1;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 12px;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .card-title {

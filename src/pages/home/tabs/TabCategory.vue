@@ -318,7 +318,9 @@ function openCategoryProducts(category) {
   height: auto;
   overflow: hidden;
   border-radius: 20px;
-  background: #f2f3f4;
+  background: rgba(242,243,244,.62);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .primary-scroll {
@@ -383,7 +385,9 @@ function openCategoryProducts(category) {
   min-height: 54px;
   flex: 0 0 54px;
   white-space: nowrap;
-  background: #f2f3f4;
+  background: rgba(242,243,244,.62);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .secondary-tab-list {
@@ -400,7 +404,9 @@ function openCategoryProducts(category) {
   border-radius: 17px;
   color: #676b73;
   font-size: 11px;
-  background: #fff;
+  background: rgba(255,255,255,.68);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .secondary-tab.is-active {
@@ -422,7 +428,10 @@ function openCategoryProducts(category) {
   margin-bottom: 10px;
   padding: 14px 12px 12px;
   border-radius: 17px;
-  background: #fff;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .group-heading {

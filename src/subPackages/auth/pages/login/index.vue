@@ -476,8 +476,11 @@ function goToApplySign() {
 
 .login-card {
   padding: $space-6;
-  background: $color-bg-card;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: $radius-feature;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .card-heading {

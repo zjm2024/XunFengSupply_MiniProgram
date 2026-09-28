@@ -456,14 +456,16 @@ async function goToCart() {
   position: relative;
   width: 100%;
   overflow: hidden;
-  background: #FFFFFF;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .image-swiper {
   width: 100%;
   height: 100vw;
   max-height: 720px;
-  background: #FFFFFF;
+  background: transparent;
 }
 
 .main-image-wrap {
@@ -505,9 +507,11 @@ async function goToCart() {
 .section-card,
 .batch-purchase-entry,
 .single-purchase-entry {
-  background: var(--surface-card);
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: var(--radius-card);
-  box-shadow: 0 5px 18px rgba(17, 18, 22, 0.045);
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .info-card,
@@ -673,8 +677,11 @@ async function goToCart() {
 
 .detail-description {
   overflow: hidden;
-  background: #FFFFFF;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: var(--radius-card);
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .detail-description-heading {

@@ -169,7 +169,7 @@ function goToCreditFlow() { navigator.navigateTo(routes.account.creditFlow()) }
 .recharge-page { width: 100%; max-width: 1120px; margin: 0 auto; padding-bottom: env(safe-area-inset-bottom); }
 .page-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
 .overview-column { display: grid; gap: 14px; }
-.balance-card { overflow: hidden; padding: 21px 19px 18px; border: 1px solid #E5E7EA; border-top: 3px solid #D7192D; border-radius: 20px; color: #20242A; background: #FFFFFF; box-shadow: 0 10px 28px rgba(23, 28, 36, .05); }
+.balance-card { overflow: hidden; padding: 21px 19px 18px; border-top: 3px solid #D7192D; border-radius: 20px; color: #20242A; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .balance-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
 .eyebrow { display: block; color: #747B84; font-size: 12px; }
 .balance-value { display: block; margin-top: 8px; font-size: 31px; font-weight: 750; font-variant-numeric: tabular-nums; line-height: 38px; }
@@ -180,7 +180,7 @@ function goToCreditFlow() { navigator.navigateTo(routes.account.creditFlow()) }
 .meta-label, .meta-value { display: block; }
 .meta-label { color: #8A9098; font-size: 10px; }
 .meta-value { margin-top: 4px; color: #262B32; font-size: 14px; font-weight: 650; }
-.credit-card, .service-card { padding: 18px; border-radius: 19px; background: #FFFFFF; box-shadow: 0 8px 28px rgba(23, 28, 36, .045); }
+.credit-card, .service-card { padding: 18px; border-radius: 19px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .section-title, .section-desc { display: block; }
 .section-title { color: #17191D; font-size: 16px; font-weight: 720; }
@@ -201,7 +201,7 @@ function goToCreditFlow() { navigator.navigateTo(routes.account.creditFlow()) }
 .card-entry-desc { margin-top: 3px; overflow: hidden; color: #969AA3; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .card-entry--pressed { opacity: .68; }
 .service-card { height: 100%; box-sizing: border-box; }
-.channel-card { display: flex; gap: 13px; margin-top: 18px; padding: 14px; border: 1px solid #DCE2E7; border-radius: 15px; background: #F8FAFB; }
+.channel-card { display: flex; gap: 13px; margin-top: 18px; padding: 14px; border-radius: 15px; background: rgba(255,255,255,.48); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
 .channel-icon { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border-radius: 13px; background: #FFFFFF; box-shadow: 0 4px 12px rgba(31, 41, 55, .05); }
 .channel-copy { min-width: 0; flex: 1; }
 .channel-title-row { display: flex; align-items: center; gap: 8px; }
@@ -209,7 +209,7 @@ function goToCreditFlow() { navigator.navigateTo(routes.account.creditFlow()) }
 .channel-tag { padding: 2px 7px; border-radius: 999px; color: #24724D; background: #E9F5EF; font-size: 9px; }
 .channel-desc { display: block; margin-top: 5px; color: #777D86; font-size: 11px; line-height: 17px; }
 .coming-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 10px; }
-.coming-item { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 6px; min-height: 42px; padding: 0 10px; border: 1px solid #EEEFF1; border-radius: 12px; color: #737982; background: #FAFAFB; font-size: 10px; }
+.coming-item { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 6px; min-height: 42px; padding: 0 10px; border-radius: 12px; color: #737982; background: rgba(255,255,255,.42); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); font-size: 10px; }
 .coming-item > text:last-child { color: #A2A6AD; font-size: 9px; }
 .finance-btn { display: flex; width: 100%; height: 48px; align-items: center; justify-content: center; gap: 8px; margin: 15px 0 0; border: 0; border-radius: 13px; color: #FFFFFF; background: #D7192D; font-size: 14px; font-weight: 700; box-shadow: 0 8px 18px rgba(215, 25, 45, .17); }
 .finance-btn::after { border: 0; }

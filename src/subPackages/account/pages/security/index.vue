@@ -204,12 +204,14 @@ function handleLogout() {
 
 /* 安全状态 */
 .security-status {
-  background: white;
-  border: 1px solid #EFEFF1; /* 稳定 px */
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: 12px;
   padding: 24px 16px;
   text-align: center;
   margin-bottom: 12px;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .status-icon-wrapper {
@@ -257,11 +259,13 @@ function handleLogout() {
 
 /* 设置分组 */
 .settings-group {
-  background: white;
-  border: 1px solid #EFEFF1; /* 稳定 px */
+  background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 12px;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
 }
 
 .group-title {
@@ -420,12 +424,15 @@ function handleLogout() {
   width: 100%;
   height: 48px; /* 稳定 px */
   margin-top: 16px;
-  background: white;
-  border: 1px solid #EFEFF1;
+  background: rgba(255,255,255,.68);
+  border: 0;
   border-radius: 10px;
   color: #B42318;
   font-size: 15px;
   font-weight: 600;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 
   &:active {
     background: rgba(180, 35, 24, 0.04);
