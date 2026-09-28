@@ -150,7 +150,7 @@ function handleClose() {
     flex-shrink: 0;
 
     .icon-glyph {
-      font-size: 24rpx;
+      font-size: 12px;
       font-weight: 700;
       line-height: 1;
     }
@@ -196,7 +196,7 @@ function handleClose() {
     margin-left: $space-1;
 
     text {
-      font-size: 32rpx;
+      font-size: 16px;
       color: inherit;
       opacity: 0.6;
       line-height: 1;

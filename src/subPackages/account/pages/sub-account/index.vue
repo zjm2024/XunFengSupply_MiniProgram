@@ -11,6 +11,7 @@
         @refresherrefresh="handleRefresh"
         @refresherrestore="handleRefresherRestore"
         @refresherabort="handleRefresherRestore"
+        @scrolltolower="loadMore"
       >
         <view class="content">
           <!-- 加载中状态 -->
@@ -119,6 +120,7 @@
                 </view>
               </view>
             </view>
+            <AppLoadMore :status="loadMoreStatus" @retry="loadMore" />
           </template>
 
           <!-- 新增按钮 -->
@@ -143,6 +145,7 @@ import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import { getSubAccountList, toggleSubAccountStatus } from '../../api/subAccount.js'
 import { routes } from '@/app/config/routes.js'
 import { navigator } from '@/app/navigation/navigator.js'
@@ -160,10 +163,21 @@ const loading = ref(false)
 const isRefreshing = ref(false)
 const finance = ref({ accounts: [], currentAccount: null })
 
-const totalCount = computed(() => accountList.value.length)
+const totalCount = ref(0)
 const activeCount = computed(() => accountList.value.filter(a => a.status === 'active').length)
 const inactiveCount = computed(() => accountList.value.filter(a => a.status === 'inactive').length)
 const isReadOnly = computed(() => userStore.isFrozen)
+const pageNum = ref(1)
+const pageSize = 20
+const hasMore = ref(true)
+const loadingMore = ref(false)
+const loadMoreError = ref(false)
+const loadMoreStatus = computed(() => {
+  if (loadMoreError.value) return 'error'
+  if (loadingMore.value) return 'loading'
+  if (!hasMore.value) return 'no-more'
+  return 'idle'
+})
 
 onShow(() => {
   loadSubAccounts()
@@ -172,26 +186,48 @@ onShow(() => {
 /**
  * 加载子账号列表
  */
-async function loadSubAccounts() {
-  loading.value = true
+async function loadSubAccounts({ reset = true } = {}) {
+  if (reset) {
+    loading.value = true
+    pageNum.value = 1
+    accountList.value = []
+    totalCount.value = 0
+    hasMore.value = true
+    loadMoreError.value = false
+  } else {
+    if (loading.value || loadingMore.value || !hasMore.value) return
+    loadingMore.value = true
+    pageNum.value += 1
+    loadMoreError.value = false
+  }
   try {
-    const [result, financeContext] = await Promise.all([
-      getSubAccountList({ pageNum: 1, pageSize: 50 }),
-      getDealerFinanceContext(),
-    ])
-    finance.value = financeContext
-    const balanceMap = new Map(financeContext.accounts.map(item => [item.accountCustomerId, item]))
-    accountList.value = (result.items || []).map(item => ({
+    const result = await getSubAccountList({ pageNum: pageNum.value, pageSize })
+    if (reset) finance.value = await getDealerFinanceContext()
+    const balanceMap = new Map(finance.value.accounts.map(item => [item.accountCustomerId, item]))
+    const items = (result.items || []).map(item => ({
       ...item,
       availableBalance: balanceMap.get(item.customerId)?.availableBalance || 0,
       frozenBalance: balanceMap.get(item.customerId)?.frozenBalance || 0,
     }))
+    accountList.value = reset ? items : [...accountList.value, ...items]
+    totalCount.value = Number(result.totalCount || accountList.value.length)
+    hasMore.value = accountList.value.length < totalCount.value
+    loadMoreError.value = false
   } catch (err) {
+    if (!reset) {
+      pageNum.value = Math.max(1, pageNum.value - 1)
+      loadMoreError.value = true
+    }
     console.error('[SubAccount] 加载子账号列表失败:', err)
-    uni.showToast({ title: '加载失败，请重试', icon: 'none' })
+    if (reset) uni.showToast({ title: '加载失败，请重试', icon: 'none' })
   } finally {
-    loading.value = false
+    if (reset) loading.value = false
+    else loadingMore.value = false
   }
+}
+
+function loadMore() {
+  loadSubAccounts({ reset: false })
 }
 
 async function handleRefresh() {

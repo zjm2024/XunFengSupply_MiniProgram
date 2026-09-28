@@ -153,14 +153,14 @@ const displayDesc = computed(() => {
 }
 
 .error-title {
-  font-size: 36rpx;
+  font-size: 18px;
   font-weight: $font-weight-semibold;
   color: $color-gray-950;
   margin-bottom: 16rpx;
 }
 
 .error-desc {
-  font-size: 28rpx;
+  font-size: 14px;
   color: $color-gray-400;
   line-height: 1.5;
   margin-bottom: 60rpx;

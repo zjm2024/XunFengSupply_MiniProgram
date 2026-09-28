@@ -110,7 +110,7 @@
 
           <AppLoadMore
             v-if="messageList.length > 0"
-            :status="loadingMore ? 'loading' : (!hasMore ? 'no-more' : 'idle')"
+            :status="loadMoreStatus"
             @retry="loadMore"
           />
         </view>
@@ -166,10 +166,17 @@ const hasMore = ref(true)
 const pageNum = ref(1)
 const totalCount = ref(0)
 const unreadCount = ref(0)
+const loadMoreError = ref(false)
 
 const currentTypeLabel = computed(() => (
   msgTypes.find(item => item.value === currentType.value)?.label || '全部'
 ) + '消息')
+const loadMoreStatus = computed(() => {
+  if (loadMoreError.value) return 'error'
+  if (loadingMore.value) return 'loading'
+  if (!hasMore.value) return 'no-more'
+  return 'idle'
+})
 
 const categories = computed(() => [
   {
@@ -225,6 +232,7 @@ async function refreshPage() {
   pageNum.value = 1
   totalCount.value = 0
   hasMore.value = true
+  loadMoreError.value = false
   messageList.value = []
   await Promise.all([loadMessages(false), loadUnreadCount()])
 }
@@ -251,6 +259,7 @@ async function switchType(type) {
   pageNum.value = 1
   totalCount.value = 0
   hasMore.value = true
+  loadMoreError.value = false
   messageList.value = []
   await loadMessages(false)
 }
@@ -289,10 +298,12 @@ async function loadMessages(append = false) {
     messageList.value = append ? [...messageList.value, ...result.items] : result.items
     totalCount.value = result.totalCount
     hasMore.value = messageList.value.length < result.totalCount
+    loadMoreError.value = false
     messageStore.setMessageList(messageList.value)
     messageStore.setLatestMessage(messageList.value[0] || null)
   } catch (error) {
     if (append) pageNum.value = Math.max(1, pageNum.value - 1)
+    loadMoreError.value = Boolean(append)
     console.error('[MessageCenter] 加载消息失败:', error)
     uni.showToast({ title: '消息加载失败，请稍后重试', icon: 'none' })
   } finally {

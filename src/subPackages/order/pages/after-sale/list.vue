@@ -3,20 +3,9 @@
     <template #header>
       <view class="after-sale-header">
         <AppHeader title="售后服务" :show-back="true" />
-        <view class="filter-panel">
-          <scroll-view class="status-tabs" scroll-x :show-scrollbar="false" scroll-with-animation>
-            <view class="tabs-inner">
-              <view class="tabs-indicator" :style="tabsIndicatorStyle" />
-              <view
-                v-for="tab in statusTabs"
-                :key="String(tab.value)"
-                class="tab-item"
-                :class="{ active: currentStatus === tab.value }"
-                @tap="switchStatus(tab.value)"
-              >{{ tab.label }}</view>
-            </view>
-          </scroll-view>
-        </view>
+          <view class="filter-panel">
+            <StatusTabBar :items="statusTabs" :model-value="currentStatus" :max-width="700" @change="switchStatus" />
+          </view>
       </view>
     </template>
 
@@ -32,8 +21,6 @@
       >
         <view
           class="after-sale-page"
-          @touchstart="handleStatusTouchStart"
-          @touchend="handleStatusTouchEnd"
         >
           <view v-if="loading && afterSaleList.length === 0" class="skeleton-grid">
             <view v-for="i in 3" :key="i" class="skeleton-card">
@@ -53,8 +40,9 @@
             @retry="resetAndLoad"
           />
 
-          <view v-else-if="afterSaleList.length" class="after-sale-grid">
-            <view v-for="item in afterSaleList" :key="item.afterSaleId" class="after-sale-card">
+          <template v-else-if="afterSaleList.length">
+            <view class="after-sale-grid">
+              <view v-for="item in afterSaleList" :key="item.afterSaleId" class="after-sale-card">
               <view class="card-header">
                 <view class="identify-copy">
                   <view class="type-line">
@@ -94,8 +82,10 @@
                   <button class="action-btn secondary" @tap="viewOrder(item)">查看订单</button>
                 </view>
               </view>
+              </view>
             </view>
-          </view>
+            <AppLoadMore :status="loadMoreStatus" @retry="loadMore" />
+          </template>
 
           <AppPageState
             v-else
@@ -130,6 +120,8 @@ import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
+import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
+import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import { formatDate } from '../../../../shared/utils/format.js'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
@@ -149,13 +141,14 @@ const isRefreshing = ref(false)
 const loadError = ref('')
 const hasMore = ref(true)
 const totalCount = ref(0)
+const loadMoreError = ref(false)
 const page = reactive({ current: 1, pageSize: 10 })
-const swipeStart = ref({ x: 0, y: 0 })
-const currentTabIndex = computed(() => Math.max(0, statusTabs.findIndex(tab => tab.value === currentStatus.value)))
-const tabsIndicatorStyle = computed(() => ({
-  width: '72px',
-  transform: `translateX(${4 + currentTabIndex.value * 74}px)`,
-}))
+const loadMoreStatus = computed(() => {
+  if (loadMoreError.value) return 'error'
+  if (loading.value) return 'loading'
+  if (!hasMore.value) return 'no-more'
+  return 'idle'
+})
 
 onShow(() => resetAndLoad())
 
@@ -165,29 +158,13 @@ function switchStatus(status) {
   resetAndLoad()
 }
 
-function handleStatusTouchStart(event) {
-  const touch = event?.touches?.[0]
-  if (!touch) return
-  swipeStart.value = { x: touch.clientX, y: touch.clientY }
-}
-
-function handleStatusTouchEnd(event) {
-  const touch = event?.changedTouches?.[0] || event?.touches?.[0]
-  if (!touch) return
-  const deltaX = touch.clientX - swipeStart.value.x
-  const deltaY = touch.clientY - swipeStart.value.y
-  if (Math.abs(deltaX) < 48 || Math.abs(deltaX) <= Math.abs(deltaY)) return
-  const nextIndex = currentTabIndex.value + (deltaX < 0 ? 1 : -1)
-  if (nextIndex < 0 || nextIndex >= statusTabs.length) return
-  switchStatus(statusTabs[nextIndex].value)
-}
-
 async function resetAndLoad() {
   page.current = 1
   afterSaleList.value = []
   totalCount.value = 0
   hasMore.value = true
   loadError.value = ''
+  loadMoreError.value = false
   await loadRecords()
 }
 
@@ -211,14 +188,17 @@ async function loadRecords() {
   if (loading.value || !hasMore.value) return
   loading.value = true
   loadError.value = ''
+  if (page.current > 1) loadMoreError.value = false
   try {
     const result = await getAfterSaleList({ status: currentStatus.value, pageNum: page.current, pageSize: page.pageSize })
     afterSaleList.value = page.current === 1 ? result.items : [...afterSaleList.value, ...result.items]
     totalCount.value = Number(result.totalCount || afterSaleList.value.length)
     hasMore.value = afterSaleList.value.length < totalCount.value
+    loadMoreError.value = false
   } catch (error) {
     loadError.value = error?.message || '请检查网络后重试'
     if (page.current > 1) page.current--
+    if (page.current > 1 || afterSaleList.value.length) loadMoreError.value = true
   } finally {
     loading.value = false
   }
@@ -288,11 +268,6 @@ function confirmCancel(item) {
 .after-sale-header { background: var(--surface-page, #F4F5F8); }
 .after-sale-page { width: 100%; max-width: 1160px; margin: 0 auto; padding-bottom: env(safe-area-inset-bottom); }
 .filter-panel { padding: 7px var(--page-padding-x, 16px) 12px; background: var(--surface-page, #F4F5F8); }
-.status-tabs { width: 100%; white-space: nowrap; }
-.tabs-inner { position: relative; display: flex; width: max-content; min-width: max-content; margin: 0 auto; align-items: center; gap: 2px; padding: 4px; border-radius: 999px; box-sizing: border-box; background: #E8EAED; }
-.tabs-indicator { position: absolute; z-index: 0; top: 4px; left: 0; height: 36px; border-radius: 999px; background: #FFF; box-shadow: 0 3px 9px rgba(35, 40, 47, .12); transition: transform .24s cubic-bezier(.2,.8,.2,1); pointer-events: none; }
-.tab-item { position: relative; z-index: 1; display: inline-flex; flex: 0 0 72px; width: 72px; height: 36px; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 999px; color: #707680; background: transparent; font-size: 11px; white-space: nowrap; transition: color .16s ease; }
-.tab-item.active { color: #20242A; font-weight: 700; }
 .after-sale-grid, .skeleton-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
 .after-sale-card { padding: 16px; border: 1px solid #E5E7EA; border-radius: 19px; background: #FFF; box-shadow: 0 10px 28px rgba(25,30,37,.045); }
 .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -331,6 +306,6 @@ function confirmCancel(item) {
   .after-sale-grid, .skeleton-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 15px; }
 }
 @media screen and (max-width: 380px) {
-  .tab-item { min-width: 64px; padding: 0 9px; font-size: 10px; }
+  .filter-panel { padding-right: 10px; padding-left: 10px; }
 }
 </style>

@@ -63,6 +63,7 @@ export const SECURITY = '/subPackages/account/pages/security/index'
 export const RECHARGE = '/subPackages/account/pages/recharge/index'
 export const RECHARGE_RECORDS = '/subPackages/account/pages/recharge/records'
 export const FUND_FLOW = '/subPackages/account/pages/fund-flow/index'
+export const CREDIT_FLOW = '/subPackages/account/pages/credit-flow/index'
 export const BILL_LIST = '/subPackages/account/pages/bill/list'
 export const BILL_DETAIL = '/subPackages/account/pages/bill/detail'
 export const INVOICE = '/subPackages/account/pages/invoice/index'
@@ -91,7 +92,7 @@ export const REGISTERED_ROUTES = Object.freeze([
   ORDER_LIST, ORDER_DETAIL, PAY_PAGE, FULFILLMENT_SPLIT, APPLY_AFTER_SALE, AFTER_SALE_LIST, CANCEL_ORDER,
   ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
   DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, SECURITY,
-  RECHARGE, RECHARGE_RECORDS, FUND_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS,
+  RECHARGE, RECHARGE_RECORDS, FUND_FLOW, CREDIT_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS,
   NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MANUAL_PDF_PREVIEW, MESSAGE, HELP, ABOUT,
 ])
 
@@ -412,6 +413,14 @@ export const ROUTE_META = Object.freeze({
     allowFrozen: false,
     owner: null,
   },
+  [CREDIT_FLOW]: {
+    title: '授信流水',
+    requireAuth: true,
+    requireSign: true,
+    allowFrozen: true,
+    requiredPermission: 'BALANCE_VIEW',
+    owner: null,
+  },
   [MANUAL_PDF_PREVIEW]: {
     title: '产品手册预览',
     requireAuth: true,
@@ -654,6 +663,7 @@ export const routes = {
     recharge: () => RECHARGE,
     rechargeRecords: () => RECHARGE_RECORDS,
     fundFlow: () => FUND_FLOW,
+    creditFlow: () => CREDIT_FLOW,
     billList: ({ year, month } = {}) =>
       withQuery(BILL_LIST, { year, month }),
     billDetail: (billId) => {

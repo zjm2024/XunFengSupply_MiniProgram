@@ -53,6 +53,7 @@ import shippedSvg from '../../assets/icon/shipped.svg?raw'
 import signedSvg from '../../assets/icon/signed.svg?raw'
 import transactionFailedSvg from '../../assets/icon/transaction-failed.svg?raw'
 import transactionSuccessSvg from '../../assets/icon/transaction-success.svg?raw'
+import allOrderSvg from '../../assets/icon/all-order.svg?raw'
 
 /**
  * 薰风商城图标集。
@@ -172,7 +173,7 @@ export const xunfengIconMap = Object.freeze({
   ...accountIconPaths,
   ...paymentIconPaths,
   // 个人中心专用图标占位：后续补充高品质 SVG 时只替换这里的映射即可。
-  'profile-orders': coreIconPaths.order,
+  'profile-orders': createSvgAssetIcon(allOrderSvg),
   'profile-sub-account': coreIconPaths.users,
   'profile-help': coreIconPaths.help,
   'profile-address': coreIconPaths.address,

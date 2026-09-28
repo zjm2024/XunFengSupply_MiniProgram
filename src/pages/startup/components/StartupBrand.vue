@@ -40,7 +40,7 @@
 
 .brand-name {
   margin-top: 36rpx;
-  font-size: 68rpx;
+  font-size: 34px;
   line-height: 1;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -49,7 +49,7 @@
 
 .brand-subtitle {
   margin-top: 24rpx;
-  font-size: 32rpx;
+  font-size: 16px;
   color: $color-gray-400;
   letter-spacing: 0.04em;
 }
@@ -61,11 +61,11 @@
     height: 140rpx;
   }
   .brand-name {
-    font-size: 56rpx;
+    font-size: 28px;
     margin-top: 24rpx;
   }
   .brand-subtitle {
-    font-size: 28rpx;
+    font-size: 14px;
     margin-top: 16rpx;
   }
 }

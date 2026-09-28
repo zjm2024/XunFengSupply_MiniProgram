@@ -56,6 +56,15 @@
                 </view>
 
               </view>
+              <AppLoadMore
+                v-if="listNews.length"
+                :status="pageStatus.isLoadingMore.value
+                  ? 'loading'
+                  : (pageStatus.isError.value && pageStatus.hasStaleContent.value
+                    ? 'error'
+                    : (!pageStatus.hasMore.value ? 'no-more' : 'idle'))"
+                @retry="handleLoadMore"
+              />
             </view>
 
             <!-- 骨架屏（loading 状态时显示） -->
@@ -85,6 +94,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
+import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import { usePageState } from '@/shared/composables/usePageState.js'
 import { getNewsCategories, getNewsList } from '../../api/news.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'

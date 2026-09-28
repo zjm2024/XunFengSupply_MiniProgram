@@ -180,6 +180,7 @@ function goToInventory() { navigator.navigateTo(routes.account.inventory()) }
 function goToRecharge() { navigator.navigateTo(routes.account.recharge()) }
 function goToBill() { navigator.navigateTo(routes.account.billList()) }
 function goToFundFlow() { navigator.navigateTo(routes.account.fundFlow()) }
+function goToCreditFlow() { navigator.navigateTo(routes.account.creditFlow()) }
 function goToAfterSales() { navigator.navigateTo(routes.order.afterSaleList()) }
 function goToInvoice() { navigator.navigateTo(routes.account.invoice()) }
 function goToAddress() { navigator.navigateTo(routes.account.address()) }
@@ -233,6 +234,7 @@ const serviceGroups = computed(() => [
       { label: '充值中心', help: '账户充值与历史记录', icon: 'wallet', action: goToRecharge },
       { label: '对账账单', help: '主体月度账单与结算', icon: 'receipt', action: goToBill },
       { label: '资金流水', help: '账户收支变动明细', icon: 'history', action: goToFundFlow },
+      { label: '授信流水', help: '订单占用、释放与还款明细', icon: 'history', action: goToCreditFlow },
     ] : [],
   },
   {

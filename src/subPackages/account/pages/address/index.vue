@@ -12,6 +12,7 @@
         @refresherrefresh="handleRefresh"
         @refresherrestore="handleRefresherRestore"
         @refresherabort="handleRefresherRestore"
+        @scrolltolower="loadMore"
       >
         <view class="address-page">
           <view v-if="selectMode" class="select-notice">
@@ -59,6 +60,7 @@
                   </button>
                 </view>
               </view>
+              <AppLoadMore :status="loadMoreStatus" @retry="loadMore" />
             </template>
           </AppPageState>
         </view>
@@ -86,6 +88,7 @@ import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
+import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import { PageStatus } from '@/shared/model/pageState.js'
 import { deleteAddress, getAddressList, setDefaultAddress } from '../../api/addressApi.js'
 import noAddressSvg from '../../../../shared/assets/illustrations/no-address.svg?raw'
@@ -100,6 +103,18 @@ const selectMode = ref(false)
 const pendingSavedAddressId = ref(0)
 const returningSelection = ref(false)
 const isRefreshing = ref(false)
+const pageNum = ref(1)
+const pageSize = 20
+const totalCount = ref(0)
+const hasMore = ref(true)
+const loadingMore = ref(false)
+const loadMoreError = ref(false)
+const loadMoreStatus = computed(() => {
+  if (loadMoreError.value) return 'error'
+  if (loadingMore.value) return 'loading'
+  if (!hasMore.value) return 'no-more'
+  return 'idle'
+})
 
 const stateDescription = computed(() => (
   pageState.value === PageStatus.ERROR
@@ -123,12 +138,37 @@ onShow(async () => {
 async function loadAddresses() {
   pageState.value = PageStatus.LOADING
   loadError.value = ''
+  pageNum.value = 1
+  totalCount.value = 0
+  hasMore.value = true
+  loadMoreError.value = false
   try {
-    addressList.value = await getAddressList()
+    const result = await getAddressList({ pageNum: 1, pageSize })
+    addressList.value = result.items
+    totalCount.value = result.totalCount
+    hasMore.value = addressList.value.length < totalCount.value
     pageState.value = addressList.value.length ? PageStatus.CONTENT : PageStatus.EMPTY
   } catch (error) {
     loadError.value = error?.message || '地址加载失败，请稍后重试'
     pageState.value = PageStatus.ERROR
+  }
+}
+
+async function loadMore() {
+  if (loadingMore.value || pageState.value === PageStatus.LOADING || !hasMore.value) return
+  loadingMore.value = true
+  loadMoreError.value = false
+  const nextPage = pageNum.value + 1
+  try {
+    const result = await getAddressList({ pageNum: nextPage, pageSize })
+    addressList.value = [...addressList.value, ...result.items]
+    pageNum.value = nextPage
+    totalCount.value = result.totalCount
+    hasMore.value = addressList.value.length < totalCount.value
+  } catch (error) {
+    loadMoreError.value = true
+  } finally {
+    loadingMore.value = false
   }
 }
 

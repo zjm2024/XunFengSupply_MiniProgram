@@ -12,7 +12,11 @@
         <text class="manual-title">{{ detail.title || '未命名手册' }}</text>
         <text class="manual-meta">{{ detail.date ? `更新于 ${detail.date}` : '暂无发布日期' }}</text>
 
-        <view class="article-body">
+        <view v-if="contentLoading" class="article-body-state" aria-label="正文图片加载中">
+          <view class="article-body-spinner" />
+          <text>正文图片加载中...</text>
+        </view>
+        <view v-else class="article-body">
           <rich-text v-if="detail.content" :nodes="detail.content" />
           <text v-else class="empty-content">暂无正文，请打开附件查看</text>
         </view>
@@ -36,12 +40,13 @@ import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import { getManualDetail } from '../../api/manual.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
-import { cacheRichTextImages, getCachedResource, sanitizeRichTextImages } from '@/shared/utils/resourceCache.js'
+import { cacheRichTextImages } from '@/shared/utils/resourceCache.js'
 
 const imagePlaceholder = '/static/images/image-placeholder.svg'
 
 const manualId = ref('')
 const loading = ref(true)
+const contentLoading = ref(false)
 const errorText = ref('')
 const detail = ref({})
 
@@ -61,10 +66,9 @@ async function loadDetail() {
   errorText.value = ''
   try {
     const result = await getManualDetail(manualId.value)
-    detail.value = result
-      ? { ...result, content: sanitizeRichTextImages(result.content, imagePlaceholder) }
-      : result
-    if (result) void cacheDetailResources(result).catch(error => console.warn('[ManualDetail] 图片缓存失败:', error))
+    // APP 端先等待正文图片缓存，避免 rich-text 首次渲染错误占位图。
+    detail.value = result ? { ...result, content: '' } : result
+    if (result) void cacheDetailResources(result)
     if (!detail.value) errorText.value = '手册不存在或已下架'
   } catch (error) {
     console.error('[ManualDetail] 手册详情加载失败:', error)
@@ -74,14 +78,20 @@ async function loadDetail() {
   }
 }
 
-/** 先显示远程内容，再后台缓存封面和正文图片，避免大图阻塞详情首屏。 */
 async function cacheDetailResources(result) {
-  const [coverUrl, content] = await Promise.all([
-    getCachedResource(result.coverUrl, { kind: 'image' }),
-    cacheRichTextImages(result.content, { fallbackUrl: imagePlaceholder }),
-  ])
-  if (detail.value?.id !== result.id) return
-  detail.value = { ...detail.value, coverUrl, content }
+  contentLoading.value = true
+  try {
+    const content = Array.isArray(result.content)
+      ? result.content
+      : await cacheRichTextImages(result.content, { fallbackUrl: imagePlaceholder })
+    if (detail.value?.id !== result.id) return
+    detail.value = { ...detail.value, content }
+  } catch (error) {
+    console.warn('[ManualDetail] 正文图片缓存失败:', error)
+    if (detail.value?.id === result.id) detail.value = { ...detail.value, content: result.content }
+  } finally {
+    if (detail.value?.id === result.id) contentLoading.value = false
+  }
 }
 
 async function openFile() {
@@ -115,6 +125,9 @@ function goBack() { navigator.back() }
 .manual-title { display: block; color: #17191E; font-size: 24px; font-weight: 800; line-height: 1.4; }
 .manual-meta { display: block; margin-top: 9px; color: #8A919C; font-size: 12px; }
 .article-body { margin-top: 24px; color: #292C33; font-size: 15px; line-height: 1.9; word-break: break-word; }
+.article-body-state { display: flex; min-height: 180px; margin-top: 24px; align-items: center; justify-content: center; gap: 10px; color: #969AA3; font-size: 14px; }
+.article-body-spinner { width: 18px; height: 18px; border: 2px solid #E5E7EB; border-top-color: #D7192D; border-radius: 50%; animation: manual-body-spin .8s linear infinite; }
+@keyframes manual-body-spin { to { transform: rotate(360deg); } }
 .article-body :deep(img) { display: block; width: 100%; height: auto; margin: 18px 0; border-radius: 10px; }
 .article-body :deep(p) { margin: 0 0 14px; line-height: 1.9; }
 .article-body :deep(h1), .article-body :deep(h2), .article-body :deep(h3) { margin: 22px 0 12px; color: #17191E; font-weight: 800; line-height: 1.45; }

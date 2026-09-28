@@ -12,6 +12,7 @@
         @refresherrefresh="handleRefresh"
         @refresherrestore="handleRefresherRestore"
         @refresherabort="handleRefresherRestore"
+        @scrolltolower="loadMore"
       >
         <view class="bill-page">
           <view class="toolbar-card">
@@ -41,20 +42,13 @@
           </view>
 
           <view class="filter-tabs">
-            <view
-              v-for="tab in statusTabs"
-              :key="tab.key"
-              class="filter-tab"
-              :class="{ active: activeStatus === tab.key }"
-              @tap="changeStatus(tab.key)"
-            >{{ tab.label }}</view>
+            <StatusTabBar :items="statusTabs" :model-value="activeStatus" :max-width="700" @change="changeStatus" />
           </view>
 
           <AppPageState
             :state="pageState"
-            title="本期暂无账单"
+            title="暂无账单"
             :description="pageState === PageStatus.ERROR ? loadError : '账单由财务系统按月生成，生成后会显示在这里'"
-            action-text="重新加载"
             icon-type="order"
             @retry="loadBillList"
             @action="loadBillList"
@@ -101,6 +95,7 @@
                 <AppSvgIllustration class="filter-empty-illustration" name="no-revenue" size="sm" />
                 <text>当前状态下暂无账单</text>
               </view>
+              <AppLoadMore :status="loadMoreStatus" @retry="loadMore" />
             </template>
           </AppPageState>
         </view>
@@ -120,6 +115,8 @@ import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
+import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
+import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import { PageStatus } from '@/shared/model/pageState.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
@@ -134,6 +131,11 @@ const activeStatus = ref('all')
 const pageState = ref(PageStatus.LOADING)
 const loadError = ref('')
 const isRefreshing = ref(false)
+const pageNum = ref(1)
+const pageSize = 20
+const hasMore = ref(true)
+const loadingMore = ref(false)
+const loadMoreError = ref(false)
 const overview = reactive({ totalAmount: 0, paidAmount: 0, outstandingAmount: 0 })
 const statusTabs = Object.freeze([
   { key: 'all', label: '全部' },
@@ -145,6 +147,12 @@ const visibleBills = computed(() => {
   const status = statusTabs.find(tab => tab.key === activeStatus.value)?.status
   return status === undefined ? bills.value : bills.value.filter(bill => bill.status === status)
 })
+const loadMoreStatus = computed(() => {
+  if (loadMoreError.value) return 'error'
+  if (loadingMore.value) return 'loading'
+  if (!hasMore.value) return 'no-more'
+  return 'idle'
+})
 
 onLoad((options = {}) => {
   const year = Number(options.year)
@@ -154,20 +162,50 @@ onLoad((options = {}) => {
 onShow(loadBillList)
 
 async function loadBillList() {
+  pageNum.value = 1
+  bills.value = []
+  totalCount.value = 0
+  hasMore.value = true
+  loadMoreError.value = false
   pageState.value = PageStatus.LOADING
   loadError.value = ''
+  await fetchBillPage(false)
+}
+
+async function fetchBillPage(append) {
+  if (append) loadingMore.value = true
   try {
-    const result = await getBillList({ billPeriod: currentMonth.value, pageNum: 1, pageSize: 50 })
-    bills.value = result.items
+    const status = statusTabs.find(tab => tab.key === activeStatus.value)?.status
+    const result = await getBillList({
+      billPeriod: currentMonth.value,
+      pageNum: pageNum.value,
+      pageSize,
+      status,
+    })
+    bills.value = append ? [...bills.value, ...result.items] : result.items
     totalCount.value = result.totalCount
+    hasMore.value = bills.value.length < result.totalCount
     overview.totalAmount = bills.value.reduce((sum, bill) => sum + bill.totalAmount, 0)
     overview.paidAmount = bills.value.reduce((sum, bill) => sum + bill.paidAmount, 0)
     overview.outstandingAmount = bills.value.reduce((sum, bill) => sum + bill.outstandingAmount, 0)
     pageState.value = bills.value.length ? PageStatus.CONTENT : PageStatus.EMPTY
+    loadMoreError.value = false
   } catch (error) {
+    if (append) {
+      pageNum.value = Math.max(1, pageNum.value - 1)
+      loadMoreError.value = true
+    }
     loadError.value = error?.message || '账单读取失败，请稍后重试'
-    pageState.value = PageStatus.ERROR
+    if (!append) pageState.value = PageStatus.ERROR
+  } finally {
+    loadingMore.value = false
   }
+}
+
+function loadMore() {
+  if (!hasMore.value || loadingMore.value || pageState.value !== PageStatus.CONTENT) return
+  pageNum.value += 1
+  fetchBillPage(true)
 }
 
 async function handleRefresh() {
@@ -192,7 +230,11 @@ function onMonthChange(event) {
   loadBillList()
 }
 
-function changeStatus(key) { activeStatus.value = key }
+function changeStatus(key) {
+  if (activeStatus.value === key) return
+  activeStatus.value = key
+  loadBillList()
+}
 function goToDetail(billId) { navigator.navigateTo(routes.account.billDetail(billId)) }
 function formatMoney(value) { const number = Number(value); return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
 function statusText(status) { return ({ 0: '未结清', 1: '已结清', 2: '已关闭' })[status] || '未知状态' }

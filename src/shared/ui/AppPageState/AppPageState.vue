@@ -694,7 +694,7 @@ export default {
     left: 0;
   }
   .error-mark {
-    font-size: 48rpx;
+    font-size: 24px;
     font-weight: 700;
     color: currentColor;
     line-height: 1;

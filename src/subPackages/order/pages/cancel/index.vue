@@ -167,7 +167,7 @@ async function handleSubmit() {
   margin: 0 24rpx 28rpx;
 
   .order-no {
-    font-size: 28rpx;
+    font-size: 14px;
     color: #fff;
     font-weight: 500;
     letter-spacing: 0.5rpx;
@@ -176,7 +176,7 @@ async function handleSubmit() {
 
 .hint-text {
   display: block;
-  font-size: 30rpx;
+  font-size: 15px;
   font-weight: 600;
   color: var(--text-primary);
   margin: 0 32rpx 20rpx;
@@ -216,7 +216,7 @@ async function handleSubmit() {
 }
 
 .reason-text {
-  font-size: 28rpx;
+  font-size: 14px;
   color: var(--text-primary);
   flex: 1;
   line-height: 1.5;
@@ -261,12 +261,12 @@ async function handleSubmit() {
 
 .required-mark {
   color: #F56C6C;
-  font-size: 28rpx;
+  font-size: 14px;
   margin-right: 6rpx;
 }
 
 .label-text {
-  font-size: 26rpx;
+  font-size: 13px;
   color: var(--text-secondary);
   font-weight: 500;
 }
@@ -278,7 +278,7 @@ async function handleSubmit() {
   padding: 16rpx 18rpx;
   background: #f7f8fa;
   border-radius: 8rpx;
-  font-size: 26rpx;
+  font-size: 13px;
   color: var(--text-primary);
   line-height: 1.6;
   border: 1rpx solid var(--border-color);
@@ -287,12 +287,12 @@ async function handleSubmit() {
 
 .reason-placeholder {
   color: var(--text-placeholder);
-  font-size: 26rpx;
+  font-size: 13px;
 }
 
 .char-count {
   display: block;
-  font-size: 22rpx;
+  font-size: 11px;
   color: var(--text-placeholder);
   text-align: right;
   margin-top: 8rpx;
@@ -306,7 +306,7 @@ async function handleSubmit() {
   width: 100%;
   height: 80rpx;
   border-radius: 12rpx;
-  font-size: 30rpx;
+  font-size: 15px;
   font-weight: 600;
   border: none;
   background: var(--primary-color);

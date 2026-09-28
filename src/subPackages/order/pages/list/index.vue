@@ -51,14 +51,15 @@
             @retry="resetAndLoad"
           />
 
-          <view v-else-if="orderList.length" class="order-grid">
-            <view
-              v-for="order in orderList"
-              :key="order.orderId"
-              class="order-card"
-              hover-class="order-card--pressed"
-              @tap="goToDetail(order.orderId)"
-            >
+          <template v-else-if="orderList.length">
+            <view class="order-grid">
+              <view
+                v-for="order in orderList"
+                :key="order.orderId"
+                class="order-card"
+                hover-class="order-card--pressed"
+                @tap="goToDetail(order.orderId)"
+              >
               <view class="card-header">
                 <view class="order-identify">
                   <view class="order-no-line">
@@ -104,8 +105,10 @@
                   </view>
                 </view>
               </view>
+              </view>
             </view>
-          </view>
+            <AppLoadMore :status="loadMoreStatus" @retry="loadMore" />
+          </template>
 
           <AppPageState
             v-else
@@ -129,7 +132,7 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { ORDER_STATUS, ORDER_STATUS_MAP } from '@/app/config/constant.js'
 import { navigator } from '@/app/navigation/navigator.js'
@@ -143,6 +146,7 @@ import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
+import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import { formatDateTime } from '../../../../shared/utils/format.js'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
@@ -159,12 +163,19 @@ const isRefreshing = ref(false)
 const hasMore = ref(true)
 const loadError = ref('')
 const totalCount = ref(0)
+const loadMoreError = ref(false)
 const keywordInput = ref('')
 const keyword = ref('')
 const page = reactive({ current: 1, pageSize: 10 })
 const selectMode = ref(null)
 const expandedActionOrders = ref(new Set())
 const swipeStart = ref(null)
+const loadMoreStatus = computed(() => {
+  if (loadMoreError.value) return 'error'
+  if (loading.value) return 'loading'
+  if (!hasMore.value) return 'no-more'
+  return 'idle'
+})
 onLoad(options => {
   if (options.status !== undefined && options.status !== '') {
     const requestedStatus = Number(options.status)
@@ -225,6 +236,7 @@ async function resetAndLoad() {
   totalCount.value = 0
   hasMore.value = true
   loadError.value = ''
+  loadMoreError.value = false
   await loadOrderList()
 }
 
@@ -248,6 +260,7 @@ async function loadOrderList() {
   if (loading.value || !hasMore.value) return
   loading.value = true
   loadError.value = ''
+  if (page.current > 1) loadMoreError.value = false
   try {
     const result = await getOrderList({
       orderStatus: currentStatus.value,
@@ -259,9 +272,11 @@ async function loadOrderList() {
     orderList.value = page.current === 1 ? items : [...orderList.value, ...items]
     totalCount.value = Number(result.totalCount || orderList.value.length)
     hasMore.value = orderList.value.length < totalCount.value
+    loadMoreError.value = false
   } catch (error) {
     loadError.value = error?.message || '请检查网络后重试'
     if (page.current > 1) page.current--
+    if (page.current > 1 || orderList.value.length) loadMoreError.value = true
   } finally {
     loading.value = false
   }
@@ -390,7 +405,7 @@ function handleAction(key, order) {
 .amount-area > text:first-child { color: #979CA4; font-size: 9px; }
 .amount-area > text:last-child { margin-top: 3px; color: #D7192D; font-size: 17px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .amount-area > text:last-child > text { display: inline; margin-right: 2px; color: inherit; font-size: 12px; font-weight: 700; line-height: 1; vertical-align: baseline; }
-.action-row { display: flex; min-height: 32px; align-items: center; gap: 10px; margin-top: 12px; }
+.action-row { display: flex;  align-items: center; gap: 10px; margin-top: 12px; }
 .action-list { display: flex; flex: 1; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
 .more-action { flex: 0 0 auto; height: 32px; margin: 0; padding: 0; border: 0; color: #737A84; background: transparent; font-size: 11px; line-height: 32px; }
 .more-action::after { border: 0; }

@@ -52,7 +52,11 @@
               </view>
               <AppLoadMore
                 v-if="manuals.length"
-                :status="pageStatus.isLoadingMore.value ? 'loading' : (!pageStatus.hasMore.value ? 'no-more' : 'idle')"
+                :status="pageStatus.isLoadingMore.value
+                  ? 'loading'
+                  : (pageStatus.isError.value && pageStatus.hasStaleContent.value
+                    ? 'error'
+                    : (!pageStatus.hasMore.value ? 'no-more' : 'idle'))"
                 @retry="handleLoadMore"
               />
             </view>

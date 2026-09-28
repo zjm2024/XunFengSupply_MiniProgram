@@ -16,27 +16,17 @@
       >
         <view class="records-page">
           <view class="filter-wrap">
-            <scroll-view class="filter-scroll" scroll-x :show-scrollbar="false">
-              <view class="filter-tabs">
-                <view
-                  v-for="tab in tabs"
-                  :key="tab.key"
-                  class="filter-tab"
-                  :class="{ active: activeTab === tab.key }"
-                  @tap="changeTab(tab.key)"
-                >{{ tab.label }}</view>
-              </view>
-            </scroll-view>
+            <StatusTabBar :items="tabs" :model-value="activeTab" :max-width="700" @change="changeTab" />
           </view>
 
           <view class="content-wrap">
-            <!-- <view class="record-summary">
+            <view class="record-summary">
               <view>
                 <text class="summary-label">当前筛选</text>
                 <text class="summary-title">{{ activeTabLabel }}</text>
               </view>
               <text class="summary-count">{{ totalCount }} 条记录</text>
-            </view> -->
+            </view>
 
             <AppPageState
               :state="pageState"
@@ -70,7 +60,7 @@
 
             <AppLoadMore
               v-if="pageState === PageStatus.CONTENT"
-              :status="loadingMore ? 'loading' : (!hasMore ? 'no-more' : 'idle')"
+              :status="loadMoreStatus"
               @retry="loadMore"
             />
           </view>
@@ -89,17 +79,18 @@ import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
+import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
 import { PageStatus } from '@/shared/model/pageState.js'
 import { getRechargeList } from '../../api/settlement.js'
 import { formatDateTime } from '../../../../shared/utils/format.js'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
 const tabs = Object.freeze([
-  { key: 'all', label: '全部', status: undefined },
-  { key: 'audit', label: '待审核', status: 6 },
-  { key: 'processing', label: '处理中', status: 1 },
-  { key: 'success', label: '已到账', status: 2 },
-  { key: 'failed', label: '失败', status: 3 },
+  { key: 'all', label: '全部', value: 'all', status: undefined },
+  { key: 'audit', label: '待审核', value: 'audit', status: 6 },
+  { key: 'processing', label: '处理中', value: 'processing', status: 1 },
+  { key: 'success', label: '已到账', value: 'success', status: 2 },
+  { key: 'failed', label: '失败', value: 'failed', status: 3 },
 ])
 const activeTab = ref('all')
 const records = ref([])
@@ -108,10 +99,17 @@ const pageNum = ref(1)
 const pageSize = 12
 const hasMore = ref(false)
 const loadingMore = ref(false)
+const loadMoreError = ref(false)
 const isRefreshing = ref(false)
 const pageState = ref(PageStatus.LOADING)
 const loadError = ref('')
 const activeTabLabel = computed(() => tabs.find(tab => tab.key === activeTab.value)?.label || '全部')
+const loadMoreStatus = computed(() => {
+  if (loadMoreError.value) return 'error'
+  if (loadingMore.value) return 'loading'
+  if (!hasMore.value) return 'no-more'
+  return 'idle'
+})
 
 onShow(() => {
   if (pageState.value === PageStatus.LOADING) reload()
@@ -127,6 +125,7 @@ async function reload() {
   pageNum.value = 1
   records.value = []
   pageState.value = PageStatus.LOADING
+  loadMoreError.value = false
   await fetchPage(false)
 }
 
@@ -162,8 +161,12 @@ async function fetchPage(append) {
     totalCount.value = result.totalCount
     hasMore.value = records.value.length < result.totalCount
     pageState.value = records.value.length ? PageStatus.CONTENT : PageStatus.EMPTY
+    loadMoreError.value = false
   } catch (error) {
-    if (append) pageNum.value = Math.max(1, pageNum.value - 1)
+    if (append) {
+      pageNum.value = Math.max(1, pageNum.value - 1)
+      loadMoreError.value = true
+    }
     loadError.value = error?.message || '充值记录读取失败，请稍后重试'
     if (!records.value.length) pageState.value = PageStatus.ERROR
     else uni.showToast({ title: loadError.value, icon: 'none' })
@@ -188,17 +191,14 @@ function payMethodText(method) {
 function methodIcon(method) {
   return String(method || '').toLowerCase() === 'offline' ? 'bank' : 'credit-card'
 }
+
 </script>
 
 <style lang="scss" scoped>
 .records-page { width: 100%; }
-.filter-wrap { position: sticky; z-index: 4; top: 0; padding: 10px var(--page-padding-x, 16px); border-bottom: 1px solid #ECEEF1; background: rgba(248,249,251,.96); box-sizing: border-box; }
-.filter-scroll { width: 100%; white-space: nowrap; }
-.filter-tabs { display: flex; width: max-content; gap: 8px; }
-.filter-tab { display: flex; min-width: 62px; height: 36px; align-items: center; justify-content: center; padding: 0 14px; border: 1px solid #E3E5E8; border-radius: 11px; color: #676C75; background: #FFFFFF; box-sizing: border-box; font-size: 12px; }
-.filter-tab.active { border-color: #D7192D; color: #FFFFFF; background: #D7192D; font-weight: 650; }
+.filter-wrap { position: sticky; z-index: 4; top: 0; padding: 8px var(--page-padding-x, 16px); background: rgba(248,249,251,.96); box-sizing: border-box; }
 .content-wrap { width: 100%; max-width: 1080px; margin: 0 auto; padding: 16px var(--page-padding-x, 16px) 30px; box-sizing: border-box; }
-.record-summary { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 13px; }
+.record-summary { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 .summary-label, .summary-title { display: block; }
 .summary-label { color: #969AA2; font-size: 10px; }
 .summary-title { margin-top: 3px; color: #202329; font-size: 18px; font-weight: 720; }

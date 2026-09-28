@@ -37,8 +37,8 @@ function save() { uni.showToast({ title: '资料已更新', icon: 'success' }) }
   padding: 26rpx 32rpx; border-top: 2rpx solid #EFEFF1;
   &:first-child { border-top: none; }
 }
-.row-label { font-size: 28rpx; color: #5E626B; }
-.row-value { font-size: 28rpx; color: #111216; font-weight: 500; text-align: right; }
+.row-label { font-size: 14px; color: #5E626B; }
+.row-value { font-size: 14px; color: #111216; font-weight: 500; text-align: right; }
 
-.save-btn { display: flex; align-items: center; justify-content: center; width: 100%; height: 96rpx; margin-top: 48rpx; background: #D7192D; color: white; font-size: 30rpx; font-weight: 650; border: none; border-radius: 20rpx; &:active { background: #B91224; } }
+.save-btn { display: flex; align-items: center; justify-content: center; width: 100%; height: 96rpx; margin-top: 48rpx; background: #D7192D; color: white; font-size: 15px; font-weight: 650; border: none; border-radius: 20rpx; &:active { background: #B91224; } }
 </style>

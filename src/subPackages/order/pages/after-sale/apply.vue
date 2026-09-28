@@ -214,6 +214,8 @@ async function handleSubmit() {
 <style lang="scss" scoped>
 .apply-after-sale-page {
   min-height: 100%;
+  padding: 0 var(--page-padding-x, 16px) 30px;
+  box-sizing: border-box;
   background: var(--bg-color);
 }
 
@@ -232,7 +234,7 @@ async function handleSubmit() {
     .hint {
       flex: 1;
       text-align: center;
-      font-size: 28rpx;
+      font-size: 14px;
       color: var(--text-placeholder);
     }
   }
@@ -257,14 +259,14 @@ async function handleSubmit() {
     
     .goods-name {
       display: block;
-      font-size: 28rpx;
+      font-size: 14px;
       color: var(--text-primary);
       font-weight: 500;
     }
     
     .sku-name {
       display: block;
-      font-size: 24rpx;
+      font-size: 12px;
       color: var(--text-placeholder);
       margin-top: 8rpx;
     }
@@ -315,7 +317,7 @@ async function handleSubmit() {
   
   .section-label {
     display: block;
-    font-size: 30rpx;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 20rpx;
@@ -344,19 +346,19 @@ async function handleSubmit() {
     }
     
     .type-icon {
-      font-size: 36rpx;
+      font-size: 18px;
       margin-right: 16rpx;
     }
     
     .type-name {
-      font-size: 28rpx;
+      font-size: 14px;
       font-weight: 500;
       color: var(--text-primary);
       margin-right: 16rpx;
     }
     
     .type-desc {
-      font-size: 22rpx;
+      font-size: 11px;
       color: var(--text-placeholder);
     }
   }
@@ -368,20 +370,20 @@ async function handleSubmit() {
   padding: 20rpx 0;
   
   .amount-symbol {
-    font-size: 36rpx;
+    font-size: 18px;
     color: var(--primary-color);
     font-weight: 600;
   }
   
   .amount-value {
-    font-size: 56rpx;
+    font-size: 28px;
     font-weight: 700;
     color: var(--primary-color);
   }
 }
 
 .amount-tip {
-  font-size: 24rpx;
+  font-size: 12px;
   color: var(--text-placeholder);
 }
 
@@ -391,7 +393,7 @@ async function handleSubmit() {
   background: var(--bg-color);
   border-radius: 8rpx;
   padding: 0 20rpx;
-  font-size: 28rpx;
+  font-size: 14px;
   box-sizing: border-box;
 }
 
@@ -401,7 +403,7 @@ async function handleSubmit() {
   background: var(--bg-color);
   border-radius: 8rpx;
   padding: 20rpx;
-  font-size: 26rpx;
+  font-size: 13px;
   box-sizing: border-box;
 }
 
@@ -411,7 +413,7 @@ async function handleSubmit() {
   line-height: 88rpx;
   background: var(--primary-color);
   color: #fff;
-  font-size: 32rpx;
+  font-size: 16px;
   font-weight: 600;
   border-radius: 44rpx;
   border: none;
@@ -420,4 +422,21 @@ async function handleSubmit() {
     opacity: 0.5;
   }
 }
+
+/* 与订单、充值页面统一：浅色页面底 + 白色内容卡片 + 品牌红主操作。 */
+.select-order-section,
+.selected-goods,
+.type-section,
+.amount-section,
+.reason-section {
+  border-radius: 17px;
+  margin-bottom: 12px;
+  box-shadow: 0 7px 22px rgba(25, 30, 37, .045);
+}
+
+.select-order-section .select-trigger { min-height: 52px; padding: 14px 16px; box-sizing: border-box; }
+.selected-goods { padding: 14px; }
+.type-section, .amount-section, .reason-section { padding: 16px; }
+.type-section .section-label, .amount-section .section-label, .reason-section .section-label { margin-bottom: 12px; font-size: 14px; }
+.submit-btn { background: var(--color-brand, #D7192D); }
 </style>

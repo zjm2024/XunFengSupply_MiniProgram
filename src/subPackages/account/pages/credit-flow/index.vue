@@ -2,7 +2,7 @@
   <AppPageShell>
     <template #header>
       <view class="flow-header">
-        <AppHeader title="资金流水" :show-back="true" />
+        <AppHeader title="授信流水" :show-back="true" />
         <view class="filter-panel">
           <StatusTabBar :items="filters" :model-value="currentType" :max-width="700" @change="changeFilter" />
         </view>
@@ -19,11 +19,11 @@
         @refresherabort="handleRefresherRestore"
         @scrolltolower="loadMore"
       >
-        <view class="flow-page">
+        <view class="credit-flow-page">
           <AppPageState
             :state="pageState"
-            title="暂无资金流水"
-            :description="loadError || '充值、支付、退款及账户调整记录会显示在这里'"
+            title="暂无授信流水"
+            :description="loadError || '订单使用授信后，相关额度变动会显示在这里'"
             :action-text="pageState === PageStatus.ERROR ? '重新加载' : ''"
             icon-type="default"
             compact
@@ -35,25 +35,20 @@
 
             <template #default>
               <view class="flow-list">
-                <view v-for="item in flows" :key="item.transactionId" class="flow-card">
-                  <view class="flow-main">
-                    <view class="flow-heading">
-                      <text class="flow-title">{{ businessTitle(item.businessType) }}</text>
-                      <text class="flow-amount" :class="amountClass(item)">{{ formatChange(item) }}</text>
+                <view v-for="item in flows" :key="item.usageId" class="flow-card">
+                  <view class="flow-heading">
+                    <view class="flow-title-wrap">
+                      <text class="flow-title">{{ usageTitle(item.usageType) }}</text>
+                      <text v-if="item.businessNo" class="flow-no">{{ item.businessNo }}</text>
                     </view>
-                    <text class="flow-desc">{{ item.remark || businessDescription(item.businessType) }}</text>
-                    <view class="flow-meta">
-                      <text>{{ formatDateTime(item.createdAt) }}</text>
-                      <text v-if="item.businessNo">业务单号 {{ item.businessNo }}</text>
-                    </view>
+                    <text class="flow-amount" :class="amountClass(item)">{{ formatChange(item) }}</text>
                   </view>
-                  <view class="balance-line">
-                    <text>账户 {{ item.accountId }}</text>
-                    <text>变动后余额 ¥{{ formatMoney(item.balanceAfter) }}</text>
-                    <text v-if="item.frozenAfter">冻结 ¥{{ formatMoney(item.frozenAfter) }}</text>
+                  <view class="flow-meta">
+                    <text>{{ formatDateTime(item.createdAt) }}</text>
+                    <text>已用 ¥{{ formatMoney(item.afterUsedAmount) }}</text>
+                    <text>暂占 ¥{{ formatMoney(item.afterReservedAmount) }}</text>
                   </view>
                 </view>
-
               </view>
               <AppLoadMore :status="loadMoreStatus" @retry="loadMore" />
             </template>
@@ -75,23 +70,18 @@ import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustratio
 import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
 import { PageStatus } from '@/shared/model/pageState.js'
-import { getFundFlowList } from '../../api/settlement.js'
+import { getCreditUsageList } from '../../api/settlement.js'
 import { formatDateTime } from '../../../../shared/utils/format.js'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
 const filters = Object.freeze([
   { label: '全部', value: '' },
-  { label: '支付', value: 'payment' },
-  { label: '充值', value: 'recharge' },
-  { label: '退款', value: 'refund' },
-  { label: '调拨', value: 'transfer' },
+  { label: '订单占用', value: 1 },
+  { label: '额度释放', value: 2 },
+  { label: '还款', value: 3 },
+  { label: '已结算', value: 4 },
 ])
-const titleMap = Object.freeze({
-  order_payment: '订单支付', payment: '订单支付', recharge: '充值入账', refund: '退款入账',
-  rebate: '返利入账', transfer_in: '余额转入', transfer_out: '余额转出',
-  freeze: '余额冻结', unfreeze: '余额解冻', adjustment: '账户调整', bill_repayment: '对账还款',
-})
-
+const usageMap = Object.freeze({ 1: '订单占用', 2: '额度释放', 3: '授信还款', 4: '授信结算' })
 const flows = ref([])
 const currentType = ref('')
 const pageState = ref(PageStatus.LOADING)
@@ -125,9 +115,7 @@ async function handleRefresh() {
   if (isRefreshing.value) return
   const startedAt = Date.now()
   isRefreshing.value = true
-  try {
-    await resetAndLoad()
-  } finally {
+  try { await resetAndLoad() } finally {
     await waitForRefreshAnimation(startedAt)
     isRefreshing.value = false
   }
@@ -139,20 +127,19 @@ function handleRefresherRestore() {
 
 async function fetchPage(append) {
   try {
-    const result = await getFundFlowList({
+    const result = await getCreditUsageList({
       pageNum: pageNum.value,
       pageSize,
-      businessType: currentType.value,
+      usageType: currentType.value,
     })
-    const items = result.items
-    flows.value = append ? [...flows.value, ...items] : items
+    flows.value = append ? [...flows.value, ...result.items] : result.items
     totalCount.value = result.totalCount
     pageState.value = flows.value.length ? PageStatus.CONTENT : PageStatus.EMPTY
     loadMoreError.value = false
   } catch (error) {
     if (append) pageNum.value = Math.max(1, pageNum.value - 1)
     loadMoreError.value = Boolean(append)
-    loadError.value = error?.message || '资金流水加载失败，请稍后重试'
+    loadError.value = error?.message || '授信流水加载失败，请稍后重试'
     pageState.value = flows.value.length ? PageStatus.CONTENT : PageStatus.ERROR
   }
 }
@@ -170,42 +157,36 @@ function changeFilter(value) {
   resetAndLoad()
 }
 
-function businessTitle(type) { return titleMap[type] || '资金变动' }
-function businessDescription(type) {
-  if (type === 'freeze') return '部分余额已冻结，不可用于支付'
-  if (type === 'unfreeze') return '冻结余额已恢复为可用余额'
-  return '账户资金发生变动'
+function usageTitle(type) { return usageMap[type] || '授信变动' }
+function signedValue(item) {
+  if (item.usageType === 1 || item.usageType === 4) return -Math.abs(item.changedAmount)
+  return Math.abs(item.changedAmount)
 }
-function signedValue(item) { return item.balanceDelta || (item.businessType === 'unfreeze' ? -item.frozenDelta : item.frozenDelta) }
-function amountClass(item) { return signedValue(item) > 0 ? 'positive' : signedValue(item) < 0 ? 'negative' : 'neutral' }
+function amountClass(item) { return signedValue(item) > 0 ? 'positive' : 'negative' }
 function formatChange(item) {
   const value = signedValue(item)
-  const prefix = value > 0 ? '+' : value < 0 ? '−' : ''
-  return `${prefix}¥${formatMoney(Math.abs(value))}`
+  return `${value > 0 ? '+' : '−'}¥${formatMoney(Math.abs(value))}`
 }
 function formatMoney(value) {
-  return Number(value || 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  const number = Number(value || 0)
+  return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
-
 </script>
 
 <style lang="scss" scoped>
 .flow-header { background: var(--surface-page, #F4F5F8); }
 .filter-panel { padding: 7px var(--page-padding-x, 16px) 12px; background: var(--surface-page, #F4F5F8); }
-.flow-page { width: 100%; max-width: 820px; margin: 0 auto; }
-.flow-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
-.flow-card { overflow: hidden; border: 1px solid #E7E8EB; border-radius: 16px; background: #FFFFFF; }
-.flow-main { padding: 15px 16px 7px; }
-.flow-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
-.flow-title { color: var(--color-text-primary, #111216); font-size: var(--type-body-size, 14px); font-weight: 650; }
-.flow-amount { flex: 0 0 auto; font-size: 16px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.credit-flow-page { width: 100%; max-width: 820px; margin: 0 auto; }
+.flow-list { display: grid; gap: 10px; }
+.flow-card { padding: 15px 16px; border: 1px solid #E7E8EB; border-radius: 16px; background: #FFF; }
+.flow-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.flow-title-wrap { min-width: 0; }
+.flow-title, .flow-no { display: block; }
+.flow-title { color: #20242A; font-size: 14px; font-weight: 680; }
+.flow-no { margin-top: 4px; overflow: hidden; color: #969AA3; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.flow-amount { flex: 0 0 auto; font-size: 16px; font-weight: 720; font-variant-numeric: tabular-nums; }
 .flow-amount.positive { color: #168A52; }
 .flow-amount.negative { color: #B42318; }
-.flow-amount.neutral { color: #5E626B; }
-.flow-desc { display: block; margin-top: 5px; color: var(--color-text-secondary, #676A73); font-size: var(--type-caption-size, 12px); line-height: 18px; }
-.flow-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px 14px; margin-top: 10px; color: #969AA3; font-size: 11px; }
-.balance-line { display: flex; flex-wrap: wrap; gap: 7px 14px; padding: 5px 16px 15px; color: #737780; background: #FFFFFF; font-size: 11px; }
-.load-more { width: 100%; height: 42px; margin: 3px 0 0; border: 0; border-radius: 12px; color: #555A63; background: #F2F3F5; font-size: 13px; line-height: 42px; }
+.flow-meta { display: flex; flex-wrap: wrap; gap: 5px 14px; margin-top: 13px; color: #858A93; font-size: 11px; }
 .list-end { padding: 10px 0 2px; color: #9A9DA4; font-size: 11px; text-align: center; }
-@media screen and (min-width: 760px) { .flow-list { gap: 14px; } }
 </style>

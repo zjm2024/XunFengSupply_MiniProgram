@@ -269,6 +269,13 @@
                     }
                 },
                 {
+                    "path": "pages/credit-flow/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
                     "path": "pages/bill/list",
                     "style": {
                         "navigationStyle": "custom",

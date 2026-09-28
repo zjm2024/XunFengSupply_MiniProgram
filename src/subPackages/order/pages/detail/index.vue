@@ -13,11 +13,13 @@
         <view class="order-detail-page" :class="{ 'has-logistics': detail?.shipments?.length > 0 }" v-if="detail">
           <view class="detail-columns">
             <view class="detail-main-column">
-          <!-- 状态栏 -->
-          <view class="status-header" :class="'status-' + detail.orderStatus">
-            <text class="status-text">{{ orderStatusText }}</text>
-            <text class="status-desc">{{ orderStatusDesc }}</text>
-          </view>
+          <!-- 淘宝式订单状态进度 -->
+          <OrderStatusProgress
+            :status="detail.orderStatus"
+            :fulfillment-status="detail.fulfillmentStatus"
+            :text="orderStatusText"
+            :description="orderStatusDesc"
+          />
 
           <!-- 物流信息 -->
           <view class="logistics-card" v-if="detail.shipments && detail.shipments.length > 0" @tap="handleAction('logistics')">
@@ -203,6 +205,7 @@ import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppInitializing from '@/shared/ui/AppInitializing/AppInitializing.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
+import OrderStatusProgress from '@/shared/ui/OrderStatusProgress/OrderStatusProgress.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { batchAddToCart } from '@/shared/api/cartApi.js'
@@ -496,30 +499,6 @@ function toggleProductGroup(groupKey) {
 
 .order-initializing { min-height: 68vh; }
 
-.status-header {
-  margin: 12px;
-  padding: 20px 18px;
-  color: var(--text-primary);
-  background: #fff;
-  border: 1px solid rgba(215, 25, 45, 0.16);
-  border-left: 4px solid var(--primary-color);
-  border-radius: 14px;
-
-  &.status-11, &.status-91 { border-left-color: #8B8E96; }
-
-  .status-text {
-    display: block;
-    font-size: 22px;
-    font-weight: 700;
-    margin-bottom: 10rpx;
-  }
-
-  .status-desc {
-    font-size: 14px;
-    color: var(--text-secondary);
-  }
-}
-
 .logistics-card, .address-card, .goods-card, .info-card, .price-card {
   background: #fff;
   margin: 16rpx 24rpx;
@@ -527,7 +506,7 @@ function toggleProductGroup(groupKey) {
   padding: 28rpx 32rpx;
 
   .card-title {
-    font-size: 30rpx;
+    font-size: 15px;
     font-weight: 600;
     color: var(--text-primary);
     margin-bottom: 20rpx;
@@ -544,13 +523,13 @@ function toggleProductGroup(groupKey) {
 
     .logistics-company {
       display: block;
-      font-size: 28rpx;
+      font-size: 14px;
       color: var(--text-primary);
     }
 
     .tracking-no {
       display: block;
-      font-size: 24rpx;
+      font-size: 12px;
       color: var(--text-placeholder);
       margin-top: 6rpx;
     }
@@ -573,20 +552,20 @@ function toggleProductGroup(groupKey) {
       margin-bottom: 8rpx;
 
       .name {
-        font-size: 30rpx;
+        font-size: 15px;
         font-weight: 600;
         color: var(--text-primary);
         margin-right: 20rpx;
       }
 
       .phone {
-        font-size: 28rpx;
+        font-size: 14px;
         color: var(--text-secondary);
       }
     }
 
     .address-text {
-      font-size: 26rpx;
+      font-size: 13px;
       color: var(--text-secondary);
       line-height: 1.5;
     }
@@ -621,7 +600,7 @@ function toggleProductGroup(groupKey) {
     margin-left: 20rpx;
 
     .goods-name {
-      font-size: 28rpx;
+      font-size: 14px;
       color: var(--text-primary);
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -631,7 +610,7 @@ function toggleProductGroup(groupKey) {
 
     .sku-name {
       display: block;
-      font-size: 24rpx;
+      font-size: 12px;
       color: var(--text-placeholder);
       margin-top: 8rpx;
     }
@@ -644,13 +623,13 @@ function toggleProductGroup(groupKey) {
       padding-top: 12rpx;
 
       .price {
-        font-size: 30rpx;
+        font-size: 15px;
         font-weight: 700;
         color: var(--primary-color);
       }
 
       .qty {
-        font-size: 26rpx;
+        font-size: 13px;
         color: var(--text-secondary);
       }
     }
@@ -663,12 +642,12 @@ function toggleProductGroup(groupKey) {
   padding: 14rpx 0;
 
   .info-label {
-    font-size: 26rpx;
+    font-size: 13px;
     color: var(--text-secondary);
   }
 
   .info-value {
-    font-size: 26rpx;
+    font-size: 13px;
     color: var(--text-primary);
 
     &.copyable {
@@ -686,13 +665,13 @@ function toggleProductGroup(groupKey) {
   &:last-child { border-bottom: none; }
 
   .log-time {
-    font-size: 22rpx;
+    font-size: 11px;
     color: var(--text-placeholder);
     margin-bottom: 6rpx;
   }
 
   .log-text {
-    font-size: 26rpx;
+    font-size: 13px;
     color: var(--text-secondary);
   }
 }
@@ -703,16 +682,16 @@ function toggleProductGroup(groupKey) {
   padding: 12rpx 0;
 
   .price-label {
-    font-size: 26rpx;
+    font-size: 13px;
     color: var(--text-secondary);
   }
 
   .price-value {
-    font-size: 26rpx;
+    font-size: 13px;
     color: var(--text-primary);
 
     &.highlight {
-      font-size: 34rpx;
+      font-size: 17px;
       font-weight: 700;
       color: var(--primary-color);
     }
@@ -732,7 +711,7 @@ function toggleProductGroup(groupKey) {
   align-items: center;
   justify-content: center;
   line-height: 1.2;
-  font-size: 28rpx;
+  font-size: 14px;
   border-radius: 34rpx;
   border: none;
   padding: 0 24rpx;
@@ -753,9 +732,6 @@ function toggleProductGroup(groupKey) {
 <style lang="scss" scoped>
 /* 成品页覆盖层：统一使用项目字体与间距 token，并保持 390px/800px 两档布局。 */
 .order-detail-page { width: 100%; max-width: 1120px; min-height: 0; margin: 0 auto; padding: 10px 16px calc(22px + env(safe-area-inset-bottom)); box-sizing: border-box; background: transparent; }
-.status-header { display: flex; min-height: 78px; margin: 0 0 10px; padding: 15px 18px; align-items: flex-start; justify-content: center; flex-direction: column; border: 0; border-top: 3px solid var(--color-brand, #D7192D); border-radius: var(--radius-feature, 18px); background: var(--surface-card, #FFF); box-shadow: var(--shadow-sm); }
-.status-header .status-text { margin-bottom: 5px; color: var(--type-title-color); font-size: var(--type-page-title-size, 20px); font-weight: 750; line-height: var(--type-page-title-line-height, 32px); }
-.status-header .status-desc { color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); line-height: var(--type-body-small-line-height, 20px); }
 .logistics-card, .address-card, .goods-card, .info-card, .price-card { margin: 0 0 10px; padding: 14px; border-radius: var(--radius-card, 14px); background: var(--surface-card, #FFF); box-shadow: var(--shadow-sm); box-sizing: border-box; }
 .logistics-card:active { opacity: .72; }
 .logistics-info { min-height: 42px; }
@@ -829,7 +805,6 @@ function toggleProductGroup(groupKey) {
 
 @media (max-width: 719px) {
   .order-detail-page { padding-right: 12px; padding-left: 12px; }
-  .status-header { min-height: 72px; padding: 13px 15px; }
   .logistics-card, .address-card, .goods-card, .info-card, .price-card { padding: 12px; }
   .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) auto 26px; gap: 8px; min-height: 62px; }
   .spu-image-link { width: 48px; height: 48px; }

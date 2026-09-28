@@ -69,7 +69,7 @@
             </AppPageState>
             <AppLoadMore
               v-if="pageState === PageStatus.CONTENT"
-              :status="loadingMore ? 'loading' : (!hasMore ? 'no-more' : 'idle')"
+              :status="loadMoreStatus"
               @retry="loadMore"
             />
           </view>
@@ -115,7 +115,14 @@ const loadingMore = ref(false)
 const isRefreshing = ref(false)
 const hasMore = ref(false)
 const loadError = ref('')
+const loadMoreError = ref(false)
 const activeTabLabel = computed(() => tabs.find(item => item.key === activeTab.value)?.label || '全部库存')
+const loadMoreStatus = computed(() => {
+  if (loadMoreError.value) return 'error'
+  if (loadingMore.value) return 'loading'
+  if (!hasMore.value) return 'no-more'
+  return 'idle'
+})
 
 onShow(() => { if (pageState.value === PageStatus.LOADING) reload() })
 
@@ -124,6 +131,7 @@ async function reload() {
   items.value = []
   pageState.value = PageStatus.LOADING
   loadError.value = ''
+  loadMoreError.value = false
   try {
     const result = await getDealerInventoryList({
       pageNum: 1,
@@ -162,7 +170,10 @@ async function loadMore() {
     const result = await getDealerInventoryList({ pageNum: nextPage, pageSize, keyword: keyword.value, stockStatus: activeTab.value })
     pageNum.value = nextPage
     applyResult(result, true)
+    loadMoreError.value = false
   } catch (error) {
+    pageNum.value = Math.max(1, pageNum.value)
+    loadMoreError.value = true
     uni.showToast({ title: error?.message || '加载失败', icon: 'none' })
   } finally { loadingMore.value = false }
 }

@@ -114,7 +114,7 @@ function handleRetry() {
     justify-content: center;
     gap: $space-1;
     padding: $space-3 $space-4;
-    background: $color-error-bg;
+    background: #F2F3F5;
     border-radius: $radius-control;
 
     // 触控目标
@@ -127,12 +127,12 @@ function handleRetry() {
 
   .error-text {
     font-size: $font-size-caption;
-    color: $color-error;
+    color: #6B7280;
   }
 
   .retry-icon {
     font-size: $font-size-body-m;
-    color: $color-error;
+    color: #6B7280;
   }
 }
 

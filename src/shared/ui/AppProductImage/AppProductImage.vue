@@ -11,11 +11,12 @@
       @error="handleImageError"
     />
     <view
-      v-if="hasImageSource && !imageFailed && isLoading"
+      v-if="hasImageRequest && !imageFailed && isLoading"
       class="app-product-image__loading"
       aria-label="图片加载中"
     >
       <view class="app-product-image__spinner" />
+      <text class="app-product-image__loading-text">图片加载中</text>
     </view>
     <view v-if="!hasImageSource || imageFailed" class="app-product-image__fallback">
       <AppIcon name="image" :size="fallbackIconSize" :stroke-width="1.6" />
@@ -43,6 +44,7 @@ const isLoading = ref(false)
 const displaySrc = ref('')
 let cacheRequestId = 0
 const hasImageSource = computed(() => Boolean(displaySrc.value?.trim()))
+const hasImageRequest = computed(() => Boolean(String(props.src || '').trim()))
 const hasKnownStock = computed(() => props.stock !== undefined && props.stock !== null && props.stock !== '')
 const isOutOfStock = computed(() => (
   props.showStockBadge
@@ -55,7 +57,12 @@ watch(() => props.src, async (source) => {
   const remoteUrl = String(source || '').trim()
   imageFailed.value = false
   isLoading.value = Boolean(remoteUrl)
-  displaySrc.value = getCachedResourcePath(remoteUrl, { kind: 'image' }) || remoteUrl
+  const cachedPath = getCachedResourcePath(remoteUrl, { kind: 'image' })
+  // APP 端不要在本地缓存完成前直接渲染远程地址，否则原生 image 会先进入失败态，
+  // 用户看到的是“图片不可用”，而不是加载中的状态。
+  const isRemote = /^https?:\/\//i.test(remoteUrl)
+  const isH5 = typeof window !== 'undefined' && typeof document !== 'undefined'
+  displaySrc.value = cachedPath || (isRemote && !isH5 ? '' : remoteUrl)
   if (!remoteUrl) {
     isLoading.value = false
     return
@@ -112,6 +119,7 @@ function handleImageError() {
   z-index: 1;
   display: grid;
   place-items: center;
+  gap: 8px;
   background: #f3f4f5;
 }
 
@@ -122,6 +130,12 @@ function handleImageError() {
   border-top-color: var(--brand-primary, #d7192d);
   border-radius: 50%;
   animation: app-product-image-spin 0.8s linear infinite;
+}
+
+.app-product-image__loading-text {
+  color: #969aa3;
+  font-size: 12px;
+  line-height: 18px;
 }
 
 .app-product-image__fallback {

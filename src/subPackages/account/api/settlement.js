@@ -80,6 +80,22 @@ export function normalizeFundFlow(source = {}) {
   }
 }
 
+export function normalizeCreditUsage(source = {}) {
+  return {
+    usageId: numberOf(pick(source, 'usageId', 'UsageId', 0)),
+    creditAccountId: numberOf(pick(source, 'creditAccountId', 'CreditAccountId', 0)),
+    orderId: numberOf(pick(source, 'orderId', 'OrderId', 0)),
+    businessNo: String(pick(source, 'businessNo', 'BusinessNo', '') || ''),
+    usageType: numberOf(pick(source, 'usageType', 'UsageType', 0)),
+    changedAmount: numberOf(pick(source, 'changedAmount', 'ChangedAmount', 0)),
+    beforeUsedAmount: numberOf(pick(source, 'beforeUsedAmount', 'BeforeUsedAmount', 0)),
+    afterUsedAmount: numberOf(pick(source, 'afterUsedAmount', 'AfterUsedAmount', 0)),
+    beforeReservedAmount: numberOf(pick(source, 'beforeReservedAmount', 'BeforeReservedAmount', 0)),
+    afterReservedAmount: numberOf(pick(source, 'afterReservedAmount', 'AfterReservedAmount', 0)),
+    createdAt: pick(source, 'createdAt', 'CreatedAt', null),
+  }
+}
+
 function normalizePaged(result, mapper) {
   const rawItems = pick(result, 'items', 'Items', [])
   return {
@@ -138,6 +154,20 @@ export async function getFundFlowList(params = {}) {
     ...(params.endTime ? { EndTime: params.endTime } : {}),
   })
   return normalizePaged(result, normalizeFundFlow)
+}
+
+export async function getCreditUsageList(params = {}) {
+  const result = await dispatch('Finance', FINANCE_CONTROLLER, 'GetCreditUsageList', {
+    PageNum: numberOf(params.pageNum || params.page || 1) || 1,
+    PageSize: numberOf(params.pageSize || 20) || 20,
+    ...(params.usageType === undefined || params.usageType === null || params.usageType === ''
+      ? {}
+      : { UsageType: numberOf(params.usageType) }),
+    ...(params.orderId ? { OrderId: numberOf(params.orderId) } : {}),
+    ...(params.startTime ? { StartTime: params.startTime } : {}),
+    ...(params.endTime ? { EndTime: params.endTime } : {}),
+  })
+  return normalizePaged(result, normalizeCreditUsage)
 }
 
 export function applyInvoice(params) {

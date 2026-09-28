@@ -93,14 +93,14 @@ function goBack() {
   }
   
   .frozen-title {
-    font-size: 40rpx;
+    font-size: 20px;
     font-weight: 700;
     color: var(--text-primary);
     margin-bottom: 20rpx;
   }
   
   .frozen-reason {
-    font-size: 28rpx;
+    font-size: 14px;
     color: var(--text-secondary);
     max-width: 600rpx;
     text-align: center;
@@ -117,7 +117,7 @@ function goBack() {
     
     .tips-title {
       display: block;
-      font-size: 26rpx;
+      font-size: 13px;
       color: var(--text-primary);
       font-weight: 600;
       margin-bottom: 16rpx;
@@ -125,7 +125,7 @@ function goBack() {
     
     .tips-item {
       display: block;
-      font-size: 26rpx;
+      font-size: 13px;
       color: var(--text-secondary);
       line-height: 2;
     }
@@ -140,7 +140,7 @@ function goBack() {
       height: 84rpx;
       line-height: 84rpx;
       border-radius: 42rpx;
-      font-size: 30rpx;
+      font-size: 15px;
       border: none;
     }
     

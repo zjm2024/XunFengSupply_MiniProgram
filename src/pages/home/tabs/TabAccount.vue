@@ -262,6 +262,7 @@ function goToInvoice() { return navigator.navigateTo(routes.account.invoice()) }
 function goToRecharge() { return navigator.navigateTo(routes.account.recharge()) }
 function goToBill() { return navigator.navigateTo(routes.account.billList()) }
 function goToFundFlow() { return navigator.navigateTo(routes.account.fundFlow()) }
+function goToCreditFlow() { return navigator.navigateTo(routes.account.creditFlow()) }
 function goToAddress() { return navigator.navigateTo(routes.account.address()) }
 function goToVoucher() { return navigator.navigateTo(routes.account.voucher()) }
 function goToSubAccount() { return navigator.navigateTo(routes.account.subAccount()) }
@@ -282,6 +283,7 @@ const functionEntries = computed(() => [
     { key: 'recharge', label: '充值中心', icon: 'profile-recharge', tone: 'primary', action: goToRecharge },
     { key: 'bill', label: '对账账单', icon: 'profile-bill', action: goToBill },
     { key: 'fund-flow', label: '资金流水', icon: 'profile-fund-flow', action: goToFundFlow },
+    { key: 'credit-flow', label: '授信流水', icon: 'profile-fund-flow', action: goToCreditFlow },
   ] : []),
   { key: 'address', label: '收货地址', icon: 'profile-address', action: goToAddress },
   // { key: 'voucher', label: '优惠券', icon: 'profile-voucher', action: goToVoucher },

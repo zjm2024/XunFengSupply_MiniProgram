@@ -27,6 +27,13 @@
                     <text class="meta-value">¥{{ formatMoney(finance.subjectAvailableBalance) }}</text>
                   </view>
                 </view>
+                <view class="card-entry" hover-class="card-entry--pressed" @tap="goToFundFlow">
+                  <view class="card-entry-copy">
+                    <text class="card-entry-title">资金流水</text>
+                    <text class="card-entry-desc">查看充值、支付和退款明细</text>
+                  </view>
+                  <AppIcon name="chevron-right" :size="16" color="#8A9098" />
+                </view>
               </view>
 
               <view class="credit-card">
@@ -52,6 +59,13 @@
                 <view class="credit-foot">
                   <text>已用 ¥{{ formatMoney(finance.credit.usedAmount) }}</text>
                   <text>冻结 ¥{{ formatMoney(finance.credit.frozenAmount) }}</text>
+                </view>
+                <view class="card-entry" hover-class="card-entry--pressed" @tap="goToCreditFlow">
+                  <view class="card-entry-copy">
+                    <text class="card-entry-title">授信流水</text>
+                    <text class="card-entry-desc">查看额度占用、释放和还款明细</text>
+                  </view>
+                  <AppIcon name="chevron-right" :size="16" color="#8A9098" />
                 </view>
               </view>
             </view>
@@ -85,43 +99,17 @@
                   <text>联系财务办理充值</text>
                 </button>
                 <text class="service-note">平台不会在充值完成前提前增加账户余额，请以充值记录状态为准。</text>
+                <view class="card-entry service-entry" hover-class="card-entry--pressed" @tap="goToRecords">
+                  <view class="card-entry-copy">
+                    <text class="card-entry-title">充值记录</text>
+                    <text class="card-entry-desc">查看充值审核、到账和失败状态</text>
+                  </view>
+                  <AppIcon name="chevron-right" :size="16" color="#8A9098" />
+                </view>
               </view>
             </view>
           </view>
 
-          <view class="records-card">
-            <view class="section-head records-head">
-              <view>
-                <text class="section-title">最近充值记录</text>
-                <text class="section-desc">展示财务系统中的真实审核与到账状态</text>
-              </view>
-              <view class="more-link" hover-class="pressed" @tap="goToRecords">
-                <text>全部记录</text><AppIcon name="chevron-right" :size="16" />
-              </view>
-            </view>
-
-            <view v-if="recordsLoading" class="records-loading">正在读取充值记录…</view>
-            <view v-else-if="recordsError" class="records-error" @tap="loadRecentRecords">
-              <text>{{ recordsError }}</text><text>点击重试</text>
-            </view>
-            <view v-else-if="recentRecords.length" class="record-list">
-              <view v-for="record in recentRecords" :key="record.rechargeId" class="record-row">
-                <view class="record-mark"><AppIcon name="plus" :size="17" /></view>
-                <view class="record-copy">
-                  <text class="record-title">{{ payMethodText(record.payMethod) }}</text>
-                  <text class="record-no">{{ record.rechargeNo || `记录 ${record.rechargeId}` }} · {{ formatDate(record.createdAt) }}</text>
-                </view>
-                <view class="record-result">
-                  <text class="record-amount">+¥{{ formatMoney(record.amount) }}</text>
-                  <text class="record-status" :class="`status-${record.status}`">{{ rechargeStatusText(record.status) }}</text>
-                </view>
-              </view>
-            </view>
-            <view v-else class="records-empty">
-              <AppSvgIllustration class="records-empty-illustration" name="no-revenue" size="sm" />
-              <text>暂无充值记录</text>
-            </view>
-          </view>
         </view>
       </AppContent>
     </template>
@@ -131,23 +119,17 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { formatDate } from '../../../../shared/utils/format.js'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
-import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import { getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import { useUserStore } from '@/shared/session/userStore.js'
-import { getRechargeList } from '../../api/settlement.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 
 const userStore = useUserStore()
 const finance = ref(userStore.financeContext)
-const recentRecords = ref([])
-const recordsLoading = ref(false)
-const recordsError = ref('')
 
 const creditUsage = computed(() => {
   const total = Number(finance.value.credit?.totalAmount || 0)
@@ -157,7 +139,6 @@ const creditUsage = computed(() => {
 
 onShow(() => {
   loadFinance()
-  loadRecentRecords()
 })
 
 async function loadFinance() {
@@ -170,39 +151,18 @@ async function loadFinance() {
   }
 }
 
-async function loadRecentRecords() {
-  recordsLoading.value = true
-  recordsError.value = ''
-  try {
-    const result = await getRechargeList({ pageNum: 1, pageSize: 3 })
-    recentRecords.value = result.items
-  } catch (error) {
-    recordsError.value = error?.message || '充值记录读取失败'
-  } finally {
-    recordsLoading.value = false
-  }
-}
-
 function formatMoney(value) {
   const number = Number(value)
   return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
-function rechargeStatusText(status) {
-  return ({ 0: '待支付', 1: '处理中', 2: '已到账', 3: '失败', 4: '已关闭', 5: '待确认', 6: '待审核' })[status] || '未知状态'
-}
-
-function payMethodText(method) {
-  return ({ offline: '对公充值', wechat: '微信充值', alipay: '支付宝充值' })[String(method || '').toLowerCase()] || '账户充值'
 }
 
 function contactFinance() {
   navigator.navigateTo(routes.content.help())
 }
 
-function goToRecords() {
-  navigator.navigateTo(routes.account.rechargeRecords())
-}
+function goToRecords() { navigator.navigateTo(routes.account.rechargeRecords()) }
+function goToFundFlow() { navigator.navigateTo(routes.account.fundFlow()) }
+function goToCreditFlow() { navigator.navigateTo(routes.account.creditFlow()) }
 </script>
 
 <style lang="scss" scoped>
@@ -220,7 +180,7 @@ function goToRecords() {
 .meta-label, .meta-value { display: block; }
 .meta-label { color: #8A9098; font-size: 10px; }
 .meta-value { margin-top: 4px; color: #262B32; font-size: 14px; font-weight: 650; }
-.credit-card, .service-card, .records-card { padding: 18px; border-radius: 19px; background: #FFFFFF; box-shadow: 0 8px 28px rgba(23, 28, 36, .045); }
+.credit-card, .service-card { padding: 18px; border-radius: 19px; background: #FFFFFF; box-shadow: 0 8px 28px rgba(23, 28, 36, .045); }
 .section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
 .section-title, .section-desc { display: block; }
 .section-title { color: #17191D; font-size: 16px; font-weight: 720; }
@@ -234,6 +194,12 @@ function goToRecords() {
 .progress-track { height: 6px; margin-top: 16px; overflow: hidden; border-radius: 999px; background: #EEF0F2; }
 .progress-value { height: 100%; border-radius: inherit; background: #D7192D; transition: width .25s ease; }
 .credit-foot { display: flex; justify-content: space-between; margin-top: 9px; color: #7F848D; font-size: 10px; }
+.card-entry { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 15px; padding-top: 12px; border-top: 1px solid #ECEEF1; }
+.card-entry-copy { min-width: 0; }
+.card-entry-title, .card-entry-desc { display: block; }
+.card-entry-title { color: #30343A; font-size: 12px; font-weight: 680; }
+.card-entry-desc { margin-top: 3px; overflow: hidden; color: #969AA3; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
+.card-entry--pressed { opacity: .68; }
 .service-card { height: 100%; box-sizing: border-box; }
 .channel-card { display: flex; gap: 13px; margin-top: 18px; padding: 14px; border: 1px solid #DCE2E7; border-radius: 15px; background: #F8FAFB; }
 .channel-icon { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border-radius: 13px; background: #FFFFFF; box-shadow: 0 4px 12px rgba(31, 41, 55, .05); }
@@ -248,26 +214,7 @@ function goToRecords() {
 .finance-btn { display: flex; width: 100%; height: 48px; align-items: center; justify-content: center; gap: 8px; margin: 15px 0 0; border: 0; border-radius: 13px; color: #FFFFFF; background: #D7192D; font-size: 14px; font-weight: 700; box-shadow: 0 8px 18px rgba(215, 25, 45, .17); }
 .finance-btn::after { border: 0; }
 .service-note { display: block; margin-top: 10px; color: #9499A2; font-size: 10px; line-height: 16px; text-align: center; }
-.records-card { margin-top: 14px; }
-.records-head { align-items: center; }
-.more-link { display: flex; align-items: center; gap: 2px; min-height: 36px; color: #5D636D; font-size: 12px; }
-.pressed { opacity: .62; }
-.records-loading, .records-error, .records-empty { display: flex; min-height: 96px; align-items: center; justify-content: center; gap: 8px; color: #858A93; font-size: 12px; text-align: center; }
-.records-empty { min-height: 176px; flex-direction: column; }
-.records-empty-illustration { width: 118px; height: 118px; }
-.records-error { flex-direction: column; color: #9B2C25; }
-.record-list { margin-top: 10px; }
-.record-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 11px; align-items: center; min-height: 70px; border-top: 1px solid #F0F1F3; }
-.record-mark { display: grid; width: 36px; height: 36px; place-items: center; border-radius: 12px; color: #3F5D70; background: #EEF3F5; }
-.record-copy { min-width: 0; }
-.record-title, .record-no, .record-amount, .record-status { display: block; }
-.record-title { color: #2A2E35; font-size: 13px; font-weight: 650; }
-.record-no { margin-top: 4px; overflow: hidden; color: #969AA2; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.record-result { text-align: right; }
-.record-amount { color: #23272E; font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
-.record-status { margin-top: 4px; color: #8A8F98; font-size: 9px; }
-.record-status.status-2 { color: #24724D; }
-.record-status.status-3, .record-status.status-4 { color: #9B2C25; }
+.service-entry { margin-top: 13px; }
 @media screen and (min-width: 760px) {
   .page-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
   .overview-column { grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); grid-column: 1 / -1; gap: 18px; }
@@ -277,7 +224,6 @@ function goToRecords() {
   .coming-row, .finance-btn, .service-note { grid-column: 2; }
   .coming-row { grid-row: 1 / span 2; align-content: start; margin-top: 0; }
   .finance-btn { align-self: end; }
-  .records-card { margin-top: 18px; padding: 21px 22px; }
 }
 @media screen and (min-width: 1020px) {
   .page-grid { grid-template-columns: minmax(0, 1.05fr) minmax(360px, .95fr); }
