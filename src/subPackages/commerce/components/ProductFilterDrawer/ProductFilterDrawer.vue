@@ -294,8 +294,6 @@ watch(() => props.visible, (visible) => {
   position: absolute;
   inset: 0;
   background: rgba(17, 18, 22, .38);
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
   animation: xf-drawer-mask-in 180ms ease-out both;
 }
 
@@ -309,11 +307,11 @@ watch(() => props.visible, (visible) => {
   overflow: hidden;
   flex-direction: column;
   border-radius: 24px 24px 0 0;
-  background: rgba(248, 249, 251, .84);
+  background: rgba(248, 249, 251, .92);
   box-shadow: 0 -18px 50px rgba(17, 18, 22, .16);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
-  animation: drawer-up 260ms cubic-bezier(.2, .8, .2, 1) both;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  animation: drawer-up 180ms cubic-bezier(.2, .8, .2, 1) both;
 }
 
 .drawer-header,
@@ -332,8 +330,6 @@ watch(() => props.visible, (visible) => {
   justify-content: space-between;
   padding: 19px 18px 16px;
   background: rgba(255, 255, 255, .68);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
 }
 
 .drawer-title,
@@ -373,8 +369,6 @@ watch(() => props.visible, (visible) => {
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
   background: rgba(248,249,251,.9);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
 }
 
 .filter-section {
@@ -382,9 +376,7 @@ watch(() => props.visible, (visible) => {
   padding: 16px;
   border-radius: 18px;
   background: var(--glass-card-background, rgba(255,255,255,.74));
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+  box-shadow: none;
 }
 
 .section-heading {
@@ -504,8 +496,6 @@ watch(() => props.visible, (visible) => {
   border-radius: 12px;
   color: #9a9ea6;
   background: rgba(255,255,255,.58);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
 }
 
 .category-option.is-selected {
@@ -562,8 +552,6 @@ watch(() => props.visible, (visible) => {
   padding: 11px;
   border-radius: 12px;
   background: rgba(255,255,255,.58);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
 }
 
 .choice-card.is-selected {
@@ -607,8 +595,6 @@ watch(() => props.visible, (visible) => {
   gap: 10px;
   padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
   background: rgba(255, 255, 255, .68);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
 }
 
 .reset-button,
