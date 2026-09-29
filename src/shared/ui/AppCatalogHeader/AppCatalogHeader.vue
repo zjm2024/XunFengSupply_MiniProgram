@@ -18,13 +18,13 @@
         <view class="search-nav">
           <AppBackButton plain :transparent="transparent" :theme="theme" @click="$emit('back')" />
 
-          <view class="search-box">
+          <view class="search-box" @click="handleSearchBoxClick">
             <AppIcon class="search-icon" name="search" :size="19" />
             <view
               v-if="keywordCommitted && keyword"
               class="search-keyword-chip"
               hover-class="search-keyword-chip--pressed"
-              @click="$emit('edit-keyword')"
+              @click.stop="beginKeywordEditing"
             >
               <text class="search-keyword-text">{{ keyword }}</text>
               <view class="search-keyword-close" @click.stop="$emit('clear-keyword')">
@@ -34,7 +34,7 @@
             <input
               v-else
               class="search-input"
-              :value="keyword"
+              :value="editingKeyword"
               :placeholder="placeholder"
               :focus="autoFocus"
               confirm-type="search"
@@ -44,7 +44,7 @@
             <view v-if="keyword && !keywordCommitted" class="search-clear" @click.stop="$emit('clear-keyword')">
               <AppIcon name="close" :size="14" />
             </view>
-            <view class="search-submit" hover-class="search-submit--pressed" @click="$emit('search')">
+            <view class="search-submit" hover-class="search-submit--pressed" @click.stop="$emit('search')">
               <text>搜索</text>
             </view>
           </view>
@@ -89,7 +89,7 @@
 </template>
 
 <script setup>
-import { onMounted, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import AppBackButton from '../AppBackButton/AppBackButton.vue'
 import AppIcon from '../AppIcon/AppIcon.vue'
 import AppStatusBarSpacer from '../AppStatusBarSpacer/AppStatusBarSpacer.vue'
@@ -128,6 +128,14 @@ const emit = defineEmits([
   'clear-filters',
 ])
 
+// 原生 input 在从已提交关键词胶囊切换回来时，部分端会先派发一次空值 input 事件。
+// 使用组件内草稿值承接输入，避免这个过渡事件覆盖父页面已经提交的关键词。
+const editingKeyword = ref(props.keyword)
+
+watch(() => props.keyword, value => {
+  editingKeyword.value = value || ''
+})
+
 const quickSortItems = Object.freeze([
   { key: 'default', label: '综合' },
   { key: 'latest', label: '最新' },
@@ -136,7 +144,20 @@ const quickSortItems = Object.freeze([
 ])
 
 function handleKeywordInput(event) {
-  emit('update:keyword', event?.detail?.value ?? '')
+  const value = event?.detail?.value ?? ''
+  editingKeyword.value = value
+  emit('update:keyword', value)
+}
+
+function beginKeywordEditing() {
+  editingKeyword.value = props.keyword
+  emit('edit-keyword')
+}
+
+function handleSearchBoxClick() {
+  if (props.keywordCommitted && props.keyword) {
+    beginKeywordEditing()
+  }
 }
 
 function isQuickSortActive(type) {
@@ -298,11 +319,12 @@ watch(() => props.theme, applyStatusBarStyle)
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 0;
+  padding: 0 8px;
   box-sizing: border-box;
+  border-radius: 15px;
   color: #34373d;
   font-size: 14px;
-  background: transparent;
+  background: var(--surface-subtle, #fcfcfd);
 }
 
 .search-keyword-text {
@@ -324,7 +346,7 @@ watch(() => props.theme, applyStatusBarStyle)
 }
 
 .search-keyword-chip--pressed {
-  opacity: .7;
+  background: var(--bg-pressed, #eceef2);
 }
 
 .search-clear {

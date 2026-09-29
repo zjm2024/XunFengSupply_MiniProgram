@@ -25,22 +25,28 @@
     />
 
     <!-- 可滚动区域：商品列表 -->
-    <scroll-view
-      class="page-scroll"
-      scroll-y
-      scroll-with-animation
-      :scroll-top="listScrollTop"
-      @scroll="handleListScroll"
-      @scrolltolower="loadMore"
-      :refresher-enabled="true"
-      :refresher-triggered="isRefreshing"
-      @refresherrefresh="handleRefresh"
-      @refresherrestore="handleRefresherRestore"
-      @refresherabort="handleRefresherRestore"
-      enhanced
-      enable-back-to-top
-    >
-      <view class="scroll-inner">
+    <view class="product-content">
+      <view v-if="isRefreshing" class="product-refresher-indicator" aria-label="刷新中">
+        <AppIcon name="refresh" :size="20" color="#737A84" />
+      </view>
+      <scroll-view
+        class="page-scroll"
+        scroll-y
+        scroll-with-animation
+        :scroll-top="listScrollTop"
+        @scroll="handleListScroll"
+        @scrolltolower="loadMore"
+        :refresher-enabled="true"
+        :refresher-triggered="isRefreshing"
+        refresher-background="#F4F5F8"
+        refresher-default-style="none"
+        @refresherrefresh="handleRefresh"
+        @refresherrestore="handleRefresherRestore"
+        @refresherabort="handleRefresherRestore"
+        enhanced
+        enable-back-to-top
+      >
+        <view class="scroll-inner">
       <ProductSearchLanding
         v-if="showSearchLanding"
         :history="searchHistory"
@@ -83,8 +89,9 @@
         @retry="loadMore"
       />
       </template>
-      </view>
-    </scroll-view>
+        </view>
+      </scroll-view>
+    </view>
 
     <view
       class="back-to-top"
@@ -514,7 +521,7 @@ function goToDetail(item) {
 .page {
   height: 100vh;
   overflow: hidden;
-  background: #f5f6f7;
+  background: var(--surface-page, #F4F5F8);
   display: flex;
   flex-direction: column;
 }
@@ -533,11 +540,40 @@ function goToDetail(item) {
   box-sizing: border-box;
 }
 
-.page-scroll {
+.product-content {
+  position: relative;
   flex: 1;
   min-height: 0;
+  overflow: hidden;
+}
+
+.product-refresher-indicator {
+  position: absolute;
+  z-index: 3;
+  top: 10px;
+  left: 50%;
+  display: flex;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface-card, #FFFFFF);
+  box-shadow: 0 2px 8px rgba(34, 37, 42, .08);
+  transform: translateX(-50%);
+  animation: product-refresher-spin 900ms linear infinite;
+}
+
+@keyframes product-refresher-spin {
+  to { transform: translateX(-50%) rotate(360deg); }
+}
+
+.page-scroll {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
   box-sizing: border-box;
-  background: #f5f6f7;
+  background: var(--surface-page, #F4F5F8);
 }
 
 .scroll-inner {

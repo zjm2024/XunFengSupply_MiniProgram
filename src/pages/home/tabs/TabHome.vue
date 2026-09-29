@@ -7,7 +7,7 @@
       </view>
     </view>
     <view class="entry-grid card-wrap">
-      <view class="entry-card card-left order-card" hover-class="card--pressed" @click="openProductList">
+      <view class="entry-card card-left order-card" hover-class="card--pressed" @click="openCategory">
         <view class="entry-copy">
           <view class="entry-kicker">PURCHASE</view>
           <text class="entry-title">商品下单</text>
@@ -71,7 +71,7 @@ import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 
 defineProps({ active: { type: Boolean, default: false } })
 
-defineEmits(['select-tab'])
+const emit = defineEmits(['select-tab'])
 
 const features = Object.freeze([
   { label: '批量采购', icon: 'batch-order' },
@@ -80,8 +80,8 @@ const features = Object.freeze([
   { label: '品牌政策公告', icon: 'announcement' },
 ])
 
-async function openProductList() {
-  await navigator.navigateTo(routes.commerce.productList())
+function openCategory() {
+  emit('select-tab', 'category')
 }
 
 async function openNewsList() {
