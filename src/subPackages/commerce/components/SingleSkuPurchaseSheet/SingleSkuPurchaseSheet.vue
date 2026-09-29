@@ -35,7 +35,8 @@
               :disabled="!group.canPurchase"
               @tap="selectColor(group)"
             >
-              {{ group.name }}
+              <AppProductImage class="color-option-image" :src="group.image || product?.image" />
+              <text class="color-option-name">{{ group.name }}</text>
             </button>
           </view>
         </view>
@@ -114,11 +115,14 @@ const colorGroups = computed(() => {
         key,
         name: sku.colorName || '默认颜色',
         items: [],
+        image: '',
         canPurchase: false,
       })
     }
     const group = groups.get(key)
     group.items.push(sku)
+    // 颜色按钮展示该颜色组第一张可用 SKU 图片。
+    if (!group.image && sku.image) group.image = sku.image
     group.canPurchase ||= Boolean(sku.canPurchase)
   })
   return Array.from(groups.values())
@@ -345,6 +349,10 @@ function formatMoney(value) {
 }
 
 .sku-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
   min-height: 40px;
   margin: 0;
   padding: 8px 14px;
@@ -353,6 +361,18 @@ function formatMoney(value) {
   color: var(--color-text-primary, #1B1C20);
   background: var(--surface-subtle, #F4F5F7);
   font-size: var(--type-body-small-size, 13px);
+  line-height: 20px;
+}
+
+.color-option-image {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  border-radius: 6px;
+  background: var(--surface-muted, #ECEEF2);
+}
+
+.color-option-name {
   line-height: 20px;
 }
 

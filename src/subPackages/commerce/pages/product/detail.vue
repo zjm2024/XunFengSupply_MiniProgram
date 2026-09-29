@@ -109,6 +109,11 @@
                 <text class="promotion-notice">实际赠品与优惠以下单确认页实时计算结果为准</text>
               </view>
 
+              <view v-if="sizeRecommendationHtml" class="size-recommendation-card">
+                <view class="section-title">尺码推荐</view>
+                <rich-text class="size-recommendation-rich-text" :nodes="sizeRecommendationHtml" />
+              </view>
+
               <view
                 class="batch-purchase-entry"
                 :class="{ disabled: !hasPurchasableSku }"
@@ -293,8 +298,11 @@ const selectedSkuSummary = computed(() => {
   return `已选 ${selectedSku.value.specName || selectedSku.value.skuCode || '默认规格'}，${selectedMinOrderQty.value} ${product.value?.unit || '件'}起订`
 })
 
+// 商品介绍和尺码推荐表分开清洗，避免推荐表被合并到普通介绍中。
 const detailHtml = computed(() => normalizeDetailHtml(product.value?.description))
+const sizeRecommendationHtml = computed(() => normalizeDetailHtml(product.value?.sizeRecommendation))
 
+// 选中具体 SKU 后优先展示 SKU 颜色图片，未选择时回退到 SPU 主图。
 const displayImages = computed(() => {
   const main = selectedSku.value?.image || product.value?.image
   return main ? [main, ...(product.value?.images?.filter(img => img !== main) || [])] : product.value?.images || []
@@ -505,6 +513,7 @@ async function goToCart() {
 .info-card,
 .promotion-card,
 .section-card,
+.size-recommendation-card,
 .batch-purchase-entry,
 .single-purchase-entry {
   background: var(--glass-card-background, rgba(255,255,255,.74));
@@ -516,7 +525,8 @@ async function goToCart() {
 
 .info-card,
 .promotion-card,
-.section-card {
+.section-card,
+.size-recommendation-card {
   padding: 16px;
 }
 
@@ -674,6 +684,31 @@ async function goToCart() {
 .param-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; min-height: 42px; align-items: center; margin-top: 6px; padding: 0 12px; border-radius: 9px; background: var(--surface-subtle); font-size: 13px; }
 .param-label { color: var(--color-text-tertiary); }
 .param-value { color: var(--color-text-primary); text-align: right; word-break: break-all; }
+
+.size-recommendation-card {
+  overflow: hidden;
+}
+
+.size-recommendation-rich-text {
+  display: block;
+  margin-top: 12px;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.size-recommendation-rich-text :deep(table) {
+  width: 100% !important;
+  max-width: 100%;
+  border-collapse: collapse;
+}
+
+.size-recommendation-rich-text :deep(td),
+.size-recommendation-rich-text :deep(th) {
+  padding: 7px 8px;
+  border: 1px solid var(--color-divider);
+}
 
 .detail-description {
   overflow: hidden;

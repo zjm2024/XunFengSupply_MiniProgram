@@ -140,6 +140,8 @@ export function normalizeProduct(item = {}, extra = {}) {
     unit: firstDefined(source, ['unit', 'unitName'], '件'),
     categoryName: firstDefined(item, ['categoryName'], firstDefined(source, ['categoryName'], '')),
     description: firstDefined(source, ['description', 'detailHtml', 'productDescription'], ''),
+    // 尺码推荐表独立于商品介绍，详情页会单独渲染为推荐表区域。
+    sizeRecommendation: firstDefined(source, ['sizeRecommendation', 'size_recommendation'], ''),
     promotions: (Array.isArray(firstDefined(source, ['promotions', 'Promotions'], []))
       ? firstDefined(source, ['promotions', 'Promotions'], [])
       : []).map(normalizePromotion),

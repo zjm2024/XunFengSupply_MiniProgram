@@ -52,11 +52,14 @@
 
             <view v-for="group in skuGroups" :key="group.key" class="sku-group-card">
               <view class="group-heading" @tap="toggleGroup(group.key)">
-                <view>
+                <view class="group-heading-copy">
+                  <AppProductImage class="group-image" :src="group.image || product.image" />
+                  <view class="group-heading-text">
                   <text class="group-title">{{ group.name }}</text>
                   <text class="group-desc">
                     {{ group.items.length }} 个尺码规格<text v-if="group.selectedCount"> · 已选 {{ group.selectedCount }} 款 / {{ group.selectedQuantity }} {{ product.unit }}</text>
                   </text>
+                  </view>
                 </view>
                 <view class="group-actions">
                   <button class="copy-btn button-center" @tap.stop="copyGroup(group)">整行复制</button>
@@ -168,10 +171,13 @@ const skuGroups = computed(() => {
         key,
         name: sku.colorName || '默认颜色',
         items: [],
+        image: '',
       })
     }
     const group = groups.get(key)
     group.items.push(sku)
+    // 同一颜色下取第一张可用 SKU 图片作为颜色组缩略图。
+    if (!group.image && sku.image) group.image = sku.image
     const quantity = Number(quantities.value[sku.skuId]) || 0
     if (quantity > 0) {
       group.selectedCount = (group.selectedCount || 0) + 1
@@ -385,6 +391,9 @@ async function goToCart() {
 
 .sku-group-card { overflow: hidden; }
 .group-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--color-divider); }
+.group-heading-copy { display: flex; min-width: 0; align-items: center; gap: 10px; }
+.group-heading-text { min-width: 0; }
+.group-image { width: 48px; height: 48px; flex: 0 0 48px; border-radius: 9px; background: var(--surface-muted); }
 .group-actions { display: flex; flex: none; align-items: center; gap: 7px; }
 .collapse-btn { display: flex; width: 34px; height: 34px; align-items: center; justify-content: center; margin: 0; padding: 0; border: 0; border-radius: 50%; color: var(--color-text-secondary); background: var(--surface-muted); }
 .collapse-btn::after, .copy-btn::after, .clear-btn::after { border: 0; }
