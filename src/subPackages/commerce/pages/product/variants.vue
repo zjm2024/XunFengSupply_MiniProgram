@@ -53,7 +53,7 @@
             <view v-for="group in skuGroups" :key="group.key" class="sku-group-card">
               <view class="group-heading" @tap="toggleGroup(group.key)">
                 <view class="group-heading-copy">
-                  <AppProductImage class="group-image" :src="group.image || product.image" />
+                  <AppProductImage class="group-image" :src="group.image" />
                   <view class="group-heading-text">
                   <text class="group-title">{{ group.name }}</text>
                   <text class="group-desc">

@@ -7,7 +7,7 @@
  */
 import { dispatch } from './dispatchClient.js'
 
-const DEFAULT_IMAGE = '/static/images/default-product.png'
+const DEFAULT_IMAGE = ''
 
 function number(value, fallback = 0) {
   const parsed = Number(value)
@@ -56,7 +56,7 @@ function normalizeSku(item, product) {
     sizeValueId: firstDefined(item, ['sizeValueId']) ?? null,
     sizeName: firstDefined(item, ['sizeName'], null),
     specName: firstDefined(item, ['specName', 'specDesc', 'skuName', 'specificationName', 'specValue'], ''),
-    image: firstDefined(item, ['imageUrl', 'image'], product.image),
+    image: firstDefined(item, ['imageUrl', 'image'], ''),
     price: number(firstDefined(item, ['currentPrice', 'price', 'salePrice'], product.price)),
     listPrice: number(firstDefined(item, ['listPrice', 'standardPrice'])),
     basePrice: number(firstDefined(item, ['basePrice', 'base_price'])),
@@ -137,7 +137,7 @@ export function normalizeProduct(item = {}, extra = {}) {
     stock: productStockKnown ? number(rawProductStock) : null,
     stockKnown: productStockKnown,
     moq: Math.max(1, number(firstDefined(source, ['minOrderQty', 'minQuantity'], priceRule?.minQuantity ?? 1), 1)),
-    unit: firstDefined(source, ['unit', 'unitName'], '件'),
+    unit: firstDefined(source, ['unit', 'unitName', 'measureUnit', 'measureUnitName', 'Unit', 'UnitName', 'MeasureUnit', 'MeasureUnitName'], '件'),
     categoryName: firstDefined(item, ['categoryName'], firstDefined(source, ['categoryName'], '')),
     description: firstDefined(source, ['description', 'detailHtml', 'productDescription'], ''),
     // 尺码推荐表独立于商品介绍，详情页会单独渲染为推荐表区域。

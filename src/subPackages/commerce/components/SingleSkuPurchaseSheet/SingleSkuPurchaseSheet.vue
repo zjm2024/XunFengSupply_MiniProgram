@@ -10,7 +10,7 @@
       <view class="product-summary">
         <AppProductImage
           class="summary-image"
-          :src="selectedSku?.image || product?.image"
+          :src="selectedSku?.image"
           :stock="selectedImageStock"
         />
         <view class="summary-copy">
@@ -35,7 +35,7 @@
               :disabled="!group.canPurchase"
               @tap="selectColor(group)"
             >
-              <AppProductImage class="color-option-image" :src="group.image || product?.image" />
+              <AppProductImage class="color-option-image" :src="group.image" />
               <text class="color-option-name">{{ group.name }}</text>
             </button>
           </view>

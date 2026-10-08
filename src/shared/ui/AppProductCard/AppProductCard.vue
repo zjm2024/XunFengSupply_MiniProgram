@@ -21,7 +21,7 @@
 
       <view class="app-product-card__price-row">
         <text class="app-product-card__price">¥{{ formattedPrice }}</text>
-        <text v-if="variant !== 'compact'" class="app-product-card__unit">/{{ product.unit || '件' }}</text>
+        <text v-if="variant !== 'compact' && unitText" class="app-product-card__unit">/{{ unitText }}</text>
       </view>
 
       <text
@@ -29,7 +29,7 @@
         class="app-product-card__stock"
         :class="`app-product-card__stock--${stockState}`"
       >
-        {{ stockText }}<text v-if="minimumOrder > 0"> · {{ minimumOrder }}{{ product.unit || '件' }}起订</text>
+        {{ stockText }}<text v-if="minimumOrder > 0 && unitText"> · {{ minimumOrder }}{{ unitText }}起订</text>
       </text>
     </view>
   </view>
@@ -73,6 +73,15 @@ const formattedPrice = computed(() => {
 const hasKnownStock = computed(() => props.product.stock !== undefined && props.product.stock !== null && props.product.stock !== '')
 const stock = computed(() => Number(props.product.stock) || 0)
 const minimumOrder = computed(() => Number(props.product.moq) || 0)
+const unitText = computed(() => String(
+  props.product?.unit
+    ?? props.product?.unitName
+    ?? props.product?.Unit
+    ?? props.product?.UnitName
+    ?? props.product?.measureUnit
+    ?? props.product?.MeasureUnit
+    ?? '',
+).trim())
 const stockState = computed(() => {
   if (!hasKnownStock.value) return 'unknown'
   if (stock.value <= 0) return 'empty'
@@ -82,7 +91,7 @@ const stockState = computed(() => {
 const stockText = computed(() => {
   if (!hasKnownStock.value) return '库存以实际为准'
   if (stock.value <= 0) return '暂无库存'
-  if (stock.value < 50) return `仅剩 ${stock.value} ${props.product.unit || '件'}`
+  if (stock.value < 50) return unitText.value ? `仅剩 ${stock.value} ${unitText.value}` : `仅剩 ${stock.value}`
   return '库存充足'
 })
 </script>

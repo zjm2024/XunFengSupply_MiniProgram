@@ -103,7 +103,7 @@ function normalizeCartItem(item = {}) {
     name: item.productName ?? item.ProductName ?? item.product_name ?? '',
     skuName: item.skuName ?? item.SkuName ?? item.sku_name ?? '',
     code: item.productCode ?? item.ProductCode ?? item.product_code ?? '',
-    image: item.imageUrl ?? item.ImageUrl ?? item.image_url ?? item.image ?? '/static/images/default-product.png',
+    image: item.imageUrl ?? item.ImageUrl ?? item.image_url ?? item.image ?? '',
     unit: item.unit ?? item.Unit ?? '件',
     price,
     quantity,
