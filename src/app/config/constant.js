@@ -108,6 +108,16 @@ export const PAYMENT_STATUS = {
   UNKNOWN: 5,
 }
 
+/** 支付状态展示映射。订单生命周期和支付结果必须分开展示。 */
+export const PAYMENT_STATUS_MAP = {
+  [PAYMENT_STATUS.UNPAID]: { text: '未支付', color: '#C77700' },
+  [PAYMENT_STATUS.PAYING]: { text: '支付处理中', color: '#2678C8' },
+  [PAYMENT_STATUS.PARTIALLY_PAID]: { text: '部分支付', color: '#C77700' },
+  [PAYMENT_STATUS.CONFIRMED]: { text: '已支付', color: '#25804A' },
+  [PAYMENT_STATUS.FAILED]: { text: '支付失败', color: '#C43A3A' },
+  [PAYMENT_STATUS.UNKNOWN]: { text: '支付结果待确认', color: '#707783' },
+}
+
 /** 履约状态枚举（对应后端 FulfillmentStatus） */
 export const FULFILLMENT_STATUS = {
   NOT_STARTED: 0,

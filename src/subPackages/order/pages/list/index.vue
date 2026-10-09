@@ -70,7 +70,7 @@
                   </view>
                   <text class="order-time">{{ formatDateTime(order.createdAt || order.createdTime) }}</text>
                 </view>
-                <StatusTag :type="getStatusType(order.orderStatus)" :text="getStatusText(order.orderStatus)" />
+                <StatusTag :type="getStatusType(order)" :text="getStatusText(order)" />
               </view>
 
               <view class="goods-preview">
@@ -78,7 +78,7 @@
                 <view class="goods-info">
                   <text class="product-name">{{ order.firstItemProductName || '采购订单商品' }}</text>
                   <text class="product-detail">{{ order.itemCount || 0 }} 种商品 · 共 {{ order.totalQuantity || 0 }} 件</text>
-                  <text class="order-stage">{{ getStatusHelp(order.orderStatus) }}</text>
+                  <text class="order-stage">{{ getStatusHelp(order) }}</text>
                 </view>
               </view>
 
@@ -89,7 +89,7 @@
                 </view>
                 <view class="action-row">
                   <button
-                    v-if="getActions(order.orderStatus).length > 2"
+                    v-if="getOrderActions(order).length > 2"
                     class="more-action"
                     @tap.stop="toggleActions(order.orderId)"
                   >{{ isActionsExpanded(order.orderId) ? '收起' : '更多' }}<text class="more-action-icon">⌄</text></button>
@@ -134,10 +134,16 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
-import { ORDER_STATUS, ORDER_STATUS_MAP } from '@/app/config/constant.js'
+import {
+  ORDER_STATUS,
+  ORDER_STATUS_MAP,
+  PAYMENT_STATUS,
+  PAYMENT_STATUS_MAP,
+} from '@/app/config/constant.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
-import { getOrderList } from '@/subPackages/order/api/orderApi.js'
+import { getOrderList, confirmReceipt, generateClientRequestId } from '@/subPackages/order/api/orderApi.js'
+import { getOrderActionButtons } from '@/subPackages/order/model/orderActions.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -303,20 +309,73 @@ function goToDetail(orderId) {
   navigator.navigateTo(routes.order.detail(orderId))
 }
 
-function getStatusText(status) { return ORDER_STATUS_MAP[status]?.text || '状态更新中' }
-function getStatusType(status) {
-  const map = {
-    [ORDER_STATUS.PENDING_REVIEW]: 'warning',
-    [ORDER_STATUS.REVIEW_REJECTED]: 'error',
-    [ORDER_STATUS.PENDING_PAYMENT]: 'warning',
-    [ORDER_STATUS.PROCESSING]: 'info',
-    [ORDER_STATUS.COMPLETED]: 'success',
-    [ORDER_STATUS.CANCELLING]: 'warning',
-    [ORDER_STATUS.CANCELLED]: 'default',
+const ORDER_STATUS_TYPE_MAP = Object.freeze({
+  [ORDER_STATUS.PENDING_REVIEW]: 'warning',
+  [ORDER_STATUS.REVIEW_REJECTED]: 'error',
+  [ORDER_STATUS.PENDING_PAYMENT]: 'warning',
+  [ORDER_STATUS.PROCESSING]: 'info',
+  [ORDER_STATUS.COMPLETED]: 'success',
+  [ORDER_STATUS.CANCELLING]: 'warning',
+  [ORDER_STATUS.CANCELLED]: 'default',
+})
+
+/**
+ * 订单主状态和支付状态必须分开展示，但支付未完成时，列表主标签要优先提示用户付款。
+ * 这样可以避免订单主状态已经进入处理中、支付投影仍未确认时显示成“履约中”。
+ */
+function getPaymentDisplay(order) {
+  const orderStatus = Number(order?.orderStatus)
+  const paymentStatus = Number(order?.paymentStatus)
+  const paymentPending = (orderStatus === ORDER_STATUS.PENDING_PAYMENT
+    || orderStatus === ORDER_STATUS.PROCESSING)
+    && paymentStatus !== PAYMENT_STATUS.CONFIRMED
+  if (!paymentPending) return null
+
+  const payment = PAYMENT_STATUS_MAP[paymentStatus]
+  if (!payment) {
+    return { text: '支付状态待同步', type: 'info', help: '支付结果正在同步，请稍后刷新订单' }
   }
-  return map[status] || 'default'
+
+  const display = {
+    [PAYMENT_STATUS.UNPAID]: { text: '待付款', type: 'warning', help: '订单已生成，请及时完成付款' },
+    [PAYMENT_STATUS.PAYING]: { text: '支付处理中', type: 'info', help: '支付结果确认中，请稍后刷新订单' },
+    [PAYMENT_STATUS.PARTIALLY_PAID]: { text: '部分支付', type: 'warning', help: '订单尚未完成全额支付，请继续完成付款' },
+    [PAYMENT_STATUS.FAILED]: { text: '支付失败', type: 'error', help: '本次支付未完成，请重新发起支付' },
+    [PAYMENT_STATUS.UNKNOWN]: { text: '支付结果待确认', type: 'info', help: '支付结果待确认，请勿重复支付' },
+  }
+  return display[paymentStatus] || { text: payment.text, type: 'info', help: '支付状态正在同步' }
 }
-function getStatusHelp(status) {
+
+function getConfirmedPaymentDisplay(order) {
+  if (Number(order?.orderStatus) === ORDER_STATUS.PENDING_PAYMENT
+    && Number(order?.paymentStatus) === PAYMENT_STATUS.CONFIRMED) {
+    return { text: '处理中', type: 'info', help: '支付已确认，正在为您安排发货' }
+  }
+  return null
+}
+
+function getStatusText(order) {
+  return getPaymentDisplay(order)?.text
+    || getConfirmedPaymentDisplay(order)?.text
+    || ORDER_STATUS_MAP[Number(order?.orderStatus)]?.text
+    || '状态更新中'
+}
+
+function getStatusType(order) {
+  const paymentDisplay = getPaymentDisplay(order)
+  if (paymentDisplay) return paymentDisplay.type
+  const confirmedPaymentDisplay = getConfirmedPaymentDisplay(order)
+  if (confirmedPaymentDisplay) return confirmedPaymentDisplay.type
+  const status = Number(order?.orderStatus)
+  return ORDER_STATUS_TYPE_MAP[status] || 'default'
+}
+
+function getStatusHelp(order) {
+  const paymentDisplay = getPaymentDisplay(order)
+  if (paymentDisplay) return paymentDisplay.help
+  const confirmedPaymentDisplay = getConfirmedPaymentDisplay(order)
+  if (confirmedPaymentDisplay) return confirmedPaymentDisplay.help
+  const status = Number(order?.orderStatus)
   const map = {
     [ORDER_STATUS.PENDING_REVIEW]: '订单已提交，等待品牌方审核',
     [ORDER_STATUS.REVIEW_REJECTED]: '审核未通过，可查看订单了解原因',
@@ -332,20 +391,9 @@ function formatMoney(value) {
   const number = Number(value)
   return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
-function getActions(status) {
-  if (selectMode.value === 'afterSale') return []
-  const map = {
-    [ORDER_STATUS.PENDING_REVIEW]: [{ key: 'cancel', label: '取消订单', type: 'secondary' }],
-    [ORDER_STATUS.PENDING_PAYMENT]: [
-      { key: 'cancel', label: '取消', type: 'secondary' },
-      { key: 'pay', label: '立即付款', type: 'primary' },
-    ],
-    [ORDER_STATUS.PROCESSING]: [{ key: 'detail', label: '查看履约', type: 'secondary' }],
-    [ORDER_STATUS.COMPLETED]: [{ key: 'detail', label: '查看订单', type: 'secondary' }],
-  }
-  return map[status] || []
+function getOrderActions(order) {
+  return selectMode.value === 'afterSale' ? [] : getOrderActionButtons(order?.allowedActions)
 }
-
 function isActionsExpanded(orderId) {
   return expandedActionOrders.value.has(orderId)
 }
@@ -358,21 +406,40 @@ function toggleActions(orderId) {
 }
 
 function getVisibleActions(order) {
-  const actions = getActions(order.orderStatus)
+  const actions = getOrderActions(order)
   return isActionsExpanded(order.orderId) ? actions : actions.slice(0, 2)
 }
 
-function handleAction(key, order) {
-  if (key === 'pay') {
-    navigator.navigateTo(routes.order.pay(order.orderId))
-    return
-  }
-  if (key === 'detail') {
-    navigator.navigateTo(routes.order.detail(order.orderId))
-    return
-  }
-  if (key === 'cancel') {
-    navigator.navigateTo(routes.order.cancelOrder(order.orderId, { orderNo: order.orderNo || '' }))
+async function handleAction(key, order) {
+  switch (key) {
+    case 'pay':
+      navigator.navigateTo(routes.order.pay(order.orderId))
+      break
+    case 'cancel':
+      navigator.navigateTo(routes.order.cancelOrder(order.orderId, { orderNo: order.orderNo || '' }))
+      break
+    case 'viewLogistics':
+      navigator.navigateTo(routes.order.detail(order.orderId))
+      break
+    case 'confirmReceipt':
+      uni.showModal({
+        title: '确认收货',
+        content: '确认已收到商品后，订单将完成。',
+        success: async (result) => {
+          if (!result.confirm) return
+          try {
+            await confirmReceipt({ orderId: order.orderId, clientRequestId: generateClientRequestId() })
+            uni.showToast({ title: '已确认收货', icon: 'success' })
+            await resetAndLoad()
+          } catch (error) {
+            uni.showToast({ title: error?.message || '操作失败', icon: 'none' })
+          }
+        },
+      })
+      break
+    case 'afterSale':
+      navigator.navigateTo(routes.order.afterSaleApply(order.orderId))
+      break
   }
 }
 </script>

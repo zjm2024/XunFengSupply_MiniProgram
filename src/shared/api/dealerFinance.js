@@ -73,6 +73,7 @@ export function confirmDealerOrderPayment(params = {}) {
   return dispatch('Finance', 'Mini.DealerFinanceController', 'ConfirmOrderPayment', {
     OrderId: Number(params.orderId || 0),
     ClientRequestId: params.clientRequestId,
+    PaymentMode: Number(params.paymentMode || 0),
     Allocations: (params.allocations || []).map(item => ({
       PayMethod: item.payMethod,
       AccountCustomerId: item.payMethod === 'balance'

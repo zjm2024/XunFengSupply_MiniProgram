@@ -9,6 +9,15 @@ metadata:
 
 # 薰风经销商下单系统 - 项目开发规范
 
+## 当前仓库定位（强制）
+
+- **APP 唯一可编辑根目录**：`E:\MyWork\AppProject\SupplyChain.MiniProgram`
+- **订单模块**：`src/subPackages/order/`；页面依次位于 `pages/list`、`pages/detail`、`pages/pay`、`pages/cancel`、`pages/after-sale`，接口位于 `api/orderApi.js`。
+- **通用基础设施**：路由和运行配置在 `src/app/`，通用 API、会话、状态、组件和工具在 `src/shared/`。
+- `E:\MyWork\全部项目\供应链项目\SupplyChain.MiniProgram` 是历史副本，**禁止对其实施前端代码修改、构建或验收**。如用户未明确指定其他目录，所有 APP 修改、构建与测试均在本仓库执行。
+
+开始 APP 任务时，先确认 `src/pages.json` 的实际路由和目标文件；不得依据历史目录、同名文件或旧 Skill 推断编辑位置。
+
 ## 技术栈概览
 
 | 层面 | 技术 | 版本 |
@@ -87,45 +96,43 @@ npm run build:weixin
 1. **systemType 不需要前端传入** — 后端宿主自动判断（Mini=2）
 2. **公开接口白名单**：`Login`, `AutoLogin` — 这些接口不传 Authorization
 3. **禁止前端传入身份参数**：`dealerId`, `customerId` 等由后端从登录态获取
-4. **参数由页面层构建 PascalCase 实体，API 层直接透传**
+4. **页面与领域层使用 camelCase；分包 API 适配层负责将请求转换为后端 PascalCase DTO，并将响应规范化为 camelCase。**
 
 ### 参数传递规范
 
-**API 层职责**：接收 `params` 对象，直接传给 `dispatch`，不做参数名映射
+**API 层职责**：封装 `dispatch`，把页面传入的 camelCase 领域参数转换为后端 PascalCase DTO，并将响应转换为 camelCase 领域模型。
 
 ```javascript
-// ✅ 正确：API 层直接透传
+// ✅ 正确：API 层集中完成契约适配
 export function getOrderList(params) {
-  return dispatch('MallOrder', 'Mini.OrderController', 'GetOrderList', params || {})
+  return dispatch('MallOrder', 'Mini.OrderController', 'GetOrderList', {
+    PageNum: params.pageNum,
+    PageSize: params.pageSize,
+  }).then(normalizeOrderList)
 }
 ```
 
-**页面层职责**：构建 PascalCase 的参数实体
+**页面层职责**：仅构建 camelCase 领域参数，不直接调用 `dispatch`。
 
 ```javascript
-// ✅ 正确：页面层构建 PascalCase 参数
+// ✅ 正确：页面层构建 camelCase 参数
 const params = {
-  PageIndex: 1,
-  PageSize: 20,
-  OrderStatus: 2,
+  pageNum: 1,
+  pageSize: 20,
+  orderStatus: 20,
 }
 const result = await getOrderList(params)
 ```
 
 **错误示例**：
 ```javascript
-// ❌ 错误：API 层做映射
+// ❌ 错误：页面绕过 API 适配层，直接调用 dispatch
 export function getOrderList(params) {
-  const backendParams = {
-    PageIndex: params.pageIndex,
-    PageSize: params.pageSize,
-  }
-  return dispatch('MallOrder', 'Mini.OrderController', 'GetOrderList', backendParams)
+  return dispatch('MallOrder', 'Mini.OrderController', 'GetOrderList', params)
 }
 
-// ❌ 错误：页面层传 camelCase
-const params = { pageIndex: 1, pageSize: 20 }
-await getOrderList(params)
+// ❌ 错误：页面传 PascalCase，绕过领域模型
+await getOrderList({ PageNum: 1, PageSize: 20 })
 ```
 
 ---
@@ -134,35 +141,25 @@ await getOrderList(params)
 
 ```
 src/
-├── api/              # 接口层（按业务模块拆分）
-│   ├── base.js       # ⭐ 唯一请求入口（dispatch/request/get/post/uploadFile）
-│   ├── auth.js       # 认证相关
-│   ├── goods.js      # 商品
-│   ├── cart.js       # 购物车
-│   ├── order.js      # 订单
-│   ├── message.js    # 消息
-│   ├── aftersale.js  # 售后
-│   ├── settlement.js # 结算
-│   ├── area.js       # 行政区划
-│   ├── file.js       # 文件上传
-│   └── news.js       # 新闻公告
-├── store/modules/    # Pinia Store
-│   ├── user.js       # 用户状态（Token/权限/授信）
-│   ├── cart.js       # 购物车状态
-│   └── order.js       # 订单缓存
-├── config/
-│   ├── routes.js     # 路由常量
-│   ├── constant.js   # 业务常量
-│   └── errors.js     # AppError 错误类
-├── components/       # 自研业务组件
-├── hooks/            # 组合式函数
-├── utils/            # 工具函数
-├── styles/           # 样式文件
-│   ├── uni.scss      # ⭐ Design Tokens
-│   ├── reset.scss    # 全局重置
-│   └── variable.scss # CSS 自定义属性
-└── subPackages/      # 分包页面
-    └── authSub/      # 登录/签约分包
+├── app/                         # 应用启动、配置与路由守卫
+│   ├── config/                  # routes、runtime、startup 配置
+│   └── navigation/              # navigator、routeGuard
+├── shared/                      # 可复用基础设施
+│   ├── api/                     # dispatchClient 与通用接口封装
+│   ├── session/                 # 用户会话与身份状态
+│   ├── model/                   # 通用 Pinia 状态
+│   ├── ui/                      # AppHeader、FixedActionBar 等共享组件
+│   ├── composables/             # 通用组合式函数
+│   └── utils/                   # 工具函数
+├── pages/                       # 主包页面
+├── subPackages/                 # 领域分包
+│   ├── order/                   # 订单：api、model、composables、pages
+│   ├── commerce/                # 商品、购物车、结算
+│   ├── account/                 # 账户、库存、账单
+│   ├── auth/                    # 登录、签约
+│   └── content/                 # 消息、帮助、公告
+├── static/                      # 静态资源
+└── uni.scss                     # Design Tokens
 ```
 
 ---
@@ -180,8 +177,8 @@ src/
    // 2. UniApp
    import { onLaunch, onLoad } from '@dcloudio/uni-app'
    // 3. 项目内部（相对路径）
-   import { dispatch } from '../../shared/api/dispatchClient.js'
-   import { useUserStore } from './store/modules/user.js'
+   import { dispatch } from '@/shared/api/dispatchClient.js'
+   import { useUserStore } from '@/shared/session/userStore.js'
    ```
 4. **Pinia Store 规范**：
    - state 用 `storage.get/set` 持久化关键字段
@@ -268,12 +265,12 @@ src/
      return dispatch('Module', 'Mini.Controller', 'Method', params)
    }
    ```
-6. **在页面层构建 PascalCase 参数**：
+6. **由页面层传入 camelCase 领域参数，API 适配层转换为 PascalCase DTO**：
    ```javascript
    const params = {
-     PageNum: 1,
-     PageSize: 20,
-     Keyword: '搜索关键词',
+      pageNum: 1,
+      pageSize: 20,
+      keyword: '搜索关键词',
    }
    const result = await xxxApi(params)
    ```
@@ -294,13 +291,12 @@ src/
 
 ## 已知注意事项
 
-1. **`utils/request.js` 已废弃** — 所有请求走 `shared/api/dispatchClient.js`
-2. **`store/modules/user.js` 已迁移** — 用户会话现位于 `shared/session/userStore.js`
-3. **`config/routes.js` 已迁移** — 路由常量现位于 `app/config/routes.js`
-4. **`utils/routeGuard.js` 已迁移** — 路由守卫现位于 `app/navigation/routeGuard.js`
-2. **`EmptyState` 组件旧版** — 新版在 `components/AppPageState/`
-3. **`checkAccountStatus()` 未实现** — 后端 Login 接口直接返回错误码表示账号异常
-4. **设备免登未实现** — `autoLogin()` 返回 rejected Promise
+1. **订单 API 不在 `src/api/`** — 使用 `src/subPackages/order/api/orderApi.js`，公共请求入口在 `src/shared/api/`。
+2. **用户会话位于 `shared/session/userStore.js`**，不要恢复旧 `store/modules/user.js` 导入。
+3. **路由常量与守卫分别位于 `app/config/routes.js`、`app/navigation/routeGuard.js`**。
+4. **标题栏与固定操作栏优先复用 `shared/ui/AppHeader/`、`shared/ui/FixedActionBar/`**，禁止页面自行拼接。
+5. **`checkAccountStatus()` 未实现** — 后端 Login 接口直接返回错误码表示账号异常。
+6. **设备免登未实现** — `autoLogin()` 返回 rejected Promise。
 
 ---
 

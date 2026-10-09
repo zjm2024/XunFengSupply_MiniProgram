@@ -165,108 +165,6 @@
                   </view>
                 </view>
 
-                <view class="section-card options-card">
-                  <view class="compact-heading">
-                    <text class="section-title">结算方式</text>
-                    <text class="section-subtitle">提交后不可修改</text>
-                  </view>
-                  <view class="option-grid">
-                    <button
-                      v-for="option in paymentOptions"
-                      :key="option.value"
-                      class="choice-option"
-                      :class="{ active: paymentMode === option.value, disabled: option.disabled }"
-                      :disabled="option.disabled || submitting"
-                      @click="selectPayment(option)"
-                    >
-                      <view class="choice-icon">
-                        <AppIcon :name="option.icon" :size="24" use-original-color />
-                      </view>
-                      <view class="choice-copy">
-                        <text class="choice-title">{{ option.label }}</text>
-                        <text class="choice-desc">{{ option.description }}</text>
-                      </view>
-                      <view class="radio-mark">
-                        <view class="radio-dot"></view>
-                      </view>
-                    </button>
-                  </view>
-                  <view v-if="paymentMode === PAYMENT_MODE.CASH" class="cash-channel-panel">
-                    <view class="channel-heading">
-                      <text class="channel-title">选择支付通道</text>
-                      <text class="channel-tip">订单提交后进入收银台</text>
-                    </view>
-                    <view class="channel-grid">
-                      <button
-                        v-for="channel in cashPaymentChannels"
-                        :key="channel.value"
-                        class="channel-option"
-                        :class="{ active: paymentChannel === channel.value }"
-                        :disabled="submitting"
-                        @click="paymentChannel = channel.value"
-                      >
-                        <view class="channel-left">
-                          <AppIcon :name="channel.icon" :size="28" use-original-color />
-                          <text>{{ channel.label }}</text>
-                        </view>
-                        <view class="channel-radio">
-                          <text v-if="paymentChannel === channel.value">✓</text>
-                        </view>
-                      </button>
-                    </view>
-                  </view>
-                  <view v-if="paymentMode === PAYMENT_MODE.CREDIT" class="allocation-panel credit-settlement-panel">
-                    <view class="channel-heading">
-                      <text class="channel-title">主体授信结算</text>
-                      <text class="channel-tip">本次不扣账户余额，支付成功后形成授信应收账单</text>
-                    </view>
-                    <view class="allocation-total">
-                      <text>本次授信支付</text>
-                      <text>¥{{ formatMoney(payableAmount) }}</text>
-                    </view>
-                    <view class="allocation-total">
-                      <text>支付前可用授信</text>
-                      <text>¥{{ formatMoney(finance.credit.availableAmount) }}</text>
-                    </view>
-                    <text class="credit-hint">订单提交时先暂占额度，授信支付成功后转为已用授信；后续可在对账账单中还款。</text>
-                  </view>
-                  <view v-if="paymentMode === PAYMENT_MODE.COMBINATION" class="allocation-panel">
-                    <view class="channel-heading">
-                      <text class="channel-title">分配支付金额</text>
-                      <text class="channel-tip">仅显示状态正常且已授权参与组合支付的账户</text>
-                    </view>
-                    <view
-                      v-for="account in availablePaymentAccounts"
-                      :key="'balance-' + account.accountCustomerId"
-                      class="allocation-row"
-                    >
-                      <checkbox
-                        :checked="isSourceSelected(balanceKey(account))"
-                        color="#D7192D"
-                        @tap.stop="toggleBalanceAccount(account)"
-                      />
-                      <view class="allocation-copy" @tap="toggleBalanceAccount(account)">
-                        <text class="allocation-name">{{ account.isMaster ? '主账户' : (account.realName || account.username) }}</text>
-                        <text class="allocation-available">可用 ¥{{ formatMoney(account.availableBalance) }} · 冻结 ¥{{ formatMoney(account.frozenBalance) }}</text>
-                      </view>
-                      <input
-                        v-if="isSourceSelected(balanceKey(account))"
-                        class="allocation-input"
-                        type="digit"
-                        :value="allocationAmounts[balanceKey(account)]"
-                        placeholder="0.00"
-                        @input="setAllocationAmount(balanceKey(account), $event.detail.value)"
-                      />
-                    </view>
-                    <text class="credit-hint">提交时暂占主体授信 ¥{{ formatMoney(payableAmount) }}，余额支付成功后自动释放；当前可用授信 ¥{{ formatMoney(finance.credit.availableAmount) }}</text>
-                    <view class="allocation-total">
-                      <text>已分配 ¥{{ formatMoney(allocationTotal) }}</text>
-                      <text>应付 ¥{{ formatMoney(payableAmount) }}</text>
-                    </view>
-                    <text v-if="allocationValidationReason" class="credit-hint">{{ allocationValidationReason }}</text>
-                  </view>
-                </view>
-
                 <view class="section-card detail-card">
                   <view class="setting-row">
                     <view class="setting-label">
@@ -403,7 +301,6 @@ import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
-import { getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import { groupItemsBySpu } from '../../model/cartGrouping.js'
 const userStore = useUserStore()
 const { cartStore, loadCart, flush } = useCart()
@@ -415,8 +312,6 @@ const previewData = ref(null)
 const previewing = ref(false)
 const previewError = ref('')
 const deliveryType = ref(DELIVERY_TYPE.DELIVERY)
-const paymentMode = ref(PAYMENT_MODE.COMBINATION)
-const paymentChannel = ref('wechat')
 const selectedAddress = ref(null)
 const customerRemark = ref('')
 const agreed = ref(false)
@@ -425,16 +320,7 @@ const submitting = ref(false)
 const omitUnavailableGifts = ref(false)
 const clientRequestId = ref('')
 const collapsedCheckoutGroupKeys = ref({})
-const finance = ref(userStore.financeContext)
-const selectedSources = ref([])
-const allocationAmounts = ref({})
 let previewSequence = 0
-
-const cashPaymentChannels = [
-  { value: 'wechat', label: '微信支付', icon: 'pay-wechat' },
-  { value: 'alipay', label: '支付宝', icon: 'pay-alipay' },
-  { value: 'bank-card', label: '银行卡', icon: 'bank' },
-]
 
 const hasAddress = computed(() => Number(selectedAddress.value?.id) > 0)
 const receiverName = computed(() => selectedAddress.value?.name || '')
@@ -491,74 +377,10 @@ const hasPriceChanged = computed(() =>
   Boolean(previewData.value) && Math.abs(localAmount.value - goodsAmount.value) >= 0.01,
 )
 
-const availableCreditAmount = computed(() => Math.max(0, number(finance.value.credit?.availableAmount)))
-const paymentOptions = computed(() => [
-  {
-    value: PAYMENT_MODE.CASH,
-    label: '现款支付',
-    description: '订单提交后在线付款',
-    icon: 'pay-cash',
-    disabled: false,
-  },
-  {
-    value: PAYMENT_MODE.CREDIT,
-    label: '授信支付',
-    description: '使用经销商主体授信赊账，本次不扣账户余额',
-    icon: 'pay-credit',
-    disabled: finance.value.credit?.status !== 1,
-  },
-  {
-    value: PAYMENT_MODE.COMBINATION,
-    label: '账户组合支付',
-    description: '主账户与一个或多个子账户可用余额组合分摊',
-    icon: 'pay-combine',
-    disabled: false,
-  },
-])
-
-const availablePaymentAccounts = computed(() => (finance.value.accounts || []).filter(account =>
-  account.accountStatus === 1
-  && account.financeStatus === 1
-  && account.canParticipateCombinationPay
-))
-const allocationTotal = computed(() => selectedSources.value.reduce(
-  (sum, key) => sum + number(allocationAmounts.value[key]),
-  0,
-))
-const creditEligibilityReason = computed(() => {
-  if (finance.value.credit.status === 2) return '经销商主体授信已冻结，当前禁止下单'
-  if (finance.value.credit.status !== 1) return '经销商主体授信未启用，当前禁止下单'
-  if (payableAmount.value > availableCreditAmount.value) return '订单金额不能超过经销商剩余可用授信'
-  return ''
-})
-const allocationValidationReason = computed(() => {
-  if (paymentMode.value !== PAYMENT_MODE.COMBINATION) return ''
-  if (creditEligibilityReason.value) return creditEligibilityReason.value
-  if (!selectedSources.value.length) return '请至少选择一个余额支付账户'
-  if (selectedSources.value.some(key => number(allocationAmounts.value[key]) <= 0)) {
-    return '已选择资金来源的分摊金额必须大于 0'
-  }
-  for (const account of availablePaymentAccounts.value) {
-    const key = balanceKey(account)
-    if (isSourceSelected(key) && number(allocationAmounts.value[key]) > account.availableBalance) {
-      return (account.realName || account.username || '账户') + '的分摊金额超过可用余额'
-    }
-  }
-  if (Math.abs(allocationTotal.value - payableAmount.value) >= 0.005) {
-    return '分摊合计必须等于订单应付金额'
-  }
-  return ''
-})
 const submitDisabledReason = computed(() => {
-  if (!userStore.canOrder) return finance.value.credit.status === 2
-    ? '经销商主体授信已冻结，当前禁止下单'
-    : '当前账号状态暂不允许提交订单'
-  if (creditEligibilityReason.value) return creditEligibilityReason.value
+  if (!userStore.canOrder) return '当前账号状态暂不允许提交订单'
   if (!hasAddress.value) return '请先新增并选择收货地址'
   if (!stockAvailable.value) return '存在库存不足商品，请调整后重新结算'
-  if (paymentMode.value === PAYMENT_MODE.COMBINATION && allocationValidationReason.value) {
-    return allocationValidationReason.value
-  }
   if (!agreed.value) return '请阅读并同意经销商交易协议'
   if (previewError.value) return '订单核价失败，请重新核价'
   return ''
@@ -567,12 +389,10 @@ const canSubmit = computed(() =>
   checkoutItems.value.length > 0
   && Boolean(previewData.value)
   && userStore.canOrder
-  && !creditEligibilityReason.value
   && hasAddress.value
   && stockAvailable.value
   && !previewError.value
   && agreed.value
-  && (paymentMode.value !== PAYMENT_MODE.COMBINATION || !allocationValidationReason.value)
   && !previewing.value
   && !submitting.value,
 )
@@ -595,16 +415,8 @@ const stateActionText = computed(() =>
   pageState.value === PageStatus.EMPTY ? '返回购物车' : '重新加载',
 )
 const confirmDescription = computed(() => {
-  const paymentText = paymentMode.value === PAYMENT_MODE.COMBINATION
-    ? '账户组合支付'
-    : paymentMode.value === PAYMENT_MODE.CREDIT
-      ? '授信支付'
-      : '现款支付'
-  const channelText = paymentMode.value === PAYMENT_MODE.CASH
-    ? '（' + (cashPaymentChannels.find(item => item.value === paymentChannel.value)?.label || '在线支付') + '）'
-    : ''
   const giftText = omitUnavailableGifts.value ? '；库存不足赠品将不随单赠送' : ''
-  return '本单共 ' + totalQuantity.value + ' 件，将使用' + paymentText + channelText + '完成结算' + giftText + '。'
+  return '本单共 ' + totalQuantity.value + ' 件，提交后请在收银台选择支付方式完成结算' + giftText + '。'
 })
 const confirmPreviewText = computed(() => '应付金额 ¥' + formatMoney(payableAmount.value))
 
@@ -627,58 +439,6 @@ function formatMoney(value) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })
-}
-
-function balanceKey(account) {
-  return 'balance:' + account.accountCustomerId
-}
-
-function isSourceSelected(key) {
-  return selectedSources.value.includes(key)
-}
-
-function setAllocationAmount(key, value) {
-  allocationAmounts.value = { ...allocationAmounts.value, [key]: value }
-}
-
-function toggleBalanceAccount(account) {
-  const key = balanceKey(account)
-  toggleSource(key, Math.min(account.availableBalance, Math.max(0, payableAmount.value - allocationTotal.value)))
-}
-
-function toggleSource(key, suggestedAmount) {
-  if (isSourceSelected(key)) {
-    selectedSources.value = selectedSources.value.filter(item => item !== key)
-    const next = { ...allocationAmounts.value }
-    delete next[key]
-    allocationAmounts.value = next
-    return
-  }
-  selectedSources.value = [...selectedSources.value, key]
-  setAllocationAmount(key, suggestedAmount > 0 ? suggestedAmount.toFixed(2) : '')
-}
-
-function buildAllocations() {
-  return selectedSources.value.map(key => ({
-      payMethod: 'balance',
-      accountCustomerId: Number(key.split(':')[1]),
-      amount: number(allocationAmounts.value[key]),
-  }))
-}
-
-function autoAllocatePayment() {
-  selectedSources.value = []
-  allocationAmounts.value = {}
-  let remaining = payableAmount.value
-  for (const account of availablePaymentAccounts.value) {
-    if (remaining <= 0) break
-    const amount = Math.min(remaining, account.availableBalance)
-    if (amount <= 0) continue
-    const key = balanceKey(account)
-    selectedSources.value.push(key)
-    allocationAmounts.value[key] = amount.toFixed(2)
-    remaining = Number((remaining - amount).toFixed(2))
-  }
 }
 
 function toggleCheckoutGroup(groupKey) {
@@ -776,14 +536,8 @@ async function loadCheckoutData() {
 
     checkoutItems.value = selected.map(item => ({ ...item }))
     await loadDefaultAddress()
-    const [result, financeContext] = await Promise.all([
-      refreshPreview({ silent: true }),
-      getDealerFinanceContext(),
-    ])
+    const result = await refreshPreview({ silent: true })
     if (!result) throw new Error(previewError.value || '订单核价失败')
-    finance.value = financeContext
-    userStore.updateFinanceContext(financeContext)
-    autoAllocatePayment()
     pageState.value = PageStatus.CONTENT
   } catch (error) {
     errorMessage.value = error?.message || '结算信息加载失败，请稍后重试'
@@ -822,14 +576,6 @@ async function refreshPreview({ silent = false } = {}) {
   }
 }
 
-function selectPayment(option) {
-  if (option.disabled || submitting.value) {
-    if (option.disabled) uni.showToast({ title: '当前支付方式不可用', icon: 'none' })
-    return
-  }
-  paymentMode.value = option.value
-}
-
 async function loadDefaultAddress() {
   const list = await getAddressList()
   const currentId = Number(selectedAddress.value?.id) || 0
@@ -859,10 +605,6 @@ async function prepareSubmit() {
     if (!confirmed) return
     omitUnavailableGifts.value = true
   }
-  if (paymentMode.value === PAYMENT_MODE.COMBINATION
-    && Math.abs(allocationTotal.value - payableAmount.value) >= 0.005) {
-    autoAllocatePayment()
-  }
   if (!canSubmit.value) return
   confirmModalVisible.value = true
 }
@@ -883,7 +625,8 @@ async function confirmSubmit() {
       ClientRequestId: clientRequestId.value,
       Items: buildOrderItems(),
       AddressId: addressId.value,
-      PaymentMode: paymentMode.value,
+      // 创建阶段不选择支付方式；收银台确认支付时才写入最终支付模式。
+      PaymentMode: PAYMENT_MODE.CASH,
       DeliveryType: deliveryType.value,
       CustomerRemark: customerRemark.value.trim() || null,
       OmitUnavailableGifts: omitUnavailableGifts.value,
@@ -906,10 +649,7 @@ async function confirmSubmit() {
     }
     cartStore.optimisticRemove(orderedCartIds)
 
-    navigator.redirectTo(routes.order.pay(orderId, {
-      paymentMode: paymentMode.value,
-      paymentChannel: paymentChannel.value,
-    }))
+    navigator.redirectTo(routes.order.pay(orderId))
   } catch (error) {
     if (createdOrders.length) {
       uni.showToast({ title: '订单已创建，支付未完成，请到订单中心继续处理', icon: 'none', duration: 2600 })
@@ -1430,44 +1170,6 @@ function handleStateAction() {
   font-weight: 600;
 }
 
-.option-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 9px;
-  padding: 0 14px;
-}
-
-.choice-option {
-  display: flex;
-  width: 100%;
-  min-height: 62px;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border, #E4E6EB);
-  border-radius: 12px;
-  color: var(--color-text-primary, #111216);
-  background: var(--surface-card, #FFFFFF);
-  text-align: left;
-  box-sizing: border-box;
-
-  &::after {
-    border: 0;
-  }
-
-  &.active {
-    border-color: rgba(215, 25, 45, 0.46);
-    background: #FFFFFF;
-    box-shadow: inset 0 0 0 1px rgba(215, 25, 45, 0.18);
-  }
-
-  &.disabled {
-    color: var(--color-text-disabled, #B2B4BA);
-    background: var(--surface-subtle, #F7F8FA);
-  }
-}
-
 .choice-icon {
   display: flex;
   width: 34px;
@@ -1479,12 +1181,6 @@ function handleStateAction() {
   color: var(--color-text-secondary, #676A73);
   background: var(--surface-subtle, #F7F8FA);
 }
-
-.choice-option.active .choice-icon {
-  color: var(--color-brand, #D7192D);
-  background: #F5F6F8;
-}
-
 
 .choice-copy {
   display: flex;
@@ -1508,182 +1204,6 @@ function handleStateAction() {
   line-height: 16px;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.choice-option.disabled .choice-desc {
-  color: var(--color-text-disabled, #B2B4BA);
-}
-
-.radio-mark {
-  display: flex;
-  width: 18px;
-  height: 18px;
-  flex: 0 0 18px;
-  align-items: center;
-  justify-content: center;
-  border: 1.5px solid var(--color-border-strong, #D2D4D9);
-  border-radius: 50%;
-  box-sizing: border-box;
-}
-
-.choice-option.active .radio-mark {
-  border-color: var(--color-brand, #D7192D);
-}
-
-.radio-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: transparent;
-}
-
-.choice-option.active .radio-dot {
-  background: var(--color-brand, #D7192D);
-}
-
-.credit-hint {
-  display: block;
-  margin: 9px 15px 0;
-  color: var(--color-text-tertiary, #94969C);
-  font-size: 11px;
-  line-height: 16px;
-}
-
-.cash-channel-panel,
-.allocation-panel {
-  margin: 12px 14px 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-divider, #F0F1F3);
-}
-
-.allocation-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 54px;
-  border-bottom: 1px solid var(--color-divider, #F0F1F3);
-}
-
-.allocation-copy {
-  min-width: 0;
-  flex: 1;
-}
-
-.allocation-name,
-.allocation-available {
-  display: block;
-}
-
-.allocation-name {
-  color: var(--color-text-primary, #111216);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.allocation-available {
-  margin-top: 2px;
-  color: var(--color-text-tertiary, #94969C);
-  font-size: 10px;
-}
-
-.allocation-input {
-  width: 88px;
-  height: 34px;
-  padding: 0 8px;
-  border: 1px solid var(--color-border-strong, #D2D4D9);
-  border-radius: 8px;
-  text-align: right;
-  font-size: 13px;
-}
-
-.allocation-total {
-  display: flex;
-  justify-content: space-between;
-  padding-top: 10px;
-  color: var(--color-text-primary, #111216);
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.channel-heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 9px;
-}
-
-.channel-title {
-  color: var(--color-text-primary, #111216);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.channel-tip {
-  color: var(--color-text-tertiary, #94969C);
-  font-size: 10px;
-}
-
-.channel-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.channel-option {
-  display: flex;
-  min-width: 0;
-  height: 48px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin: 0;
-  padding: 0 14px;
-  border: 1px solid var(--color-border, #E4E6EB);
-  border-radius: 10px;
-  color: var(--color-text-secondary, #676A73);
-  background: #FFFFFF;
-  font-size: 13px;
-  white-space: nowrap;
-  text-align: left;
-
-  &::after {
-    border: 0;
-  }
-
-  &.active {
-    border-color: rgba(215, 25, 45, 0.42);
-    color: var(--color-brand, #D7192D);
-    background: #FFFFFF;
-    box-shadow: inset 0 0 0 1px rgba(215, 25, 45, 0.14);
-  }
-}
-
-.channel-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  flex: 1;
-}
-
-.channel-radio {
-  display: grid;
-  width: 20px;
-  height: 20px;
-  flex: 0 0 20px;
-  place-items: center;
-  color: #FFFFFF;
-  background: #FFFFFF;
-  border: 1px solid var(--color-border-strong, #D2D4D9);
-  border-radius: 50%;
-  font-size: 11px;
-  box-sizing: border-box;
-}
-
-.channel-option.active .channel-radio {
-  background: var(--color-brand, #D7192D);
-  border-color: var(--color-brand, #D7192D);
 }
 
 .detail-card {
@@ -1916,12 +1436,6 @@ function handleStateAction() {
   }
 }
 
-@media (min-width: 600px) {
-  .option-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (min-width: 800px) {
   .checkout-grid {
     grid-template-columns: minmax(0, 1.48fr) minmax(320px, 0.82fr);
@@ -1936,14 +1450,6 @@ function handleStateAction() {
   .checkout-main,
   .checkout-side {
     gap: 16px;
-  }
-
-  .checkout-side .option-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .channel-grid {
-    grid-template-columns: minmax(0, 1fr);
   }
 
   .section-card {
@@ -1978,14 +1484,6 @@ function handleStateAction() {
   .contact-block {
     margin-right: 13px;
     margin-left: 62px;
-  }
-
-  .channel-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .channel-option {
-    padding: 0 12px;
   }
 
   .product-list {

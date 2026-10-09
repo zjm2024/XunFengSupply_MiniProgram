@@ -16,13 +16,14 @@
           <!-- 淘宝式订单状态进度 -->
           <OrderStatusProgress
             :status="detail.orderStatus"
+            :payment-status="detail.paymentStatus"
             :fulfillment-status="detail.fulfillmentStatus"
             :text="orderStatusText"
             :description="orderStatusDesc"
           />
 
           <!-- 物流信息 -->
-          <view class="logistics-card" v-if="detail.shipments && detail.shipments.length > 0" @tap="handleAction('logistics')">
+          <view class="logistics-card" v-if="detail.shipments && detail.shipments.length > 0" @tap="handleAction('viewLogistics')">
             <view class="logistics-info">
               <AppIcon name="shipping" :size="20" color="#67C23A" />
               <view class="logistics-text">
@@ -110,11 +111,26 @@
             </view>
             <view class="info-row">
               <text class="info-label">结算方式</text>
-              <text class="info-value">{{ paymentModeText(detail.paymentMode) }}</text>
+              <text class="info-value">{{ paymentModeText(detail.paymentMode, detail.paymentStatus, detail.orderStatus) }}</text>
+            </view>
+            <view class="info-row">
+              <text class="info-label">支付状态</text>
+              <text class="info-value" :style="{ color: paymentStatus.color }">{{ paymentStatus.text }}</text>
             </view>
             <view class="info-row" v-if="detail.customerRemark">
               <text class="info-label">发货备注</text>
               <text class="info-value">{{ detail.customerRemark }}</text>
+            </view>
+          </view>
+
+          <view
+            v-if="detail.orderStatus === ORDER_STATUS.CANCELLED && cancellationReasonText"
+            class="info-card cancellation-card"
+          >
+            <view class="card-title">取消说明</view>
+            <view class="info-row">
+              <text class="info-label">取消原因</text>
+              <text class="info-value cancellation-reason">{{ cancellationReasonText }}</text>
             </view>
           </view>
 
@@ -195,9 +211,9 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getOrderDetail, confirmReceipt, generateClientRequestId } from '../../api/orderApi.js'
-import { FULFILLMENT_STATUS, ORDER_STATUS, ORDER_STATUS_MAP, PAYMENT_MODE, PAYMENT_STATUS } from '@/app/config/constant.js'
+import { FULFILLMENT_STATUS, ORDER_STATUS, ORDER_STATUS_MAP, PAYMENT_MODE, PAYMENT_STATUS, PAYMENT_STATUS_MAP } from '@/app/config/constant.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -211,6 +227,7 @@ import { routes } from '@/app/config/routes.js'
 import { batchAddToCart } from '@/shared/api/cartApi.js'
 import { buildReorderCartItems } from '../../domain/reorderCart.js'
 import { formatDateTime } from '../../../../shared/utils/format.js'
+import { getOrderActionButtons } from '../../model/orderActions.js'
 
 
 const orderId = ref(null)
@@ -223,6 +240,10 @@ onLoad(async (options) => {
     orderId.value = Number(options.orderId)
     await loadOrderDetail()
   }
+})
+
+onShow(() => {
+  if (orderId.value) loadOrderDetail()
 })
 
 /**
@@ -248,10 +269,14 @@ const fullAddress = computed(() => {
 
 // 状态文本映射
 const orderStatusText = computed(() => {
+  if (isActivePaymentPending.value) return paymentProgressTitle.value
+  if (isPaymentConfirmedBeforeProcessing.value) return '处理中'
   return ORDER_STATUS_MAP[detail.value?.orderStatus]?.text || '未知'
 })
 
 const orderStatusDesc = computed(() => {
+  if (isActivePaymentPending.value) return paymentProgressDescription.value
+  if (isPaymentConfirmedBeforeProcessing.value) return '支付已确认，正在为您安排发货'
   const map = {
     [ORDER_STATUS.DRAFT]: '订单已创建',
     [ORDER_STATUS.PENDING_REVIEW]: '您的订单正在由品牌方审核中',
@@ -271,6 +296,49 @@ const processingStatusDescription = computed(() => {
   if (fulfillmentStatus >= FULFILLMENT_STATUS.SHIPPED) return '商品已发出，请留意物流进度'
   if (fulfillmentStatus >= FULFILLMENT_STATUS.PICKING) return '商品正在备货，请耐心等待发出'
   return '订单已确认，正在为您安排发货'
+})
+
+const isActivePaymentPending = computed(() => {
+  const status = Number(detail.value?.orderStatus)
+  const paymentStatus = Number(detail.value?.paymentStatus)
+  return (status === ORDER_STATUS.PENDING_PAYMENT && paymentStatus !== PAYMENT_STATUS.CONFIRMED)
+    || (status === ORDER_STATUS.PROCESSING
+      && paymentStatus !== PAYMENT_STATUS.CONFIRMED)
+})
+
+const isPaymentConfirmedBeforeProcessing = computed(() => {
+  return Number(detail.value?.orderStatus) === ORDER_STATUS.PENDING_PAYMENT
+    && Number(detail.value?.paymentStatus) === PAYMENT_STATUS.CONFIRMED
+})
+
+const paymentProgressTitle = computed(() => {
+  const status = Number(detail.value?.paymentStatus)
+  if (status === PAYMENT_STATUS.PAYING) return '支付处理中'
+  if (status === PAYMENT_STATUS.PARTIALLY_PAID) return '部分支付'
+  if (status === PAYMENT_STATUS.FAILED) return '支付失败'
+  if (status === PAYMENT_STATUS.UNKNOWN) return '支付结果待确认'
+  return '待付款'
+})
+
+const paymentProgressDescription = computed(() => {
+  const status = Number(detail.value?.paymentStatus)
+  if (status === PAYMENT_STATUS.PAYING) return '支付结果确认中，请稍候刷新订单状态'
+  if (status === PAYMENT_STATUS.PARTIALLY_PAID) return '订单尚未完成全额支付，请继续完成付款'
+  if (status === PAYMENT_STATUS.FAILED) return '本次支付未完成，请重新发起支付'
+  if (status === PAYMENT_STATUS.UNKNOWN) return '支付结果待确认，请勿重复支付'
+  return '请在付款时限内完成支付'
+})
+
+const paymentStatus = computed(() => {
+  return PAYMENT_STATUS_MAP[detail.value?.paymentStatus]
+    || { text: '支付状态未知', color: '#707783' }
+})
+
+const cancellationReasonText = computed(() => {
+  if (!detail.value?.cancellationReason) return ''
+  return detail.value.cancellationReasonCode === 'PAYMENT_TIMEOUT'
+    ? `${detail.value.cancellationReason}（本地库存占用已释放）`
+    : detail.value.cancellationReason
 })
 
 /** 仅使用客户旅程节点生成时间线，不渲染 ERP、WMS、Outbox 等内部日志。 */
@@ -296,7 +364,7 @@ const customerTimeline = computed(() => {
   return timeline
 })
 
-// 可用操作按钮（基于后端 AllowedActions 或前端状态映射）
+// 可用操作按钮由服务端 AllowedActions 决定，前端只做统一展示。
 const actionButtons = computed(() => {
   if (!detail.value) return []
 
@@ -306,45 +374,18 @@ const actionButtons = computed(() => {
     type: reordering.value ? 'disabled' : 'default',
   }
 
-  // 优先使用后端返回的 AllowedActions
-  if (detail.value.allowedActions && detail.value.allowedActions.length > 0) {
-    const mappedActions = detail.value.allowedActions.map(action => {
-      const actionMap = {
-        'pay': { key: 'pay', label: '立即付款', type: 'primary' },
-        'splitFulfillment': { key: 'splitFulfillment', label: '安排多地配送', type: 'primary' },
-        'viewFulfillmentSplits': { key: 'splitFulfillment', label: '查看配送安排', type: 'default' },
-        'cancel': { key: 'cancel', label: '取消订单', type: 'default' },
-        'confirm_receipt': { key: 'receive', label: '确认收货', type: 'primary' },
-        'confirmReceipt': { key: 'receive', label: '确认收货', type: 'primary' },
-        'logistics': detail.value.shipments?.length ? null : { key: 'logistics', label: '查看物流', type: 'default' },
-        'after_sale': { key: 'afterSale', label: '申请售后', type: 'default' },
-        'afterSale': { key: 'afterSale', label: '申请售后', type: 'default' },
-      }
-      return actionMap[action] || null
-    }).filter(Boolean)
-    return [reorderAction, ...mappedActions]
-      .sort((left, right) => Number(left.type === 'primary') - Number(right.type === 'primary'))
-  }
-
-  // 降级：前端状态映射
-  const s = detail.value.orderStatus
-  const actions = [reorderAction]
-  if (s === ORDER_STATUS.PENDING_PAYMENT) actions.push({ key: 'pay', label: '立即付款', type: 'primary' })
-  if ([ORDER_STATUS.PENDING_REVIEW, ORDER_STATUS.PENDING_PAYMENT].includes(s)) {
-    actions.push({ key: 'cancel', label: '取消订单', type: 'default' })
-  }
-  const fulfillmentStatus = Number(detail.value.fulfillmentStatus || 0)
-  if (s === ORDER_STATUS.PROCESSING && fulfillmentStatus >= FULFILLMENT_STATUS.SHIPPED) {
-    actions.push({ key: 'receive', label: '确认收货', type: 'primary' })
-  }
-  if (fulfillmentStatus >= FULFILLMENT_STATUS.SHIPPED) {
-    actions.push({ key: 'logistics', label: '查看物流', type: 'default' })
-    actions.push({ key: 'afterSale', label: '申请售后', type: 'default' })
-  }
-  return actions
+  return [reorderAction, ...getOrderActionButtons(detail.value.allowedActions)]
+    .sort((left, right) => Number(left.type === 'primary') - Number(right.type === 'primary'))
 })
 
-function paymentModeText(mode) {
+function paymentModeText(mode, paymentStatus, orderStatus) {
+  const pendingPayment = Number(orderStatus) === ORDER_STATUS.PENDING_PAYMENT
+    && [PAYMENT_STATUS.UNPAID, PAYMENT_STATUS.PAYING, PAYMENT_STATUS.PARTIALLY_PAID,
+      PAYMENT_STATUS.FAILED, PAYMENT_STATUS.UNKNOWN].includes(Number(paymentStatus))
+  if (pendingPayment && Number(paymentStatus) === PAYMENT_STATUS.UNPAID) return '待选择支付方式'
+  if (Number(orderStatus) === ORDER_STATUS.CANCELLED && Number(paymentStatus) !== PAYMENT_STATUS.CONFIRMED) {
+    return '未完成支付'
+  }
   return ({
     [PAYMENT_MODE.CASH]: '现款支付',
     [PAYMENT_MODE.CREDIT]: '授信支付',
@@ -397,13 +438,10 @@ async function handleAction(key) {
     case 'pay':
       navigator.navigateTo(routes.order.pay(orderId.value))
       break
-    case 'splitFulfillment':
-      navigator.navigateTo(routes.order.fulfillmentSplit(orderId.value))
-      break
     case 'cancel':
       navigator.navigateTo(routes.order.cancelOrder(orderId.value))
       break
-    case 'receive':
+    case 'confirmReceipt':
       uni.showModal({
         title: '提示',
         content: '确定已收到商品吗？',
@@ -423,7 +461,7 @@ async function handleAction(key) {
         }
       })
       break
-    case 'logistics':
+    case 'viewLogistics':
       if (detail.value?.shipments?.[0]?.trackingNo) {
         copyText(detail.value.shipments[0].trackingNo)
         uni.showToast({ title: '复制成功', icon: 'none' })

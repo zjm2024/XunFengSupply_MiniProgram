@@ -1,7 +1,7 @@
 ﻿﻿<!--
   付款页面（分包：paySub）
   对应业务流程节点：
-  购物车&下单结算 → 结算二选一【现款支付 / 授信赊账】
+  购物车&确认订单 → 独立收银台选择支付方式并完成支付
 -->
 <template>
   <AppPageShell>
@@ -32,36 +32,44 @@
             </view>
           </view>
 
-          <!-- 现款支付方式 -->
-          <view class="pay-methods" v-if="payMode === 1">
+          <view class="pay-methods mode-panel">
             <view class="method-title">选择支付方式</view>
-            <view 
-              class="method-item" 
-              :class="{ active: payType === 'wechat' }"
-              @click="payType = 'wechat'"
+            <text class="method-tip">支付方式仅在本次收银台确认时生效</text>
+            <button
+              v-for="method in paymentModeOptions"
+              :key="method.value"
+              class="payment-mode-option"
+              :class="{ active: payMode === method.value, disabled: method.disabled }"
+              :disabled="method.disabled || paying || paymentExpired || !orderPayable"
+              @click="selectPaymentMode(method)"
             >
-              <view class="method-icon wechat"><AppIcon name="wechat-pay" :size="28" /></view>
-              <text class="method-name">微信支付</text>
-              <view class="check-circle" :class="{ checked: payType === 'wechat' }"></view>
-            </view>
-            <view 
-              class="method-item" 
-              :class="{ active: payType === 'alipay' }"
-              @click="payType = 'alipay'"
+              <view class="mode-icon"><AppIcon :name="method.icon" :size="23" use-original-color /></view>
+              <view class="mode-copy">
+                <text>{{ method.label }}</text>
+                <text>{{ method.description }}</text>
+              </view>
+              <view class="mode-radio"><text v-if="payMode === method.value">✓</text></view>
+            </button>
+          </view>
+
+          <view v-if="payMode === PAYMENT_MODE.CASH" class="pay-methods channel-panel">
+            <view class="method-title">在线支付通道</view>
+            <text class="method-tip">请选择常用支付方式；通道开通后可在此直接支付</text>
+            <button
+              v-for="channel in cashPaymentMethods"
+              :key="channel.key"
+              class="payment-mode-option channel-option"
+              :class="{ active: payType === channel.key }"
+              :disabled="paying || paymentExpired || !orderPayable"
+              @click="payType = channel.key"
             >
-              <view class="method-icon alipay"><AppIcon name="pay-alipay" :size="28" use-original-color /></view>
-              <text class="method-name">支付宝</text>
-              <view class="check-circle" :class="{ checked: payType === 'alipay' }"></view>
-            </view>
-            <view
-              class="method-item"
-              :class="{ active: payType === 'bank-card' }"
-              @click="payType = 'bank-card'"
-            >
-              <view class="method-icon bank-card"><AppIcon name="bank" :size="26" /></view>
-              <text class="method-name">银行卡支付</text>
-              <view class="check-circle" :class="{ checked: payType === 'bank-card' }"></view>
-            </view>
+              <view class="mode-icon"><AppIcon :name="channel.icon" :size="23" use-original-color /></view>
+              <view class="mode-copy">
+                <text>{{ channel.label }}</text>
+                <text>{{ channel.description }}</text>
+              </view>
+              <view class="mode-radio"><text v-if="payType === channel.key">✓</text></view>
+            </button>
           </view>
 
           <!-- 授信赊账信息 -->
@@ -147,11 +155,11 @@
 
 <script setup>
 import { ref, computed, onUnmounted } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getOrderDetail } from '../../api/orderApi.js'
 import { parseUtcToLocal } from '../../../../shared/utils/format.js'
 import { useUserStore } from '@/shared/session/userStore.js'
-import { PAYMENT_MODE, ORDER_STATUS } from '@/app/config/constant.js'
+import { PAYMENT_MODE, ORDER_STATUS, PAYMENT_STATUS } from '@/app/config/constant.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -165,7 +173,7 @@ const userStore = useUserStore()
 
 const orderId = ref(null)
 const orderNo = ref('')
-const payMode = ref(PAYMENT_MODE.CASH)     // 1现款 2授信
+const payMode = ref(PAYMENT_MODE.CASH)     // 1现款 2授信 3账户组合
 const payAmount = ref(0)    // 单位：元（后端返回元）
 const payType = ref('wechat') // wechat/alipay/bank-card
 const paying = ref(false)
@@ -195,21 +203,28 @@ const allocationTotal = computed(() => selectedAccountIds.value.reduce(
   (sum, id) => sum + Number(allocationAmounts.value[id] || 0), 0,
 ))
 const availableCreditAmount = computed(() => Math.max(0, Number(finance.value.credit?.availableAmount || 0)))
+const paymentModeOptions = computed(() => [
+  { value: PAYMENT_MODE.CASH, label: '现款支付', description: '通过微信、支付宝或银行卡在线付款', icon: 'pay-cash', disabled: false },
+  { value: PAYMENT_MODE.CREDIT, label: '授信支付', description: '使用经销商主体授信结算，生成应收账单', icon: 'pay-credit', disabled: Number(finance.value.credit?.status) !== 1 },
+  { value: PAYMENT_MODE.COMBINATION, label: '账户组合支付', description: '使用主账户或子账户余额分摊结算', icon: 'pay-combine', disabled: false },
+])
+const cashPaymentMethods = [
+  { key: 'wechat', label: '微信支付', description: '推荐使用微信安全支付', icon: 'pay-wechat' },
+  { key: 'alipay', label: '支付宝', description: '支付宝快捷支付', icon: 'pay-alipay' },
+  { key: 'bank-card', label: '银行卡支付', description: '支持已开通网银的银行卡', icon: 'bank' },
+]
 onLoad(async (options) => {
   orderId.value = Number(options.orderId) || null
-  payMode.value = Number(options.paymentMode) || PAYMENT_MODE.CASH
-  if (['wechat', 'alipay', 'bank-card'].includes(options.paymentChannel)) {
-    payType.value = options.paymentChannel
-  }
 
   // 从订单详情获取实际金额
   if (orderId.value) {
     await loadOrderInfo()
-    if (payMode.value === PAYMENT_MODE.CREDIT || payMode.value === PAYMENT_MODE.COMBINATION) {
-      finance.value = await getDealerFinanceContext()
-      if (payMode.value === PAYMENT_MODE.COMBINATION) autoAllocate()
-    }
+    if (orderPayable.value) await loadFinanceContext()
   }
+})
+
+onShow(() => {
+  if (orderId.value && !paying.value) loadOrderInfo()
 })
 
 onUnmounted(() => {
@@ -287,8 +302,11 @@ async function loadOrderInfo() {
     const res = await getOrderDetail(orderId.value)
     orderNo.value = res.orderNo || ''
     payAmount.value = Number(res.payableAmount || 0)
-    payMode.value = res.paymentMode || payMode.value
-    if (Number(res.orderStatus) !== ORDER_STATUS.PENDING_PAYMENT) {
+    const canPay = Number(res.orderStatus) === ORDER_STATUS.PENDING_PAYMENT
+      && [PAYMENT_STATUS.UNPAID, PAYMENT_STATUS.FAILED].includes(Number(res.paymentStatus))
+      && Array.isArray(res.allowedActions)
+      && res.allowedActions.includes('pay')
+    if (!canPay) {
       handlePaymentUnavailable()
       return
     }
@@ -296,6 +314,24 @@ async function loadOrderInfo() {
   } catch (e) {
     console.error('加载订单信息失败:', e)
     uni.showToast({ title: e.message || '加载订单信息失败', icon: 'none' })
+  }
+}
+
+async function loadFinanceContext() {
+  try {
+    finance.value = await getDealerFinanceContext()
+    if (payMode.value === PAYMENT_MODE.COMBINATION) autoAllocate()
+  } catch (error) {
+    console.error('加载收银台资金信息失败:', error)
+    uni.showToast({ title: error?.message || '资金信息加载失败', icon: 'none' })
+  }
+}
+
+async function selectPaymentMode(method) {
+  if (method.disabled || paying.value || paymentExpired.value || !orderPayable.value) return
+  payMode.value = method.value
+  if (method.value === PAYMENT_MODE.CREDIT || method.value === PAYMENT_MODE.COMBINATION) {
+    await loadFinanceContext()
   }
 }
 
@@ -321,6 +357,7 @@ async function handleConfirmPay() {
       await confirmDealerOrderPayment({
         orderId: orderId.value,
         clientRequestId: `credit-pay-${orderId.value}-${Date.now()}`,
+        paymentMode: PAYMENT_MODE.CREDIT,
         allocations: [{ payMethod: 'credit', accountCustomerId: null, amount: payAmount.value }],
       })
       return handlePaid()
@@ -342,6 +379,7 @@ async function handleConfirmPay() {
       await confirmDealerOrderPayment({
         orderId: orderId.value,
         clientRequestId: `balance-pay-${orderId.value}-${Date.now()}`,
+        paymentMode: PAYMENT_MODE.COMBINATION,
         allocations: selectedAccountIds.value.map(id => ({
           payMethod: 'balance',
           accountCustomerId: Number(id),
@@ -407,19 +445,21 @@ function handlePaid() {
 .deadline-note { margin-top: 2px; color: rgba(255,255,255,.7); font-size: var(--type-micro-size, 11px); }
 .deadline-panel.is-expired .deadline-note { color: #8B5A55; }
 .deadline-time { flex: 0 0 auto; font-size: 25px; font-weight: 760; font-variant-numeric: tabular-nums; letter-spacing: .5px; }
-.pay-methods, .credit-info { margin-top: 14px; padding: 17px 16px; border-radius: var(--radius-card, 14px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-.method-title, .credit-title { color: var(--type-title-color); font-size: var(--type-card-title-size, 16px); font-weight: 700; }
-.method-item { display: flex; min-height: 58px; align-items: center; border-bottom: 1px solid #EEF0F2; }
-.method-item:last-child { border-bottom: 0; }
-.method-item.active .method-name { color: var(--color-brand, #D7192D); font-weight: 650; }
-.method-icon { display: flex; width: 36px; height: 36px; flex: 0 0 36px; align-items: center; justify-content: center; margin-right: 12px; border-radius: var(--radius-control, 10px); }
-.method-icon.wechat { color: #FFF; background: #07C160; }
-.method-icon.alipay { background: #EAF3FF; }
-.method-icon.bank-card { color: #4E5664; background: #F2F3F5; }
-.method-name { min-width: 0; flex: 1; color: var(--type-body-color); font-size: var(--type-body-size, 14px); }
-.check-circle { position: relative; width: 20px; height: 20px; border: 1px solid var(--color-border, #DDE0E4); border-radius: 50%; box-sizing: border-box; }
-.check-circle.checked { border-color: var(--color-brand, #D7192D); background: var(--color-brand, #D7192D); }
-.check-circle.checked::after { content: '✓'; position: absolute; top: 50%; left: 50%; color: #FFF; font-size: 12px; transform: translate(-50%, -52%); }
+.credit-info { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; padding: 17px 16px; border-radius: var(--radius-card, 14px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.pay-methods { margin-top: 14px; padding: 17px 16px; border-radius: var(--radius-card, 14px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.method-title { color: var(--type-title-color); font-size: var(--type-card-title-size, 16px); font-weight: 700; }
+.method-tip { display: block; margin-top: 4px; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); line-height: var(--type-micro-line-height, 16px); }
+.payment-mode-option { display: flex; width: 100%; min-height: 62px; align-items: center; gap: 11px; margin: 10px 0 0; padding: 10px 0; border: 0; border-top: 1px solid #EEF0F2; border-radius: 0; color: inherit; background: transparent; text-align: left; line-height: normal; }
+.payment-mode-option::after { border: 0; }
+.payment-mode-option.active .mode-copy > text:first-child { color: var(--color-brand, #D7192D); }
+.payment-mode-option.disabled { opacity: .45; }
+.mode-icon { display: flex; width: 38px; height: 38px; flex: 0 0 auto; align-items: center; justify-content: center; border-radius: var(--radius-control, 10px); background: var(--surface-subtle, #F7F8FA); }
+.mode-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3px; }
+.mode-copy > text:first-child { color: var(--type-title-color); font-size: var(--type-body-size, 14px); font-weight: 650; }
+.mode-copy > text:last-child { overflow: hidden; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); line-height: var(--type-micro-line-height, 16px); text-overflow: ellipsis; white-space: nowrap; }
+.mode-radio { display: flex; width: 18px; height: 18px; flex: 0 0 auto; align-items: center; justify-content: center; border: 1px solid var(--color-border, #D9DDE3); border-radius: 50%; box-sizing: border-box; color: #FFF; font-size: 11px; }
+.active .mode-radio { border-color: var(--color-brand, #D7192D); background: var(--color-brand, #D7192D); }
+.credit-title { color: var(--type-title-color); font-size: var(--type-card-title-size, 16px); font-weight: 700; }
 .credit-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 .credit-level { padding: 3px 9px; border-radius: var(--radius-full, 999px); color: var(--color-brand, #D7192D); background: #FFF0F2; font-size: var(--type-micro-size, 11px); }
 .credit-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; min-height: 44px; border-bottom: 1px solid #EEF0F2; }

@@ -57,8 +57,18 @@ const FULFILLMENT_STATUS = Object.freeze({
   COMPLETED: 6,
 })
 
+const PAYMENT_STATUS = Object.freeze({
+  UNPAID: 0,
+  PAYING: 1,
+  PARTIALLY_PAID: 2,
+  CONFIRMED: 3,
+  FAILED: 4,
+  UNKNOWN: 5,
+})
+
 const props = defineProps({
   status: { type: [Number, String], default: 0 },
+  paymentStatus: { type: [Number, String], default: 0 },
   fulfillmentStatus: { type: [Number, String], default: 0 },
   text: { type: String, default: '订单状态更新中' },
   description: { type: String, default: '' },
@@ -72,6 +82,7 @@ const steps = Object.freeze([
 ])
 
 const normalizedStatus = computed(() => Number(props.status))
+const normalizedPaymentStatus = computed(() => Number(props.paymentStatus))
 const normalizedFulfillmentStatus = computed(() => Number(props.fulfillmentStatus))
 const isCancelled = computed(() => normalizedStatus.value === ORDER_STATUS.CANCELLED)
 const isCancelling = computed(() => normalizedStatus.value === ORDER_STATUS.CANCELLING)
@@ -81,8 +92,18 @@ const showProgress = computed(() => !isCancelled.value && !isCancelling.value &&
 const currentIndex = computed(() => {
   const status = normalizedStatus.value
   if (status === ORDER_STATUS.COMPLETED || normalizedFulfillmentStatus.value >= FULFILLMENT_STATUS.COMPLETED) return 3
-  if (status === ORDER_STATUS.PROCESSING && normalizedFulfillmentStatus.value >= FULFILLMENT_STATUS.SHIPPED) return 2
-  if (status === ORDER_STATUS.PENDING_PAYMENT || status === ORDER_STATUS.PROCESSING) return 1
+  if (status === ORDER_STATUS.DRAFT
+      || status === ORDER_STATUS.PENDING_REVIEW
+      || status === ORDER_STATUS.REVIEW_REJECTED) return 0
+  if (status === ORDER_STATUS.PENDING_PAYMENT) {
+    return normalizedPaymentStatus.value === PAYMENT_STATUS.CONFIRMED ? 2 : 1
+  }
+  if (status === ORDER_STATUS.PROCESSING) {
+    if (normalizedPaymentStatus.value !== PAYMENT_STATUS.CONFIRMED) return 1
+    if (normalizedFulfillmentStatus.value >= FULFILLMENT_STATUS.SHIPPED) return 2
+    return 2
+  }
+  if (normalizedPaymentStatus.value === PAYMENT_STATUS.CONFIRMED) return 2
   return 0
 })
 
@@ -101,6 +122,11 @@ const badgeText = computed(() => {
   if (isCancelled.value) return '已结束'
   if (isCancelling.value) return '处理中'
   if (isRejected.value) return '未通过'
+  if (normalizedPaymentStatus.value === PAYMENT_STATUS.UNPAID) return '待付款'
+  if (normalizedPaymentStatus.value === PAYMENT_STATUS.PAYING) return '支付中'
+  if (normalizedPaymentStatus.value === PAYMENT_STATUS.PARTIALLY_PAID) return '部分支付'
+  if (normalizedPaymentStatus.value === PAYMENT_STATUS.FAILED) return '支付失败'
+  if (normalizedPaymentStatus.value === PAYMENT_STATUS.UNKNOWN) return '待确认'
   if (normalizedStatus.value === ORDER_STATUS.COMPLETED) return '已完成'
   return '进行中'
 })
