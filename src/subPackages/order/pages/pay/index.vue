@@ -16,7 +16,14 @@
             <text class="pay-label">{{ payMode === 1 ? '应付金额' : '赊账金额' }}</text>
             <text class="amount">¥{{ Number(payAmount || 0).toFixed(2) }}</text>
             <text class="order-no">订单号 {{ orderNo }}</text>
-            <view v-if="!paymentExpired && remainTime > 0" class="deadline-panel">
+            <view v-if="confirmationPending" class="deadline-panel">
+              <view class="deadline-copy">
+                <text class="deadline-label">订单确认中</text>
+                <text class="deadline-note">现在可以支付；暂不支付将在确认通过后开始计算付款时限</text>
+              </view>
+              <AppIcon name="info" :size="18" color="#667085" />
+            </view>
+            <view v-else-if="!paymentExpired && remainTime > 0" class="deadline-panel">
               <view class="deadline-copy">
                 <text class="deadline-label">剩余支付时间</text>
                 <text class="deadline-note">逾期订单将自动关闭</text>
@@ -179,6 +186,7 @@ const payType = ref('wechat') // wechat/alipay/bank-card
 const paying = ref(false)
 const remainTime = ref(0)   // 剩余时间（秒）
 const paymentExpired = ref(false)
+const confirmationPending = ref(false)
 const finance = ref({ credit: {}, accounts: [] })
 const cashPaymentAvailable = false
 const selectedAccountIds = ref([])
@@ -280,8 +288,16 @@ function handlePaymentUnavailable() {
 }
 
 function syncPaymentCountdown(order) {
+  const reviewStatus = Number(order.erpReviewStatus)
+  confirmationPending.value = reviewStatus === 1
   const explicitExpiryAt = order.paymentExpiresAt ? parseUtcToLocal(order.paymentExpiresAt).getTime() : Number.NaN
   const createdAt = order.createdAt ? parseUtcToLocal(order.createdAt).getTime() : Number.NaN
+  if (Number.isNaN(explicitExpiryAt) && reviewStatus !== 0) {
+    paymentExpiryAtMs = Number.NaN
+    remainTime.value = 0
+    paymentExpired.value = false
+    return
+  }
   paymentExpiryAtMs = Number.isNaN(explicitExpiryAt) ? createdAt + 15 * 60 * 1000 : explicitExpiryAt
   if (Number.isNaN(paymentExpiryAtMs)) return
   const serverAt = order.serverTime ? parseUtcToLocal(order.serverTime).getTime() : Number.NaN
@@ -344,7 +360,7 @@ async function handleConfirmPay() {
     handlePaymentUnavailable()
     return
   }
-  if (paymentExpired.value || remainTime.value <= 0) {
+  if (paymentExpired.value || (!confirmationPending.value && remainTime.value <= 0)) {
     handlePaymentExpired()
     return
   }

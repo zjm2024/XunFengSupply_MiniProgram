@@ -23,6 +23,10 @@
               </view>
             </view>
 
+            <view v-if="lastSplitFailureReason" class="notice-card">
+              上次配送安排未通过：{{ lastSplitFailureReason }}。请调整后重新提交。
+            </view>
+
             <template v-if="existingSplits.length">
               <view class="section-heading">
                 <text>配送单</text>
@@ -213,6 +217,7 @@ const orderNo = computed(() => valueOf(context.value, 'orderNo', 'OrderNo', ''))
 const disabledReason = computed(() => valueOf(context.value, 'disabledReason', 'DisabledReason', ''))
 const sourceItems = computed(() => valueOf(context.value, 'items', 'Items', []) || [])
 const existingSplits = computed(() => valueOf(context.value, 'splits', 'Splits', []) || [])
+const lastSplitFailureReason = computed(() => valueOf(context.value, 'lastSplitFailureReason', 'LastSplitFailureReason', ''))
 const canEdit = computed(() => valueOf(context.value, 'canSplit', 'CanSplit', false) === true)
 const addressLabels = computed(() => addresses.value.map(item => `${item.name} ${item.phone}｜${item.fullAddress}`))
 const addressIds = computed(() => addresses.value.map(item => item.id))

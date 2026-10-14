@@ -209,9 +209,11 @@ function analyzeSubpackages(stats) {
 
   let totalSubSize = 0
   const results = []
+  // scanDir 按目录层级保存 dirs；分包实际位于顶层 subPackages 下，不能从根 dirs 直接取 subPackages/auth。
+  const subpackageDirs = stats.dirs.subPackages?.dirs || {}
 
   for (const sp of subpackages) {
-    const dir = stats.dirs[sp.key]
+    const dir = subpackageDirs[sp.name]
     if (!dir) {
       warn(`分包目录不存在: ${sp.key}`)
       continue

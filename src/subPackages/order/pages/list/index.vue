@@ -319,6 +319,30 @@ const ORDER_STATUS_TYPE_MAP = Object.freeze({
   [ORDER_STATUS.CANCELLED]: 'default',
 })
 
+const ERP_REVIEW_STATUS = Object.freeze({
+  LEGACY_UNTRACKED: 0,
+  PENDING: 1,
+  APPROVED: 2,
+  REJECTED: 3,
+  REJECTED_AFTER_SHIPMENT: 4,
+  DECISION_CONFLICT: 5,
+})
+
+/** ERP 审核在客户端统一表达为“订单确认”，不暴露内部审核节点。 */
+function getConfirmationDisplay(order) {
+  const status = Number(order?.erpReviewStatus)
+  if (status === ERP_REVIEW_STATUS.PENDING) {
+    return { text: '订单确认中', type: 'info', help: order?.confirmationMessage || '正在确认订单，结果将通过消息通知' }
+  }
+  if (status === ERP_REVIEW_STATUS.REJECTED) {
+    return { text: '订单未通过确认', type: 'error', help: order?.erpReviewReasonMessage || '订单已取消，详情中可查看原因' }
+  }
+  if (status === ERP_REVIEW_STATUS.REJECTED_AFTER_SHIPMENT || status === ERP_REVIEW_STATUS.DECISION_CONFLICT) {
+    return { text: '订单确认待处理', type: 'error', help: '订单确认结果异常，客服正在处理' }
+  }
+  return null
+}
+
 /**
  * 订单主状态和支付状态必须分开展示，但支付未完成时，列表主标签要优先提示用户付款。
  * 这样可以避免订单主状态已经进入处理中、支付投影仍未确认时显示成“履约中”。
@@ -355,13 +379,16 @@ function getConfirmedPaymentDisplay(order) {
 }
 
 function getStatusText(order) {
-  return getPaymentDisplay(order)?.text
+  return getConfirmationDisplay(order)?.text
+    || getPaymentDisplay(order)?.text
     || getConfirmedPaymentDisplay(order)?.text
     || ORDER_STATUS_MAP[Number(order?.orderStatus)]?.text
     || '状态更新中'
 }
 
 function getStatusType(order) {
+  const confirmationDisplay = getConfirmationDisplay(order)
+  if (confirmationDisplay) return confirmationDisplay.type
   const paymentDisplay = getPaymentDisplay(order)
   if (paymentDisplay) return paymentDisplay.type
   const confirmedPaymentDisplay = getConfirmedPaymentDisplay(order)
@@ -371,15 +398,17 @@ function getStatusType(order) {
 }
 
 function getStatusHelp(order) {
+  const confirmationDisplay = getConfirmationDisplay(order)
+  if (confirmationDisplay) return confirmationDisplay.help
   const paymentDisplay = getPaymentDisplay(order)
   if (paymentDisplay) return paymentDisplay.help
   const confirmedPaymentDisplay = getConfirmedPaymentDisplay(order)
   if (confirmedPaymentDisplay) return confirmedPaymentDisplay.help
   const status = Number(order?.orderStatus)
   const map = {
-    [ORDER_STATUS.PENDING_REVIEW]: '订单已提交，等待品牌方审核',
-    [ORDER_STATUS.REVIEW_REJECTED]: '审核未通过，可查看订单了解原因',
-    [ORDER_STATUS.PENDING_PAYMENT]: '审核已通过，请及时完成付款',
+    [ORDER_STATUS.PENDING_REVIEW]: '历史订单状态，正在同步最新确认结果',
+    [ORDER_STATUS.REVIEW_REJECTED]: '历史订单未通过确认，可查看订单了解原因',
+    [ORDER_STATUS.PENDING_PAYMENT]: '订单已生成，请及时完成付款',
     [ORDER_STATUS.PROCESSING]: '订单正在备货或配送中',
     [ORDER_STATUS.COMPLETED]: '采购履约已完成',
     [ORDER_STATUS.CANCELLING]: '取消申请处理中',
