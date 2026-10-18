@@ -59,7 +59,7 @@ export const useUserStore = defineStore('user', {
     dealerStatus: Number(storage.get('dealerStatus', 1)),
     accountStatus: Number(storage.get('accountStatus', 1)),
     isFrozen: false,
-    signStatus: 2,
+    signStatus: Number(storage.get('signStatus', 0)),
 
     roleIds: storage.get('roleIds', []),
     permissions: storage.get('permissions', []),
@@ -124,7 +124,9 @@ export const useUserStore = defineStore('user', {
       this.dealerStatus = Number(info.dealerStatus ?? info.status ?? this.dealerStatus)
       this.accountStatus = Number(info.accountStatus ?? info.status ?? this.accountStatus)
       this.isFrozen = this.dealerStatus !== 1 || this.accountStatus !== 1
-      this.signStatus = 2
+      if (info.signStatus !== undefined && info.signStatus !== null) {
+        this.signStatus = Number(info.signStatus)
+      }
       if (Array.isArray(info.roles)) this.roleIds = [...info.roles]
       if (Array.isArray(info.permissions)) this.permissions = [...info.permissions]
 
@@ -145,6 +147,7 @@ export const useUserStore = defineStore('user', {
         isAdmin: this.isAdmin,
         dealerStatus: this.dealerStatus,
         accountStatus: this.accountStatus,
+        signStatus: this.signStatus,
         roleIds: this.roleIds,
         permissions: this.permissions,
         isMainAccount: this.isMainAccount,
@@ -181,6 +184,7 @@ export const useUserStore = defineStore('user', {
       this.isMainAccount = storage.get('isMainAccount', true)
       this.dealerStatus = Number(storage.get('dealerStatus', 1))
       this.accountStatus = Number(storage.get('accountStatus', 1))
+      this.signStatus = Number(storage.get('signStatus', 0))
       this.isFrozen = this.dealerStatus !== 1 || this.accountStatus !== 1
       this.dealerInfo = storage.get('dealerInfo', emptyDealerInfo())
       this.updateFinanceContext(storage.get('financeContext', emptyFinanceContext()), false)
@@ -202,8 +206,9 @@ export const useUserStore = defineStore('user', {
       this.setAccountStatus(frozen ? 0 : 1)
     },
 
-    setSignStatus() {
-      this.signStatus = 2
+    setSignStatus(status) {
+      this.signStatus = Number(status)
+      storage.set('signStatus', this.signStatus)
     },
 
     setRoleAndPermissions(roleIds, permissions, isMainAccount = this.isMainAccount) {

@@ -1,13 +1,13 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="配送安排" :show-back="true" />
+      <AppHeader title="订单按地址拆单" :show-back="true" />
     </template>
 
     <template #content>
       <AppContent>
         <view class="allocation-page">
-          <view v-if="loading" class="state-card">正在读取订单配送信息…</view>
+          <view v-if="loading" class="state-card">正在读取订单拆单信息…</view>
 
           <template v-else-if="context">
             <view class="hero-card">
@@ -24,19 +24,19 @@
             </view>
 
             <view v-if="lastSplitFailureReason" class="notice-card">
-              上次配送安排未通过：{{ lastSplitFailureReason }}。请调整后重新提交。
+              上次订单拆单未通过：{{ lastSplitFailureReason }}。请调整后重新提交。
             </view>
 
             <template v-if="existingSplits.length">
               <view class="section-heading">
-                <text>配送单</text>
+                <text>拆分子单</text>
                 <text class="section-note">共 {{ existingSplits.length }} 单</text>
               </view>
               <view class="readonly-grid">
                 <view v-for="split in existingSplits" :key="splitIdOf(split)" class="split-card readonly-card">
                   <view class="card-head">
                     <view>
-                      <text class="card-title">{{ valueOf(split, 'splitName', 'SplitName', '配送单') }}</text>
+                      <text class="card-title">{{ valueOf(split, 'splitName', 'SplitName', '拆分子单') }}</text>
                       <text class="card-subtitle">{{ valueOf(split, 'splitNo', 'SplitNo', '') }}</text>
                     </view>
                     <text class="status-tag">{{ splitStatusText(valueOf(split, 'status', 'Status', 0)) }}</text>
@@ -63,97 +63,91 @@
               <view v-if="!disabledReason && !addresses.length" class="empty-address-card">
                 <view class="empty-icon"><AppIcon name="location" :size="24" color="#d7192d" /></view>
                 <text class="empty-title">还没有可用收货地址</text>
-                <text class="empty-copy">新增地址后即可为商品安排配送。</text>
+                <text class="empty-copy">新增地址后即可按地址拆分订单。</text>
                 <button class="secondary-button button-center" @tap="openAddressManager">新增收货地址</button>
               </view>
 
               <template v-else-if="!disabledReason">
                 <view class="guide-card">
-                  <view class="guide-item"><text class="guide-number">1</text><text>整件换地址：直接点击商品下方的收货地址</text></view>
-                  <view class="guide-item"><text class="guide-number">2</text><text>部分拆分：点击“拆分到其他地址”，再调整数量</text></view>
+                  <view class="guide-item"><text class="guide-number">1</text><text>先添加需要配送的收货地址。</text></view>
+                  <view class="guide-item"><text class="guide-number">2</text><text>在每个地址下分配商品数量，同一个 SKU 可以分到多个地址。</text></view>
+                  <view class="guide-item"><text class="guide-number">3</text><text>每个拆分地址至少需要 1 件商品，商品总数量必须全部分配。</text></view>
                 </view>
 
-                <view class="section-heading">
-                  <text>按商品安排</text>
-                  <button class="manage-address" @tap="openAddressManager">管理地址</button>
+                <view class="section-heading address-section-heading">
+                  <view>
+                    <text class="section-title">按收货地址拆分</text>
+                    <text class="section-note">已使用 {{ addressGroups.length }} 个地址</text>
+                  </view>
+                  <button
+                    class="manage-address"
+                    :disabled="!canAddAddressGroup"
+                    @tap="addAddressGroup"
+                  >{{ canAddAddressGroup ? '添加拆分地址' : '无法继续添加' }}</button>
                 </view>
 
-                <view class="product-grid">
-                  <view v-for="item in sourceItems" :key="itemIdOf(item)" class="product-card">
-                    <view class="product-head">
-                      <AppImage class="item-image product-image" width="100%" height="100%" :src="valueOf(item, 'imageUrl', 'ImageUrl', '')" mode="aspectFill" />
-                      <view class="item-copy">
-                        <view class="item-title-line">
+                <view class="address-group-list">
+                  <view
+                    v-for="(group, groupIndex) in addressGroups"
+                    :key="group.key"
+                    class="address-group-card"
+                  >
+                    <view class="address-group-head">
+                      <view class="address-group-copy">
+                        <text class="address-group-title">拆分地址 {{ groupIndex + 1 }}</text>
+                        <text v-if="group.address" class="address-group-contact">
+                          {{ group.address.name }}　{{ group.address.phone }}
+                        </text>
+                      </view>
+                      <button
+                        v-if="addressGroups.length > 1"
+                        class="remove-address-button"
+                        @tap="removeAddressGroup(group.addressId)"
+                      >移除地址</button>
+                    </view>
+
+                    <view v-if="group.address" class="group-address-detail">
+                      {{ group.address.fullAddress }}
+                    </view>
+
+                    <view class="group-item-list">
+                      <view v-for="item in sourceItems" :key="group.key + '-' + itemIdOf(item)" class="group-item-row">
+                        <AppImage
+                          class="item-image group-item-image"
+                          width="100%"
+                          height="100%"
+                          :src="valueOf(item, 'imageUrl', 'ImageUrl', '')"
+                          mode="aspectFill"
+                        />
+                        <view class="item-copy">
                           <text class="item-name">{{ valueOf(item, 'productName', 'ProductName', '') }}</text>
-                          <text v-if="valueOf(item, 'isGift', 'IsGift', false)" class="gift-tag">赠品</text>
+                          <text class="item-spec">订单数量 {{ quantityOf(item) }} 件</text>
                         </view>
-                        <text class="item-spec">{{ valueOf(item, 'skuName', 'SkuName', '') }}</text>
-                      </view>
-                      <view class="total-badge"><text>共</text><text class="total-number">{{ quantityOf(item) }}</text><text>件</text></view>
-                    </view>
-
-                    <view class="destination-list">
-                      <view
-                        v-for="(allocation, allocationIndex) in planFor(item).allocations"
-                        :key="allocation.key"
-                        class="destination-row"
-                      >
-                        <view class="destination-head">
-                          <text class="destination-label">{{ planFor(item).allocations.length > 1 ? `去向 ${allocationIndex + 1}` : '收货地址' }}</text>
-                          <button
-                            v-if="planFor(item).allocations.length > 1"
-                            class="remove-button"
-                            @tap="removeProductDestination(itemIdOf(item), allocationIndex)"
-                          >合并此去向</button>
-                        </view>
-                        <view class="destination-controls">
-                          <picker
-                            class="address-control"
-                            mode="selector"
-                            :range="addressLabels"
-                            :value="addressIndex(allocation.addressId)"
-                            @change="selectAllocationAddress(itemIdOf(item), allocationIndex, $event)"
-                          >
-                            <view class="address-picker" :class="{ placeholder: !addressById(allocation.addressId) }">
-                              <view v-if="addressById(allocation.addressId)" class="address-copy">
-                                <text class="address-person">{{ addressById(allocation.addressId).name }}　{{ addressById(allocation.addressId).phone }}</text>
-                                <text class="address-detail">{{ addressById(allocation.addressId).fullAddress }}</text>
-                              </view>
-                              <text v-else>请选择收货地址</text>
-                              <AppIcon name="chevron-right" :size="16" color="#94969c" />
-                            </view>
-                          </picker>
-                          <view class="quantity-control">
-                            <text class="quantity-label">配送数量</text>
-                            <QuantityStepper
-                              :model-value="allocation.quantity"
-                              :min="1"
-                              :max="maximumFor(item)"
-                              size="sm"
-                              :disabled="planFor(item).allocations.length === 1"
-                              @update:model-value="setProductQuantity(itemIdOf(item), allocationIndex, $event)"
-                            />
-                          </view>
+                        <view class="group-item-quantity">
+                          <text class="quantity-label">分配数量</text>
+                          <QuantityStepper
+                            :model-value="quantityAtAddress(group.addressId, itemIdOf(item))"
+                            :min="1"
+                            :max="maximumForAddressItem(group.addressId, itemIdOf(item))"
+                            :allow-zero="canSetAddressItemZero(group.addressId, itemIdOf(item))"
+                            size="sm"
+                            @update:model-value="setAddressItemQuantity(group.addressId, itemIdOf(item), $event)"
+                          />
                         </view>
                       </view>
                     </view>
 
-                    <button
-                      v-if="quantityOf(item) > 1"
-                      class="split-more-button button-center"
-                      :disabled="!canAddDestination(item)"
-                      @tap="addProductDestination(itemIdOf(item))"
-                    >
-                      <AppIcon name="plus" :size="15" :color="canAddDestination(item) ? '#d7192d' : '#a9abb1'" />
-                      <text>{{ canAddDestination(item) ? '拆分到其他地址' : splitDisabledText(item) }}</text>
-                    </button>
+                    <view class="address-group-total">
+                      <text>本地址分配</text>
+                      <text class="address-group-total-number">{{ groupTotalQuantity(group.addressId) }} 件</text>
+                    </view>
                   </view>
                 </view>
 
                 <view class="allocation-summary" :class="{ invalid: Boolean(validationError) }">
                   <view>
-                    <text class="allocation-title">{{ validationError || '配送数量已完整安排' }}</text>
-                    <text class="allocation-copy">系统将按地址自动生成 {{ deliveryGroupCount }} 个配送单</text>
+                    <text class="allocation-title">{{ validationError || '商品数量已完整分配' }}</text>
+                    <text class="allocation-copy">系统将按收货地址生成 {{ deliveryGroupCount }} 个拆分子单</text>
                   </view>
                   <text class="allocation-total">{{ totalQuantity }} 件</text>
                 </view>
@@ -168,7 +162,7 @@
     <template v-if="!loading && context && !existingSplits.length" #footer>
       <FixedActionBar>
         <button class="submit-button button-center" :disabled="!canSubmit || submitting" @tap="submitSplits">
-          {{ submitting ? '正在生成配送单…' : submitButtonText }}
+          {{ submitting ? '正在生成拆分子单…' : submitButtonText }}
         </button>
       </FixedActionBar>
     </template>
@@ -193,7 +187,6 @@ import {
   changeAllocationAddress,
   changeAllocationQuantity,
   createAllocationPlan,
-  maximumAllocationQuantity,
   removeAllocation,
   validateAllocationPlan,
 } from '../../domain/fulfillmentAllocation.js'
@@ -219,16 +212,35 @@ const sourceItems = computed(() => valueOf(context.value, 'items', 'Items', []) 
 const existingSplits = computed(() => valueOf(context.value, 'splits', 'Splits', []) || [])
 const lastSplitFailureReason = computed(() => valueOf(context.value, 'lastSplitFailureReason', 'LastSplitFailureReason', ''))
 const canEdit = computed(() => valueOf(context.value, 'canSplit', 'CanSplit', false) === true)
-const addressLabels = computed(() => addresses.value.map(item => `${item.name} ${item.phone}｜${item.fullAddress}`))
 const addressIds = computed(() => addresses.value.map(item => item.id))
+const usedAddressIds = computed(() => {
+  const ids = []
+  for (const item of allocationPlan.value) {
+    for (const allocation of item.allocations || []) {
+      const addressId = Number(allocation.addressId)
+      if (addressId > 0 && !ids.includes(addressId)) ids.push(addressId)
+    }
+  }
+  return ids
+})
+const addressGroups = computed(() => usedAddressIds.value.map(addressId => ({
+  key: String(addressId),
+  addressId,
+  address: addressById(addressId),
+})))
+const canAddAddressGroup = computed(() => (
+  addressGroups.value.length < 10
+  && addresses.value.some(address => !usedAddressIds.value.includes(address.id))
+  && totalQuantity.value > addressGroups.value.length
+))
 const totalQuantity = computed(() => sourceItems.value.reduce((sum, item) => sum + quantityOf(item), 0))
 const deliveryGroups = computed(() => buildFulfillmentGroups(allocationPlan.value))
 const deliveryGroupCount = computed(() => deliveryGroups.value.length)
 const validationError = computed(() => validateAllocationPlan(allocationPlan.value, addressIds.value))
 const canSubmit = computed(() => canEdit.value && !validationError.value && !submitting.value)
 const submitButtonText = computed(() => deliveryGroupCount.value > 1
-  ? `生成 ${deliveryGroupCount.value} 个配送单`
-  : '确认配送安排')
+  ? `生成 ${deliveryGroupCount.value} 个拆分子单`
+  : '确认订单拆分')
 
 onLoad(async options => {
   orderId.value = Number(options.orderId) || 0
@@ -253,13 +265,13 @@ async function loadData() {
     addresses.value = addressList
     if (!existingSplits.value.length && canEdit.value) initializePlan()
   } catch (error) {
-    uni.showToast({ title: error?.message || '配送安排信息加载失败', icon: 'none' })
+    uni.showToast({ title: error?.message || '订单拆单信息加载失败', icon: 'none' })
   } finally {
     loading.value = false
   }
 }
 
-/** 使用默认地址初始化每个商品，用户可整行换地址或继续按数量拆分。 */
+/** 使用默认地址初始化商品分配；页面按地址分组展示，同一 SKU 可进入多个地址。 */
 function initializePlan() {
   const preferred = addresses.value.find(item => item.isDefault) || addresses.value[0]
   allocationPlan.value = createAllocationPlan(sourceItems.value, preferred?.id || 0)
@@ -290,69 +302,155 @@ async function refreshAddresses() {
   }
 }
 
+function findPlanItem(orderItemId) {
+  return allocationPlan.value.find(item => item.orderItemId === Number(orderItemId))
+}
+
+function allocationIndexAtAddress(orderItemId, addressId) {
+  const planItem = findPlanItem(orderItemId)
+  return planItem?.allocations?.findIndex(allocation => allocation.addressId === Number(addressId)) ?? -1
+}
+
+function quantityAtAddress(addressId, orderItemId) {
+  const planItem = findPlanItem(orderItemId)
+  const allocation = planItem?.allocations?.find(item => item.addressId === Number(addressId))
+  return Number(allocation?.quantity || 0)
+}
+
+function maximumForAddressItem(addressId, orderItemId) {
+  const planItem = findPlanItem(orderItemId)
+  if (!planItem) return 0
+  const targetIndex = allocationIndexAtAddress(orderItemId, addressId)
+  if (targetIndex < 0 && planItem.allocations.length === 1) {
+    const sourceAddressId = planItem.allocations[0].addressId
+    if (groupTotalQuantity(sourceAddressId) > 1) return planItem.totalQuantity
+  }
+  const otherQuantity = (planItem.allocations || [])
+    .filter(allocation => allocation.addressId !== Number(addressId))
+    .reduce((sum, allocation) => sum + Number(allocation.quantity || 0), 0)
+  return Math.max(0, planItem.totalQuantity - otherQuantity)
+}
+
+function canSetAddressItemZero(addressId, orderItemId) {
+  const planItem = findPlanItem(orderItemId)
+  const targetIndex = allocationIndexAtAddress(orderItemId, addressId)
+  return Boolean(
+    planItem
+    && targetIndex >= 0
+    && (planItem.allocations.length > 1 || addressGroups.value.length > 1),
+  )
+}
+
+function addAddressGroup() {
+  if (!canAddAddressGroup.value) {
+    uni.showToast({ title: '请先保证有可拆分的商品数量', icon: 'none' })
+    return
+  }
+  const candidate = addresses.value.find(address => !usedAddressIds.value.includes(address.id))
+  if (!candidate) return
+
+  const splitPlanIndex = allocationPlan.value.findIndex(item => (
+    (item.allocations || []).some(allocation => allocation.quantity > 1)
+  ))
+  if (splitPlanIndex >= 0) {
+    allocationPlan.value[splitPlanIndex] = addAllocation(
+      allocationPlan.value[splitPlanIndex],
+      candidate.id,
+    )
+    return
+  }
+
+  const movablePlanIndex = allocationPlan.value.findIndex(item => (
+    item.allocations?.length === 1
+    && groupTotalQuantity(item.allocations[0].addressId) > 1
+  ))
+  if (movablePlanIndex >= 0) {
+    allocationPlan.value[movablePlanIndex] = changeAllocationAddress(
+      allocationPlan.value[movablePlanIndex],
+      0,
+      candidate.id,
+    )
+  }
+}
+
+function removeAddressGroup(addressId) {
+  if (addressGroups.value.length <= 1) return
+  const fallback = addressGroups.value.find(group => group.addressId !== Number(addressId))
+  if (!fallback) return
+
+  allocationPlan.value = allocationPlan.value.map(planItem => {
+    const targetIndex = planItem.allocations.findIndex(
+      allocation => allocation.addressId === Number(addressId),
+    )
+    if (targetIndex < 0) return planItem
+    if (planItem.allocations.length > 1) {
+      return removeAllocation(planItem, targetIndex)
+    }
+    return changeAllocationAddress(planItem, targetIndex, fallback.addressId)
+  })
+}
+
+function setAddressItemQuantity(addressId, orderItemId, requestedQuantity) {
+  const planIndex = allocationPlan.value.findIndex(item => item.orderItemId === Number(orderItemId))
+  if (planIndex < 0) return
+
+  const planItem = allocationPlan.value[planIndex]
+  const targetIndex = allocationIndexAtAddress(orderItemId, addressId)
+  const quantity = Math.max(0, Math.floor(Number(requestedQuantity)) || 0)
+  let next = planItem
+
+  if (targetIndex < 0) {
+    if (quantity <= 0) return
+    next = addAllocation(planItem, addressId)
+    let addedIndex = allocationIndexAtAddress(orderItemId, addressId)
+    if (addedIndex < 0 && planItem.allocations.length === 1) {
+      const sourceAddressId = planItem.allocations[0].addressId
+      if (groupTotalQuantity(sourceAddressId) > 1 && quantity === planItem.totalQuantity) {
+        next = changeAllocationAddress(planItem, 0, addressId)
+        addedIndex = allocationIndexAtAddress(orderItemId, addressId)
+      }
+    }
+    if (addedIndex < 0) return
+    if (quantity > 1) next = changeAllocationQuantity(next, addedIndex, quantity)
+  } else if (quantity <= 0) {
+    if (!canSetAddressItemZero(addressId, orderItemId)) {
+      uni.showToast({ title: '每件商品至少要保留一个拆分地址', icon: 'none' })
+      return
+    }
+    if (planItem.allocations.length > 1) {
+      next = removeAllocation(planItem, targetIndex)
+    } else {
+      const fallback = addressGroups.value.find(group => group.addressId !== Number(addressId))
+      if (!fallback) return
+      next = changeAllocationAddress(planItem, targetIndex, fallback.addressId)
+    }
+  } else if (planItem.allocations.length === 1 && quantity < planItem.totalQuantity) {
+    const fallback = addressGroups.value.find(group => group.addressId !== Number(addressId))
+    if (!fallback) {
+      uni.showToast({ title: '请先添加另一个拆分地址', icon: 'none' })
+      return
+    }
+    next = addAllocation(planItem, fallback.addressId)
+    const refreshedTargetIndex = allocationIndexAtAddress(orderItemId, addressId)
+    next = changeAllocationQuantity(next, refreshedTargetIndex, quantity)
+  } else {
+    next = changeAllocationQuantity(planItem, targetIndex, quantity)
+  }
+
+  allocationPlan.value[planIndex] = next
+}
 function itemIdOf(item) { return Number(valueOf(item, 'orderItemId', 'OrderItemId', 0)) }
 function splitIdOf(split) { return Number(valueOf(split, 'splitId', 'SplitId', 0)) }
 function itemsOf(split) { return valueOf(split, 'items', 'Items', []) || [] }
 function quantityOf(item) { return Number(valueOf(item, 'quantity', 'Quantity', 0)) }
 function addressById(id) { return addresses.value.find(item => item.id === Number(id)) }
-function addressIndex(id) { return Math.max(0, addresses.value.findIndex(item => item.id === Number(id))) }
-function planIndexFor(orderItemId) { return allocationPlan.value.findIndex(item => item.orderItemId === Number(orderItemId)) }
-function planFor(item) { return allocationPlan.value[planIndexFor(itemIdOf(item))] || { allocations: [], totalQuantity: 0 } }
-function maximumFor(item) { return maximumAllocationQuantity(planFor(item)) }
-
-/** 将某个商品去向切换到所选地址；选择重复地址时自动交换去向。 */
-function selectAllocationAddress(orderItemId, allocationIndex, event) {
-  const selected = addresses.value[Number(event.detail.value)]
-  const planIndex = planIndexFor(orderItemId)
-  if (!selected || planIndex < 0) return
-  allocationPlan.value[planIndex] = changeAllocationAddress(
-    allocationPlan.value[planIndex], allocationIndex, selected.id,
-  )
+function groupTotalQuantity(addressId) {
+  return allocationPlan.value.reduce((sum, item) => (
+    sum + (item.allocations || [])
+      .filter(allocation => allocation.addressId === Number(addressId))
+      .reduce((itemSum, allocation) => itemSum + Number(allocation.quantity || 0), 0)
+  ), 0)
 }
-
-/** 判断商品是否还能拆出至少 1 件到一个尚未使用的地址。 */
-function canAddDestination(item) {
-  const planItem = planFor(item)
-  if (planItem.allocations.length >= planItem.totalQuantity) return false
-  const used = new Set(planItem.allocations.map(allocation => allocation.addressId))
-  return addresses.value.some(address => !used.has(address.id))
-}
-
-function splitDisabledText(item) {
-  const planItem = planFor(item)
-  return planItem.allocations.length >= planItem.totalQuantity ? '每个去向已是 1 件' : '请先新增其他地址'
-}
-
-/** 自动从数量最多的去向拆出 1 件，避免用户手动做加减法后卡在校验状态。 */
-function addProductDestination(orderItemId) {
-  const planIndex = planIndexFor(orderItemId)
-  if (planIndex < 0) return
-  const planItem = allocationPlan.value[planIndex]
-  const used = new Set(planItem.allocations.map(allocation => allocation.addressId))
-  const candidate = addresses.value.find(address => !used.has(address.id))
-  if (!candidate) {
-    uni.showToast({ title: '请先新增另一个收货地址', icon: 'none' })
-    return
-  }
-  allocationPlan.value[planIndex] = addAllocation(planItem, candidate.id)
-}
-
-/** 调整一个去向的件数，分配模型会自动反向调整其他去向并保持总数不变。 */
-function setProductQuantity(orderItemId, allocationIndex, quantity) {
-  const planIndex = planIndexFor(orderItemId)
-  if (planIndex < 0) return
-  allocationPlan.value[planIndex] = changeAllocationQuantity(
-    allocationPlan.value[planIndex], allocationIndex, quantity,
-  )
-}
-
-/** 合并一个去向，其数量自动回到该商品剩余的第一条去向。 */
-function removeProductDestination(orderItemId, allocationIndex) {
-  const planIndex = planIndexFor(orderItemId)
-  if (planIndex < 0) return
-  allocationPlan.value[planIndex] = removeAllocation(allocationPlan.value[planIndex], allocationIndex)
-}
-
 /** 打开统一地址管理页；返回后 onShow 会保留方案并刷新新增地址。 */
 function openAddressManager() {
   navigator.navigateTo(routes.account.address())
@@ -376,10 +474,10 @@ async function submitSplits() {
       clientRequestId: generateClientRequestId(),
       groups: deliveryGroups.value,
     })
-    uni.showToast({ title: '配送安排已提交', icon: 'success' })
+    uni.showToast({ title: '订单拆分已提交', icon: 'success' })
     await loadData()
   } catch (error) {
-    uni.showToast({ title: error?.message || '配送安排提交失败', icon: 'none' })
+    uni.showToast({ title: error?.message || '订单拆分提交失败', icon: 'none' })
   } finally {
     submitting.value = false
   }
@@ -431,6 +529,65 @@ async function submitSplits() {
 .section-note { color: #94969c; font-size: 12px; font-weight: 400; }
 .manage-address { display: flex; align-items: center; justify-content: center; margin: 0; padding: 4px 0 4px 12px; border: 0; color: #d7192d; background: transparent; font-size: 13px; line-height: 20px; }
 .manage-address::after { border: 0; }
+.section-title { display: block; }
+.address-section-heading { align-items: flex-end; }
+.manage-address[disabled] { color: #a9abb1; opacity: .75; }
+
+.address-group-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.address-group-card {
+  padding: 17px;
+  border-radius: 16px;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+.address-group-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.address-group-copy { min-width: 0; }
+.address-group-title,
+.address-group-contact,
+.group-address-detail { display: block; }
+.address-group-title { color: #111216; font-size: 16px; font-weight: 700; }
+.address-group-contact { margin-top: 5px; overflow: hidden; color: #676a73; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
+.remove-address-button {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 4px 0 4px 10px;
+  border: 0;
+  color: #d7192d;
+  background: transparent;
+  font-size: 12px;
+  line-height: 20px;
+}
+.remove-address-button::after { border: 0; }
+.group-address-detail {
+  margin-top: 10px;
+  padding: 10px 12px;
+  overflow: hidden;
+  border-radius: 10px;
+  color: #676a73;
+  background: #f7f8fa;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.group-item-list { margin-top: 12px; }
+.group-item-row { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #f0f1f3; }
+.group-item-row:last-child { border-bottom: 0; }
+.group-item-image { width: 48px; height: 48px; flex-basis: 48px; }
+.group-item-quantity { flex: 0 0 auto; }
+.group-item-quantity .quantity-label { margin-bottom: 4px; }
+.address-group-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f1f3;
+  color: #676a73;
+  font-size: 12px;
+}
+.address-group-total-number { color: #111216; font-size: 15px; font-weight: 700; }
 .product-grid,
 .readonly-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 .product-card,

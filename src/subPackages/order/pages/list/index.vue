@@ -64,6 +64,7 @@
                 <view class="order-identify">
                   <view class="order-no-line">
                     <text class="order-no"><text class="order-no-label">订单号</text>{{ order.orderNo }}</text>
+                    <text v-if="order.orderSource === 'ERP_MANUAL'" class="manual-order-tag">ERP手工单</text>
                     <text v-if="order.splitOrderCount > 1" class="split-order-tag">
                       {{ order.parentOrderId ? '拆分子单' : `拆分订单 · ${order.splitOrderCount}单` }}
                     </text>
@@ -78,7 +79,7 @@
                 <view class="goods-info">
                   <text class="product-name">{{ order.firstItemProductName || '采购订单商品' }}</text>
                   <text class="product-detail">{{ order.itemCount || 0 }} 种商品 · 共 {{ order.totalQuantity || 0 }} 件</text>
-                  <text class="order-stage">{{ getStatusHelp(order) }}</text>
+                  <text class="order-stage">{{ order.orderSource === 'ERP_MANUAL' ? '本地扣款、扣库存已完成' : getStatusHelp(order) }}</text>
                 </view>
               </view>
 
@@ -159,8 +160,10 @@ import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimati
 const allTabs = Object.freeze([
   { value: null, label: '全部' },
   { value: ORDER_STATUS.PENDING_PAYMENT, label: '待付款' },
-  { value: ORDER_STATUS.PROCESSING, label: '履约中' },
-  { value: ORDER_STATUS.COMPLETED, label: '已完成' },
+  { value: ORDER_STATUS.PENDING_REVIEW, label: '待确认' },
+  { value: ORDER_STATUS.PROCESSING, label: '处理中' },
+  { value: ORDER_STATUS.COMPLETED, label: '交易完成' },
+  { value: ORDER_STATUS.CANCELLED, label: '已取消' },
 ])
 const currentStatus = ref(null)
 const orderList = ref([])
@@ -330,12 +333,21 @@ const ERP_REVIEW_STATUS = Object.freeze({
 
 /** ERP 审核在客户端统一表达为“订单确认”，不暴露内部审核节点。 */
 function getConfirmationDisplay(order) {
+  const orderStatus = Number(order?.orderStatus)
+  if (orderStatus === ORDER_STATUS.CANCELLING || orderStatus === ORDER_STATUS.CANCELLED) return null
+
+  const paymentStatus = Number(order?.paymentStatus)
+  if ((orderStatus === ORDER_STATUS.PENDING_PAYMENT || orderStatus === ORDER_STATUS.PROCESSING)
+    && paymentStatus !== PAYMENT_STATUS.CONFIRMED) {
+    return null
+  }
+
   const status = Number(order?.erpReviewStatus)
   if (status === ERP_REVIEW_STATUS.PENDING) {
     return { text: '订单确认中', type: 'info', help: order?.confirmationMessage || '正在确认订单，结果将通过消息通知' }
   }
   if (status === ERP_REVIEW_STATUS.REJECTED) {
-    return { text: '订单未通过确认', type: 'error', help: order?.erpReviewReasonMessage || '订单已取消，详情中可查看原因' }
+    return { text: '订单未通过确认', type: 'error', help: order?.erpReviewReasonMessage || '订单确认未通过，详情中可查看原因' }
   }
   if (status === ERP_REVIEW_STATUS.REJECTED_AFTER_SHIPMENT || status === ERP_REVIEW_STATUS.DECISION_CONFLICT) {
     return { text: '订单确认待处理', type: 'error', help: '订单确认结果异常，客服正在处理' }
@@ -350,6 +362,8 @@ function getConfirmationDisplay(order) {
 function getPaymentDisplay(order) {
   const orderStatus = Number(order?.orderStatus)
   const paymentStatus = Number(order?.paymentStatus)
+  if (orderStatus === ORDER_STATUS.CANCELLING || orderStatus === ORDER_STATUS.CANCELLED) return null
+
   const paymentPending = (orderStatus === ORDER_STATUS.PENDING_PAYMENT
     || orderStatus === ORDER_STATUS.PROCESSING)
     && paymentStatus !== PAYMENT_STATUS.CONFIRMED
@@ -369,7 +383,6 @@ function getPaymentDisplay(order) {
   }
   return display[paymentStatus] || { text: payment.text, type: 'info', help: '支付状态正在同步' }
 }
-
 function getConfirmedPaymentDisplay(order) {
   if (Number(order?.orderStatus) === ORDER_STATUS.PENDING_PAYMENT
     && Number(order?.paymentStatus) === PAYMENT_STATUS.CONFIRMED) {
@@ -379,43 +392,51 @@ function getConfirmedPaymentDisplay(order) {
 }
 
 function getStatusText(order) {
-  return getConfirmationDisplay(order)?.text
-    || getPaymentDisplay(order)?.text
+  const status = Number(order?.orderStatus)
+  if (status === ORDER_STATUS.CANCELLING) return '取消处理中'
+  if (status === ORDER_STATUS.CANCELLED) return '已取消'
+  if (status === ORDER_STATUS.COMPLETED) return '交易完成'
+  return getPaymentDisplay(order)?.text
+    || getConfirmationDisplay(order)?.text
     || getConfirmedPaymentDisplay(order)?.text
-    || ORDER_STATUS_MAP[Number(order?.orderStatus)]?.text
+    || ORDER_STATUS_MAP[status]?.text
     || '状态更新中'
 }
 
 function getStatusType(order) {
-  const confirmationDisplay = getConfirmationDisplay(order)
-  if (confirmationDisplay) return confirmationDisplay.type
+  const status = Number(order?.orderStatus)
+  if (status === ORDER_STATUS.CANCELLING) return 'warning'
+  if (status === ORDER_STATUS.CANCELLED) return 'default'
+  if (status === ORDER_STATUS.COMPLETED) return 'success'
   const paymentDisplay = getPaymentDisplay(order)
   if (paymentDisplay) return paymentDisplay.type
+  const confirmationDisplay = getConfirmationDisplay(order)
+  if (confirmationDisplay) return confirmationDisplay.type
   const confirmedPaymentDisplay = getConfirmedPaymentDisplay(order)
   if (confirmedPaymentDisplay) return confirmedPaymentDisplay.type
-  const status = Number(order?.orderStatus)
   return ORDER_STATUS_TYPE_MAP[status] || 'default'
 }
 
 function getStatusHelp(order) {
-  const confirmationDisplay = getConfirmationDisplay(order)
-  if (confirmationDisplay) return confirmationDisplay.help
+  const status = Number(order?.orderStatus)
+  if (status === ORDER_STATUS.CANCELLING) return '取消申请处理中'
+  if (status === ORDER_STATUS.CANCELLED) return '订单已取消'
+  if (status === ORDER_STATUS.COMPLETED) return '交易履约已完成'
   const paymentDisplay = getPaymentDisplay(order)
   if (paymentDisplay) return paymentDisplay.help
+  const confirmationDisplay = getConfirmationDisplay(order)
+  if (confirmationDisplay) return confirmationDisplay.help
   const confirmedPaymentDisplay = getConfirmedPaymentDisplay(order)
   if (confirmedPaymentDisplay) return confirmedPaymentDisplay.help
-  const status = Number(order?.orderStatus)
   const map = {
-    [ORDER_STATUS.PENDING_REVIEW]: '历史订单状态，正在同步最新确认结果',
-    [ORDER_STATUS.REVIEW_REJECTED]: '历史订单未通过确认，可查看订单了解原因',
+    [ORDER_STATUS.PENDING_REVIEW]: '订单正在确认中',
+    [ORDER_STATUS.REVIEW_REJECTED]: '订单确认未通过，可查看订单了解原因',
     [ORDER_STATUS.PENDING_PAYMENT]: '订单已生成，请及时完成付款',
     [ORDER_STATUS.PROCESSING]: '订单正在备货或配送中',
-    [ORDER_STATUS.COMPLETED]: '采购履约已完成',
-    [ORDER_STATUS.CANCELLING]: '取消申请处理中',
-    [ORDER_STATUS.CANCELLED]: '订单已取消',
   }
   return map[status] || '订单状态正在同步'
 }
+
 function formatMoney(value) {
   const number = Number(value)
   return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -488,6 +509,7 @@ async function handleAction(key, order) {
 .order-no { overflow: hidden; color: #2B3037; font-size: 12px; font-weight: 660; text-overflow: ellipsis; white-space: nowrap; }
 .order-no-label { margin-right: 4px; color: #8B919A; font-weight: 400; }
 .split-order-tag { flex: 0 0 auto; padding: 2px 6px; border-radius: 7px; color: #B22131; background: #FFF0F2; font-size: 9px; line-height: 14px; }
+.manual-order-tag { flex: 0 0 auto; padding: 2px 6px; border-radius: 7px; color: #215B82; background: #EAF4FB; font-size: 9px; line-height: 14px; }
 .order-time { margin-top: 4px; color: #9A9FA7; font-size: 9px; }
 .goods-preview { display: grid; grid-template-columns: 76px minmax(0,1fr); gap: 13px; margin: 0; padding: 4px 16px 15px; background: transparent; }
 .goods-img { width: 76px; height: 76px; border: 1px solid #F0F1F3; border-radius: 13px; overflow: hidden; background: #F3F4F6; }

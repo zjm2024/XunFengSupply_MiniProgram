@@ -253,7 +253,24 @@ function confirmSelection() {
   color: $color-text-disabled;
 }
 
+/* 弹层需要跟随当前页面视口宽度，不继承地址表单的内容列宽度。 */
+.area-picker :deep(.uni-popup) {
+  left: 0;
+  right: 0;
+  width: 100vw;
+  max-width: 100vw;
+}
+
+.area-picker :deep(.uni-popup__wrapper) {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .picker-panel {
+  position: relative;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
   height: 72vh;
   max-height: 960rpx;
   display: flex;

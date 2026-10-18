@@ -93,7 +93,7 @@ export const ORDER_STATUS_MAP = {
   [ORDER_STATUS.REVIEW_REJECTED]: { text: '审核驳回', color: '#e64545' },
   [ORDER_STATUS.PENDING_PAYMENT]: { text: '待付款', color: '#ff9500' },
   [ORDER_STATUS.PROCESSING]: { text: '处理中', color: '#1890ff' },
-  [ORDER_STATUS.COMPLETED]: { text: '已完成', color: '#07c160' },
+  [ORDER_STATUS.COMPLETED]: { text: '交易完成', color: '#07c160' },
   [ORDER_STATUS.CANCELLING]: { text: '取消中', color: '#fa8c16' },
   [ORDER_STATUS.CANCELLED]: { text: '已取消', color: '#999999' },
 }

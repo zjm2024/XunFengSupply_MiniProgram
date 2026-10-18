@@ -1,4 +1,4 @@
-﻿﻿<!--
+<!--
   经销商入驻资料提交页
   表单字段严格对应后端 ApplyRequest；行政区划通过 sys_area 接口级联选择。
 -->
@@ -11,6 +11,28 @@
     <template #content>
       <AppContent :scroll-into-view="scrollTarget">
         <view class="apply-page">
+          <view v-if="applicationState" class="application-status-card">
+            <view class="application-status-badge" :class="`status-${applicationState.status}`">
+              <AppIcon :name="applicationState.status === 'pending' ? 'shield-check' : 'lock'" :size="28" color="#D7192D" />
+            </view>
+            <text class="application-status-title">{{ applicationStatusTitle }}</text>
+            <text class="application-status-description">{{ applicationStatusDescription }}</text>
+            <view class="application-timeline">
+              <view class="timeline-step active">
+                <view class="timeline-dot">✓</view>
+                <text>资料已提交</text>
+              </view>
+              <view class="timeline-line active"></view>
+              <view class="timeline-step" :class="{ active: applicationState.status === 'approved', current: applicationState.status === 'pending' }">
+                <view class="timeline-dot">{{ applicationState.status === 'approved' ? '✓' : '2' }}</view>
+                <text>{{ applicationState.status === 'approved' ? '审核通过' : '平台审核' }}</text>
+              </view>
+            </view>
+            <text v-if="applicationState.companyName" class="application-company">{{ applicationState.companyName }}</text>
+            <button v-if="applicationState.status === 'rejected'" class="status-action" @tap="resetApplicationState">重新提交申请</button>
+            <button v-else class="status-action secondary" @tap="leaveApplicationStatus">返回</button>
+          </view>
+          <template v-else>
           <view class="progress-card" aria-label="签约进度">
             <view class="progress-step active">
               <view class="step-dot">1</view>
@@ -209,12 +231,13 @@
             </checkbox-group>
             <text v-if="errors.agreed" class="field-error agreement-error">{{ errors.agreed }}</text>
           </view>
+          </template>
         </view>
       </AppContent>
     </template>
 
     <template #footer>
-      <view class="submit-footer">
+      <view v-if="!applicationState" class="submit-footer">
         <button
           class="submit-button"
           :disabled="submitting"
@@ -231,16 +254,19 @@
 
 <script setup>
 import { computed, nextTick, reactive, ref, watch } from 'vue'
-import { onUnload } from '@dcloudio/uni-app'
-import { applySign } from '../../api/auth.js'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
+import { applySign, getSignStatus } from '../../api/auth.js'
 import { validateSignForm } from '../../../../shared/utils/validate.js'
 import { navigator } from '../../../../app/navigation/navigator.js'
 import { routes } from '../../../../app/config/routes.js'
 import AppHeader from '../../../../shared/ui/AppHeader/AppHeader.vue'
+import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
 import AppPageShell from '../../../../shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '../../../../shared/ui/AppContent/AppContent.vue'
 import AreaCascadePicker from '../../components/AreaCascadePicker/AreaCascadePicker.vue'
 import FileUploader from '../../../../shared/ui/FileUploader/FileUploader.vue'
+import storage from '../../../../shared/utils/storage.js'
+import { useUserStore } from '../../../../shared/session/userStore.js'
 
 const placeholderStyle = 'color: #989BA3; font-size: 14px;'
 const submitting = ref(false)
@@ -248,6 +274,60 @@ const agreed = ref(false)
 const scrollTarget = ref('')
 const licenseImages = ref([])
 const successTimer = ref(null)
+const applicationState = ref(null)
+const userStore = useUserStore()
+const APPLICATION_CACHE_KEY = 'dealerApplication'
+
+const applicationStatusTitle = computed(() => {
+  if (applicationState.value?.status === 'approved') return '申请已通过'
+  if (applicationState.value?.status === 'rejected') return '申请未通过'
+  return '申请审核中'
+})
+
+const applicationStatusDescription = computed(() => {
+  if (applicationState.value?.status === 'approved') return '平台已完成审核，后续请使用经销商账号登录。'
+  if (applicationState.value?.status === 'rejected') return '当前申请未通过审核，可修改资料后重新提交。'
+  return '资料已提交，平台正在审核。审核完成后会通过站内通知或联系方式告知你。'
+})
+
+async function loadApplicationState() {
+  const cached = storage.get(APPLICATION_CACHE_KEY, null)
+  if (cached?.status === 'pending') applicationState.value = cached
+  if (!userStore.isLogin) return
+  try {
+    const context = await getSignStatus({ authStrategy: 'passive' })
+    userStore.setLoginData({ token: userStore.token, refreshToken: userStore.refreshToken, expiresIn: userStore.tokenExpiresIn, userInfo: context })
+    const signStatus = Number(context?.signStatus ?? 0)
+    if (signStatus === 1) {
+      applicationState.value = { ...cached, status: 'pending' }
+      storage.set(APPLICATION_CACHE_KEY, applicationState.value)
+    } else if (signStatus === -1) {
+      applicationState.value = { ...cached, status: 'rejected' }
+      storage.remove(APPLICATION_CACHE_KEY)
+    } else if (signStatus === 2) {
+      applicationState.value = { ...cached, status: 'approved' }
+      storage.remove(APPLICATION_CACHE_KEY)
+    } else {
+      applicationState.value = null
+      storage.remove(APPLICATION_CACHE_KEY)
+    }
+  } catch (error) {
+    console.warn('[ApplySign] 查询申请状态失败，使用本地提交记录:', error)
+  }
+}
+
+function resetApplicationState() {
+  applicationState.value = null
+  storage.remove(APPLICATION_CACHE_KEY)
+}
+
+function leaveApplicationStatus() {
+  navigator.back()
+}
+
+onLoad(() => {
+  loadApplicationState()
+})
 
 const regionValue = ref({
   provinceCode: '',
@@ -335,7 +415,7 @@ async function handleSubmit() {
   submitting.value = true
   try {
     const data = validationData.value
-    await applySign({
+    const applicationId = await applySign({
       companyName: data.companyName.trim(),
       contactName: data.contactName.trim(),
       mobile: data.mobile.trim(),
@@ -349,10 +429,11 @@ async function handleSubmit() {
       registeredAddress: data.registeredAddress.trim() || null,
       licenseUrl: data.licenseUrl,
     })
+    storage.set(APPLICATION_CACHE_KEY, { applicationId, companyName: data.companyName.trim(), status: 'pending', submittedAt: Date.now() })
 
     uni.showToast({ title: '提交成功，等待审核', icon: 'success', duration: 1500 })
     successTimer.value = setTimeout(() => {
-      navigator.reLaunch(routes.auth.accountStatus())
+      navigator.reLaunch(routes.auth.applySign())
     }, 1500)
   } catch (error) {
     console.error('[ApplySign] 提交失败:', error)
@@ -379,6 +460,31 @@ onUnload(() => {
   gap: $space-5;
 }
 
+.application-status-card {
+  min-height: 520rpx;
+  padding: $space-8 $space-6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  background: var(--glass-card-background, rgba(255,255,255,.74));
+  border-radius: $radius-card;
+}
+.application-status-badge { width: 88rpx; height: 88rpx; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: $color-error-bg; }
+.application-status-title { margin-top: $space-4; color: $color-text-primary; font-size: $font-size-h2; line-height: $line-height-h2; font-weight: $font-weight-semibold; }
+.application-status-description { max-width: 620rpx; margin-top: $space-2; color: $color-text-secondary; font-size: $font-size-body-m; line-height: $line-height-body-m; }
+.application-timeline { width: 100%; max-width: 620rpx; margin: $space-8 0 $space-5; display: flex; align-items: flex-start; justify-content: center; }
+.timeline-step { min-width: 160rpx; display: flex; flex-direction: column; align-items: center; gap: $space-2; color: $color-text-disabled; font-size: $font-size-caption; }
+.timeline-step.active, .timeline-step.current { color: $color-action-primary; }
+.timeline-dot { width: 48rpx; height: 48rpx; display: flex; align-items: center; justify-content: center; border: 2rpx solid $color-gray-300; border-radius: 50%; background: $color-bg-card; }
+.timeline-step.active .timeline-dot, .timeline-step.current .timeline-dot { color: $color-gray-0; border-color: $color-action-primary; background: $color-action-primary; }
+.timeline-line { flex: 1; height: 2rpx; margin: 24rpx $space-2 0; background: $color-gray-200; }
+.timeline-line.active { background: $color-action-primary; }
+.application-company { color: $color-text-primary; font-size: $font-size-body-m; font-weight: $font-weight-semibold; }
+.status-action { width: min(520rpx, 100%); margin-top: $space-6; display: flex; align-items: center; justify-content: center; color: $color-gray-0; background: $color-action-primary; border: 0; border-radius: $radius-control; font-size: $font-size-body-m; }
+.status-action::after { border: 0; }
+.status-action.secondary { color: $color-text-secondary; background: $color-gray-100; }
 .progress-card,
 .form-card {
   background: var(--glass-card-background, rgba(255,255,255,.74));

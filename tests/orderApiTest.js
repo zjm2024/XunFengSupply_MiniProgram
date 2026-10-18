@@ -237,6 +237,50 @@ describe('Order API Layer - Response Mapping', () => {
   })
 })
 
+describe('Fulfillment Address API Layer', () => {
+  it('getFulfillmentAddressList 应兼容分页对象并保留全部地址', async () => {
+    const dispatchMock = vi.fn().mockResolvedValue({
+      Items: [
+        {
+          AddressId: 11,
+          ContactName: '张三',
+          ContactPhone: '13800000001',
+          Province: '广东省',
+          City: '广州市',
+          District: '番禺区',
+          AddressDetail: '地址一',
+          IsDefault: true,
+        },
+        {
+          AddressId: 12,
+          ContactName: '李四',
+          ContactPhone: '13800000002',
+          Province: '广东省',
+          City: '广州市',
+          District: '海珠区',
+          AddressDetail: '地址二',
+          IsDefault: false,
+        },
+      ],
+      TotalCount: 2,
+    })
+
+    vi.doMock('@/shared/api/dispatchClient.js', () => ({
+      dispatch: dispatchMock,
+    }))
+
+    const { getFulfillmentAddressList } = await import('@/subPackages/order/api/orderApi.js')
+    const result = await getFulfillmentAddressList()
+
+    expect(result).toHaveLength(2)
+    expect(result.map(item => item.id)).toEqual([11, 12])
+    expect(result[0]).toEqual(expect.objectContaining({
+      name: '张三',
+      fullAddress: '广东省广州市番禺区地址一',
+      isDefault: true,
+    }))
+  })
+})
 describe('AfterSale API Layer', () => {
   it('applyAfterSale 应将 camelCase 转换为 PascalCase', async () => {
     const dispatchMock = vi.fn().mockResolvedValue({})

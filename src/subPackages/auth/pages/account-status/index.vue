@@ -1,4 +1,4 @@
-﻿﻿<!--
+<!--
   账号冻结提示页（分包：accountSub）
   对应业务流程节点：
   签约准入 → 账号冻结停用拦截页
@@ -11,15 +11,21 @@
     </template>
     <template #content>
       <AppContent>
-        <view class="frozen-page">
+        <view class="frozen-page" :class="{ 'pending-page': isApplicationPending }">
           <view class="frozen-icon">
-            <AppIcon name="lock" size="120rpx" color="#F56C6C" :stroke-width="1.6" />
+            <AppIcon :name="isApplicationPending ? 'shield-check' : 'lock'" size="120rpx" :color="isApplicationPending ? '#D7192D' : '#F56C6C'" :stroke-width="1.6" />
           </view>
           
-          <text class="frozen-title">账号已被冻结</text>
-          <text class="frozen-reason">{{ frozenReason || '您的账号因违规操作已被暂时冻结' }}</text>
+          <text class="frozen-title">{{ isApplicationPending ? '申请审核中' : '账号已被冻结' }}</text>
+          <text class="frozen-reason">{{ isApplicationPending ? '资料已提交，平台正在审核，请耐心等待审核结果。' : (frozenReason || '您的账号因违规操作已被暂时冻结') }}</text>
           
-          <view class="frozen-tips">
+          <view v-if="isApplicationPending" class="frozen-tips pending-tips">
+            <text class="tips-title">当前进度：</text>
+            <text class="tips-item">✓ 申请资料已提交</text>
+            <text class="tips-item">● 平台审核中</text>
+            <text class="tips-item">审核完成后将开放对应账号权限</text>
+          </view>
+          <view v-else class="frozen-tips">
             <text class="tips-title">可能的原因：</text>
             <text class="tips-item">• 多次逾期未付款</text>
             <text class="tips-item">• 恶意拒收商品</text>
@@ -28,7 +34,8 @@
           </view>
 
           <view class="action-buttons">
-            <button class="contact-btn" @click="contactService">联系客服申诉</button>
+            <button v-if="isApplicationPending" class="contact-btn" @click="goToApplication">查看申请进度</button>
+            <button v-else class="contact-btn" @click="contactService">联系客服申诉</button>
             <button class="back-btn" @click="goBack">返回</button>
           </view>
         </view>
@@ -39,6 +46,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { getBootstrapContext } from '../../../../app/bootstrap/bootstrapApi.js'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/shared/session/userStore.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
@@ -46,16 +54,43 @@ import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppStatusBarSpacer from '../../../../shared/ui/AppStatusBarSpacer/AppStatusBarSpacer.vue'
 import { navigator } from '@/app/navigation/navigator.js'
-import { LOGIN } from '@/app/config/routes.js'
+import { APPLY_SIGN, LOGIN } from '@/app/config/routes.js'
 
 const userStore = useUserStore()
 const frozenReason = ref('')
+const isApplicationPending = ref(false)
 
-onLoad((options) => {
+onLoad(async (options) => {
   if (options.reason) {
     frozenReason.value = decodeURIComponent(options.reason)
   }
+  await resolveAccountState()
 })
+
+async function resolveAccountState() {
+  if (userStore.signStatus === 1) {
+    isApplicationPending.value = true
+    return
+  }
+  if (!userStore.isLogin) return
+
+  try {
+    const context = await getBootstrapContext({ authStrategy: 'passive', timeout: 8000 })
+    userStore.setLoginData({
+      token: userStore.token,
+      refreshToken: userStore.refreshToken,
+      expiresIn: userStore.tokenExpiresIn,
+      userInfo: context,
+    })
+    isApplicationPending.value = Number(context?.signStatus) === 1
+  } catch (error) {
+    console.warn('[AccountStatus] 查询签约状态失败:', error)
+  }
+}
+
+function goToApplication() {
+  navigator.reLaunch(APPLY_SIGN)
+}
 
 /**
  * 联系客服申诉

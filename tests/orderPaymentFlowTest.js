@@ -46,6 +46,6 @@ describe('下单支付流程契约', () => {
     expect(detailSource).not.toContain('状态变更为')
     expect(splitSource).not.toContain('确认拆单并推送 WMS')
     expect(splitSource).not.toContain('warehouse-code')
-    expect(splitSource).toContain('确认配送安排')
+    expect(splitSource).toContain('确认订单拆分')
   })
 })

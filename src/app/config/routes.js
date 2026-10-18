@@ -221,7 +221,7 @@ export const ROUTE_META = Object.freeze({
     owner: null,
   },
   [FULFILLMENT_SPLIT]: {
-    title: '配送拆单',
+    title: '订单按地址拆单',
     requireAuth: true,
     requireSign: true,
     allowFrozen: false,

@@ -16,7 +16,7 @@ const AUTH_KEYS = ['token', 'refreshToken', 'tokenExpiresIn']
 const USER_KEYS = [
   'userId', 'username', 'realName', 'nickname', 'avatarUrl',
   'isAdmin', 'roleIds', 'permissions', 'dealerInfo', 'creditScore',
-  'dealerId', 'dealerStatus', 'accountStatus', 'isMainAccount', 'financeContext'
+  'dealerId', 'dealerStatus', 'accountStatus', 'signStatus', 'isMainAccount', 'financeContext'
 ]
 const BUSINESS_KEYS = ['cart_items', 'order_pending', 'order_detail_cache']
 

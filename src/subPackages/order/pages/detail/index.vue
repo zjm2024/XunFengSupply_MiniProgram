@@ -1,4 +1,4 @@
-﻿﻿﻿﻿<!--
+﻿﻿﻿<!--
   订单详情页面（分包：orderSub）
   对应业务流程节点：
   订单履约发货 → 查看客户可见订单信息、物流进度与可执行操作
@@ -35,7 +35,7 @@
           </view>
 
           <!-- 收货地址 -->
-          <view class="address-card">
+          <view v-if="detail.orderSource !== 'ERP_MANUAL'" class="address-card">
             <view class="address-icon-wrap">
               <AppIcon name="address" :size="20" color="#C41E3A" />
             </view>
@@ -131,19 +131,27 @@
               <text class="info-label">订单编号</text>
               <text class="info-value copyable" @click="copyText(detail.orderNo)">{{ detail.orderNo }}</text>
             </view>
+            <view v-if="detail.orderSource === 'ERP_MANUAL'" class="info-row">
+              <text class="info-label">订单来源</text>
+              <text class="info-value">ERP手工单</text>
+            </view>
+            <view v-if="detail.orderSource === 'ERP_MANUAL' && detail.erpOrderNo" class="info-row">
+              <text class="info-label">ERP单号</text>
+              <text class="info-value copyable" @click="copyText(detail.erpOrderNo)">{{ detail.erpOrderNo }}</text>
+            </view>
             <view class="info-row">
               <text class="info-label">下单时间</text>
               <text class="info-value">{{ formatDateTime(detail.createdAt) }}</text>
             </view>
             <view class="info-row">
               <text class="info-label">结算方式</text>
-              <text class="info-value">{{ paymentModeText(detail.paymentMode, detail.paymentStatus, detail.orderStatus) }}</text>
+              <text class="info-value">{{ detail.orderSource === 'ERP_MANUAL' ? '账户本金支付' : paymentModeText(detail.paymentMode, detail.paymentStatus, detail.orderStatus) }}</text>
             </view>
             <view class="info-row">
               <text class="info-label">支付状态</text>
               <text class="info-value" :style="{ color: paymentStatus.color }">{{ paymentStatus.text }}</text>
             </view>
-            <view class="info-row">
+            <view v-if="detail.orderSource !== 'ERP_MANUAL'" class="info-row">
               <text class="info-label">订单确认</text>
               <text class="info-value">{{ confirmationStatusText }}</text>
             </view>
@@ -297,39 +305,62 @@ const fullAddress = computed(() => {
   return `${d.receiverProvince || ''}${d.receiverCity || ''}${d.receiverDistrict || ''}${d.receiverAddress || ''}`
 })
 
-// 状态文本映射
+// 状态文本映射：订单主状态优先，其次是支付，再补充 ERP 确认和履约阶段。
 const orderStatusText = computed(() => {
-  if (confirmationDisplay.value) return confirmationDisplay.value.title
+  const status = Number(detail.value?.orderStatus)
+  if (status === ORDER_STATUS.CANCELLING) return '取消处理中'
+  if (status === ORDER_STATUS.CANCELLED) return '已取消'
+  if (status === ORDER_STATUS.COMPLETED) return '交易完成'
   if (isActivePaymentPending.value) return paymentProgressTitle.value
-  if (isPaymentConfirmedBeforeProcessing.value) return '处理中'
-  return ORDER_STATUS_MAP[detail.value?.orderStatus]?.text || '未知'
+  if (confirmationDisplay.value) return confirmationDisplay.value.title
+  if (isPaymentConfirmedBeforeProcessing.value || status === ORDER_STATUS.PROCESSING) {
+    return processingStatusTitle.value
+  }
+  return ORDER_STATUS_MAP[detail.value?.orderStatus]?.text || '状态同步中'
 })
 
 const orderStatusDesc = computed(() => {
-  if (confirmationDisplay.value) return confirmationDisplay.value.description
-  if (isActivePaymentPending.value) return paymentProgressDescription.value
-  if (isPaymentConfirmedBeforeProcessing.value) return '支付已确认，正在为您安排发货'
-  const map = {
-    [ORDER_STATUS.DRAFT]: '订单已创建',
-    [ORDER_STATUS.PENDING_REVIEW]: '您的订单正在由品牌方审核中',
-    [ORDER_STATUS.REVIEW_REJECTED]: '订单审核未通过',
-    [ORDER_STATUS.PENDING_PAYMENT]: '请在付款时限内完成支付',
-    [ORDER_STATUS.PROCESSING]: processingStatusDescription.value,
-    [ORDER_STATUS.COMPLETED]: '订单已完成，感谢您的购买',
-    [ORDER_STATUS.CANCELLING]: '订单正在关闭，退款将按原支付方式处理',
-    [ORDER_STATUS.CANCELLED]: '订单已取消',
+  const status = Number(detail.value?.orderStatus)
+  if (status === ORDER_STATUS.CANCELLING) {
+    return cancellationReasonText.value || '订单取消处理中，请稍候查看退款结果'
   }
-  return map[detail.value?.orderStatus] || ''
+  if (status === ORDER_STATUS.CANCELLED) {
+    return cancellationReasonText.value || '订单已取消，相关退款将按原支付方式处理'
+  }
+  if (status === ORDER_STATUS.COMPLETED) {
+    return detail.value?.orderSource === 'ERP_MANUAL'
+      ? 'ERP手工订单已扣款、扣库存并完成'
+      : '交易已完成，感谢您的采购'
+  }
+  if (isActivePaymentPending.value) return paymentProgressDescription.value
+  if (confirmationDisplay.value) return confirmationDisplay.value.description
+  if (isPaymentConfirmedBeforeProcessing.value || status === ORDER_STATUS.PROCESSING) {
+    return processingStatusDescription.value
+  }
+  const map = {
+    [ORDER_STATUS.DRAFT]: '订单草稿已保存',
+    [ORDER_STATUS.PENDING_REVIEW]: '订单正在确认中',
+    [ORDER_STATUS.REVIEW_REJECTED]: '订单确认未通过',
+    [ORDER_STATUS.PENDING_PAYMENT]: '请在付款时限内完成支付',
+  }
+  return map[status] || ''
+})
+
+/** 根据履约状态生成客户可理解的阶段标题，屏蔽内部系统与消息处理细节。 */
+const processingStatusTitle = computed(() => {
+  const fulfillmentStatus = Number(detail.value?.fulfillmentStatus || 0)
+  if (fulfillmentStatus >= FULFILLMENT_STATUS.SHIPPED) return '配送中'
+  if (fulfillmentStatus >= FULFILLMENT_STATUS.PICKING) return '备货中'
+  return '待发货'
 })
 
 /** 根据客户可理解的履约阶段生成状态说明，屏蔽内部系统与消息处理细节。 */
 const processingStatusDescription = computed(() => {
   const fulfillmentStatus = Number(detail.value?.fulfillmentStatus || 0)
-  if (fulfillmentStatus >= FULFILLMENT_STATUS.SHIPPED) return '商品已发出，请留意物流进度'
+  if (fulfillmentStatus >= FULFILLMENT_STATUS.SHIPPED) return '商品配送中，请留意物流进度'
   if (fulfillmentStatus >= FULFILLMENT_STATUS.PICKING) return '商品正在备货，请耐心等待发出'
-  return '订单已确认，正在为您安排发货'
+  return '订单确认完成，等待仓库发货'
 })
-
 const ERP_REVIEW_STATUS = Object.freeze({
   LEGACY_UNTRACKED: 0,
   PENDING: 1,
@@ -341,6 +372,18 @@ const ERP_REVIEW_STATUS = Object.freeze({
 
 /** 将 ERP 审核转换为客户可理解的订单确认文案。 */
 const confirmationDisplay = computed(() => {
+  const orderStatus = Number(detail.value?.orderStatus)
+  if (orderStatus === ORDER_STATUS.CANCELLING || orderStatus === ORDER_STATUS.CANCELLED) {
+    return null
+  }
+
+  // 未支付时先展示支付状态，避免“待付款”订单被 ERP 确认文案覆盖。
+  const paymentStatus = Number(detail.value?.paymentStatus)
+  if ((orderStatus === ORDER_STATUS.PENDING_PAYMENT || orderStatus === ORDER_STATUS.PROCESSING)
+    && paymentStatus !== PAYMENT_STATUS.CONFIRMED) {
+    return null
+  }
+
   const status = Number(detail.value?.erpReviewStatus)
   if (status === ERP_REVIEW_STATUS.PENDING) {
     return {
@@ -351,7 +394,7 @@ const confirmationDisplay = computed(() => {
   if (status === ERP_REVIEW_STATUS.REJECTED) {
     return {
       title: '订单未通过确认',
-      description: detail.value?.erpReviewReasonMessage || '订单已为您取消，请查看取消说明',
+      description: detail.value?.erpReviewReasonMessage || '订单确认未通过，请查看订单说明',
     }
   }
   if (status === ERP_REVIEW_STATUS.REJECTED_AFTER_SHIPMENT
@@ -360,7 +403,6 @@ const confirmationDisplay = computed(() => {
   }
   return null
 })
-
 const confirmationStatusText = computed(() => {
   const status = Number(detail.value?.erpReviewStatus)
   return ({
@@ -376,11 +418,10 @@ const confirmationStatusText = computed(() => {
 const isActivePaymentPending = computed(() => {
   const status = Number(detail.value?.orderStatus)
   const paymentStatus = Number(detail.value?.paymentStatus)
-  return (status === ORDER_STATUS.PENDING_PAYMENT && paymentStatus !== PAYMENT_STATUS.CONFIRMED)
-    || (status === ORDER_STATUS.PROCESSING
-      && paymentStatus !== PAYMENT_STATUS.CONFIRMED)
+  if (status === ORDER_STATUS.CANCELLING || status === ORDER_STATUS.CANCELLED) return false
+  return (status === ORDER_STATUS.PENDING_PAYMENT || status === ORDER_STATUS.PROCESSING)
+    && paymentStatus !== PAYMENT_STATUS.CONFIRMED
 })
-
 const isPaymentConfirmedBeforeProcessing = computed(() => {
   return Number(detail.value?.orderStatus) === ORDER_STATUS.PENDING_PAYMENT
     && Number(detail.value?.paymentStatus) === PAYMENT_STATUS.CONFIRMED

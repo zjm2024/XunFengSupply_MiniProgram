@@ -36,6 +36,8 @@ function normalizeOrder(order = {}) {
     ...order,
     orderId: number(order.orderId ?? order.OrderId),
     orderNo: order.orderNo ?? order.OrderNo,
+    orderSource: order.orderSource ?? order.OrderSource ?? 'MALL',
+    erpOrderNo: order.erpOrderNo ?? order.ErpOrderNo ?? '',
     parentOrderId: number(order.parentOrderId ?? order.ParentOrderId),
     splitOrderCount: number(order.splitOrderCount ?? order.SplitOrderCount),
     orderStatus: number(order.orderStatus ?? order.OrderStatus),
@@ -64,6 +66,8 @@ function normalizeOrder(order = {}) {
     erpReviewReasonCode: order.erpReviewReasonCode ?? order.ErpReviewReasonCode ?? null,
     erpReviewReasonMessage: order.erpReviewReasonMessage ?? order.ErpReviewReasonMessage ?? null,
     erpReviewedAt: order.erpReviewedAt ?? order.ErpReviewedAt ?? null,
+    canArrangeFulfillment: (order.canArrangeFulfillment ?? order.CanArrangeFulfillment) === true,
+    fulfillmentDisabledReason: order.fulfillmentDisabledReason ?? order.FulfillmentDisabledReason ?? null,
     allowedActions: order.allowedActions ?? order.AllowedActions ?? [],
     cancellationReasonCode: order.cancellationReasonCode ?? order.CancellationReasonCode ?? null,
     cancellationReason: order.cancellationReason ?? order.CancellationReason ?? null,
@@ -326,23 +330,27 @@ export function getFulfillmentSplitContext(orderId) {
 
 /** 配送拆单页使用的地址列表，放在订单分包内以避免跨分包静态依赖。 */
 export function getFulfillmentAddressList() {
-  return dispatch('MallOrder', 'Mini.AddressController', 'GetAddressList', {}).then(data =>
-    (Array.isArray(data) ? data : []).map(source => {
+  return dispatch('MallOrder', 'Mini.AddressController', 'GetAddressList', {}).then(data => {
+    // 地址接口可能直接返回数组，也可能返回分页对象；两种结构都必须保留。
+    const items = Array.isArray(data)
+      ? data
+      : (data?.items ?? data?.Items ?? data?.data ?? data?.Data ?? [])
+
+    return (Array.isArray(items) ? items : []).map(source => {
       const province = String(source?.province ?? source?.Province ?? '')
       const city = String(source?.city ?? source?.City ?? '')
       const district = String(source?.district ?? source?.District ?? '')
       const detail = String(source?.addressDetail ?? source?.AddressDetail ?? '')
       return {
-        id: Number(source?.addressId ?? source?.AddressId ?? 0),
+        id: Number(source?.addressId ?? source?.AddressId ?? source?.id ?? source?.Id ?? 0),
         name: String(source?.contactName ?? source?.ContactName ?? ''),
         phone: String(source?.contactPhone ?? source?.ContactPhone ?? ''),
         fullAddress: String(source?.fullAddress ?? source?.FullAddress ?? '') || `${province}${city}${district}${detail}`,
         isDefault: Boolean(source?.isDefault ?? source?.IsDefault ?? false),
       }
-    }).filter(item => item.id > 0),
-  )
+    }).filter(item => item.id > 0)
+  })
 }
-
 /**
  * 按收货地址分配订单明细数量并创建履约单。财务订单保持一张，不拆金额与支付记录。
  */

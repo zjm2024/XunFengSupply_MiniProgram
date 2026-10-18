@@ -223,11 +223,14 @@ export function applySign(params) {
 }
 
 /**
- * 查询签约状态
- * ⚠️ 后端未实现单独的状态查询接口
+ * 查询当前账号的签约/申请状态。
+ * 后端通过 GetBootstrapContext 返回 signStatus：1审核中、2已通过、-1已驳回、0未提交
  */
-export function getSignStatus() {
-  return Promise.reject(new Error('签约状态查询功能尚未实现'))
+export function getSignStatus(options = {}) {
+  return dispatch('MallDealer', 'Mini.ProfileController', 'GetBootstrapContext', {}, {
+    authStrategy: options.authStrategy || 'passive',
+    timeout: options.timeout || 8000,
+  })
 }
 
 /**

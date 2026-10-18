@@ -119,28 +119,30 @@ const panelClass = computed(() => ({
 }))
 
 const badgeText = computed(() => {
-  if (isCancelled.value) return '已结束'
-  if (isCancelling.value) return '处理中'
+  if (isCancelled.value) return '已取消'
+  if (isCancelling.value) return '取消处理中'
   if (isRejected.value) return '未通过'
+  if (normalizedStatus.value === ORDER_STATUS.COMPLETED) return '交易完成'
   if (normalizedPaymentStatus.value === PAYMENT_STATUS.UNPAID) return '待付款'
   if (normalizedPaymentStatus.value === PAYMENT_STATUS.PAYING) return '支付中'
   if (normalizedPaymentStatus.value === PAYMENT_STATUS.PARTIALLY_PAID) return '部分支付'
   if (normalizedPaymentStatus.value === PAYMENT_STATUS.FAILED) return '支付失败'
   if (normalizedPaymentStatus.value === PAYMENT_STATUS.UNKNOWN) return '待确认'
-  if (normalizedStatus.value === ORDER_STATUS.COMPLETED) return '已完成'
   return '进行中'
 })
 
 const resultMark = computed(() => (isRejected.value ? '!' : '✓'))
 const resultTitle = computed(() => {
-  if (isRejected.value) return '订单未通过审核'
-  if (isCancelling.value) return '订单正在关闭'
-  return '订单已结束'
+  if (isRejected.value) return '订单确认未通过'
+  if (isCancelling.value) return '订单取消处理中'
+  if (isCancelled.value) return '订单已取消'
+  return '交易完成'
 })
 const resultDescription = computed(() => {
-  if (isRejected.value) return '可返回订单重新调整采购计划'
-  if (isCancelling.value) return '正在处理取消申请，请稍候查看退款结果'
-  return props.description || '订单已取消，相关退款将按原支付方式处理'
+  if (isRejected.value) return props.description || '订单确认未通过，请查看订单说明'
+  if (isCancelling.value) return props.description || '订单取消处理中，请稍候查看退款结果'
+  if (isCancelled.value) return props.description || '订单已取消，相关退款将按原支付方式处理'
+  return props.description || '交易已完成，感谢您的采购'
 })
 </script>
 
