@@ -6,29 +6,11 @@
   - 标题栏区域（由 AppHeader 填充）
   - 内容区（由 AppContent 填充，flex:1 + min-height:0 自动填充剩余空间）
   - 底部固定操作栏（可选，由 AppFixedFooter 填充）
+  - 页面级覆盖层（用于不受内容滚动区裁剪的抽屉和弹窗）
   - 底部安全区
-
-  标准页面结构：
-    [AppPageShell]
-      [AppHeader title="页面标题" :show-back="true" /]
-      [AppContent]
-        [AppPageState :state="pageStatus"]
-          业务内容
-        [/AppPageState]
-      [/AppContent]
-      [AppFixedFooter] 
-        [button]操作按钮[/button]
-      [/AppFixedFooter]
-    [/AppPageShell]
-
-  关键特性：
-  - 使用 flex column 布局，内容区自动填充剩余高度
-  - 无需每个页面计算 scroll-view 高度
-  - 自动处理状态栏、安全区、底部横条
 -->
 <template>
   <view class="app-page-shell" :class="[`breakpoint-${layout.breakpoint}`, { 'is-landscape': layout.isLandscape }]">
-
     <!-- 标题栏插槽 -->
     <view class="shell-header">
       <slot name="header"></slot>
@@ -42,12 +24,16 @@
     <!-- 固定底部操作栏（可选） -->
     <view v-if="$slots.footer" class="shell-footer">
       <slot name="footer"></slot>
-      <!-- 底部安全区 -->
       <view class="safe-area-spacer" :style="{ height: safeArea.bottom + 'px' }"></view>
     </view>
 
     <!-- 无 footer 时也需要底部安全区 -->
     <view v-else class="shell-safe-area-bottom" :style="{ height: safeArea.bottom + 'px' }"></view>
+
+    <!-- 页面级覆盖层：位于内容和底栏之上，避免被滚动容器裁剪。 -->
+    <view v-if="$slots.overlay" class="shell-overlay">
+      <slot name="overlay"></slot>
+    </view>
   </view>
 </template>
 
@@ -68,7 +54,6 @@ const { layout, safeArea } = useResponsive()
   overflow: hidden;
   position: relative;
 
-  // 横屏模式：限制最大宽度并居中
   &.is-landscape {
     &.breakpoint-expanded {
       max-width: var(--page-shell-max-width, 1366px);
@@ -86,7 +71,7 @@ const { layout, safeArea } = useResponsive()
 
 .shell-content-wrapper {
   flex: 1;
-  min-height: 0; // 关键：允许 flex 子项收缩到小于内容高度
+  min-height: 0;
   overflow: hidden;
   position: relative;
 }
@@ -108,5 +93,12 @@ const { layout, safeArea } = useResponsive()
   flex-shrink: 0;
   min-height: 8px;
   background: transparent;
+}
+
+.shell-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  pointer-events: none;
 }
 </style>

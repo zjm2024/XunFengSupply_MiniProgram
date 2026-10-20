@@ -1,4 +1,4 @@
-﻿﻿﻿<!--
+﻿﻿<!--
   订单详情页面（分包：orderSub）
   对应业务流程节点：
   订单履约发货 → 查看客户可见订单信息、物流进度与可执行操作
@@ -93,6 +93,24 @@
                 </view>
               </view>
             </view>
+          </view>
+
+          <!-- ERP 最终审批前的配送安排入口。 -->
+          <view v-if="showFulfillmentCard" class="split-card fulfillment-arrange-card">
+            <view class="fulfillment-arrange-head">
+              <view class="fulfillment-arrange-copy">
+                <text class="card-title">配送安排</text>
+                <text class="fulfillment-arrange-summary">{{ fulfillmentSummary }}</text>
+              </view>
+              <button
+                class="arrange-button"
+                :disabled="!canArrangeFulfillment"
+                @tap="goToFulfillmentSplit"
+              >安排配送</button>
+            </view>
+            <text v-if="!canArrangeFulfillment && detail.fulfillmentDisabledReason" class="fulfillment-disabled-reason">
+              {{ detail.fulfillmentDisabledReason }}
+            </text>
           </view>
 
           <!-- 拆单与实际发货数量：母单详情只展示 ERP/WMS 已确认的事实。 -->
@@ -483,6 +501,24 @@ const customerTimeline = computed(() => {
   return timeline
 })
 
+// ERP 最终审批前，已支付且尚未进入履约的商城订单可以安排配送。
+const canArrangeFulfillment = computed(() => {
+  return detail.value?.orderSource !== 'ERP_MANUAL'
+    && detail.value?.canArrangeFulfillment === true
+})
+
+const showFulfillmentCard = computed(() => {
+  const order = detail.value
+  if (!order || order.orderSource === 'ERP_MANUAL') return false
+  if (![ORDER_STATUS.PENDING_PAYMENT, ORDER_STATUS.PROCESSING].includes(Number(order.orderStatus))) return false
+  return Number(order.paymentStatus) === PAYMENT_STATUS.CONFIRMED
+})
+
+const fulfillmentSummary = computed(() => {
+  if (canArrangeFulfillment.value) return 'ERP 最终审批前，可安排配送地址'
+  return detail.value?.fulfillmentDisabledReason || '当前暂不能安排配送，请查看原因'
+})
+
 // 可用操作按钮由服务端 AllowedActions 决定，前端只做统一展示。
 const actionButtons = computed(() => {
   if (!detail.value) return []
@@ -519,6 +555,11 @@ function copyText(text) {
 /**
  * 跳转商品详情
  */
+function goToFulfillmentSplit() {
+  if (!canArrangeFulfillment.value) return
+  navigator.navigateTo(routes.order.fulfillmentSplit(orderId.value))
+}
+
 function goToProductDetail(item) {
   const productId = item.productId || item.ProductId
   if (!productId) return
@@ -690,6 +731,54 @@ function splitStatusClass(status) {
     color: var(--text-primary);
     margin-bottom: 20rpx;
   }
+}
+
+.fulfillment-arrange-card {
+  padding-bottom: 20rpx;
+}
+
+.fulfillment-arrange-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+}
+
+.fulfillment-arrange-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.fulfillment-arrange-summary,
+.fulfillment-disabled-reason {
+  display: block;
+  margin-top: 6rpx;
+  color: var(--type-muted-color, #707783);
+  font-size: var(--type-micro-size, 11px);
+  line-height: 1.5;
+}
+
+.fulfillment-disabled-reason {
+  color: #c47a19;
+}
+
+.arrange-button {
+  flex: 0 0 auto;
+  min-width: 88px;
+  height: 38px;
+  margin: 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  color: #fff;
+  background: var(--color-brand, #D7192D);
+  font-size: var(--type-button-size, 13px);
+  line-height: 38px;
+}
+
+.arrange-button[disabled] {
+  color: #a8abb2;
+  background: #eceef2;
 }
 
 .split-block {
@@ -1022,3 +1111,4 @@ function splitStatusClass(status) {
   .bottom-space { height: 64px; }
 }
 </style>
+

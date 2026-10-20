@@ -55,6 +55,30 @@ export function verifyLoginCaptcha(username, captchaId, offsetX) {
 }
 
 /**
+ * 获取入驻申请图形验证码（匿名访问）
+ * @param {string} mobile - 申请联系人手机号
+ * @returns {Promise<{ captchaId: string, backgroundImageBase64: string, pieceImageBase64: string }>}
+ */
+export function getApplicationCaptcha(mobile) {
+  return dispatch('MallDealer', 'Mini.ApplicationController', 'GetApplicationCaptcha', { mobile }, { anonymous: true })
+}
+
+/**
+ * 校验入驻申请滑块位置，成功后返回申请用的一次性凭证
+ * @param {string} mobile - 申请联系人手机号
+ * @param {string} captchaId - 验证码挑战 ID
+ * @param {number} offsetX - 原始图片坐标系中的 X 坐标
+ * @returns {Promise<{ verificationToken: string, expiresIn: number }>}
+ */
+export function verifyApplicationCaptcha(mobile, captchaId, offsetX) {
+  return dispatch('MallDealer', 'Mini.ApplicationController', 'VerifyApplicationCaptcha', {
+    mobile,
+    captchaId,
+    offsetX,
+  }, { anonymous: true })
+}
+
+/**
  * 设备免登（匿名访问，无需 Token）
  * @param {string} deviceCode - 设备编码
  * @returns {Promise<{ token, customerId, username, realName, grade, isMaster, expiresAt }>}

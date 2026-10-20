@@ -1,9 +1,9 @@
-﻿﻿<template>
+<template>
   <view class="slider-captcha">
     <view class="puzzle-stage">
-      <image v-if="hasChallenge" class="puzzle-background" :src="challenge.backgroundImageBase64" mode="scaleToFill" />
+      <image v-if="hasChallenge && !imageLoadFailed" class="puzzle-background" :src="challenge.backgroundImageBase64" mode="scaleToFill" @error="handleImageError" />
       <image
-        v-if="hasChallenge"
+        v-if="hasChallenge && !imageLoadFailed"
         class="puzzle-piece"
         :src="challenge.pieceImageBase64"
         mode="scaleToFill"
@@ -52,10 +52,11 @@ const props = defineProps({
   errorText: { type: String, default: '' },
 })
 
-const emit = defineEmits(['refresh', 'verify'])
+const emit = defineEmits(['refresh', 'verify', 'imageError'])
 const componentProxy = getCurrentInstance()?.proxy
 const dragging = ref(false)
 const submitted = ref(false)
+const imageLoadFailed = ref(false)
 const dragX = ref(0)
 const trackWidth = ref(0)
 const thumbWidth = ref(48)
@@ -66,11 +67,21 @@ const maxDragX = computed(() => Math.max(trackWidth.value - thumbWidth.value, 0)
 const hasChallenge = computed(() => Boolean(
   props.challenge?.captchaId
     && props.challenge?.backgroundImageBase64
-    && props.challenge?.pieceImageBase64,
+    && props.challenge?.pieceImageBase64
+    && Number.isFinite(props.challenge?.imageWidth)
+    && Number.isFinite(props.challenge?.imageHeight)
+    && Number.isFinite(props.challenge?.pieceSize)
+    && Number.isFinite(props.challenge?.pieceY),
 ))
 const isDisabled = computed(() => (
-  props.loading || props.verifying || props.verified || !hasChallenge.value
+  props.loading || props.verifying || props.verified || !hasChallenge.value || imageLoadFailed.value
 ))
+
+const stageMessage = computed(() => {
+  if (props.loading) return '正在生成验证码…'
+  if (imageLoadFailed.value) return '验证码图片加载失败，请点击刷新'
+  return '验证码加载失败，请点击刷新'
+})
 
 const sourcePieceX = computed(() => {
   if (!props.challenge || maxDragX.value <= 0) return 0
@@ -117,6 +128,12 @@ watch(
   },
 )
 
+/** 记录验证码图片加载失败并让父页面提供刷新入口。 */
+function handleImageError() {
+  if (imageLoadFailed.value) return
+  imageLoadFailed.value = true
+  emit('imageError')
+}
 function measureTrack() {
   const query = uni.createSelectorQuery().in(componentProxy)
   query.select('.slider-track').boundingClientRect()

@@ -32,6 +32,22 @@ function hasValidCredential(credential) {
   )
 }
 
+/**
+ * 统一生成对象存储公开访问地址。
+ * 七牛返回的 key 可能是对象键，也可能已经是完整 URL；完整 URL 不再重复拼接 CDN 域名。
+ * @param {string} key - 七牛返回的对象键或完整访问地址
+ * @param {string} cdnDomain - 后端返回的 CDN 访问域名
+ * @returns {string} 可直接访问的资源地址
+ */
+function buildPublicUrl(key, cdnDomain) {
+  const normalizedKey = String(key || '').trim()
+  if (/^https?:\/\//i.test(normalizedKey)) return normalizedKey
+
+  const normalizedDomain = String(cdnDomain || '').trim().replace(/\/+$/, '')
+  const normalizedPath = normalizedKey.replace(/^\/+/, '')
+  return `${normalizedDomain}/${normalizedPath}`
+}
+
 function getUploadCredential(scene) {
   const cacheKey = scene || 'default'
   const cached = credentialCache.get(cacheKey)
@@ -90,7 +106,7 @@ function uploadToQiniu(filePath, credential) {
           return
         }
 
-        resolve({ key, url: `${credential.cdnDomain}/${key}` })
+        resolve({ key, url: buildPublicUrl(key, credential.cdnDomain) })
       },
       fail: () => reject(new Error('图片上传失败，请检查网络后重试')),
     })

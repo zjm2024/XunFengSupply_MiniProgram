@@ -36,7 +36,7 @@
               <AreaCascadePicker
                 v-model="regionValue"
                 :error="Boolean(formError && !hasRegion)"
-                @confirm="clearError"
+                @open="regionPickerVisible = true"
               />
             </view>
 
@@ -69,6 +69,14 @@
       </AppContent>
     </template>
 
+    <template #overlay>
+      <AreaCascadePickerPanel
+        v-model:visible="regionPickerVisible"
+        v-model="regionValue"
+        @confirm="clearError"
+      />
+    </template>
+
     <template #footer>
       <FixedActionBar>
         <button class="save-btn" :disabled="saving || loading" @tap="saveAddress">
@@ -91,11 +99,13 @@ import { createAddress, getAddressList, updateAddress } from '../../api/addressA
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import AreaCascadePicker from '../../../auth/components/AreaCascadePicker/AreaCascadePicker.vue'
+import AreaCascadePickerPanel from '../../../auth/components/AreaCascadePicker/AreaCascadePickerPanel.vue'
 
 const editingId = ref(0)
 const loading = ref(false)
 const saving = ref(false)
 const formError = ref('')
+const regionPickerVisible = ref(false)
 
 const emptyForm = () => ({
   name: '',

@@ -100,6 +100,7 @@ function toCreateOrderPayload(params = {}) {
     Items: toPascalCaseItems(params.items),
     AddressId: params.addressId ?? params.AddressId ?? null,
     PaymentMode: params.paymentMode ?? params.PaymentMode ?? null,
+    FundAccountCode: params.fundAccountCode ?? params.FundAccountCode ?? null,
     DeliveryType: params.deliveryType ?? params.DeliveryType ?? null,
     CustomerRemark: params.customerRemark ?? params.CustomerRemark ?? null,
     OmitUnavailableGifts: params.omitUnavailableGifts ?? params.OmitUnavailableGifts ?? false,

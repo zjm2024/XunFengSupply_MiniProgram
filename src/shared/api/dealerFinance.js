@@ -4,6 +4,7 @@ function normalizeAccount(item = {}) {
   return {
     accountId: Number(item.accountId ?? item.AccountId ?? 0),
     accountCustomerId: Number(item.accountCustomerId ?? item.AccountCustomerId ?? 0),
+    fundAccountCode: item.fundAccountCode ?? item.FundAccountCode ?? '',
     username: item.username ?? item.Username ?? '',
     realName: item.realName ?? item.RealName ?? '',
     isMaster: Boolean(item.isMaster ?? item.IsMaster),
@@ -31,6 +32,7 @@ export function normalizeFinanceContext(result = {}) {
       : null,
     accounts: rawAccounts.map(normalizeAccount),
     credit: {
+      fundAccountCode: credit.fundAccountCode ?? credit.FundAccountCode ?? '',
       creditAccountId: Number(credit.creditAccountId ?? credit.CreditAccountId ?? 0),
       totalAmount: Number(credit.totalAmount ?? credit.TotalAmount ?? 0),
       reservedAmount: Number(credit.reservedAmount ?? credit.ReservedAmount ?? 0),
@@ -74,6 +76,7 @@ export function confirmDealerOrderPayment(params = {}) {
     OrderId: Number(params.orderId || 0),
     ClientRequestId: params.clientRequestId,
     PaymentMode: Number(params.paymentMode || 0),
+    FundAccountCode: params.fundAccountCode ?? params.FundAccountCode ?? null,
     Allocations: (params.allocations || []).map(item => ({
       PayMethod: item.payMethod,
       AccountCustomerId: item.payMethod === 'balance'

@@ -163,7 +163,7 @@
                 <AreaCascadePicker
                   v-model="regionValue"
                   :error="Boolean(errors.region)"
-                  @confirm="handleRegionConfirm"
+                  @open="regionPickerVisible = true"
                 />
                 <text v-if="errors.region" class="field-error">{{ errors.region }}</text>
               </view>
@@ -236,6 +236,47 @@
       </AppContent>
     </template>
 
+    <template #overlay>
+      <AreaCascadePickerPanel
+        v-model:visible="regionPickerVisible"
+        v-model="regionValue"
+        @confirm="handleRegionConfirm"
+      />
+      <view
+        v-if="showCaptchaModal"
+        class="captcha-modal-mask"
+        @click.self="closeCaptchaModal"
+      >
+        <view class="captcha-modal" @click.stop>
+          <view class="captcha-modal__header">
+            <view class="captcha-modal__heading">
+              <text class="captcha-modal__title">安全验证</text>
+              <text class="captcha-modal__description">提交申请前请完成图形验证</text>
+            </view>
+            <view
+              class="captcha-modal__close"
+              hover-class="captcha-modal__close--pressed"
+              aria-label="关闭安全验证"
+              @click="closeCaptchaModal"
+            >
+              <AppIcon name="close" :size="24" color="#5E626B" />
+            </view>
+          </view>
+
+          <LoginSliderCaptcha
+            :challenge="captchaChallenge"
+            :loading="captchaLoading"
+            :verifying="captchaVerifying"
+            :verified="captchaVerified"
+            :error-text="captchaError"
+            @refresh="refreshCaptcha"
+            @verify="verifyCaptcha"
+            @image-error="handleCaptchaImageError"
+          />
+        </view>
+      </view>
+    </template>
+
     <template #footer>
       <view v-if="!applicationState" class="submit-footer">
         <button
@@ -254,8 +295,8 @@
 
 <script setup>
 import { computed, nextTick, reactive, ref, watch } from 'vue'
-import { onLoad, onUnload } from '@dcloudio/uni-app'
-import { applySign, getSignStatus } from '../../api/auth.js'
+import { onBackPress, onLoad, onUnload } from '@dcloudio/uni-app'
+import { applySign, getApplicationCaptcha, getSignStatus, verifyApplicationCaptcha } from '../../api/auth.js'
 import { validateSignForm } from '../../../../shared/utils/validate.js'
 import { navigator } from '../../../../app/navigation/navigator.js'
 import { routes } from '../../../../app/config/routes.js'
@@ -264,19 +305,39 @@ import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
 import AppPageShell from '../../../../shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '../../../../shared/ui/AppContent/AppContent.vue'
 import AreaCascadePicker from '../../components/AreaCascadePicker/AreaCascadePicker.vue'
+import AreaCascadePickerPanel from '../../components/AreaCascadePicker/AreaCascadePickerPanel.vue'
 import FileUploader from '../../../../shared/ui/FileUploader/FileUploader.vue'
+import LoginSliderCaptcha from '../../components/LoginSliderCaptcha.vue'
 import storage from '../../../../shared/utils/storage.js'
 import { useUserStore } from '../../../../shared/session/userStore.js'
 
 const placeholderStyle = 'color: #989BA3; font-size: 14px;'
+const CAPTCHA_CHALLENGE_SAFETY_WINDOW_MS = 10 * 1000
+const CAPTCHA_TOKEN_SAFETY_WINDOW_MS = 5 * 1000
+const CAPTCHA_RECOVERABLE_ERRORS = new Set([
+  'DEALER_LOGIN_CAPTCHA_REQUIRED',
+  'DEALER_LOGIN_CAPTCHA_INVALID',
+  'DEALER_LOGIN_CAPTCHA_EXPIRED',
+])
 const submitting = ref(false)
 const agreed = ref(false)
 const scrollTarget = ref('')
+const regionPickerVisible = ref(false)
 const licenseImages = ref([])
 const successTimer = ref(null)
 const applicationState = ref(null)
+const captchaLoading = ref(false)
+const captchaVerifying = ref(false)
+const captchaVerified = ref(false)
+const captchaChallenge = ref(null)
+const captchaToken = ref('')
+const captchaError = ref('')
+const captchaChallengeExpiresAt = ref(0)
+const captchaTokenExpiresAt = ref(0)
+const showCaptchaModal = ref(false)
 const userStore = useUserStore()
 const APPLICATION_CACHE_KEY = 'dealerApplication'
+const APPLICATION_DRAFT_CACHE_KEY = 'dealerApplicationDraft'
 
 const applicationStatusTitle = computed(() => {
   if (applicationState.value?.status === 'approved') return '申请已通过'
@@ -325,8 +386,9 @@ function leaveApplicationStatus() {
   navigator.back()
 }
 
-onLoad(() => {
-  loadApplicationState()
+onLoad(async () => {
+  await loadApplicationState()
+  if (!applicationState.value || applicationState.value.status === 'rejected') restoreApplicationDraft()
 })
 
 const regionValue = ref({
@@ -358,7 +420,62 @@ const validationData = computed(() => ({
   agreed: agreed.value,
 }))
 
-watch(licenseImages, () => clearFieldError('licenseUrl'), { deep: true })
+watch(formData, persistApplicationDraft, { deep: true })
+watch(regionValue, persistApplicationDraft, { deep: true })
+watch(licenseImages, () => {
+  clearFieldError('licenseUrl')
+  persistApplicationDraft()
+}, { deep: true })
+watch(agreed, persistApplicationDraft)
+
+watch(() => formData.mobile, () => {
+  resetCaptchaVerification()
+  showCaptchaModal.value = false
+})
+
+onBackPress(() => {
+  if (!showCaptchaModal.value) return false
+  closeCaptchaModal()
+  return true
+})
+
+function restoreApplicationDraft() {
+  const draft = storage.get(APPLICATION_DRAFT_CACHE_KEY, null)
+  if (!draft || typeof draft !== 'object') return
+
+  Object.assign(formData, {
+    companyName: draft.companyName || '',
+    contactName: draft.contactName || '',
+    mobile: draft.mobile || '',
+    landlinePhone: draft.landlinePhone || '',
+    taxNo: draft.taxNo || '',
+    email: draft.email || '',
+    addressDetail: draft.addressDetail || '',
+    registeredAddress: draft.registeredAddress || '',
+  })
+  Object.assign(regionValue.value, draft.regionValue || {})
+  licenseImages.value = Array.isArray(draft.licenseImages) ? draft.licenseImages : []
+  agreed.value = Boolean(draft.agreed)
+}
+
+function persistApplicationDraft() {
+  if (applicationState.value?.status === 'pending' || applicationState.value?.status === 'approved') return
+
+  storage.set(APPLICATION_DRAFT_CACHE_KEY, {
+    companyName: formData.companyName,
+    contactName: formData.contactName,
+    mobile: formData.mobile,
+    landlinePhone: formData.landlinePhone,
+    taxNo: formData.taxNo,
+    email: formData.email,
+    addressDetail: formData.addressDetail,
+    registeredAddress: formData.registeredAddress,
+    regionValue: { ...regionValue.value },
+    licenseImages: [...licenseImages.value],
+    agreed: agreed.value,
+    updatedAt: Date.now(),
+  })
+}
 
 function replaceErrors(nextErrors) {
   Object.keys(errors).forEach((key) => delete errors[key])
@@ -399,6 +516,166 @@ function scrollToError(field) {
   })
 }
 
+function closeCaptchaModal() {
+  showCaptchaModal.value = false
+}
+
+/** 清除已失效的验证码挑战和验证凭证。 */
+function resetCaptchaVerification() {
+  captchaChallenge.value = null
+  captchaToken.value = ''
+  captchaVerified.value = false
+  captchaError.value = ''
+  captchaChallengeExpiresAt.value = 0
+  captchaTokenExpiresAt.value = 0
+}
+
+/** 将服务端的验证码图片字段规范为可直接用于 image 的 Data URL。 */
+function normalizeCaptchaImageSource(value) {
+  const source = String(value || '').trim()
+  if (!source) return ''
+  return source.startsWith('data:image/') ? source : 'data:image/png;base64,' + source
+}
+
+/** 校验并标准化服务端返回的验证码挑战数据。 */
+function normalizeCaptchaChallenge(result) {
+  const imageWidth = Number(result?.imageWidth)
+  const imageHeight = Number(result?.imageHeight)
+  const pieceSize = Number(result?.pieceSize)
+  const pieceY = Number(result?.pieceY)
+  const backgroundImageBase64 = normalizeCaptchaImageSource(result?.backgroundImageBase64)
+  const pieceImageBase64 = normalizeCaptchaImageSource(result?.pieceImageBase64)
+
+  if (!result?.captchaId || !backgroundImageBase64 || !pieceImageBase64
+    || !Number.isFinite(imageWidth) || !Number.isFinite(imageHeight)
+    || !Number.isFinite(pieceSize) || !Number.isFinite(pieceY)
+    || imageWidth <= 0 || imageHeight <= 0 || pieceSize <= 0 || pieceY < 0) {
+    throw new Error('图形验证码数据不完整，请点击刷新重试')
+  }
+
+  return {
+    ...result,
+    backgroundImageBase64,
+    pieceImageBase64,
+    imageWidth,
+    imageHeight,
+    pieceSize,
+    pieceY,
+  }
+}
+
+/** 判断已通过的验证凭证是否仍可用于本次提交。 */
+function hasUsableCaptchaToken() {
+  return captchaVerified.value
+    && Boolean(captchaToken.value)
+    && captchaTokenExpiresAt.value > Date.now() + CAPTCHA_TOKEN_SAFETY_WINDOW_MS
+}
+
+/** 判断当前挑战是否仍可用于指定手机号。 */
+function hasUsableCaptchaChallenge(mobile) {
+  return Boolean(captchaChallenge.value?.captchaId)
+    && captchaChallengeExpiresAt.value > Date.now() + CAPTCHA_CHALLENGE_SAFETY_WINDOW_MS
+    && formData.mobile.trim() === mobile
+}
+
+/** 将验证码服务错误转换为用户可操作的提示。 */
+function getCaptchaErrorMessage(error) {
+  const errorCode = error?.errorCode || ''
+  if (errorCode === 'DEALER_LOGIN_CAPTCHA_TOO_FREQUENT') return '验证码刷新过快，请稍后再试'
+  if (errorCode === 'DEALER_LOGIN_CAPTCHA_EXPIRED') return '验证码已过期，已为你更换，请重新验证'
+  if (errorCode === 'DEALER_LOGIN_CAPTCHA_INVALID') return '拼图位置不正确，已为你更换，请重试'
+  if (errorCode === 'DEALER_LOGIN_CAPTCHA_REQUIRED') return '请完成安全验证后提交'
+  return error?.message || error?.msg || '验证码加载失败，请点击刷新重试'
+}
+
+/** 打开验证码弹层；过期或缺失时自动生成新的挑战。 */
+async function openCaptchaModal() {
+  const mobile = formData.mobile.trim()
+  showCaptchaModal.value = true
+
+  if (!mobile) {
+    captchaError.value = '请先填写联系人手机号码'
+    return
+  }
+
+  if (captchaVerifying.value || hasUsableCaptchaToken()) return
+  if (!hasUsableCaptchaChallenge(mobile)) await refreshCaptcha()
+}
+
+/** 生成新的验证码挑战并保留失败提示。 */
+async function refreshCaptcha(options = {}) {
+  const preserveError = Boolean(options.preserveError)
+  const mobile = formData.mobile.trim()
+  showCaptchaModal.value = true
+
+  if (!mobile) {
+    captchaError.value = '请先填写联系人手机号码'
+    return
+  }
+  if (captchaLoading.value || captchaVerifying.value) return
+
+  captchaLoading.value = true
+  captchaToken.value = ''
+  captchaTokenExpiresAt.value = 0
+  captchaVerified.value = false
+  captchaChallenge.value = null
+  captchaChallengeExpiresAt.value = 0
+  if (!preserveError) captchaError.value = ''
+
+  try {
+    const result = await getApplicationCaptcha(mobile)
+    if (formData.mobile.trim() !== mobile) return
+
+    const challenge = normalizeCaptchaChallenge(result)
+    captchaChallenge.value = challenge
+    captchaChallengeExpiresAt.value = Date.now() + Math.max(Number(challenge.expiresIn) || 0, 1) * 1000
+  } catch (error) {
+    console.error('[ApplySign] 验证码加载失败:', error)
+    captchaError.value = getCaptchaErrorMessage(error)
+  } finally {
+    captchaLoading.value = false
+  }
+}
+
+/** 处理验证码图片渲染失败，保留弹层并提示用户刷新。 */
+function handleCaptchaImageError() {
+  captchaChallenge.value = null
+  captchaChallengeExpiresAt.value = 0
+  captchaError.value = '验证码图片加载失败，请点击刷新重试'
+}
+
+/** 校验滑块位置，成功后保存一次性提交凭证。 */
+async function verifyCaptcha(offsetX) {
+  const mobile = formData.mobile.trim()
+  const captchaId = captchaChallenge.value?.captchaId
+  if (!mobile || !captchaId || captchaVerifying.value) return
+
+  captchaVerifying.value = true
+  captchaVerified.value = false
+  captchaToken.value = ''
+  captchaTokenExpiresAt.value = 0
+  captchaError.value = ''
+
+  let shouldRefresh = false
+  try {
+    const result = await verifyApplicationCaptcha(mobile, captchaId, offsetX)
+    if (!result?.verificationToken) throw new Error('图形验证码校验结果无效')
+    if (formData.mobile.trim() !== mobile) return
+
+    captchaToken.value = result.verificationToken
+    captchaTokenExpiresAt.value = Date.now() + Math.max(Number(result.expiresIn) || 0, 1) * 1000
+    captchaVerified.value = true
+    showCaptchaModal.value = false
+  } catch (error) {
+    console.error('[ApplySign] 验证码校验失败:', error)
+    captchaError.value = getCaptchaErrorMessage(error)
+    shouldRefresh = ['DEALER_LOGIN_CAPTCHA_INVALID', 'DEALER_LOGIN_CAPTCHA_EXPIRED'].includes(error?.errorCode || '')
+  } finally {
+    captchaVerifying.value = false
+  }
+
+  if (shouldRefresh) await refreshCaptcha({ preserveError: true })
+}
 async function handleSubmit() {
   if (submitting.value) return
 
@@ -409,6 +686,12 @@ async function handleSubmit() {
     const firstField = Object.keys(result.errors)[0]
     scrollToError(firstField)
     uni.showToast({ title: result.firstError, icon: 'none' })
+    return
+  }
+
+  if (!hasUsableCaptchaToken()) {
+    resetCaptchaVerification()
+    await openCaptchaModal()
     return
   }
 
@@ -428,7 +711,10 @@ async function handleSubmit() {
       addressDetail: data.addressDetail.trim(),
       registeredAddress: data.registeredAddress.trim() || null,
       licenseUrl: data.licenseUrl,
+      captchaToken: captchaToken.value,
     })
+    // 只有后端确认申请提交成功后，才清理本地申请草稿。
+    storage.remove(APPLICATION_DRAFT_CACHE_KEY)
     storage.set(APPLICATION_CACHE_KEY, { applicationId, companyName: data.companyName.trim(), status: 'pending', submittedAt: Date.now() })
 
     uni.showToast({ title: '提交成功，等待审核', icon: 'success', duration: 1500 })
@@ -437,11 +723,18 @@ async function handleSubmit() {
     }, 1500)
   } catch (error) {
     console.error('[ApplySign] 提交失败:', error)
+    if (CAPTCHA_RECOVERABLE_ERRORS.has(error?.errorCode || '')) {
+      resetCaptchaVerification()
+      captchaError.value = getCaptchaErrorMessage(error)
+      showCaptchaModal.value = true
+      await refreshCaptcha({ preserveError: true })
+      return
+    }
+
     uni.showToast({
       title: error?.message || error?.msg || '提交失败，请稍后重试',
       icon: 'none',
-    })
-  } finally {
+    })  } finally {
     submitting.value = false
   }
 }
@@ -692,6 +985,77 @@ onUnload(() => {
 
 .agreement-error {
   margin-left: 56rpx;
+}
+
+.captcha-modal-mask {
+  position: absolute;
+  pointer-events: auto;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1200;
+  padding: $space-6 $page-padding-mobile calc(#{$space-6} + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(16, 24, 40, 0.56);
+}
+
+.captcha-modal {
+  width: 100%;
+  max-width: 680rpx;
+  padding: $space-5;
+  box-sizing: border-box;
+  background: $color-bg-card;
+  border-radius: $radius-feature;
+  box-shadow: 0 24rpx 64rpx rgba(16, 24, 40, 0.2);
+}
+
+.captcha-modal__header {
+  min-height: $touch-target-min;
+  margin-bottom: $space-4;
+  display: flex;
+  align-items: flex-start;
+  gap: $space-3;
+}
+
+.captcha-modal__heading {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: $space-1;
+}
+
+.captcha-modal__title {
+  color: $color-text-primary;
+  font-size: $font-size-h3;
+  line-height: $line-height-h3;
+  font-weight: $font-weight-bold;
+}
+
+.captcha-modal__description {
+  color: $color-text-secondary;
+  font-size: $font-size-caption;
+  line-height: $line-height-caption;
+}
+
+.captcha-modal__close {
+  width: $touch-target-min;
+  height: $touch-target-min;
+  margin-top: -$space-2;
+  margin-right: -$space-2;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+}
+
+.captcha-modal__close--pressed {
+  background: $color-gray-100;
 }
 
 .submit-footer {

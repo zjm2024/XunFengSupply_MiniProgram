@@ -212,9 +212,9 @@ const allocationTotal = computed(() => selectedAccountIds.value.reduce(
 ))
 const availableCreditAmount = computed(() => Math.max(0, Number(finance.value.credit?.availableAmount || 0)))
 const paymentModeOptions = computed(() => [
-  { value: PAYMENT_MODE.CASH, label: '现款支付', description: '通过微信、支付宝或银行卡在线付款', icon: 'pay-cash', disabled: false },
+  { value: PAYMENT_MODE.CASH, label: '现款支付', description: '在线通道联调完成后开放', icon: 'pay-cash', disabled: true },
   { value: PAYMENT_MODE.CREDIT, label: '授信支付', description: '使用经销商主体授信结算，生成应收账单', icon: 'pay-credit', disabled: Number(finance.value.credit?.status) !== 1 },
-  { value: PAYMENT_MODE.COMBINATION, label: '账户组合支付', description: '使用主账户或子账户余额分摊结算', icon: 'pay-combine', disabled: false },
+  { value: PAYMENT_MODE.COMBINATION, label: '账户组合支付', description: '当前仅支持单一余额账户，组合支付暂未开放', icon: 'pay-combine', disabled: true },
 ])
 const cashPaymentMethods = [
   { key: 'wechat', label: '微信支付', description: '推荐使用微信安全支付', icon: 'pay-wechat' },
@@ -369,11 +369,11 @@ async function handleConfirmPay() {
   try {
     if (payMode.value === PAYMENT_MODE.CREDIT) {
       if (Number(finance.value.credit?.status) !== 1) throw new Error('主体授信当前不可用')
-      if (Number(payAmount.value) > availableCreditAmount.value) throw new Error('订单金额超过主体剩余可用授信')
       await confirmDealerOrderPayment({
         orderId: orderId.value,
         clientRequestId: `credit-pay-${orderId.value}-${Date.now()}`,
         paymentMode: PAYMENT_MODE.CREDIT,
+        fundAccountCode: finance.value.credit?.fundAccountCode || null,
         allocations: [{ payMethod: 'credit', accountCustomerId: null, amount: payAmount.value }],
       })
       return handlePaid()
