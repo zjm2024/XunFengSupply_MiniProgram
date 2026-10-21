@@ -211,6 +211,24 @@ describe('Order API Layer - Response Mapping', () => {
     expect(result.totalCount).toBe(2)
   })
 
+  it('getOrderList 应同时传递订单主状态和 ERP 审核状态筛选', async () => {
+    const dispatchMock = vi.fn().mockResolvedValue({ Items: [], TotalCount: 0 })
+
+    vi.doMock('@/shared/api/dispatchClient.js', () => ({
+      dispatch: dispatchMock,
+    }))
+
+    const { getOrderList } = await import('@/subPackages/order/api/orderApi.js')
+    await getOrderList({ orderStatus: 40, erpReviewStatus: 1, excludePendingErpReview: false })
+
+    expect(dispatchMock).toHaveBeenCalledWith(
+      'MallOrder',
+      'Mini.OrderController',
+      'GetOrderList',
+      expect.objectContaining({ OrderStatus: 40, ErpReviewStatus: 1, ExcludePendingErpReview: false }),
+    )
+  })
+
   it('getOrderCounts 应兼容 camelCase 和 PascalCase', async () => {
     const dispatchMock = vi.fn().mockResolvedValue({
       AllCount: 10,

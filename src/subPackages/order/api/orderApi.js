@@ -218,6 +218,8 @@ export function createOrder(params = {}) {
  * 获取订单列表（分页，支持状态筛选）
  * @param {Object} params - camelCase 领域参数
  * @param {number} [params.orderStatus] - 订单状态筛选
+ * @param {number} [params.erpReviewStatus] - ERP 审核状态筛选（与订单主状态独立）
+ * @param {boolean} [params.excludePendingErpReview=false] - 是否排除 ERP 待审核订单
  * @param {string} [params.keyword] - 关键字搜索（订单号）
  * @param {number} [params.pageNum=1] - 页码
  * @param {number} [params.pageSize=10] - 每页条数
@@ -229,6 +231,8 @@ export function getOrderList(params = {}) {
   const source = params || {}
   return dispatch('MallOrder', 'Mini.OrderController', 'GetOrderList', {
     OrderStatus: source.orderStatus ?? source.OrderStatus ?? null,
+    ErpReviewStatus: source.erpReviewStatus ?? source.ErpReviewStatus ?? null,
+    ExcludePendingErpReview: source.excludePendingErpReview ?? source.ExcludePendingErpReview ?? false,
     Keyword: source.keyword ?? source.Keyword ?? null,
     PageNum: source.pageNum ?? source.PageNum ?? source.pageIndex ?? source.PageIndex ?? source.page ?? 1,
     PageSize: source.pageSize ?? source.PageSize ?? 20,

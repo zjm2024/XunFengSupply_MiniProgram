@@ -24,7 +24,19 @@
             </view>
 
             <view v-if="lastSplitFailureReason" class="notice-card">
-              上次订单拆单未通过：{{ lastSplitFailureReason }}。请调整后重新提交。
+              上次订单拆单未通过：{{ lastSplitFailureReason }}。
+              <text v-if="existingSplits.length">已通过的子单继续保留，当前只展示被驳回子单的未安排数量。</text>
+              <text v-else>请调整后重新提交。</text>
+            </view>
+
+            <view v-if="failedSplits.length && remainingItems.length" class="notice-card">
+              <text>当前有 {{ remainingQuantity }} 件商品尚未安排到有效子单。</text>
+              <text v-if="reallocationDisabledReason"> {{ reallocationDisabledReason }}</text>
+              <view class="remaining-item-list">
+                <text v-for="item in remainingItems" :key="itemIdOf(item)" class="remaining-item">
+                  {{ valueOf(item, 'productName', 'ProductName', '') }} ×{{ quantityOf(item) }}
+                </text>
+              </view>
             </view>
 
             <template v-if="existingSplits.length">
@@ -210,6 +222,15 @@ const orderNo = computed(() => valueOf(context.value, 'orderNo', 'OrderNo', ''))
 const disabledReason = computed(() => valueOf(context.value, 'disabledReason', 'DisabledReason', ''))
 const sourceItems = computed(() => valueOf(context.value, 'items', 'Items', []) || [])
 const existingSplits = computed(() => valueOf(context.value, 'splits', 'Splits', []) || [])
+const failedSplits = computed(() => valueOf(context.value, 'failedSplits', 'FailedSplits', []) || [])
+const remainingItems = computed(() => valueOf(context.value, 'remainingItems', 'RemainingItems', []) || [])
+const remainingQuantity = computed(() => remainingItems.value.reduce((sum, item) => sum + quantityOf(item), 0))
+const reallocationDisabledReason = computed(() => valueOf(
+  context.value,
+  'reallocationDisabledReason',
+  'ReallocationDisabledReason',
+  '',
+))
 const lastSplitFailureReason = computed(() => valueOf(context.value, 'lastSplitFailureReason', 'LastSplitFailureReason', ''))
 const canEdit = computed(() => valueOf(context.value, 'canSplit', 'CanSplit', false) === true)
 const addressIds = computed(() => addresses.value.map(item => item.id))

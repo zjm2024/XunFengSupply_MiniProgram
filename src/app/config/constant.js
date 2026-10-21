@@ -98,6 +98,22 @@ export const ORDER_STATUS_MAP = {
   [ORDER_STATUS.CANCELLED]: { text: '已取消', color: '#999999' },
 }
 
+/** ERP 审核状态（与订单主状态独立，客户端展示为订单确认） */
+export const ERP_REVIEW_STATUS = {
+  /** 历史订单或未建立审核投影 */
+  LEGACY_UNTRACKED: 0,
+  /** 待 ERP 审核 */
+  PENDING: 1,
+  /** ERP 审核通过 */
+  APPROVED: 2,
+  /** ERP 审核驳回 */
+  REJECTED: 3,
+  /** 发货后收到驳回，需人工处理 */
+  REJECTED_AFTER_SHIPMENT: 4,
+  /** 收到互相冲突的审核决定 */
+  DECISION_CONFLICT: 5,
+}
+
 /** 支付状态枚举（对应后端 PaymentStatus） */
 export const PAYMENT_STATUS = {
   UNPAID: 0,

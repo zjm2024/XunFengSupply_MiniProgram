@@ -13,7 +13,7 @@
           @clear-search="clearSearch"
         />
         <view class="filter-panel">
-          <StatusTabBar :items="allTabs" :model-value="currentStatus" :max-width="700" :item-width="72" @change="switchStatus" />
+        <StatusTabBar :items="allTabs" :model-value="currentTab" :max-width="700" :item-width="72" @change="switchStatus" />
         </view>
       </view>
     </template>
@@ -138,6 +138,7 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import {
   ORDER_STATUS,
   ORDER_STATUS_MAP,
+  ERP_REVIEW_STATUS,
   PAYMENT_STATUS,
   PAYMENT_STATUS_MAP,
 } from '@/app/config/constant.js'
@@ -157,15 +158,20 @@ import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import { formatDateTime } from '../../../../shared/utils/format.js'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
+const ERP_REVIEW_PENDING_TAB = 'erp-pending'
 const allTabs = Object.freeze([
-  { value: null, label: '全部' },
-  { value: ORDER_STATUS.PENDING_PAYMENT, label: '待付款' },
-  { value: ORDER_STATUS.PENDING_REVIEW, label: '待确认' },
-  { value: ORDER_STATUS.PROCESSING, label: '处理中' },
-  { value: ORDER_STATUS.COMPLETED, label: '交易完成' },
-  { value: ORDER_STATUS.CANCELLED, label: '已取消' },
+  { value: null, label: '全部', orderStatus: null, erpReviewStatus: null, excludePendingErpReview: false },
+  { value: ORDER_STATUS.PENDING_PAYMENT, label: '待付款', orderStatus: ORDER_STATUS.PENDING_PAYMENT, erpReviewStatus: null, excludePendingErpReview: false },
+  { value: ERP_REVIEW_PENDING_TAB, label: '待确认', orderStatus: ORDER_STATUS.PROCESSING, erpReviewStatus: ERP_REVIEW_STATUS.PENDING, excludePendingErpReview: false },
+  { value: ORDER_STATUS.PROCESSING, label: '处理中', orderStatus: ORDER_STATUS.PROCESSING, erpReviewStatus: null, excludePendingErpReview: true },
+  { value: ORDER_STATUS.COMPLETED, label: '交易完成', orderStatus: ORDER_STATUS.COMPLETED, erpReviewStatus: null, excludePendingErpReview: false },
+  { value: ORDER_STATUS.CANCELLED, label: '已取消', orderStatus: ORDER_STATUS.CANCELLED, erpReviewStatus: null, excludePendingErpReview: false },
 ])
-const currentStatus = ref(null)
+const currentTab = ref(null)
+const selectedTab = computed(() => allTabs.find(tab => tab.value === currentTab.value) || allTabs[0])
+const currentStatus = computed(() => selectedTab.value.orderStatus)
+const currentErpReviewStatus = computed(() => selectedTab.value.erpReviewStatus)
+const currentExcludePendingErpReview = computed(() => selectedTab.value.excludePendingErpReview)
 const orderList = ref([])
 const loading = ref(false)
 const isRefreshing = ref(false)
@@ -188,8 +194,9 @@ const loadMoreStatus = computed(() => {
 onLoad(options => {
   if (options.status !== undefined && options.status !== '') {
     const requestedStatus = Number(options.status)
-    if (allTabs.some(tab => tab.value === requestedStatus)) currentStatus.value = requestedStatus
+    if (allTabs.some(tab => tab.value === requestedStatus)) currentTab.value = requestedStatus
   }
+  if (options.reviewStatus === 'pending') currentTab.value = ERP_REVIEW_PENDING_TAB
   if (options.selectMode === 'afterSale') selectMode.value = 'afterSale'
 })
 
@@ -198,8 +205,8 @@ onShow(() => {
 })
 
 function switchStatus(status) {
-  if (currentStatus.value === status) return
-  currentStatus.value = status
+  if (currentTab.value === status) return
+  currentTab.value = status
   resetAndLoad()
 }
 
@@ -215,7 +222,7 @@ function handleStatusTouchEnd(event) {
   const deltaX = endPoint.x - startPoint.x
   const deltaY = endPoint.y - startPoint.y
   if (Math.abs(deltaX) < 48 || Math.abs(deltaX) <= Math.abs(deltaY)) return
-  const currentIndex = allTabs.findIndex(tab => tab.value === currentStatus.value)
+  const currentIndex = allTabs.findIndex(tab => tab.value === currentTab.value)
   const nextIndex = currentIndex + (deltaX < 0 ? 1 : -1)
   if (nextIndex >= 0 && nextIndex < allTabs.length) switchStatus(allTabs[nextIndex].value)
 }
@@ -273,6 +280,8 @@ async function loadOrderList() {
   try {
     const result = await getOrderList({
       orderStatus: currentStatus.value,
+      erpReviewStatus: currentErpReviewStatus.value,
+      excludePendingErpReview: currentExcludePendingErpReview.value,
       keyword: keyword.value || null,
       pageNum: page.current,
       pageSize: page.pageSize,
@@ -320,15 +329,6 @@ const ORDER_STATUS_TYPE_MAP = Object.freeze({
   [ORDER_STATUS.COMPLETED]: 'success',
   [ORDER_STATUS.CANCELLING]: 'warning',
   [ORDER_STATUS.CANCELLED]: 'default',
-})
-
-const ERP_REVIEW_STATUS = Object.freeze({
-  LEGACY_UNTRACKED: 0,
-  PENDING: 1,
-  APPROVED: 2,
-  REJECTED: 3,
-  REJECTED_AFTER_SHIPMENT: 4,
-  DECISION_CONFLICT: 5,
 })
 
 /** ERP 审核在客户端统一表达为“订单确认”，不暴露内部审核节点。 */

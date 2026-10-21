@@ -166,7 +166,7 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getOrderDetail } from '../../api/orderApi.js'
 import { parseUtcToLocal } from '../../../../shared/utils/format.js'
 import { useUserStore } from '@/shared/session/userStore.js'
-import { PAYMENT_MODE, ORDER_STATUS, PAYMENT_STATUS } from '@/app/config/constant.js'
+import { ERP_REVIEW_STATUS, PAYMENT_MODE, ORDER_STATUS, PAYMENT_STATUS } from '@/app/config/constant.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -289,10 +289,10 @@ function handlePaymentUnavailable() {
 
 function syncPaymentCountdown(order) {
   const reviewStatus = Number(order.erpReviewStatus)
-  confirmationPending.value = reviewStatus === 1
+  confirmationPending.value = reviewStatus === ERP_REVIEW_STATUS.PENDING
   const explicitExpiryAt = order.paymentExpiresAt ? parseUtcToLocal(order.paymentExpiresAt).getTime() : Number.NaN
   const createdAt = order.createdAt ? parseUtcToLocal(order.createdAt).getTime() : Number.NaN
-  if (Number.isNaN(explicitExpiryAt) && reviewStatus !== 0) {
+  if (Number.isNaN(explicitExpiryAt) && reviewStatus !== ERP_REVIEW_STATUS.LEGACY_UNTRACKED) {
     paymentExpiryAtMs = Number.NaN
     remainTime.value = 0
     paymentExpired.value = false

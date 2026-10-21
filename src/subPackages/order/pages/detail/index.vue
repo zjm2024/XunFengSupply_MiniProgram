@@ -269,7 +269,7 @@
 import { ref, computed } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getOrderDetail, confirmReceipt, generateClientRequestId } from '../../api/orderApi.js'
-import { FULFILLMENT_STATUS, ORDER_STATUS, ORDER_STATUS_MAP, PAYMENT_MODE, PAYMENT_STATUS, PAYMENT_STATUS_MAP } from '@/app/config/constant.js'
+import { ERP_REVIEW_STATUS, FULFILLMENT_STATUS, ORDER_STATUS, ORDER_STATUS_MAP, PAYMENT_MODE, PAYMENT_STATUS, PAYMENT_STATUS_MAP } from '@/app/config/constant.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -379,15 +379,6 @@ const processingStatusDescription = computed(() => {
   if (fulfillmentStatus >= FULFILLMENT_STATUS.PICKING) return '商品正在备货，请耐心等待发出'
   return '订单确认完成，等待仓库发货'
 })
-const ERP_REVIEW_STATUS = Object.freeze({
-  LEGACY_UNTRACKED: 0,
-  PENDING: 1,
-  APPROVED: 2,
-  REJECTED: 3,
-  REJECTED_AFTER_SHIPMENT: 4,
-  DECISION_CONFLICT: 5,
-})
-
 /** 将 ERP 审核转换为客户可理解的订单确认文案。 */
 const confirmationDisplay = computed(() => {
   const orderStatus = Number(detail.value?.orderStatus)

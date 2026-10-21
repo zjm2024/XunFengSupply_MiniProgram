@@ -630,8 +630,8 @@ export const routes = {
   },
 
   order: {
-    list: ({ status, selectMode } = {}) =>
-      withQuery(ORDER_LIST, { status, selectMode }),
+    list: ({ status, reviewStatus, selectMode } = {}) =>
+      withQuery(ORDER_LIST, { status, reviewStatus, selectMode }),
     detail: (orderId) => {
       const id = assertValidId(orderId, 'order.detail')
       return withQuery(ORDER_DETAIL, { orderId: id })
