@@ -523,8 +523,10 @@ const actionButtons = computed(() => {
     type: reordering.value ? 'disabled' : 'default',
   }
 
-  return [reorderAction, ...getOrderActionButtons(detail.value.allowedActions)]
-    .sort((left, right) => Number(left.type === 'primary') - Number(right.type === 'primary'))
+  const actions = [reorderAction, ...getOrderActionButtons(detail.value.allowedActions)]
+  // 售后是已发货订单的主要入口，固定栏空间不足时也要优先显示。
+  const priority = { reorder: 0, afterSale: 1, pay: 2, cancel: 3, confirmReceipt: 4, viewLogistics: 5 }
+  return actions.sort((left, right) => (priority[left.key] ?? 99) - (priority[right.key] ?? 99))
 })
 
 function paymentModeText(mode, paymentStatus, orderStatus) {

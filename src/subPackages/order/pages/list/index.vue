@@ -144,8 +144,10 @@ import {
 } from '@/app/config/constant.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
-import { getOrderList, confirmReceipt, generateClientRequestId } from '@/subPackages/order/api/orderApi.js'
+import { getOrderList, getOrderDetail, confirmReceipt, generateClientRequestId } from '@/subPackages/order/api/orderApi.js'
 import { getOrderActionButtons } from '@/subPackages/order/model/orderActions.js'
+import { batchAddToCart } from '@/shared/api/cartApi.js'
+import { buildReorderCartItems } from '@/subPackages/order/domain/reorderCart.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -184,6 +186,7 @@ const keyword = ref('')
 const page = reactive({ current: 1, pageSize: 10 })
 const selectMode = ref(null)
 const expandedActionOrders = ref(new Set())
+const reorderingOrderId = ref(null)
 const swipeStart = ref(null)
 const loadMoreStatus = computed(() => {
   if (loadMoreError.value) return 'error'
@@ -441,8 +444,21 @@ function formatMoney(value) {
   const number = Number(value)
   return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
+/** 订单列表只展示服务端允许的动作，并把本地再来一单置于首屏。 */
 function getOrderActions(order) {
-  return selectMode.value === 'afterSale' ? [] : getOrderActionButtons(order?.allowedActions)
+  if (selectMode.value === 'afterSale') return []
+
+  const actions = getOrderActionButtons(order?.allowedActions)
+  if (Number(order?.itemCount || 0) > 0) {
+    actions.push({
+      key: 'reorder',
+      label: reorderingOrderId.value === order.orderId ? '加入中…' : '再来一单',
+      type: reorderingOrderId.value === order.orderId ? 'disabled' : 'default',
+    })
+  }
+
+  const priority = { reorder: 0, afterSale: 1, pay: 2, cancel: 3, confirmReceipt: 4, viewLogistics: 5 }
+  return actions.sort((left, right) => (priority[left.key] ?? 99) - (priority[right.key] ?? 99))
 }
 function isActionsExpanded(orderId) {
   return expandedActionOrders.value.has(orderId)
@@ -460,6 +476,28 @@ function getVisibleActions(order) {
   return isActionsExpanded(order.orderId) ? actions : actions.slice(0, 2)
 }
 
+/** 从订单详情读取原成交商品，重新走购物车报价和库存校验。 */
+async function reorderOrder(order) {
+  if (reorderingOrderId.value || !order?.orderId) return
+
+  reorderingOrderId.value = order.orderId
+  try {
+    const detail = await getOrderDetail(order.orderId)
+    const items = buildReorderCartItems(detail?.items)
+    if (!items.length) {
+      uni.showToast({ title: '该订单暂无可再次购买的商品', icon: 'none' })
+      return
+    }
+
+    await batchAddToCart({ items, clientRequestId: generateClientRequestId() })
+    uni.showToast({ title: '已加入购物车', icon: 'success' })
+    setTimeout(() => navigator.navigateTo(routes.commerce.cart()), 350)
+  } catch (error) {
+    uni.showToast({ title: error?.message || '商品状态已变化，请稍后重试', icon: 'none' })
+  } finally {
+    reorderingOrderId.value = null
+  }
+}
 async function handleAction(key, order) {
   switch (key) {
     case 'pay':
@@ -489,6 +527,9 @@ async function handleAction(key, order) {
       break
     case 'afterSale':
       navigator.navigateTo(routes.order.afterSaleApply(order.orderId))
+      break
+    case 'reorder':
+      await reorderOrder(order)
       break
   }
 }
