@@ -84,7 +84,7 @@ async function loadDetail() {
       return
     }
 
-    viewerUrl.value = `/static/pdf-viewer/index.html?embedded=1&url=${encodeURIComponent(detail.fileUrl)}`
+    viewerUrl.value = `/subPackages/content/static/pdf-viewer/index.html?embedded=1&url=${encodeURIComponent(detail.fileUrl)}`
   } catch (error) {
     console.error('[ManualPdfPreview] 加载 PDF 地址失败:', error)
     errorText.value = error?.message || 'PDF 预览准备失败'

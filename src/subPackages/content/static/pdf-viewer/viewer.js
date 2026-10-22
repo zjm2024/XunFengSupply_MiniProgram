@@ -1,6 +1,6 @@
 import * as pdfjsLib from './pdfjs.js'
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = './pdfjsworker.js'
+pdfjsLib.GlobalWorkerOptions.workerSrc = '/subPackages/auth/static/pdf-worker/pdfjsworker.js'
 
 const params = new URLSearchParams(window.location.search)
 const pdfUrl = params.get('url') || ''

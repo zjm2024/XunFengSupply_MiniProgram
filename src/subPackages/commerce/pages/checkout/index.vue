@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <AppPageShell>
     <template #header>
       <AppHeader title="确认订单" :show-back="true" />
@@ -119,6 +119,8 @@
                             <text class="product-spec">SKU：{{ item.code || item.skuId }}</text>
                             <view class="product-meta">
                               <text>¥{{ formatMoney(item.salePrice) }} / {{ item.unit }}</text>
+                              <text v-if="item.strategyDiscount > 0" class="strategy-discount">策略优惠 ¥{{ formatMoney(item.strategyDiscount) }}</text>
+                              <text v-if="item.promotionDiscount > 0" class="promotion-discount">活动优惠 ¥{{ formatMoney(item.promotionDiscount) }}</text>
                               <text>× {{ item.quantity }}</text>
                             </view>
                             <text v-if="item.stockInsufficient" class="stock-risk">
@@ -338,8 +340,11 @@ const displayItems = computed(() => {
   return checkoutItems.value.map(item => ({
     ...item,
     name: item.name || '商品',
+    basePrice: number(item.basePrice || item.price),
     salePrice: number(item.price),
-    listPrice: number(item.listPrice || item.price),
+    listPrice: number(item.listPrice || item.basePrice || item.price),
+    priceSource: item.priceSource || 'BASE',
+    strategyDiscount: number(item.strategyDiscount),
     totalAmount: number(item.price) * number(item.quantity),
     availableStock: number(item.stock, Number.MAX_SAFE_INTEGER),
     stockInsufficient: number(item.stock, Number.MAX_SAFE_INTEGER) < number(item.quantity),
@@ -470,9 +475,13 @@ function normalizePreview(raw = {}) {
   const items = (Array.isArray(sourceItems) ? sourceItems : []).map(source => {
     const skuId = number(valueOf(source, 'skuId', 'SkuId'))
     const cartItem = cartItemMap.get(String(skuId)) || {}
+    const basePrice = number(valueOf(source, 'basePrice', 'BasePrice'), number(cartItem.basePrice || cartItem.price))
     const salePrice = number(valueOf(source, 'salePrice', 'SalePrice'), number(cartItem.price))
     const listPrice = number(valueOf(source, 'listPrice', 'ListPrice'), salePrice)
+    const priceSource = valueOf(source, 'priceSource', 'PriceSource', cartItem.priceSource || 'BASE')
     const quantity = Math.max(1, number(valueOf(source, 'quantity', 'Quantity'), cartItem.quantity || 1))
+    const strategyDiscount = basePrice > salePrice ? Math.round((basePrice - salePrice) * quantity * 100) / 100 : 0
+    const promotionDiscount = number(valueOf(source, 'promotionDiscountAmount', 'PromotionDiscountAmount'), 0)
     const availableStock = number(
       valueOf(source, 'availableStock', 'AvailableStock'),
       number(cartItem.stock, Number.MAX_SAFE_INTEGER),
@@ -488,10 +497,15 @@ function normalizePreview(raw = {}) {
       code: cartItem.code || '',
       image: valueOf(source, 'imageUrl', 'ImageUrl') || cartItem.image,
       unit: cartItem.unit || '件',
+      basePrice,
       salePrice,
       listPrice,
+      priceSource,
+      strategyDiscount,
+      promotionDiscount,
       quantity,
-      totalAmount: number(valueOf(source, 'totalAmount', 'TotalAmount'), salePrice * quantity),
+      totalAmount: number(valueOf(source, 'totalAmount', 'TotalAmount'), Math.max(0, salePrice * quantity - promotionDiscount)),
+      promotionSnapshot: valueOf(source, 'promotionSnapshot', 'PromotionSnapshot', null),
       availableStock,
       stockInsufficient: isGift ? !isStockSufficient : availableStock < quantity,
       isGift,
@@ -506,6 +520,7 @@ function normalizePreview(raw = {}) {
     discountAmount: number(valueOf(raw, 'discountAmount', 'DiscountAmount')),
     freightAmount: number(valueOf(raw, 'freightAmount', 'FreightAmount')),
     payableAmount: number(valueOf(raw, 'payableAmount', 'PayableAmount')),
+    quoteFingerprint: valueOf(raw, 'quoteFingerprint', 'QuoteFingerprint', null),
     stockAvailable: valueOf(raw, 'stockAvailable', 'StockAvailable', true) !== false,
     insufficientSkus: valueOf(raw, 'insufficientSkus', 'InsufficientSkus', []) || [],
     giftStockAvailable: valueOf(raw, 'giftStockAvailable', 'GiftStockAvailable', true) !== false,
@@ -625,6 +640,7 @@ async function confirmSubmit() {
       ClientRequestId: clientRequestId.value,
       Items: buildOrderItems(),
       AddressId: addressId.value,
+      QuoteFingerprint: previewData.value?.quoteFingerprint || null,
       // 创建阶段不选择支付方式；收银台确认支付时才写入最终支付模式。
       PaymentMode: PAYMENT_MODE.CASH,
       DeliveryType: deliveryType.value,
@@ -1095,6 +1111,7 @@ function handleStateAction() {
   font-size: 12px;
 }
 
+.strategy-discount { display: block; color: #c45656; font-size: 11px; margin-top: 2px; } .promotion-discount { display: block; color: #d96b24; font-size: 11px; margin-top: 2px; }
 .product-amount {
   display: flex;
   align-self: stretch;
@@ -1500,7 +1517,8 @@ function handleStateAction() {
     height: 64px;
   }
 
-  .product-amount {
+  .strategy-discount { display: block; color: #c45656; font-size: 11px; margin-top: 2px; }
+.product-amount {
     grid-column: 2;
     align-items: flex-start;
     margin-top: -4px;

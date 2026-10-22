@@ -236,6 +236,8 @@ function checkHardcodedRoutes(pagesJson) {
       let m
       while ((m = regex.exec(content)) !== null) {
         const route = m[0].slice(1, -1)
+        // 静态资源也可能位于 subPackages 下，但它们不是页面路由，不应参与注册路由校验。
+        if (route.includes('/static/')) continue
         const normalized = route.replace(/^\//, '')
         if (!registeredSet.has(normalized) && !route.includes('?')) {
           violations.push(`${rel}: 引用未注册路由 ${route}`)

@@ -1,4 +1,4 @@
-function number(value, fallback = 0) {
+﻿function number(value, fallback = 0) {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : fallback
 }

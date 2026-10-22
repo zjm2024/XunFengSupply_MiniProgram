@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿<template>
+﻿﻿<template>
   <AppPageShell>
     <template #header>
       <app-header
@@ -170,8 +170,11 @@
                             <text class="product-code">SKU：{{ item.code || item.skuId }}</text>
                             <view class="price-line">
                               <text class="price">¥{{ formatMoney(item.price) }}</text>
+                              <text v-if="item.basePrice > item.price" class="list-price">¥{{ formatMoney(item.basePrice) }}</text>
                               <text class="unit">/ {{ unitText(item) }}</text>
                             </view>
+                            <text v-if="item.strategyDiscount > 0" class="strategy-discount">策略优惠 ¥{{ formatMoney(item.strategyDiscount) }}</text>
+                            <text v-if="item.promotionDiscount > 0" class="promotion-discount">活动优惠 ¥{{ formatMoney(item.promotionDiscount) }}</text>
                             <view class="quantity-row">
                               <QuantityStepper
                                 :model-value="item.quantity"
@@ -216,8 +219,12 @@
                 </view>
                 <view class="summary-divider" />
                 <view class="summary-row total">
-                  <text>商品金额</text>
+                  <text>商品净额</text>
                   <text class="total-amount">{{ cartStore.formattedTotalAmount }}</text>
+                </view>
+                <view v-if="cartStore.summary.discountAmount > 0" class="summary-row discount-summary">
+                  <text>活动优惠</text>
+                  <text>-¥{{ formatMoney(cartStore.summary.discountAmount) }}</text>
                 </view>
                 <view v-if="cartStore.summary.invalidCount > 0" class="summary-row">
                   <text>含失效商品</text>
@@ -658,7 +665,7 @@ function unitText(item) {
 }
 
 function subtotal(item) {
-  const value = Number(item.price || 0) * Number(item.quantity || 0)
+  const value = Number(item.netSubtotal ?? (Number(item.price || 0) * Number(item.quantity || 0)))
   return value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
@@ -986,6 +993,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
+.strategy-discount { display: block; color: #c45656; font-size: 11px; margin-top: 2px; } .promotion-discount { display: block; color: #d96b24; font-size: 11px; margin-top: 2px; }
 .sku-subtotal {
   color: $color-text-secondary;
   font-size: var(--type-caption-size, 12px);

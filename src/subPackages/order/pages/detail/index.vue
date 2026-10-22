@@ -1,4 +1,4 @@
-﻿﻿<!--
+﻿<!--
   订单详情页面（分包：orderSub）
   对应业务流程节点：
   订单履约发货 → 查看客户可见订单信息、物流进度与可执行操作
@@ -86,8 +86,11 @@
                       <text class="sku-name">SKU：{{ item.skuCode || item.skuId || '-' }}</text>
                       <view class="price-row">
                         <text class="price">¥{{ Number(item.salePrice || 0).toFixed(2) }}</text>
+                        <text v-if="item.basePrice > item.salePrice" class="list-price">¥{{ Number(item.basePrice).toFixed(2) }}</text>
                         <text class="qty">x{{ item.quantity }}</text>
                       </view>
+                      <text v-if="item.strategyDiscount > 0" class="strategy-discount">策略优惠 ¥{{ item.strategyDiscount.toFixed(2) }}</text>
+                      <text v-if="item.promotionDiscount > 0" class="promotion-discount">活动优惠 ¥{{ item.promotionDiscount.toFixed(2) }}</text>
                     </view>
                   </view>
                 </view>
@@ -656,9 +659,13 @@ const productGroups = computed(() => {
       image: item.imageUrl || item.ImageUrl || item.image || groups.get(key).image,
       skuName: item.skuName || item.SkuName || '',
       skuCode: item.skuCode || item.SkuCode || item.code || item.Code || '',
+      basePrice: Number(item.basePrice ?? item.BasePrice ?? item.base_price ?? item.salePrice ?? item.SalePrice ?? 0),
       salePrice: Number(item.salePrice ?? item.SalePrice ?? item.price ?? item.Price ?? 0),
       quantity: Number(item.quantity ?? item.Quantity ?? 0),
+      strategyDiscount: Math.max(0, Number(item.basePrice ?? item.BasePrice ?? item.base_price ?? 0) - Number(item.salePrice ?? item.SalePrice ?? item.price ?? item.Price ?? 0)) * Number(item.quantity ?? item.Quantity ?? 0),
+      promotionDiscount: Number(item.discountAmount ?? item.DiscountAmount ?? 0),
       lineTotal: Number(item.totalAmount ?? item.TotalAmount ?? item.subTotal ?? item.SubTotal ?? 0),
+      promotionSnapshot: item.promotionSnapshot ?? item.PromotionSnapshot ?? null,
     })
   })
   return Array.from(groups.values()).map(group => ({
@@ -1050,6 +1057,8 @@ function splitStatusClass(status) {
 .goods-item .goods-info { display: flex; min-width: 0; flex-direction: column; margin-left: 13px; }
 .goods-item .goods-info .goods-name { color: var(--type-title-color); font-size: var(--type-body-size, 14px); line-height: 20px; }
 .goods-item .goods-info .sku-name { margin-top: 4px; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
+.goods-item .goods-info .strategy-discount { display: block; color: var(--color-brand, #D7192D); font-size: var(--type-caption-size, 12px); }
+.goods-item .goods-info .promotion-discount { display: block; color: #d96b24; font-size: var(--type-caption-size, 12px); }
 .goods-item .goods-info .price-row { margin-top: auto; padding-top: 8px; }
 .goods-item .goods-info .price-row .price { color: var(--color-brand, #D7192D); font-size: var(--type-label-size, 15px); }
 .goods-item .goods-info .price-row .qty { color: var(--type-secondary-color); font-size: var(--type-caption-size, 12px); }

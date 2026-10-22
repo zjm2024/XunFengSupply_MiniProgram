@@ -1,4 +1,4 @@
-﻿<!--
+<!--
   发起售后申请页面（分包：afterSaleSub）
   对应业务流程节点：
   售后闭环 → 发起售后申请、选择售后类型、上传凭证图片
@@ -122,6 +122,8 @@ const selectedOrder = ref(null)
 const selectedGoods = ref(null)
 const afterSaleItems = ref([])
 const submitting = ref(false)
+const clientRequestId = ref('')
+const requestFingerprint = ref('')
 
 const form = reactive({
   type: 1,
@@ -164,6 +166,8 @@ async function loadAfterSaleableItems(currentOrderId) {
 /** 切换本次申请的商品并恢复其最大可申请数量。 */
 function selectGoods(item) {
   selectedGoods.value = item
+  requestFingerprint.value = ''
+  clientRequestId.value = ''
   form.quantity = item ? Math.max(1, Number(item.availableQuantity || 1)) : 1
 }
 
@@ -194,11 +198,22 @@ async function handleSubmit() {
   }
   submitting.value = true
   try {
+    const fingerprint = JSON.stringify({
+      orderId: Number(orderId.value),
+      afterSaleType: form.type,
+      reason: form.reason.trim(),
+      orderItemId: selectedGoods.value.orderItemId,
+      quantity: form.quantity,
+    })
+    if (fingerprint !== requestFingerprint.value) {
+      requestFingerprint.value = fingerprint
+      clientRequestId.value = 'after-sale-' + orderId.value + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10)
+    }
     await applyAfterSale({
       orderId: Number(orderId.value),
       afterSaleType: form.type,
       reason: form.reason.trim(),
-      clientRequestId: `after-sale-${orderId.value}-${Date.now()}`,
+      clientRequestId: clientRequestId.value,
       items: [{ orderItemId: selectedGoods.value.orderItemId, quantity: form.quantity }],
     })
     uni.showToast({ title: '售后申请已提交', icon: 'success' })

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * 购物车状态管理 (SKU 级维度)。
  *
  * 服务端是唯一事实来源，但本地维护乐观更新状态以支撑流畅交互：
@@ -45,8 +45,10 @@ export const useCartStore = defineStore('cart', {
       const round2 = value => Math.round((value + Number.EPSILON) * 100) / 100
       const totalQuantity = this.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
       const selectedQuantity = selected.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
-      const totalAmount = round2(this.items.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0))
-      const selectedAmount = round2(selected.reduce((sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0), 0))
+      const totalAmount = round2(this.items.reduce((sum, item) => sum + Number(item.netSubtotal ?? (Number(item.price || 0) * Number(item.quantity || 0))), 0))
+      const selectedAmount = round2(selected.reduce((sum, item) => sum + Number(item.netSubtotal ?? (Number(item.price || 0) * Number(item.quantity || 0))), 0))
+      const discountAmount = round2(selected.reduce((sum, item) => sum + Number(item.promotionDiscount || 0), 0))
+      const strategyDiscountAmount = round2(selected.reduce((sum, item) => sum + Number(item.strategyDiscount || 0), 0))
       return {
         productCount: this.items.length,
         skuCount: this.items.length,
@@ -55,6 +57,9 @@ export const useCartStore = defineStore('cart', {
         selectedQuantity,
         totalAmount,
         selectedAmount,
+        discountAmount,
+        netAmount: selectedAmount,
+        strategyDiscountAmount,
         allQuantity: totalQuantity,
         invalidCount: this.invalidItems.length,
         isOverLimit: selectedAmount > MAX_CART_AMOUNT,

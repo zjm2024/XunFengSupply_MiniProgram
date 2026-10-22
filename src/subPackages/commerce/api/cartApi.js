@@ -96,6 +96,9 @@ function normalizeCartItem(item = {}) {
   )
   const quantity = Math.max(0, number(item.quantity ?? item.Quantity))
   const selected = item.isSelected ?? item.IsSelected ?? item.selected ?? item.is_selected
+  const basePrice = number(item.basePrice ?? item.BasePrice ?? item.base_price, price)
+  const priceSource = item.priceSource ?? item.PriceSource ?? item.price_source ?? "BASE"
+  const strategyDiscount = number(item.strategyDiscountAmount ?? item.StrategyDiscountAmount ?? item.strategy_discount_amount, basePrice > price ? Math.round((basePrice - price) * quantity * 100) / 100 : 0)
   return {
     cartItemId: item.cartItemId ?? item.CartItemId ?? item.cart_id ?? item.id,
     productId: item.productId ?? item.ProductId ?? item.product_id,
@@ -106,6 +109,13 @@ function normalizeCartItem(item = {}) {
     image: item.imageUrl ?? item.ImageUrl ?? item.image_url ?? item.image ?? '',
     unit: item.unit ?? item.Unit ?? '件',
     price,
+    basePrice,
+    priceSource,
+    priceRuleId: item.priceRuleId ?? item.PriceRuleId ?? item.price_rule_id ?? null,
+    priceRuleVersion: item.priceRuleVersion ?? item.PriceRuleVersion ?? item.price_rule_version ?? null,
+    priceValidUntilUtc: item.priceValidUntilUtc ?? item.PriceValidUntilUtc ?? item.price_valid_until_utc ?? null,
+    strategyDiscount,
+    strategyDiscountAmount: strategyDiscount,
     quantity,
     stock: number(item.displayStock ?? item.DisplayStock ?? item.display_stock ?? item.stock ?? item.Stock, Number.MAX_SAFE_INTEGER),
     selected: selected === undefined ? true : Boolean(selected),
@@ -132,6 +142,7 @@ function buildSummary(items) {
     selectedQuantity: selected.reduce((sum, item) => sum + item.quantity, 0),
     totalAmount: round2(items.reduce((sum, item) => sum + item.price * item.quantity, 0)),
     selectedAmount: round2(selected.reduce((sum, item) => sum + item.price * item.quantity, 0)),
+    strategyDiscountAmount: round2(selected.reduce((sum, item) => sum + item.strategyDiscount, 0)),
   }
 }
 
