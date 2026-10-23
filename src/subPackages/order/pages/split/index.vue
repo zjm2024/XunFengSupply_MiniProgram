@@ -1,7 +1,7 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="订单按地址拆单" :show-back="true" />
+      <AppHeader :title="existingSplits.length ? '配送拆单详情' : '订单按地址拆单'" :show-back="true" />
     </template>
 
     <template #content>
@@ -11,9 +11,9 @@
 
           <template v-else-if="context">
             <view class="hero-card">
-              <text class="eyebrow">订单 {{ orderNo }}</text>
-              <text class="hero-title">每件商品，送到正确的地址</text>
-              <text class="hero-copy">整件商品可以直接更换地址；数量大于 1 时，还可以拆分到多个地址。</text>
+              <text class="eyebrow">{{ existingSplits.length ? '配送拆单详情' : `订单 ${orderNo}` }}</text>
+              <text class="hero-title">{{ existingSplits.length ? '查看各地址的配送进度' : '每件商品，送到正确的地址' }}</text>
+              <text class="hero-copy">{{ existingSplits.length ? '各配送地址分别处理，发货和未发商品以系统最终处理结果为准。' : '整件商品可以直接更换地址；数量大于 1 时，还可以拆分到多个地址。' }}</text>
               <view class="hero-summary">
                 <view><text class="summary-value">{{ sourceItems.length }}</text><text class="summary-label">款商品</text></view>
                 <view class="summary-divider" />
@@ -25,8 +25,7 @@
 
             <view v-if="lastSplitFailureReason" class="notice-card">
               上次订单拆单未通过：{{ lastSplitFailureReason }}。
-              <text v-if="existingSplits.length">已通过的子单继续保留，当前只展示被驳回子单的未安排数量。</text>
-              <text v-else>请调整后重新提交。</text>
+              <text>本批配送安排已失效，历史子单仅供查看，原订单将按完整商品数量重新安排配送。</text>
             </view>
 
             <view v-if="failedSplits.length && remainingItems.length" class="notice-card">
@@ -41,8 +40,15 @@
 
             <template v-if="existingSplits.length">
               <view class="section-heading">
-                <text>拆分子单</text>
-                <text class="section-note">共 {{ existingSplits.length }} 单</text>
+                <text>配送拆单明细</text>
+                <text class="section-note">共 {{ existingSplits.length }} 个配送地址</text>
+              </view>
+              <view class="split-progress-card">
+                <view>
+                  <text class="split-progress-title">当前配送进度</text>
+                  <text class="split-progress-copy">{{ processedSplitCount }}/{{ existingSplits.length }} 个配送单已有处理结果</text>
+                </view>
+                <text class="split-progress-number">{{ shippedQuantityTotal }} 件</text>
               </view>
               <view class="readonly-grid">
                 <view v-for="split in existingSplits" :key="splitIdOf(split)" class="split-card readonly-card">
@@ -51,7 +57,7 @@
                       <text class="card-title">{{ valueOf(split, 'splitName', 'SplitName', '拆分子单') }}</text>
                       <text class="card-subtitle">{{ valueOf(split, 'splitNo', 'SplitNo', '') }}</text>
                     </view>
-                    <text class="status-tag">{{ splitStatusText(valueOf(split, 'status', 'Status', 0)) }}</text>
+                    <text class="status-tag">{{ customerStatusText(split) }}</text>
                   </view>
                   <view class="readonly-address">
                     <text class="address-person">{{ valueOf(split, 'receiverName', 'ReceiverName', '') }}　{{ valueOf(split, 'receiverPhone', 'ReceiverPhone', '') }}</text>
@@ -63,8 +69,23 @@
                       <text class="item-name">{{ valueOf(item, 'productName', 'ProductName', '') }}</text>
                       <text class="item-spec">{{ valueOf(item, 'skuName', 'SkuName', '') }}</text>
                     </view>
-                    <text class="readonly-quantity">×{{ quantityOf(item) }}</text>
+                    <view class="readonly-quantity-copy">
+                      <text class="readonly-quantity">应发 {{ quantityOf(item) }}</text>
+                      <text class="readonly-shipped">实发 {{ shippedQuantityOf(item) }}</text>
+                    </view>
                   </view>
+                  <text v-if="unshippedQuantityOf(split) > 0" class="split-result-warning">
+                    未发 {{ unshippedQuantityOf(split) }} 件，系统将按实际结果处理退款和库存。
+                  </text>
+                  <text v-else-if="shippedQuantityOf(split) > 0" class="split-result-success">
+                    已按实际结果完成发货处理。
+                  </text>
+                  <text v-if="valueOf(split, 'shippedAt', 'ShippedAt', null)" class="split-shipped-time">
+                    发货时间：{{ formatDateTime(valueOf(split, 'shippedAt', 'ShippedAt', null)) }}
+                  </text>
+                  <text v-if="isReviewRejected(split)" class="split-result-warning">
+                    配送安排未通过{{ valueOf(split, 'erpReviewReasonMessage', 'ErpReviewReasonMessage', '') ? `：${valueOf(split, 'erpReviewReasonMessage', 'ErpReviewReasonMessage', '')}` : '' }}。原订单可重新安排配送。
+                  </text>
                 </view>
               </view>
             </template>
@@ -193,6 +214,8 @@ import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import QuantityStepper from '@/shared/ui/QuantityStepper/QuantityStepper.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import { ERP_REVIEW_STATUS, FULFILLMENT_SPLIT_STATUS, FULFILLMENT_SPLIT_STATUS_MAP } from '@/app/config/constant.js'
+import { formatDateTime } from '../../../../shared/utils/format.js'
 import {
   addAllocation,
   buildFulfillmentGroups,
@@ -262,6 +285,8 @@ const canSubmit = computed(() => canEdit.value && !validationError.value && !sub
 const submitButtonText = computed(() => deliveryGroupCount.value > 1
   ? `生成 ${deliveryGroupCount.value} 个拆分子单`
   : '确认订单拆分')
+const processedSplitCount = computed(() => existingSplits.value.filter(split => shippedQuantityOf(split) > 0 || [FULFILLMENT_SPLIT_STATUS.SHIPPED, FULFILLMENT_SPLIT_STATUS.COMPLETED, FULFILLMENT_SPLIT_STATUS.FAILED, FULFILLMENT_SPLIT_STATUS.CANCELLED].includes(Number(valueOf(split, 'status', 'Status', -1)))).length)
+const shippedQuantityTotal = computed(() => existingSplits.value.reduce((sum, split) => sum + shippedQuantityOf(split), 0))
 
 onLoad(async options => {
   orderId.value = Number(options.orderId) || 0
@@ -464,6 +489,13 @@ function itemIdOf(item) { return Number(valueOf(item, 'orderItemId', 'OrderItemI
 function splitIdOf(split) { return Number(valueOf(split, 'splitId', 'SplitId', 0)) }
 function itemsOf(split) { return valueOf(split, 'items', 'Items', []) || [] }
 function quantityOf(item) { return Number(valueOf(item, 'quantity', 'Quantity', 0)) }
+function totalQuantityOf(split) { return Number(valueOf(split, 'totalQuantity', 'TotalQuantity', 0)) }
+function shippedQuantityOf(source) { return Number(valueOf(source, 'shippedQuantity', 'ShippedQuantity', 0)) }
+function unshippedQuantityOf(split) {
+  const explicit = valueOf(split, 'unshippedQuantity', 'UnshippedQuantity', null)
+  if (explicit !== null && explicit !== undefined) return Math.max(0, Number(explicit) || 0)
+  return Math.max(0, totalQuantityOf(split) - shippedQuantityOf(split))
+}
 function addressById(id) { return addresses.value.find(item => item.id === Number(id)) }
 function groupTotalQuantity(addressId) {
   return allocationPlan.value.reduce((sum, item) => (
@@ -477,9 +509,19 @@ function openAddressManager() {
   navigator.navigateTo(routes.account.address())
 }
 
-/** 将内部配送状态转换为客户可理解的进度文案。 */
-function splitStatusText(status) {
-  return ({ 0: '待处理', 1: '处理中', 2: '待发货', 3: '已发货', 4: '已完成', 5: '处理异常', 6: '已取消' })[Number(status)] || '处理中'
+/** 将后端返回的客户状态优先转换为配送详情文案，避免展示 ERP/WMS 内部状态。 */
+function customerStatusText(split) {
+  const message = valueOf(split, 'customerStatusMessage', 'CustomerStatusMessage', '')
+  if (message) return message
+  const status = Number(valueOf(split, 'status', 'Status', FULFILLMENT_SPLIT_STATUS.PENDING_PUSH))
+  return FULFILLMENT_SPLIT_STATUS_MAP[status]?.text || '配送处理中'
+}
+
+/** 判断配送安排是否未通过，只有后端明确返回驳回结果时才提示重排。 */
+function isReviewRejected(split) {
+  return [ERP_REVIEW_STATUS.REJECTED, ERP_REVIEW_STATUS.REJECTED_AFTER_SHIPMENT].includes(
+    Number(valueOf(split, 'erpReviewStatus', 'ErpReviewStatus', 0)),
+  )
 }
 
 /** 校验商品分配后按地址归并并提交，客户无需理解系统内部拆单结构。 */
@@ -670,10 +712,24 @@ async function submitSplits() {
 .card-subtitle { display: block; }
 .card-title { color: #111216; font-size: 16px; font-weight: 680; }
 .card-subtitle { margin-top: 4px; color: #94969c; font-size: 11px; }
+.split-progress-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; padding: 14px 16px; border-radius: 13px; color: #2f6d4e; background: #eff8f3; }
+.split-progress-title,
+.split-progress-copy { display: block; }
+.split-progress-title { font-size: 13px; font-weight: 650; }
+.split-progress-copy { margin-top: 4px; font-size: 11px; opacity: .82; }
+.split-progress-number { flex: 0 0 auto; color: #111216; font-size: 16px; font-weight: 750; }
 .readonly-address { margin: 14px 0 4px; padding: 12px 13px; border-radius: 11px; background: #f7f8fa; }
 .readonly-item { display: flex; align-items: center; gap: 11px; padding: 13px 0; border-bottom: 1px solid #f0f1f3; }
 .readonly-item:last-child { border-bottom: 0; padding-bottom: 0; }
-.readonly-quantity { color: #111216; font-size: 13px; font-weight: 650; }
+.readonly-quantity-copy { display: flex; flex: 0 0 auto; flex-direction: column; align-items: flex-end; gap: 3px; }
+.readonly-quantity { color: #111216; font-size: 12px; font-weight: 650; }
+.readonly-shipped { color: #676a73; font-size: 11px; }
+.split-result-warning,
+.split-result-success,
+.split-shipped-time { display: block; margin-top: 12px; font-size: 12px; line-height: 18px; }
+.split-result-warning { color: #9a5a00; }
+.split-result-success { color: #2f6d4e; }
+.split-shipped-time { color: #94969c; font-size: 11px; }
 
 .bottom-space { height: 86px; }
 .submit-button { width: 100%; height: 46px; margin: 0; border: 0; border-radius: 12px; color: #fff; background: #d7192d; font-size: 15px; font-weight: 650; line-height: 20px; }

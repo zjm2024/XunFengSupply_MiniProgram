@@ -34,6 +34,14 @@ export function previewOrder(params) {
 }
 
 /**
+ * 获取同步后可供下单选择的承运商。
+ * @returns {Promise<Array>} 承运商选项列表
+ */
+export function getExpressCompanies() {
+  return dispatch('MallOrder', 'Mini.OrderController', 'GetExpressCompanies', {})
+}
+
+/**
  * 创建订单
  *
  * @param {Object} params - PascalCase 实体，由页面层构建

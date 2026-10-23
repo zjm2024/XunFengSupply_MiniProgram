@@ -399,6 +399,9 @@ function getStatusText(order) {
   if (status === ORDER_STATUS.CANCELLING) return '取消处理中'
   if (status === ORDER_STATUS.CANCELLED) return '已取消'
   if (status === ORDER_STATUS.COMPLETED) return '交易完成'
+  if (order?.fulfillmentDisplayStatus && Number(order?.fulfillmentSplitTotalCount || 0) > 0) {
+    return fulfillmentDisplayText(order.fulfillmentDisplayStatus)
+  }
   return getPaymentDisplay(order)?.text
     || getConfirmationDisplay(order)?.text
     || getConfirmedPaymentDisplay(order)?.text
@@ -411,6 +414,9 @@ function getStatusType(order) {
   if (status === ORDER_STATUS.CANCELLING) return 'warning'
   if (status === ORDER_STATUS.CANCELLED) return 'default'
   if (status === ORDER_STATUS.COMPLETED) return 'success'
+  if (order?.fulfillmentDisplayStatus && Number(order?.fulfillmentSplitTotalCount || 0) > 0) {
+    return fulfillmentDisplayType(order.fulfillmentDisplayStatus)
+  }
   const paymentDisplay = getPaymentDisplay(order)
   if (paymentDisplay) return paymentDisplay.type
   const confirmationDisplay = getConfirmationDisplay(order)
@@ -425,6 +431,9 @@ function getStatusHelp(order) {
   if (status === ORDER_STATUS.CANCELLING) return '取消申请处理中'
   if (status === ORDER_STATUS.CANCELLED) return '订单已取消'
   if (status === ORDER_STATUS.COMPLETED) return '交易履约已完成'
+  if (order?.fulfillmentDisplayMessage && Number(order?.fulfillmentSplitTotalCount || 0) > 0) {
+    return order.fulfillmentDisplayMessage
+  }
   const paymentDisplay = getPaymentDisplay(order)
   if (paymentDisplay) return paymentDisplay.help
   const confirmationDisplay = getConfirmationDisplay(order)
@@ -438,6 +447,16 @@ function getStatusHelp(order) {
     [ORDER_STATUS.PROCESSING]: '订单正在备货或配送中',
   }
   return map[status] || '订单状态正在同步'
+}
+
+/** 将后端母子单履约汇总编码转换为 APP 订单列表文案。 */
+function fulfillmentDisplayText(status) {
+  return ({ WAITING_ERP: '等待审核', WAITING_WMS: '等待出库', PROCESSING: '配送处理中', SHIPPED: '已发货', PARTIALLY_FULFILLED: '部分发货/部分取消', ALL_SPLITS_CANCELLED: '配送单均已取消', NOT_STARTED: '未安排配送' })[status] || '配送状态同步中'
+}
+
+/** 将后端母子单履约汇总编码转换为 APP 标签类型。 */
+function fulfillmentDisplayType(status) {
+  return ({ WAITING_ERP: 'warning', WAITING_WMS: 'info', PROCESSING: 'warning', SHIPPED: 'success', PARTIALLY_FULFILLED: 'warning', ALL_SPLITS_CANCELLED: 'default', NOT_STARTED: 'default' })[status] || 'default'
 }
 
 function formatMoney(value) {

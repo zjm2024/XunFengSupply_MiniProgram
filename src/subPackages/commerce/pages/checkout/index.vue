@@ -165,6 +165,20 @@
                     </view>
                     <text class="fixed-label">默认</text>
                   </view>
+                  <view v-if="expressCompanyOptions.length" class="carrier-selector">
+                    <view class="carrier-selector-copy">
+                      <text class="choice-title">承运商</text>
+                      <text class="choice-desc">选择后将按对应运费规则重新核价</text>
+                    </view>
+                    <view class="carrier-picker-value" @tap="expressPickerVisible = true">
+                      <text>{{ selectedExpressCompany?.name || '请选择' }}</text>
+                      <AppIcon name="chevron-right" :size="16" color="#90939A" />
+                    </view>
+                  </view>
+                  <view v-if="carrierError" class="preview-notice carrier-notice">
+                    <AppIcon name="alert" :size="17" color="#B42318" />
+                    <text>{{ carrierError }}</text>
+                  </view>
                 </view>
 
                 <view class="section-card detail-card">
@@ -281,12 +295,18 @@
     :close-on-overlay="!submitting"
     @confirm="confirmSubmit"
   />
+  <ExpressCompanyPicker
+    v-model:visible="expressPickerVisible"
+    v-model="expressCompanyCode"
+    :options="expressCompanyOptions"
+    @confirm="handleExpressCompanyConfirm"
+  />
 </template>
 
 <script setup>
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { createOrder, generateClientRequestId, previewOrder } from '../../api/checkoutApi.js'
+import { createOrder, generateClientRequestId, getExpressCompanies, previewOrder } from '../../api/checkoutApi.js'
 import { removeItems } from '../../api/cartApi.js'
 import { getAddressList } from '../../../account/api/addressApi.js'
 import { useCart } from '@/shared/composables/useCart.js'
@@ -299,6 +319,7 @@ import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import ConfirmPopup from '@/shared/ui/ConfirmPopup/ConfirmPopup.vue'
+import ExpressCompanyPicker from '../../components/ExpressCompanyPicker/ExpressCompanyPicker.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import { navigator } from '@/app/navigation/navigator.js'
@@ -315,6 +336,10 @@ const previewing = ref(false)
 const previewError = ref('')
 const deliveryType = ref(DELIVERY_TYPE.DELIVERY)
 const selectedAddress = ref(null)
+const expressCompanies = ref([])
+const expressCompanyCode = ref('')
+const expressPickerVisible = ref(false)
+const carrierError = ref('')
 const customerRemark = ref('')
 const agreed = ref(false)
 const confirmModalVisible = ref(false)
@@ -329,6 +354,9 @@ const receiverName = computed(() => selectedAddress.value?.name || '')
 const receiverPhone = computed(() => selectedAddress.value?.phone || '')
 const receiverAddress = computed(() => selectedAddress.value?.fullAddress || '')
 const addressId = computed(() => hasAddress.value ? Number(selectedAddress.value.id) : null)
+const expressCompanyOptions = computed(() => expressCompanies.value)
+const selectedExpressCompany = computed(() => expressCompanyOptions.value.find(item => item.code === expressCompanyCode.value) || null)
+
 
 const localAmount = computed(() => checkoutItems.value.reduce(
   (sum, item) => sum + number(item.price) * number(item.quantity),
@@ -385,6 +413,7 @@ const hasPriceChanged = computed(() =>
 const submitDisabledReason = computed(() => {
   if (!userStore.canOrder) return '当前账号状态暂不允许提交订单'
   if (!hasAddress.value) return '请先新增并选择收货地址'
+  if (deliveryType.value === DELIVERY_TYPE.DELIVERY && !expressCompanyCode.value) return carrierError.value || '请选择承运商'
   if (!stockAvailable.value) return '存在库存不足商品，请调整后重新结算'
   if (!agreed.value) return '请阅读并同意经销商交易协议'
   if (previewError.value) return '订单核价失败，请重新核价'
@@ -395,6 +424,7 @@ const canSubmit = computed(() =>
   && Boolean(previewData.value)
   && userStore.canOrder
   && hasAddress.value
+  && (deliveryType.value !== DELIVERY_TYPE.DELIVERY || Boolean(expressCompanyCode.value))
   && stockAvailable.value
   && !previewError.value
   && agreed.value
@@ -529,6 +559,37 @@ function normalizePreview(raw = {}) {
   }
 }
 
+function normalizeExpressCompany(source = {}) {
+  return {
+    code: String(valueOf(source, 'code', 'Code', '') || ''),
+    name: String(valueOf(source, 'name', 'Name', '') || valueOf(source, 'code', 'Code', '') || ''),
+  }
+}
+
+async function loadExpressCompanies() {
+  carrierError.value = ''
+  try {
+    const raw = await getExpressCompanies()
+    expressCompanies.value = (Array.isArray(raw) ? raw : []).map(normalizeExpressCompany).filter(item => item.code)
+    if (!expressCompanies.value.length) {
+      expressCompanyCode.value = ''
+      carrierError.value = '暂无可用承运商，请联系管理员完成快递公司同步。'
+      return
+    }
+    if (!expressCompanies.value.some(item => item.code === expressCompanyCode.value)) {
+      expressCompanyCode.value = expressCompanies.value[0].code
+    }
+  } catch (error) {
+    expressCompanies.value = []
+    expressCompanyCode.value = ''
+    carrierError.value = error?.message || '承运商加载失败，请稍后重试。'
+  }
+}
+
+async function handleExpressCompanyConfirm() {
+  await refreshPreview()
+}
+
 async function loadCheckoutData() {
   pageState.value = PageStatus.LOADING
   errorMessage.value = ''
@@ -551,6 +612,8 @@ async function loadCheckoutData() {
 
     checkoutItems.value = selected.map(item => ({ ...item }))
     await loadDefaultAddress()
+    await loadExpressCompanies()
+    if (deliveryType.value === DELIVERY_TYPE.DELIVERY && !expressCompanyCode.value) throw new Error(carrierError.value)
     const result = await refreshPreview({ silent: true })
     if (!result) throw new Error(previewError.value || '订单核价失败')
     pageState.value = PageStatus.CONTENT
@@ -572,6 +635,7 @@ async function refreshPreview({ silent = false } = {}) {
       Items: buildOrderItems(),
       AddressId: addressId.value,
       DeliveryType: deliveryType.value,
+      ExpressCompanyCode: expressCompanyCode.value || null,
     })
     if (requestId !== previewSequence) return null
     const normalized = normalizePreview(raw)
@@ -644,6 +708,7 @@ async function confirmSubmit() {
       // 创建阶段不选择支付方式；收银台确认支付时才写入最终支付模式。
       PaymentMode: PAYMENT_MODE.CASH,
       DeliveryType: deliveryType.value,
+      ExpressCompanyCode: expressCompanyCode.value || null,
       CustomerRemark: customerRemark.value.trim() || null,
       OmitUnavailableGifts: omitUnavailableGifts.value,
     })
@@ -1157,6 +1222,48 @@ function handleStateAction() {
 
 .options-card {
   padding-bottom: 14px;
+}
+
+.carrier-selector {
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 14px 0;
+  padding: 11px 12px;
+  border: 1px solid var(--color-border, #E4E6EB);
+  border-radius: 12px;
+  background: #FFF;
+  box-sizing: border-box;
+
+  &:active {
+    background: var(--surface-subtle, #F7F8FA);
+  }
+}
+
+.carrier-selector-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.carrier-picker-value {
+  display: flex;
+  max-width: 46%;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-text-primary, #111216);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.carrier-picker-value text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .delivery-fixed {

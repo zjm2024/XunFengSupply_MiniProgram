@@ -145,6 +145,28 @@ export const FULFILLMENT_STATUS = {
   COMPLETED: 6,
 }
 
+/** 配送子单状态（对应后端 FulfillmentSplitStatus）。 */
+export const FULFILLMENT_SPLIT_STATUS = {
+  PENDING_PUSH: 0,
+  PUSHING: 1,
+  ACCEPTED: 2,
+  SHIPPED: 3,
+  COMPLETED: 4,
+  FAILED: 5,
+  CANCELLED: 6,
+}
+
+/** 配送子单状态的客户侧展示文案。 */
+export const FULFILLMENT_SPLIT_STATUS_MAP = {
+  [FULFILLMENT_SPLIT_STATUS.PENDING_PUSH]: { text: '配送待处理', color: '#707783' },
+  [FULFILLMENT_SPLIT_STATUS.PUSHING]: { text: '配送处理中', color: '#707783' },
+  [FULFILLMENT_SPLIT_STATUS.ACCEPTED]: { text: '等待发货', color: '#2678C8' },
+  [FULFILLMENT_SPLIT_STATUS.SHIPPED]: { text: '已发货', color: '#25804A' },
+  [FULFILLMENT_SPLIT_STATUS.COMPLETED]: { text: '已完成', color: '#25804A' },
+  [FULFILLMENT_SPLIT_STATUS.FAILED]: { text: '配送异常', color: '#C43A3A' },
+  [FULFILLMENT_SPLIT_STATUS.CANCELLED]: { text: '配送已取消', color: '#C43A3A' },
+}
+
 /** 结算模式枚举（对应后端 PaymentMode） */
 export const PAYMENT_MODE = {
   CASH: 1,
