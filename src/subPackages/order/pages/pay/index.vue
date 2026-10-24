@@ -1,4 +1,4 @@
-﻿﻿<!--
+<!--
   付款页面（分包：paySub）
   对应业务流程节点：
   购物车&确认订单 → 独立收银台选择支付方式并完成支付
@@ -180,7 +180,7 @@ const userStore = useUserStore()
 
 const orderId = ref(null)
 const orderNo = ref('')
-const payMode = ref(PAYMENT_MODE.CASH)     // 1现款 2授信 3账户组合
+const payMode = ref(PAYMENT_MODE.COMBINATION)     // 默认使用单一余额账户支付
 const payAmount = ref(0)    // 单位：元（后端返回元）
 const payType = ref('wechat') // wechat/alipay/bank-card
 const paying = ref(false)
@@ -212,9 +212,9 @@ const allocationTotal = computed(() => selectedAccountIds.value.reduce(
 ))
 const availableCreditAmount = computed(() => Math.max(0, Number(finance.value.credit?.availableAmount || 0)))
 const paymentModeOptions = computed(() => [
-  { value: PAYMENT_MODE.CASH, label: '现款支付', description: '在线通道联调完成后开放', icon: 'pay-cash', disabled: true },
+  { value: PAYMENT_MODE.CASH, label: '现款支付', description: '线上微信、支付宝暂未接通订单直付', icon: 'pay-cash', disabled: true },
   { value: PAYMENT_MODE.CREDIT, label: '授信支付', description: '使用经销商主体授信结算，生成应收账单', icon: 'pay-credit', disabled: Number(finance.value.credit?.status) !== 1 },
-  { value: PAYMENT_MODE.COMBINATION, label: '账户组合支付', description: '当前仅支持单一余额账户，组合支付暂未开放', icon: 'pay-combine', disabled: true },
+  { value: PAYMENT_MODE.COMBINATION, label: '账户余额支付', description: '选择一个资金账户支付订单', icon: 'pay-combine', disabled: false },
 ])
 const cashPaymentMethods = [
   { key: 'wechat', label: '微信支付', description: '推荐使用微信安全支付', icon: 'pay-wechat' },
@@ -424,22 +424,19 @@ function toggleAccount(account) {
     const next = { ...allocationAmounts.value }; delete next[id]; allocationAmounts.value = next
     return
   }
-  const remaining = Math.max(0, Number(payAmount.value) - allocationTotal.value)
-  selectedAccountIds.value = [...selectedAccountIds.value, id]
-  setAllocation(account, Math.min(remaining, Number(account.availableBalance)).toFixed(2))
+  // 当前后端规则是单一资金账户；切换账户时替换原选择，避免前端提交组合分摊。
+  selectedAccountIds.value = [id]
+  allocationAmounts.value = { [id]: Number(payAmount.value).toFixed(2) }
 }
 function autoAllocate() {
   selectedAccountIds.value = []
   allocationAmounts.value = {}
-  let remaining = Number(payAmount.value)
-  for (const account of availableAccounts.value) {
-    if (remaining <= 0) break
-    const amount = Math.min(remaining, Number(account.availableBalance))
-    if (amount <= 0) continue
-    selectedAccountIds.value.push(account.accountCustomerId)
-    allocationAmounts.value[account.accountCustomerId] = amount.toFixed(2)
-    remaining = Number((remaining - amount).toFixed(2))
-  }
+  const amount = Number(payAmount.value)
+  const account = availableAccounts.value.find(item => Number(item.availableBalance || 0) >= amount)
+    || availableAccounts.value.find(item => Number(item.availableBalance || 0) > 0)
+  if (!account) return
+  selectedAccountIds.value = [account.accountCustomerId]
+  allocationAmounts.value[account.accountCustomerId] = amount.toFixed(2)
 }
 function handlePaid() {
   uni.showToast({ title: '支付成功', icon: 'success' })

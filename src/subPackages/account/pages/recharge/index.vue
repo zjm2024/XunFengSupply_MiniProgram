@@ -75,18 +75,28 @@
                 <view class="section-head">
                   <view>
                     <text class="section-title">充值服务</text>
-                    <text class="section-desc">微信 APP 支付支持在线发起；余额以服务端最终确认结果为准</text>
+                    <text class="section-desc">选择支付渠道在线发起；余额以服务端最终确认结果为准</text>
                   </view>
                 </view>
 
-                <view class="channel-card is-available">
-                  <view class="channel-icon"><AppIcon name="wechat-pay" :size="22" color="#1AAD19" /></view>
-                  <view class="channel-copy">
-                    <view class="channel-title-row">
-                      <text class="channel-title">微信 APP 充值</text>
-                      <text class="channel-tag">在线发起</text>
+                <view class="channel-picker">
+                  <view
+                    v-for="channel in paymentChannels"
+                    :key="channel.key"
+                    class="channel-card"
+                    :class="{ selected: selectedChannel === channel.key, disabled: channel.disabled }"
+                    hover-class="channel-card--pressed"
+                    @tap="selectPaymentChannel(channel)"
+                  >
+                    <view class="channel-icon" :style="{ color: channel.color }"><AppIcon :name="channel.icon" :size="22" :color="channel.color" /></view>
+                    <view class="channel-copy">
+                      <view class="channel-title-row">
+                        <text class="channel-title">{{ channel.title }}</text>
+                        <text class="channel-tag" :class="{ muted: channel.disabled }">{{ channel.disabled ? '即将接入' : '在线发起' }}</text>
+                      </view>
+                      <text class="channel-desc">{{ channel.description }}</text>
                     </view>
-                    <text class="channel-desc">调用微信客户端完成付款；支付完成后由平台回调或主动查单确认到账</text>
+                    <view v-if="!channel.disabled" class="channel-check">{{ selectedChannel === channel.key ? '✓' : '' }}</view>
                   </view>
                 </view>
                 <view class="recharge-form">
@@ -115,12 +125,11 @@
                   </view>
                 </view>
                 <view class="coming-row">
-                  <view class="coming-item"><AppIcon name="credit-card" :size="18" /><text>支付宝</text><text>后续接入</text></view>
                   <view class="coming-item"><AppIcon name="bank" :size="18" /><text>银行收银台</text><text>后续接入</text></view>
                 </view>
 
-                <button class="finance-btn" :disabled="submitting" @tap="startWeChatRecharge">
-                  <AppIcon name="wechat-pay" :size="18" color="#FFFFFF" />
+                <button class="finance-btn" :disabled="submitting" @tap="startRecharge">
+                  <AppIcon :name="selectedPaymentChannel.icon" :size="18" color="#FFFFFF" />
                   <text>{{ rechargeButtonText }}</text>
                 </button>
                 <text class="service-note">{{ paymentSupportHint }}</text>
@@ -148,7 +157,7 @@ import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
-import { createWeChatAppRecharge, getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
+import { createAppRecharge, getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import { useUserStore } from '@/shared/session/userStore.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
@@ -156,12 +165,19 @@ import { routes } from '@/app/config/routes.js'
 const userStore = useUserStore()
 const finance = ref(userStore.financeContext)
 const quickAmounts = Object.freeze([100, 500, 1000, 2000])
+const paymentChannels = Object.freeze([
+  { key: 'wechat', title: '微信支付', icon: 'wechat-pay', color: '#1AAD19', provider: 'wxpay', description: '调用微信客户端付款，平台回调或主动查单后确认到账。' },
+  { key: 'alipay', title: '支付宝', icon: 'alipay', color: '#1677FF', provider: 'alipay', description: '调用支付宝客户端付款，平台回调或主动查单后确认到账。' },
+  { key: 'abc_cashier', title: '银行收银台', icon: 'bank', color: '#8A9098', provider: null, disabled: true, description: '预留农业银行等银行收银台渠道，后续接入。' },
+])
 const rechargeAmount = ref('')
 const submitting = ref(false)
-const weChatPayAvailable = ref(null)
+const selectedChannel = ref('wechat')
+const availableProviders = ref(null)
 const pendingClientRequestId = ref('')
 const pendingRequestAmount = ref('')
-const pendingRechargeStorageKey = 'finance:pending-wechat-app-recharge'
+const pendingRequestChannel = ref('wechat')
+const pendingRechargeStorageKey = 'finance:pending-app-recharge'
 
 const creditUsage = computed(() => {
   const total = Number(finance.value.credit?.totalAmount || 0)
@@ -169,16 +185,21 @@ const creditUsage = computed(() => {
   return total > 0 ? Math.min(100, Math.max(0, (used / total) * 100)) : 0
 })
 
-const rechargeButtonText = computed(() => submitting.value ? '正在调起微信支付…' : '微信 APP 支付')
+const selectedPaymentChannel = computed(() => paymentChannels.find(item => item.key === selectedChannel.value) || paymentChannels[0])
+const rechargeButtonText = computed(() => submitting.value
+  ? `正在调起${selectedPaymentChannel.value.title}…`
+  : `${selectedPaymentChannel.value.title}充值`)
 const paymentSupportHint = computed(() => {
-  if (weChatPayAvailable.value === false) return '当前安装包未配置微信支付，请使用已配置微信支付的正式安装包。'
+  if (availableProviders.value && !availableProviders.value[selectedChannel.value]) {
+    return `当前安装包未配置${selectedPaymentChannel.value.title}，请使用已配置支付能力的正式安装包。`
+  }
   return '平台不会在充值完成前提前增加账户余额，请以充值记录状态为准。'
 })
 
 onShow(() => {
   loadFinance()
   restorePendingRequest()
-  checkWeChatPayAvailability()
+  checkPaymentAvailability()
 })
 
 async function loadFinance() {
@@ -200,7 +221,7 @@ function contactFinance() {
   navigator.navigateTo(routes.content.help())
 }
 
-/** 恢复尚未确认的本地幂等键，避免网络中断后重复创建微信充值单。 */
+/** 恢复尚未确认的本地幂等键，避免网络中断后重复创建充值单。 */
 function restorePendingRequest() {
   const pending = uni.getStorageSync(pendingRechargeStorageKey)
   if (!pending || Date.now() - Number(pending.createdAt || 0) > 30 * 60 * 1000) {
@@ -209,20 +230,34 @@ function restorePendingRequest() {
   }
   pendingClientRequestId.value = String(pending.clientRequestId || '')
   pendingRequestAmount.value = String(pending.amount || '')
+  pendingRequestChannel.value = String(pending.channel || 'wechat')
+  if (paymentChannels.some(item => item.key === pendingRequestChannel.value && !item.disabled)) {
+    selectedChannel.value = pendingRequestChannel.value
+  }
   if (!rechargeAmount.value && pendingRequestAmount.value) rechargeAmount.value = pendingRequestAmount.value
 }
 
-/** 检查当前 App 安装包是否编入微信支付能力；H5 和未配置包不允许伪装可支付。 */
-function checkWeChatPayAvailability() {
+/** 检查当前 App 安装包是否编入各支付能力；H5 和未配置包不允许伪装可支付。 */
+function checkPaymentAvailability() {
   if (typeof plus === 'undefined') {
-    weChatPayAvailable.value = false
+    availableProviders.value = { wechat: false, alipay: false }
     return
   }
   uni.getProvider({
     service: 'payment',
-    success: result => { weChatPayAvailable.value = Array.isArray(result.provider) && result.provider.includes('wxpay') },
-    fail: () => { weChatPayAvailable.value = false },
+    success: result => {
+      const providers = Array.isArray(result.provider) ? result.provider : []
+      availableProviders.value = { wechat: providers.includes('wxpay'), alipay: providers.includes('alipay') }
+    },
+    fail: () => { availableProviders.value = { wechat: false, alipay: false } },
   })
+}
+
+/** 选择支付渠道；银行收银台等未启用渠道只展示规划状态，不发起请求。 */
+function selectPaymentChannel(channel) {
+  if (channel.disabled || submitting.value) return
+  if (selectedChannel.value !== channel.key) clearPendingRequest()
+  selectedChannel.value = channel.key
 }
 
 /** 金额变化时废弃旧幂等键，避免同一个客户端请求标识对应不同金额。 */
@@ -237,13 +272,17 @@ function selectQuickAmount(amount) {
 }
 
 /** 创建或复用稳定的客户端请求标识，并持久化短时间的未确认支付上下文。 */
-function ensureClientRequestId(amount) {
-  if (pendingClientRequestId.value && pendingRequestAmount.value === amount) return pendingClientRequestId.value
-  pendingClientRequestId.value = `app-wechat-recharge-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+function ensureClientRequestId(amount, channel) {
+  if (pendingClientRequestId.value
+    && pendingRequestAmount.value === amount
+    && pendingRequestChannel.value === channel) return pendingClientRequestId.value
+  pendingClientRequestId.value = `app-${channel}-recharge-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
   pendingRequestAmount.value = amount
+  pendingRequestChannel.value = channel
   uni.setStorageSync(pendingRechargeStorageKey, {
     clientRequestId: pendingClientRequestId.value,
     amount,
+    channel,
     createdAt: Date.now(),
   })
   return pendingClientRequestId.value
@@ -274,17 +313,19 @@ function parseWeChatPayOrderInfo(clientPayload) {
 }
 
 /** 封装原生调起；成功只表示客户端流程返回成功，不代表服务端已经入账。 */
-function requestWeChatPayment(orderInfo) {
+function requestPayment(channel, orderInfo) {
   return new Promise((resolve, reject) => {
-    uni.requestPayment({ provider: 'wxpay', orderInfo, success: resolve, fail: reject })
+    uni.requestPayment({ provider: channel === 'alipay' ? 'alipay' : 'wxpay', orderInfo, success: resolve, fail: reject })
   })
 }
 
-/** 发起微信 APP 充值，所有终态均以服务端回调或查单处理后的充值记录为准。 */
-async function startWeChatRecharge() {
+/** 发起选定渠道 APP 充值，所有终态均以服务端回调或查单处理后的充值记录为准。 */
+async function startRecharge() {
   if (submitting.value) return
-  if (weChatPayAvailable.value !== true) {
-    uni.showModal({ title: '暂不可调起微信支付', content: '请使用已配置微信支付模块与微信开放平台 AppID 的正式 App 安装包。', showCancel: false })
+  const channel = selectedPaymentChannel.value
+  if (channel.disabled) return
+  if (availableProviders.value?.[channel.key] !== true) {
+    uni.showModal({ title: `暂不可调起${channel.title}`, content: `请使用已配置${channel.title}支付模块的正式 App 安装包。`, showCancel: false })
     return
   }
   const amount = rechargeAmount.value.trim()
@@ -295,28 +336,39 @@ async function startWeChatRecharge() {
 
   submitting.value = true
   try {
-    const response = await createWeChatAppRecharge({
+    const response = await createAppRecharge({
+      channel: channel.key,
       amount: Number(amount),
-      clientRequestId: ensureClientRequestId(amount),
+      clientRequestId: ensureClientRequestId(amount, channel.key),
       fundAccountCode: finance.value.currentAccount?.fundAccountCode || null,
     })
     if ([3, 4].includes(response.status)) {
       clearPendingRequest()
-      throw new Error(response.failureMessage || '微信充值单创建失败，请稍后重试')
+      throw new Error(response.failureMessage || `${channel.title}充值单创建失败，请稍后重试`)
+    }
+    if (response.status === 2) {
+      // 服务端已经确认到账；本地幂等键只服务于当前一次支付，不能复用到下一次同金额充值。
+      clearPendingRequest()
+      await showPaymentResultPending('该充值已确认到账，请以账户余额和充值记录为准。')
+      return
     }
     if (!response.clientPayload) {
       await showPaymentResultPending('充值单已受理，支付结果正在由平台确认。请稍后在充值记录中查看最终状态。')
       return
     }
 
-    await requestWeChatPayment(parseWeChatPayOrderInfo(response.clientPayload))
-    await showPaymentResultPending('已向微信提交支付请求。到账以服务端回调或主动查单确认后的充值记录为准。')
+    const orderInfo = channel.key === 'wechat'
+      ? parseWeChatPayOrderInfo(response.clientPayload)
+      : response.clientPayload
+    if (typeof orderInfo !== 'string' && channel.key === 'alipay') throw new Error('支付宝支付参数格式异常，请重新发起充值')
+    await requestPayment(channel.key, orderInfo)
+    await showPaymentResultPending(`已向${channel.title}提交支付请求。到账以服务端回调或主动查单确认后的充值记录为准。`)
   } catch (error) {
     const message = String(error?.errMsg || error?.message || '')
     if (/cancel/i.test(message)) {
-      uni.showToast({ title: '已取消微信支付，可在有效期内再次发起', icon: 'none' })
+      uni.showToast({ title: `已取消${channel.title}，可在有效期内再次发起`, icon: 'none' })
     } else {
-      uni.showToast({ title: message || '微信支付暂时无法发起，请稍后重试', icon: 'none' })
+      uni.showToast({ title: message || `${channel.title}暂时无法发起，请稍后重试`, icon: 'none' })
     }
   } finally {
     submitting.value = false
@@ -379,13 +431,19 @@ function goToCreditFlow() { navigator.navigateTo(routes.account.creditFlow()) }
 .card-entry-desc { margin-top: 3px; overflow: hidden; color: #969AA3; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .card-entry--pressed { opacity: .68; }
 .service-card { height: 100%; box-sizing: border-box; }
-.channel-card { display: flex; gap: 13px; margin-top: 18px; padding: 14px; border-radius: 15px; background: rgba(255,255,255,.48); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.channel-picker { display: grid; gap: 9px; margin-top: 18px; }
+.channel-card { position: relative; display: flex; gap: 13px; align-items: center; padding: 12px 14px; border: 1px solid transparent; border-radius: 15px; background: rgba(255,255,255,.48); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.channel-card.selected { border-color: #D7192D; background: #FFF8F8; box-shadow: 0 5px 14px rgba(215,25,45,.08); }
+.channel-card.disabled { opacity: .6; }
+.channel-card--pressed { opacity: .72; }
 .channel-icon { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border-radius: 13px; background: #FFFFFF; box-shadow: 0 4px 12px rgba(31, 41, 55, .05); }
 .channel-copy { min-width: 0; flex: 1; }
 .channel-title-row { display: flex; align-items: center; gap: 8px; }
 .channel-title { color: #22262D; font-size: 14px; font-weight: 700; }
 .channel-tag { padding: 2px 7px; border-radius: 999px; color: #24724D; background: #E9F5EF; font-size: 9px; }
+.channel-tag.muted { color: #8B9098; background: #F1F2F4; }
 .channel-desc { display: block; margin-top: 5px; color: #777D86; font-size: 11px; line-height: 17px; }
+.channel-check { width: 18px; height: 18px; border-radius: 50%; color: #FFF; background: #D7192D; font-size: 13px; line-height: 18px; text-align: center; }
 .recharge-form { margin-top: 13px; padding: 13px; border: 1px solid #EDF0F2; border-radius: 15px; background: rgba(255,255,255,.48); }
 .form-label { display: block; color: #707680; font-size: 11px; font-weight: 650; }
 .amount-input-wrap { display: flex; align-items: center; gap: 6px; margin-top: 7px; padding: 0 10px; border-radius: 11px; background: #FFF; }
@@ -408,7 +466,7 @@ function goToCreditFlow() { navigator.navigateTo(routes.account.creditFlow()) }
   .overview-column { grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); grid-column: 1 / -1; gap: 18px; }
   .service-column { grid-column: 1 / -1; }
   .service-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, .7fr); column-gap: 22px; }
-  .service-card > .section-head, .service-card > .channel-card { grid-column: 1; }
+  .service-card > .section-head, .service-card > .channel-picker, .service-card > .recharge-form { grid-column: 1; }
   .coming-row, .finance-btn, .service-note { grid-column: 2; }
   .coming-row { grid-row: 1 / span 2; align-content: start; margin-top: 0; }
   .finance-btn { align-self: end; }

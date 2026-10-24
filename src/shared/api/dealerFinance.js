@@ -93,6 +93,30 @@ export async function createWeChatAppRecharge(params = {}) {
   }
 }
 
+/**
+ * 创建或复用统一 APP 充值意图。
+ * 渠道由服务端白名单和配置决定，客户端只传渠道代码与业务幂等键。
+ */
+export async function createAppRecharge(params = {}) {
+  const result = await dispatch('Finance', 'Mini.DealerFinanceController', 'CreateAppRecharge', {
+    Channel: params.channel,
+    Amount: Number(params.amount || 0),
+    ClientRequestId: params.clientRequestId,
+    FundAccountCode: params.fundAccountCode || null,
+  })
+  return {
+    rechargeNo: String(result?.rechargeNo ?? result?.RechargeNo ?? ''),
+    channel: String(result?.channel ?? result?.Channel ?? params.channel ?? ''),
+    status: Number(result?.status ?? result?.Status ?? 0),
+    resultCertainty: Number(result?.resultCertainty ?? result?.ResultCertainty ?? 0),
+    clientPayload: result?.clientPayload ?? result?.ClientPayload ?? null,
+    expiresAtUtc: result?.expiresAtUtc ?? result?.ExpiresAtUtc ?? null,
+    nextQueryAtUtc: result?.nextQueryAtUtc ?? result?.NextQueryAtUtc ?? null,
+    failureCode: result?.failureCode ?? result?.FailureCode ?? null,
+    failureMessage: result?.failureMessage ?? result?.FailureMessage ?? null,
+  }
+}
+
 export function confirmDealerOrderPayment(params = {}) {
   return dispatch('Finance', 'Mini.DealerFinanceController', 'ConfirmOrderPayment', {
     OrderId: Number(params.orderId || 0),
