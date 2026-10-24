@@ -64,14 +64,16 @@
                 <view class="order-identify">
                   <view class="order-no-line">
                     <text class="order-no"><text class="order-no-label">订单号</text>{{ order.orderNo }}</text>
-                    <text v-if="order.orderSource === 'ERP_MANUAL'" class="manual-order-tag">ERP手工单</text>
+                    <text v-if="order.orderSource === 'ERP_MANUAL'" class="manual-order-tag">线下订单</text>
                     <text v-if="order.splitOrderCount > 1" class="split-order-tag">
                       {{ order.parentOrderId ? '拆分子单' : `拆分订单 · ${order.splitOrderCount}单` }}
                     </text>
                   </view>
                   <text class="order-time">{{ formatDateTime(order.createdAt || order.createdTime) }}</text>
                 </view>
-                <StatusTag :type="getStatusType(order)" :text="getStatusText(order)" />
+                <view class="order-status">
+                  <StatusTag :type="getOrderCustomerDisplay(order).type" :text="getOrderCustomerDisplay(order).text" />
+                </view>
               </view>
 
               <view class="goods-preview">
@@ -79,7 +81,7 @@
                 <view class="goods-info">
                   <text class="product-name">{{ order.firstItemProductName || '采购订单商品' }}</text>
                   <text class="product-detail">{{ order.itemCount || 0 }} 种商品 · 共 {{ order.totalQuantity || 0 }} 件</text>
-                  <text class="order-stage">{{ order.orderSource === 'ERP_MANUAL' ? '本地扣款、扣库存已完成' : getStatusHelp(order) }}</text>
+                  <text class="order-stage">{{ getOrderCustomerDisplay(order).description }}</text>
                 </view>
               </view>
 
@@ -137,15 +139,13 @@ import { computed, reactive, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import {
   ORDER_STATUS,
-  ORDER_STATUS_MAP,
   ERP_REVIEW_STATUS,
-  PAYMENT_STATUS,
-  PAYMENT_STATUS_MAP,
 } from '@/app/config/constant.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { getOrderList, getOrderDetail, confirmReceipt, generateClientRequestId } from '@/subPackages/order/api/orderApi.js'
 import { getOrderActionButtons } from '@/subPackages/order/model/orderActions.js'
+import { getOrderCustomerDisplay } from '../../model/orderDisplay.js'
 import { batchAddToCart } from '@/shared/api/cartApi.js'
 import { buildReorderCartItems } from '@/subPackages/order/domain/reorderCart.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
@@ -324,140 +324,6 @@ function goToDetail(orderId) {
   navigator.navigateTo(routes.order.detail(orderId))
 }
 
-const ORDER_STATUS_TYPE_MAP = Object.freeze({
-  [ORDER_STATUS.PENDING_REVIEW]: 'warning',
-  [ORDER_STATUS.REVIEW_REJECTED]: 'error',
-  [ORDER_STATUS.PENDING_PAYMENT]: 'warning',
-  [ORDER_STATUS.PROCESSING]: 'info',
-  [ORDER_STATUS.COMPLETED]: 'success',
-  [ORDER_STATUS.CANCELLING]: 'warning',
-  [ORDER_STATUS.CANCELLED]: 'default',
-})
-
-/** ERP 审核在客户端统一表达为“订单确认”，不暴露内部审核节点。 */
-function getConfirmationDisplay(order) {
-  const orderStatus = Number(order?.orderStatus)
-  if (orderStatus === ORDER_STATUS.CANCELLING || orderStatus === ORDER_STATUS.CANCELLED) return null
-
-  const paymentStatus = Number(order?.paymentStatus)
-  if ((orderStatus === ORDER_STATUS.PENDING_PAYMENT || orderStatus === ORDER_STATUS.PROCESSING)
-    && paymentStatus !== PAYMENT_STATUS.CONFIRMED) {
-    return null
-  }
-
-  const status = Number(order?.erpReviewStatus)
-  if (status === ERP_REVIEW_STATUS.PENDING) {
-    return { text: '订单确认中', type: 'info', help: order?.confirmationMessage || '正在确认订单，结果将通过消息通知' }
-  }
-  if (status === ERP_REVIEW_STATUS.REJECTED) {
-    return { text: '订单未通过确认', type: 'error', help: order?.erpReviewReasonMessage || '订单确认未通过，详情中可查看原因' }
-  }
-  if (status === ERP_REVIEW_STATUS.REJECTED_AFTER_SHIPMENT || status === ERP_REVIEW_STATUS.DECISION_CONFLICT) {
-    return { text: '订单确认待处理', type: 'error', help: '订单确认结果异常，客服正在处理' }
-  }
-  return null
-}
-
-/**
- * 订单主状态和支付状态必须分开展示，但支付未完成时，列表主标签要优先提示用户付款。
- * 这样可以避免订单主状态已经进入处理中、支付投影仍未确认时显示成“履约中”。
- */
-function getPaymentDisplay(order) {
-  const orderStatus = Number(order?.orderStatus)
-  const paymentStatus = Number(order?.paymentStatus)
-  if (orderStatus === ORDER_STATUS.CANCELLING || orderStatus === ORDER_STATUS.CANCELLED) return null
-
-  const paymentPending = (orderStatus === ORDER_STATUS.PENDING_PAYMENT
-    || orderStatus === ORDER_STATUS.PROCESSING)
-    && paymentStatus !== PAYMENT_STATUS.CONFIRMED
-  if (!paymentPending) return null
-
-  const payment = PAYMENT_STATUS_MAP[paymentStatus]
-  if (!payment) {
-    return { text: '支付状态待同步', type: 'info', help: '支付结果正在同步，请稍后刷新订单' }
-  }
-
-  const display = {
-    [PAYMENT_STATUS.UNPAID]: { text: '待付款', type: 'warning', help: '订单已生成，请及时完成付款' },
-    [PAYMENT_STATUS.PAYING]: { text: '支付处理中', type: 'info', help: '支付结果确认中，请稍后刷新订单' },
-    [PAYMENT_STATUS.PARTIALLY_PAID]: { text: '部分支付', type: 'warning', help: '订单尚未完成全额支付，请继续完成付款' },
-    [PAYMENT_STATUS.FAILED]: { text: '支付失败', type: 'error', help: '本次支付未完成，请重新发起支付' },
-    [PAYMENT_STATUS.UNKNOWN]: { text: '支付结果待确认', type: 'info', help: '支付结果待确认，请勿重复支付' },
-  }
-  return display[paymentStatus] || { text: payment.text, type: 'info', help: '支付状态正在同步' }
-}
-function getConfirmedPaymentDisplay(order) {
-  if (Number(order?.orderStatus) === ORDER_STATUS.PENDING_PAYMENT
-    && Number(order?.paymentStatus) === PAYMENT_STATUS.CONFIRMED) {
-    return { text: '处理中', type: 'info', help: '支付已确认，正在为您安排发货' }
-  }
-  return null
-}
-
-function getStatusText(order) {
-  const status = Number(order?.orderStatus)
-  if (status === ORDER_STATUS.CANCELLING) return '取消处理中'
-  if (status === ORDER_STATUS.CANCELLED) return '已取消'
-  if (status === ORDER_STATUS.COMPLETED) return '交易完成'
-  if (order?.fulfillmentDisplayStatus && Number(order?.fulfillmentSplitTotalCount || 0) > 0) {
-    return fulfillmentDisplayText(order.fulfillmentDisplayStatus)
-  }
-  return getPaymentDisplay(order)?.text
-    || getConfirmationDisplay(order)?.text
-    || getConfirmedPaymentDisplay(order)?.text
-    || ORDER_STATUS_MAP[status]?.text
-    || '状态更新中'
-}
-
-function getStatusType(order) {
-  const status = Number(order?.orderStatus)
-  if (status === ORDER_STATUS.CANCELLING) return 'warning'
-  if (status === ORDER_STATUS.CANCELLED) return 'default'
-  if (status === ORDER_STATUS.COMPLETED) return 'success'
-  if (order?.fulfillmentDisplayStatus && Number(order?.fulfillmentSplitTotalCount || 0) > 0) {
-    return fulfillmentDisplayType(order.fulfillmentDisplayStatus)
-  }
-  const paymentDisplay = getPaymentDisplay(order)
-  if (paymentDisplay) return paymentDisplay.type
-  const confirmationDisplay = getConfirmationDisplay(order)
-  if (confirmationDisplay) return confirmationDisplay.type
-  const confirmedPaymentDisplay = getConfirmedPaymentDisplay(order)
-  if (confirmedPaymentDisplay) return confirmedPaymentDisplay.type
-  return ORDER_STATUS_TYPE_MAP[status] || 'default'
-}
-
-function getStatusHelp(order) {
-  const status = Number(order?.orderStatus)
-  if (status === ORDER_STATUS.CANCELLING) return '取消申请处理中'
-  if (status === ORDER_STATUS.CANCELLED) return '订单已取消'
-  if (status === ORDER_STATUS.COMPLETED) return '交易履约已完成'
-  if (order?.fulfillmentDisplayMessage && Number(order?.fulfillmentSplitTotalCount || 0) > 0) {
-    return order.fulfillmentDisplayMessage
-  }
-  const paymentDisplay = getPaymentDisplay(order)
-  if (paymentDisplay) return paymentDisplay.help
-  const confirmationDisplay = getConfirmationDisplay(order)
-  if (confirmationDisplay) return confirmationDisplay.help
-  const confirmedPaymentDisplay = getConfirmedPaymentDisplay(order)
-  if (confirmedPaymentDisplay) return confirmedPaymentDisplay.help
-  const map = {
-    [ORDER_STATUS.PENDING_REVIEW]: '订单正在确认中',
-    [ORDER_STATUS.REVIEW_REJECTED]: '订单确认未通过，可查看订单了解原因',
-    [ORDER_STATUS.PENDING_PAYMENT]: '订单已生成，请及时完成付款',
-    [ORDER_STATUS.PROCESSING]: '订单正在备货或配送中',
-  }
-  return map[status] || '订单状态正在同步'
-}
-
-/** 将后端母子单履约汇总编码转换为 APP 订单列表文案。 */
-function fulfillmentDisplayText(status) {
-  return ({ WAITING_ERP: '等待审核', WAITING_WMS: '等待出库', PROCESSING: '配送处理中', SHIPPED: '已发货', PARTIALLY_FULFILLED: '部分发货/部分取消', ALL_SPLITS_CANCELLED: '配送单均已取消', NOT_STARTED: '未安排配送' })[status] || '配送状态同步中'
-}
-
-/** 将后端母子单履约汇总编码转换为 APP 标签类型。 */
-function fulfillmentDisplayType(status) {
-  return ({ WAITING_ERP: 'warning', WAITING_WMS: 'info', PROCESSING: 'warning', SHIPPED: 'success', PARTIALLY_FULFILLED: 'warning', ALL_SPLITS_CANCELLED: 'default', NOT_STARTED: 'default' })[status] || 'default'
-}
 
 function formatMoney(value) {
   const number = Number(value)
@@ -555,6 +421,7 @@ async function handleAction(key, order) {
 </script>
 
 <style lang="scss" scoped>
+.order-status { display: flex; flex: 0 0 auto; justify-content: flex-end; }
 .order-header { background: var(--surface-page, #F4F5F8); }
 .order-page { width: 100%; max-width: 1160px; margin: 0 auto; padding-bottom: env(safe-area-inset-bottom); }
 .filter-panel { padding: 7px var(--page-padding-x, 16px) 12px; background: var(--surface-page, #F4F5F8); }

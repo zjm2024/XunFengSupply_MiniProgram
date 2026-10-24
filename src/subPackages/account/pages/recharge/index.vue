@@ -75,34 +75,59 @@
                 <view class="section-head">
                   <view>
                     <text class="section-title">充值服务</text>
-                    <text class="section-desc">当前支持对公充值，由财务审核后入账</text>
+                    <text class="section-desc">微信 APP 支付支持在线发起；余额以服务端最终确认结果为准</text>
                   </view>
                 </view>
 
                 <view class="channel-card is-available">
-                  <view class="channel-icon"><AppIcon name="bank" :size="22" color="#40566B" /></view>
+                  <view class="channel-icon"><AppIcon name="wechat-pay" :size="22" color="#1AAD19" /></view>
                   <view class="channel-copy">
                     <view class="channel-title-row">
-                      <text class="channel-title">对公充值</text>
-                      <text class="channel-tag">可办理</text>
+                      <text class="channel-title">微信 APP 充值</text>
+                      <text class="channel-tag">在线发起</text>
                     </view>
-                    <text class="channel-desc">联系财务获取账户信息，到账审核通过后计入当前账户余额</text>
+                    <text class="channel-desc">调用微信客户端完成付款；支付完成后由平台回调或主动查单确认到账</text>
+                  </view>
+                </view>
+                <view class="recharge-form">
+                  <text class="form-label">充值金额</text>
+                  <view class="amount-input-wrap">
+                    <text class="amount-prefix">¥</text>
+                    <input
+                      v-model="rechargeAmount"
+                      class="amount-input"
+                      type="digit"
+                      placeholder="请输入金额，最多两位小数"
+                      placeholder-class="amount-placeholder"
+                      :disabled="submitting"
+                      @input="handleAmountChanged"
+                    />
+                  </view>
+                  <view class="quick-amounts">
+                    <button
+                      v-for="amount in quickAmounts"
+                      :key="amount"
+                      class="quick-amount"
+                      :class="{ active: rechargeAmount === String(amount) }"
+                      :disabled="submitting"
+                      @tap="selectQuickAmount(amount)"
+                    >¥{{ amount }}</button>
                   </view>
                 </view>
                 <view class="coming-row">
-                  <view class="coming-item"><AppIcon name="credit-card" :size="18" /><text>微信/支付宝</text><text>筹备中</text></view>
-                  <view class="coming-item"><AppIcon name="refresh" :size="18" /><text>自动到账</text><text>筹备中</text></view>
+                  <view class="coming-item"><AppIcon name="credit-card" :size="18" /><text>支付宝</text><text>后续接入</text></view>
+                  <view class="coming-item"><AppIcon name="bank" :size="18" /><text>银行收银台</text><text>后续接入</text></view>
                 </view>
 
-                <button class="finance-btn" @tap="contactFinance">
-                  <AppIcon name="service" :size="18" color="#FFFFFF" />
-                  <text>联系财务办理充值</text>
+                <button class="finance-btn" :disabled="submitting" @tap="startWeChatRecharge">
+                  <AppIcon name="wechat-pay" :size="18" color="#FFFFFF" />
+                  <text>{{ rechargeButtonText }}</text>
                 </button>
-                <text class="service-note">平台不会在充值完成前提前增加账户余额，请以充值记录状态为准。</text>
+                <text class="service-note">{{ paymentSupportHint }}</text>
                 <view class="card-entry service-entry" hover-class="card-entry--pressed" @tap="goToRecords">
                   <view class="card-entry-copy">
                     <text class="card-entry-title">充值记录</text>
-                    <text class="card-entry-desc">查看充值审核、到账和失败状态</text>
+                    <text class="card-entry-desc">查看待确认、到账和失败状态</text>
                   </view>
                   <AppIcon name="chevron-right" :size="16" color="#8A9098" />
                 </view>
@@ -123,13 +148,20 @@ import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
-import { getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
+import { createWeChatAppRecharge, getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import { useUserStore } from '@/shared/session/userStore.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 
 const userStore = useUserStore()
 const finance = ref(userStore.financeContext)
+const quickAmounts = Object.freeze([100, 500, 1000, 2000])
+const rechargeAmount = ref('')
+const submitting = ref(false)
+const weChatPayAvailable = ref(null)
+const pendingClientRequestId = ref('')
+const pendingRequestAmount = ref('')
+const pendingRechargeStorageKey = 'finance:pending-wechat-app-recharge'
 
 const creditUsage = computed(() => {
   const total = Number(finance.value.credit?.totalAmount || 0)
@@ -137,8 +169,16 @@ const creditUsage = computed(() => {
   return total > 0 ? Math.min(100, Math.max(0, (used / total) * 100)) : 0
 })
 
+const rechargeButtonText = computed(() => submitting.value ? '正在调起微信支付…' : '微信 APP 支付')
+const paymentSupportHint = computed(() => {
+  if (weChatPayAvailable.value === false) return '当前安装包未配置微信支付，请使用已配置微信支付的正式安装包。'
+  return '平台不会在充值完成前提前增加账户余额，请以充值记录状态为准。'
+})
+
 onShow(() => {
   loadFinance()
+  restorePendingRequest()
+  checkWeChatPayAvailability()
 })
 
 async function loadFinance() {
@@ -158,6 +198,144 @@ function formatMoney(value) {
 
 function contactFinance() {
   navigator.navigateTo(routes.content.help())
+}
+
+/** 恢复尚未确认的本地幂等键，避免网络中断后重复创建微信充值单。 */
+function restorePendingRequest() {
+  const pending = uni.getStorageSync(pendingRechargeStorageKey)
+  if (!pending || Date.now() - Number(pending.createdAt || 0) > 30 * 60 * 1000) {
+    uni.removeStorageSync(pendingRechargeStorageKey)
+    return
+  }
+  pendingClientRequestId.value = String(pending.clientRequestId || '')
+  pendingRequestAmount.value = String(pending.amount || '')
+  if (!rechargeAmount.value && pendingRequestAmount.value) rechargeAmount.value = pendingRequestAmount.value
+}
+
+/** 检查当前 App 安装包是否编入微信支付能力；H5 和未配置包不允许伪装可支付。 */
+function checkWeChatPayAvailability() {
+  if (typeof plus === 'undefined') {
+    weChatPayAvailable.value = false
+    return
+  }
+  uni.getProvider({
+    service: 'payment',
+    success: result => { weChatPayAvailable.value = Array.isArray(result.provider) && result.provider.includes('wxpay') },
+    fail: () => { weChatPayAvailable.value = false },
+  })
+}
+
+/** 金额变化时废弃旧幂等键，避免同一个客户端请求标识对应不同金额。 */
+function handleAmountChanged() {
+  if (pendingRequestAmount.value && rechargeAmount.value !== pendingRequestAmount.value) clearPendingRequest()
+}
+
+/** 使用快捷金额并执行与手动输入相同的幂等键保护。 */
+function selectQuickAmount(amount) {
+  rechargeAmount.value = String(amount)
+  handleAmountChanged()
+}
+
+/** 创建或复用稳定的客户端请求标识，并持久化短时间的未确认支付上下文。 */
+function ensureClientRequestId(amount) {
+  if (pendingClientRequestId.value && pendingRequestAmount.value === amount) return pendingClientRequestId.value
+  pendingClientRequestId.value = `app-wechat-recharge-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  pendingRequestAmount.value = amount
+  uni.setStorageSync(pendingRechargeStorageKey, {
+    clientRequestId: pendingClientRequestId.value,
+    amount,
+    createdAt: Date.now(),
+  })
+  return pendingClientRequestId.value
+}
+
+/** 清理已不再可复用的本地充值幂等上下文。 */
+function clearPendingRequest() {
+  pendingClientRequestId.value = ''
+  pendingRequestAmount.value = ''
+  uni.removeStorageSync(pendingRechargeStorageKey)
+}
+
+/** 校验并解析后端生成的 APP 微信支付参数，拒绝客户端自行拼装签名数据。 */
+function parseWeChatPayOrderInfo(clientPayload) {
+  let payload = clientPayload
+  if (typeof payload === 'string') {
+    try {
+      payload = JSON.parse(payload)
+    } catch (_) {
+      throw new Error('微信支付参数格式异常，请重新发起充值')
+    }
+  }
+  const requiredKeys = ['appid', 'partnerid', 'prepayid', 'package', 'noncestr', 'timestamp', 'sign']
+  if (!payload || typeof payload !== 'object' || requiredKeys.some(key => !payload[key])) {
+    throw new Error('微信支付参数不完整，请重新发起充值')
+  }
+  return payload
+}
+
+/** 封装原生调起；成功只表示客户端流程返回成功，不代表服务端已经入账。 */
+function requestWeChatPayment(orderInfo) {
+  return new Promise((resolve, reject) => {
+    uni.requestPayment({ provider: 'wxpay', orderInfo, success: resolve, fail: reject })
+  })
+}
+
+/** 发起微信 APP 充值，所有终态均以服务端回调或查单处理后的充值记录为准。 */
+async function startWeChatRecharge() {
+  if (submitting.value) return
+  if (weChatPayAvailable.value !== true) {
+    uni.showModal({ title: '暂不可调起微信支付', content: '请使用已配置微信支付模块与微信开放平台 AppID 的正式 App 安装包。', showCancel: false })
+    return
+  }
+  const amount = rechargeAmount.value.trim()
+  if (!/^\d+(?:\.\d{1,2})?$/.test(amount) || Number(amount) <= 0) {
+    uni.showToast({ title: '请输入最多两位小数的正数金额', icon: 'none' })
+    return
+  }
+
+  submitting.value = true
+  try {
+    const response = await createWeChatAppRecharge({
+      amount: Number(amount),
+      clientRequestId: ensureClientRequestId(amount),
+      fundAccountCode: finance.value.currentAccount?.fundAccountCode || null,
+    })
+    if ([3, 4].includes(response.status)) {
+      clearPendingRequest()
+      throw new Error(response.failureMessage || '微信充值单创建失败，请稍后重试')
+    }
+    if (!response.clientPayload) {
+      await showPaymentResultPending('充值单已受理，支付结果正在由平台确认。请稍后在充值记录中查看最终状态。')
+      return
+    }
+
+    await requestWeChatPayment(parseWeChatPayOrderInfo(response.clientPayload))
+    await showPaymentResultPending('已向微信提交支付请求。到账以服务端回调或主动查单确认后的充值记录为准。')
+  } catch (error) {
+    const message = String(error?.errMsg || error?.message || '')
+    if (/cancel/i.test(message)) {
+      uni.showToast({ title: '已取消微信支付，可在有效期内再次发起', icon: 'none' })
+    } else {
+      uni.showToast({ title: message || '微信支付暂时无法发起，请稍后重试', icon: 'none' })
+    }
+  } finally {
+    submitting.value = false
+    await loadFinance()
+  }
+}
+
+/** 在客户端调起结束后统一说明服务端确认语义，并引导查看可靠状态。 */
+function showPaymentResultPending(content) {
+  return new Promise(resolve => {
+    uni.showModal({
+      title: '支付结果确认中',
+      content,
+      confirmText: '查看记录',
+      cancelText: '留在当前页',
+      success: result => { if (result.confirm) goToRecords(); resolve() },
+      fail: () => resolve(),
+    })
+  })
 }
 
 function goToRecords() { navigator.navigateTo(routes.account.rechargeRecords()) }
@@ -208,6 +386,16 @@ function goToCreditFlow() { navigator.navigateTo(routes.account.creditFlow()) }
 .channel-title { color: #22262D; font-size: 14px; font-weight: 700; }
 .channel-tag { padding: 2px 7px; border-radius: 999px; color: #24724D; background: #E9F5EF; font-size: 9px; }
 .channel-desc { display: block; margin-top: 5px; color: #777D86; font-size: 11px; line-height: 17px; }
+.recharge-form { margin-top: 13px; padding: 13px; border: 1px solid #EDF0F2; border-radius: 15px; background: rgba(255,255,255,.48); }
+.form-label { display: block; color: #707680; font-size: 11px; font-weight: 650; }
+.amount-input-wrap { display: flex; align-items: center; gap: 6px; margin-top: 7px; padding: 0 10px; border-radius: 11px; background: #FFF; }
+.amount-prefix { color: #20242A; font-size: 19px; font-weight: 700; }
+.amount-input { min-width: 0; height: 42px; flex: 1; color: #20242A; font-size: 18px; font-weight: 700; }
+.amount-placeholder { color: #B3B7BE; font-size: 12px; font-weight: 400; }
+.quick-amounts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin-top: 10px; }
+.quick-amount { height: 29px; padding: 0; border: 1px solid #E6E9EC; border-radius: 9px; color: #5F6670; background: #FFF; font-size: 10px; line-height: 27px; }
+.quick-amount::after { border: 0; }
+.quick-amount.active { color: #C51327; border-color: #F1BAC1; background: #FFF2F3; }
 .coming-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 10px; }
 .coming-item { display: grid; grid-template-columns: 22px 1fr auto; align-items: center; gap: 6px; min-height: 42px; padding: 0 10px; border-radius: 12px; color: #737982; background: rgba(255,255,255,.42); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); font-size: 10px; }
 .coming-item > text:last-child { color: #A2A6AD; font-size: 9px; }

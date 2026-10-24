@@ -25,6 +25,29 @@ function number(value, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
+/** 规范化服务端启用字典产生的展示结果，保留缺失元数据标志。 */
+function normalizeCustomerDisplay(value) {
+  if (!value || typeof value !== 'object') return null
+  return {
+    code: value.code ?? value.Code ?? '',
+    text: value.text ?? value.Text ?? '',
+    description: value.description ?? value.Description ?? '',
+    tone: value.tone ?? value.Tone ?? 'default',
+    metadataComplete: (value.metadataComplete ?? value.MetadataComplete) === true,
+    showProgress: (value.showProgress ?? value.ShowProgress) === true,
+  }
+}
+
+/** 兼容现有语言设置，英文请求提交标准化 en-US，其余由后端回退中文。 */
+function customerLanguageParams() {
+  try {
+    const saved = typeof uni !== 'undefined' ? uni.getStorageSync('app_language') : ''
+    return /^(en|en-US)$/i.test(String(saved)) ? { Language: 'en-US' } : {}
+  } catch {
+    return {}
+  }
+}
+
 /**
  * 将后端 PascalCase Order 响应转换为前端 camelCase 领域模型
  * @param {Object} order
@@ -41,6 +64,8 @@ function normalizeOrder(order = {}) {
     parentOrderId: number(order.parentOrderId ?? order.ParentOrderId),
     splitOrderCount: number(order.splitOrderCount ?? order.SplitOrderCount),
     orderStatus: number(order.orderStatus ?? order.OrderStatus),
+    customerStatus: normalizeCustomerDisplay(order.customerStatus ?? order.CustomerStatus),
+    customerRefund: normalizeCustomerDisplay(order.customerRefund ?? order.CustomerRefund),
     payableAmount: number(order.payableAmount ?? order.PayableAmount),
     paymentMode: number(order.paymentMode ?? order.PaymentMode),
     deliveryType: number(order.deliveryType ?? order.DeliveryType),
@@ -64,6 +89,7 @@ function normalizeOrder(order = {}) {
     firstItemImageUrl: order.firstItemImageUrl ?? order.FirstItemImageUrl ?? '',
     firstItemProductName: order.firstItemProductName ?? order.FirstItemProductName ?? '',
     fulfillmentStatus: number(order.fulfillmentStatus ?? order.FulfillmentStatus),
+    fulfillmentDisplayStatus: order.fulfillmentDisplayStatus ?? order.FulfillmentDisplayStatus ?? '',
     wmsReserveStatus: number(order.wmsReserveStatus ?? order.WmsReserveStatus),
     paymentStatus: number(order.paymentStatus ?? order.PaymentStatus),
     erpReviewStatus: number(order.erpReviewStatus ?? order.ErpReviewStatus),
@@ -81,6 +107,8 @@ function normalizeOrder(order = {}) {
     omittedGiftSkus: order.omittedGiftSkus ?? order.OmittedGiftSkus ?? [],
     fulfillmentSplits: (order.fulfillmentSplits ?? order.FulfillmentSplits ?? []).map(split => ({
       ...split,
+      customerStatus: normalizeCustomerDisplay(split.customerStatus ?? split.CustomerStatus),
+      isCurrentBatch: (split.isCurrentBatch ?? split.IsCurrentBatch) === true,
        splitId: number(split.splitId ?? split.SplitId),
        splitNo: split.splitNo ?? split.SplitNo ?? '',
        splitBatchNo: split.splitBatchNo ?? split.SplitBatchNo ?? '',
@@ -247,6 +275,7 @@ export function createOrder(params = {}) {
 export function getOrderList(params = {}) {
   const source = params || {}
   return dispatch('MallOrder', 'Mini.OrderController', 'GetOrderList', {
+    ...customerLanguageParams(),
     OrderStatus: source.orderStatus ?? source.OrderStatus ?? null,
     ErpReviewStatus: source.erpReviewStatus ?? source.ErpReviewStatus ?? null,
     ExcludePendingErpReview: source.excludePendingErpReview ?? source.ExcludePendingErpReview ?? false,
@@ -277,7 +306,7 @@ export function getOrderList(params = {}) {
  */
 export function getOrderDetail(orderId) {
   const id = Number(orderId)
-  return dispatch('MallOrder', 'Mini.OrderController', 'GetOrderDetail', { OrderId: id })
+  return dispatch('MallOrder', 'Mini.OrderController', 'GetOrderDetail', { OrderId: id, ...customerLanguageParams() })
     .then(result => (result ? normalizeOrder(result) : result))
 }
 

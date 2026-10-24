@@ -53,6 +53,14 @@
                     <view class="detail-row"><text>充值单号</text><text>{{ record.rechargeNo || '-' }}</text></view>
                     <view class="detail-row"><text>收款账户</text><text>{{ record.accountId ? `账户 ${record.accountId}` : '-' }}</text></view>
                     <view v-if="record.transactionId" class="detail-row"><text>交易流水</text><text>{{ record.transactionId }}</text></view>
+                    <view v-if="isConfirming(record)" class="recovery-note">
+                      <AppIcon name="refresh" :size="14" />
+                      <text>支付结果确认中{{ record.nextQueryAt ? `，下次查询：${formatDateTime(record.nextQueryAt, 'MM-DD HH:mm')}` : '' }}</text>
+                    </view>
+                    <view v-if="record.failureMessage" class="recovery-note is-failure">
+                      <AppIcon name="info" :size="14" />
+                      <text>{{ record.failureMessage }}</text>
+                    </view>
                     <view v-if="record.completedAt" class="detail-row"><text>完成时间</text><text>{{ formatDateTime(record.completedAt) }}</text></view>
                   </view>
                 </view>
@@ -185,6 +193,11 @@ function statusText(status) {
   return ({ 0: '待支付', 1: '处理中', 2: '已到账', 3: '失败', 4: '已关闭', 5: '待确认', 6: '待审核' })[status] || '未知状态'
 }
 
+function isConfirming(record) {
+  return [0, 5].includes(Number(record?.status))
+    && String(record?.payMethod || '').toLowerCase() === 'wechat'
+}
+
 function payMethodText(method) {
   return ({ offline: '对公充值', wechat: '微信充值', alipay: '支付宝充值' })[String(method || '').toLowerCase()] || '账户充值'
 }
@@ -222,6 +235,8 @@ function methodIcon(method) {
 .amount-value > text { margin-right: 3px; font-size: 13px; }
 .detail-row { display: flex; justify-content: space-between; gap: 14px; padding: 5px 0; color: #858A93; font-size: 10px; }
 .detail-row > text:last-child { min-width: 0; overflow: hidden; color: #555B64; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.recovery-note { display: flex; align-items: flex-start; gap: 5px; margin-top: 7px; padding: 8px; border-radius: 9px; color: #8A6A21; background: #FFF8E9; font-size: 10px; line-height: 15px; }
+.recovery-note.is-failure { color: #9B2C25; background: #FFF3F2; }
 .load-status { padding: 20px 0 4px; color: #9A9EA6; font-size: 11px; text-align: center; }
 @media screen and (min-width: 720px) {
   .record-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }

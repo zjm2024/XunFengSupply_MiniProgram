@@ -6,10 +6,6 @@
         <text class="status-title">{{ text }}</text>
         <text class="status-description">{{ description }}</text>
       </view>
-      <view class="status-badge">
-        <text class="status-badge-dot" />
-        <text>{{ badgeText }}</text>
-      </view>
     </view>
 
     <view v-if="showProgress" class="status-progress">
@@ -30,41 +26,13 @@
       </view>
     </view>
 
-    <view v-else class="status-result">
-      <view class="result-mark">{{ resultMark }}</view>
-      <view class="result-copy">
-        <text class="result-title">{{ resultTitle }}</text>
-        <text class="result-description">{{ resultDescription }}</text>
-      </view>
-    </view>
   </view>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 
-const ORDER_STATUS = Object.freeze({
-  REVIEW_REJECTED: 11,
-  PENDING_PAYMENT: 20,
-  PROCESSING: 40,
-  COMPLETED: 60,
-  CANCELLING: 90,
-  CANCELLED: 91,
-})
-
-const FULFILLMENT_STATUS = Object.freeze({
-  SHIPPED: 4,
-  COMPLETED: 6,
-})
-
-const PAYMENT_STATUS = Object.freeze({
-  UNPAID: 0,
-  PAYING: 1,
-  PARTIALLY_PAID: 2,
-  CONFIRMED: 3,
-  FAILED: 4,
-  UNKNOWN: 5,
-})
+import { ORDER_STATUS, PAYMENT_STATUS, FULFILLMENT_STATUS } from '@/app/config/constant.js'
 
 const props = defineProps({
   status: { type: [Number, String], default: 0 },
@@ -72,6 +40,7 @@ const props = defineProps({
   fulfillmentStatus: { type: [Number, String], default: 0 },
   text: { type: String, default: '订单状态更新中' },
   description: { type: String, default: '' },
+  journeyVisible: { type: Boolean, default: true },
 })
 
 const steps = Object.freeze([
@@ -87,7 +56,7 @@ const normalizedFulfillmentStatus = computed(() => Number(props.fulfillmentStatu
 const isCancelled = computed(() => normalizedStatus.value === ORDER_STATUS.CANCELLED)
 const isCancelling = computed(() => normalizedStatus.value === ORDER_STATUS.CANCELLING)
 const isRejected = computed(() => normalizedStatus.value === ORDER_STATUS.REVIEW_REJECTED)
-const showProgress = computed(() => !isCancelled.value && !isCancelling.value && !isRejected.value)
+const showProgress = computed(() => props.journeyVisible && !isCancelled.value && !isCancelling.value && !isRejected.value)
 
 const currentIndex = computed(() => {
   const status = normalizedStatus.value
@@ -118,32 +87,6 @@ const panelClass = computed(() => ({
   'is-rejected': isRejected.value,
 }))
 
-const badgeText = computed(() => {
-  if (isCancelled.value) return '已取消'
-  if (isCancelling.value) return '取消处理中'
-  if (isRejected.value) return '未通过'
-  if (normalizedStatus.value === ORDER_STATUS.COMPLETED) return '交易完成'
-  if (normalizedPaymentStatus.value === PAYMENT_STATUS.UNPAID) return '待付款'
-  if (normalizedPaymentStatus.value === PAYMENT_STATUS.PAYING) return '支付中'
-  if (normalizedPaymentStatus.value === PAYMENT_STATUS.PARTIALLY_PAID) return '部分支付'
-  if (normalizedPaymentStatus.value === PAYMENT_STATUS.FAILED) return '支付失败'
-  if (normalizedPaymentStatus.value === PAYMENT_STATUS.UNKNOWN) return '待确认'
-  return '进行中'
-})
-
-const resultMark = computed(() => (isRejected.value ? '!' : '✓'))
-const resultTitle = computed(() => {
-  if (isRejected.value) return '订单确认未通过'
-  if (isCancelling.value) return '订单取消处理中'
-  if (isCancelled.value) return '订单已取消'
-  return '交易完成'
-})
-const resultDescription = computed(() => {
-  if (isRejected.value) return props.description || '订单确认未通过，请查看订单说明'
-  if (isCancelling.value) return props.description || '订单取消处理中，请稍候查看退款结果'
-  if (isCancelled.value) return props.description || '订单已取消，相关退款将按原支付方式处理'
-  return props.description || '交易已完成，感谢您的采购'
-})
 </script>
 
 <style lang="scss" scoped>
@@ -165,8 +108,6 @@ const resultDescription = computed(() => {
 .status-eyebrow { display: block; color: rgba(255,255,255,.72); font-size: 11px; line-height: 16px; }
 .status-title { display: block; margin-top: 2px; color: #fff; font-size: 22px; font-weight: 750; line-height: 31px; }
 .status-description { display: block; margin-top: 2px; color: rgba(255,255,255,.84); font-size: 12px; line-height: 19px; }
-.status-badge { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 5px; margin-top: 5px; padding: 5px 8px; border: 1px solid rgba(255,255,255,.28); border-radius: 999px; color: rgba(255,255,255,.94); background: rgba(255,255,255,.12); font-size: 10px; line-height: 14px; }
-.status-badge-dot { width: 5px; height: 5px; border-radius: 50%; background: #FFD36B; }
 .status-progress { position: relative; z-index: 1; display: flex; justify-content: space-between; margin-top: 21px; }
 .progress-track { position: absolute; top: 8px; right: 10%; left: 10%; height: 2px; border-radius: 2px; background: rgba(255,255,255,.24); }
 .progress-track-fill { height: 100%; border-radius: inherit; background: #FFD36B; transition: width .2s ease; }
@@ -177,11 +118,6 @@ const resultDescription = computed(() => {
 .progress-check { font-size: 11px; line-height: 1; }
 .progress-label { color: rgba(255,255,255,.7); font-size: 10px; line-height: 15px; white-space: nowrap; }
 .progress-step.current .progress-label { color: #fff; font-weight: 700; }
-.status-result { position: relative; z-index: 1; display: flex; align-items: center; gap: 10px; margin-top: 19px; padding: 10px 11px; border-radius: 11px; background: rgba(255,255,255,.12); }
-.result-mark { display: flex; width: 25px; height: 25px; flex: 0 0 25px; align-items: center; justify-content: center; border-radius: 50%; color: #626872; background: #fff; font-size: 15px; font-weight: 800; line-height: 1; text-align: center; }
-.result-copy { min-width: 0; }
-.result-title { display: block; color: #fff; font-size: 12px; font-weight: 700; line-height: 18px; }
-.result-description { display: block; margin-top: 1px; color: rgba(255,255,255,.78); font-size: 10px; line-height: 16px; }
 @media (min-width: 720px) { .order-status-panel { padding: 19px 20px 20px; } .status-title { font-size: 23px; } }
 @media (max-width: 340px) { .order-status-panel { padding-right: 13px; padding-left: 13px; } .status-title { font-size: 20px; } .progress-label { font-size: 9px; } }
 </style>

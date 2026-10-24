@@ -19,8 +19,19 @@ describe('dealer settlement api normalization', () => {
   })
 
   it('normalizes recharge status and identifiers', () => {
-    expect(normalizeRechargeRecord({ RechargeId: '18', RechargeNo: 'RC001', Status: '6' }))
-      .toMatchObject({ rechargeId: 18, rechargeNo: 'RC001', status: 6 })
+    expect(normalizeRechargeRecord({
+      RechargeId: '18', RechargeNo: 'RC001', Status: '5',
+      MerchantConfigId: 'wechat-main', ProductCode: 'wechat_app',
+      NextQueryAt: '2026-10-24T08:00:00Z', FailureCode: 'WECHAT_PAYMENT_UNKNOWN',
+    })).toMatchObject({
+      rechargeId: 18,
+      rechargeNo: 'RC001',
+      status: 5,
+      merchantConfigId: 'wechat-main',
+      productCode: 'wechat_app',
+      nextQueryAt: '2026-10-24T08:00:00Z',
+      failureCode: 'WECHAT_PAYMENT_UNKNOWN',
+    })
   })
 
   it('normalizes real account transaction fields without converting yuan to cents', () => {

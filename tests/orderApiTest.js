@@ -185,6 +185,32 @@ describe('Order API Layer - Response Mapping', () => {
     expect(result.omittedGiftSkus).toEqual(['GIFT-001'])
   })
 
+  it('getOrderDetail 应读取配送汇总状态和子单结果', async () => {
+    const dispatchMock = vi.fn().mockResolvedValue({
+      OrderId: 88,
+      OrderStatus: 40,
+      FulfillmentDisplayStatus: 'PARTIALLY_FULFILLED',
+      CustomerStatus: { Code: 'PARTIALLY_SHIPPED', Text: '部分发货', Description: '部分商品已发出', Tone: 'info', MetadataComplete: true, ShowProgress: true },
+      CustomerRefund: { Code: 'REFUNDING', Text: '退款处理中', Description: '请查看退款记录', Tone: 'warning', MetadataComplete: true },
+      FulfillmentSplits: [{ SplitId: 7, Status: 4, TotalQuantity: 10, ShippedQuantity: 8, UnshippedQuantity: 2 }],
+    })
+
+    vi.doMock('@/shared/api/dispatchClient.js', () => ({ dispatch: dispatchMock }))
+
+    const { getOrderDetail } = await import('@/subPackages/order/api/orderApi.js')
+    const result = await getOrderDetail(88)
+
+    expect(dispatchMock).toHaveBeenCalledWith('MallOrder', 'Mini.OrderController', 'GetOrderDetail', { OrderId: 88 })
+    expect(result.fulfillmentDisplayStatus).toBe('PARTIALLY_FULFILLED')
+    expect(result.customerStatus).toEqual(expect.objectContaining({ code: 'PARTIALLY_SHIPPED', text: '部分发货', metadataComplete: true, showProgress: true }))
+    expect(result.customerRefund.text).toBe('退款处理中')
+    expect(result.fulfillmentSplits[0]).toEqual(expect.objectContaining({
+      splitId: 7,
+      status: 4,
+      shippedQuantity: 8,
+      unshippedQuantity: 2,
+    }))
+  })
   it('getOrderList 应将 PascalCase 响应转换为 camelCase', async () => {
     const dispatchMock = vi.fn().mockResolvedValue({
       Items: [

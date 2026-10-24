@@ -18,8 +18,9 @@
             :status="detail.orderStatus"
             :payment-status="detail.paymentStatus"
             :fulfillment-status="detail.fulfillmentStatus"
-            :text="orderStatusText"
-            :description="orderStatusDesc"
+            :text="orderDisplay.text"
+            :description="orderDisplay.description"
+            :journey-visible="orderDisplay.showProgress"
           />
 
           <!-- 物流信息 -->
@@ -35,7 +36,7 @@
           </view>
 
           <!-- 收货地址 -->
-          <view v-if="detail.orderSource !== 'ERP_MANUAL'" class="address-card">
+          <view v-if="detail.orderSource !== 'ERP_MANUAL' && !detail.fulfillmentSplits?.length" class="address-card">
             <view class="address-icon-wrap">
               <AppIcon name="address" :size="20" color="#C41E3A" />
             </view>
@@ -98,75 +99,44 @@
             </view>
           </view>
 
-          <!-- ERP 最终审批前的配送安排入口。 -->
-          <view v-if="showFulfillmentCard" class="split-card fulfillment-arrange-card">
-            <view class="fulfillment-arrange-head">
-              <view class="fulfillment-arrange-copy">
-                <text class="card-title">配送安排</text>
-                <text class="fulfillment-arrange-summary">{{ fulfillmentSummary }}</text>
-              </view>
-              <button
-                class="arrange-button"
-                :disabled="!canArrangeFulfillment"
-                @tap="goToFulfillmentSplit"
-              >安排配送</button>
+          <!-- 客户在订单详情中查看配送结果，并按需展开商品明细。 -->
+          <view v-if="showFulfillmentCard || splitBatchGroups.length" class="split-card">
+            <view class="split-card-heading">
+              <text class="card-title">配送信息</text>
+              <button v-if="canArrangeFulfillment" class="arrange-button" @tap="goToFulfillmentSplit">安排配送</button>
             </view>
-            <text v-if="!canArrangeFulfillment && detail.fulfillmentDisabledReason" class="fulfillment-disabled-reason">
-              {{ detail.fulfillmentDisabledReason }}
-            </text>
+            <text class="split-overview">{{ splitBatchGroups.length ? splitOverview : fulfillmentSummary }}</text>
+            <view v-for="batch in visibleSplitBatchGroups" :key="batch.batchNo || batch.sequence" class="split-batch-group">
+              <text v-if="!batch.isCurrent" class="split-history-heading">历史配送安排 {{ batch.sequence }}</text>
+              <view v-for="split in batch.splits" :key="split.splitId || split.splitNo" class="split-block">
+                <view class="split-header">
+                  <text class="split-name">{{ split.splitName || `配送单${split.sequenceNo || ''}` }}</text>
+                  <text class="split-status" :class="'is-' + getSplitCustomerDisplay(split).type">{{ getSplitCustomerDisplay(split).text }}</text>
+                </view>
+                <text v-if="split.fullAddress" class="split-address">{{ split.fullAddress }}</text>
+                <text class="split-quantity">{{ splitQuantityText(split) }}</text>
+                <text v-if="splitNotice(split)" class="split-notice">{{ splitNotice(split) }}</text>
+                <view v-if="split.items?.length" class="split-items-toggle" @tap="toggleSplitItems(split)">
+                  <text>{{ isSplitItemsExpanded(split) ? '收起商品明细' : `查看商品明细（${split.items.length}）` }}</text>
+                  <AppIcon name="chevron-right" :size="14" class="split-toggle-icon" :class="{ expanded: isSplitItemsExpanded(split) }" />
+                </view>
+                <view v-if="isSplitItemsExpanded(split)" class="split-items-detail">
+                  <text v-if="split.erpReviewReasonMessage" class="split-no">原因：{{ split.erpReviewReasonMessage }}</text>
+                  <text v-if="split.splitNo" class="split-no">配送单号：{{ split.splitNo }}</text>
+                  <view v-for="item in split.items" :key="`${split.splitId}-${item.orderItemId}`" class="split-item">
+                    <text class="split-item-name">{{ item.skuName || item.productName || '商品' }}</text>
+                    <text class="split-item-qty">{{ splitItemQuantityText(split, item) }}</text>
+                  </view>
+                </view>
+              </view>
+            </view>
+            <view v-if="hasSplitHistory" class="split-history-toggle" @tap="showSplitHistory = !showSplitHistory">
+              <text>{{ showSplitHistory ? '收起历史安排' : '查看历史安排' }}</text>
+              <AppIcon name="chevron-right" :size="14" class="split-toggle-icon" :class="{ expanded: showSplitHistory }" />
+            </view>
           </view>
-
-                      <!-- 配送拆单只展示客户可理解的地址、商品和处理结果。 -->
-           <view
-             v-if="detail.fulfillmentSplits && detail.fulfillmentSplits.length"
-             class="split-card"
-           >
-             <view class="card-title">配送拆单</view>
-             <view v-if="currentSplitBatch.total > 0" class="split-batch-summary">
-               当前配送批次已确认 {{ currentSplitBatch.approved }}/{{ currentSplitBatch.total }}
-               <text v-if="currentSplitBatch.rejected > 0">，本批次未通过，原订单可重新安排</text>
-               <text v-else-if="currentSplitBatch.approved < currentSplitBatch.total">，等待其余配送地址确认</text>
-             </view>
-             <view v-for="batch in splitBatchGroups" :key="batch.batchNo || batch.sequence" class="split-batch-group">
-                              <view class="split-batch-head">
-                 <view class="split-batch-title">
-                   <text>{{ batch.isCurrent ? '当前配送批次' : `历史配送批次${batch.sequence}` }}</text>
-                   <text class="split-batch-no">{{ batch.batchNo || '-' }}</text>
-                 </view>
-                 <text class="split-batch-progress">已确认 {{ batch.approved }}/{{ batch.total }}</text>
-                 <text v-if="batch.rejected > 0" class="split-batch-invalid">本批次未通过，原订单已恢复</text>
-               </view>
-               <view v-for="split in batch.splits" :key="split.splitId || split.splitNo" class="split-block">
-                 <view class="split-header">
-                   <view class="split-heading">
-                     <text class="split-name">{{ split.splitName || `配送单${split.sequenceNo || ''}` }}</text>
-                     <text class="split-no">{{ split.splitNo || '-' }}</text>
-                   </view>
-                   <view class="split-statuses">
-                     <text class="split-status" :class="splitStatusClass(split.status)">{{ split.customerStatusMessage || splitStatusText(split.status) }}</text>
-                     <text class="split-review-status" :class="splitReviewStatusClass(split.erpReviewStatus)">{{ splitReviewText(split.erpReviewStatus) }}</text>
-                   </view>
-                 </view>
-                 <text v-if="split.fullAddress" class="split-address">配送至：{{ split.fullAddress }}</text>
-                 <view v-for="item in split.items" :key="`${split.splitId}-${item.orderItemId}`" class="split-item">
-                   <text class="split-item-name">{{ item.skuName || item.productName || '商品' }}</text>
-                   <text class="split-item-qty">应发 {{ item.quantity }} · 实发 {{ item.shippedQuantity }}</text>
-                 </view>
-                 <view class="split-total">
-                   <text>本子单合计</text>
-                   <text>应发 {{ split.totalQuantity }} · 实发 {{ split.shippedQuantity }}</text>
-                 </view>
-                 <text v-if="[ERP_REVIEW_STATUS.REJECTED, ERP_REVIEW_STATUS.REJECTED_AFTER_SHIPMENT].includes(Number(split.erpReviewStatus)) && split.erpReviewReasonMessage" class="split-failure">
-                   配送安排未通过：{{ split.erpReviewReasonMessage }}。请重新安排配送。
-                 </text>
-                 <text v-if="Number(split.unshippedQuantity || 0) > 0" class="split-failure">
-                   未发 {{ split.unshippedQuantity }} 件，系统将按实际结果处理退款和库存。
-                 </text>
-               </view>
-             </view>
-           </view>
-           </view>
-<view class="detail-side-column">
+            </view>
+            <view class="detail-side-column">
           <!-- 订单信息 -->
           <view class="info-card order-info-card">
             <view class="card-title">订单信息</view>
@@ -176,11 +146,7 @@
             </view>
             <view v-if="detail.orderSource === 'ERP_MANUAL'" class="info-row">
               <text class="info-label">订单来源</text>
-              <text class="info-value">ERP手工单</text>
-            </view>
-            <view v-if="detail.orderSource === 'ERP_MANUAL' && detail.erpOrderNo" class="info-row">
-              <text class="info-label">ERP单号</text>
-              <text class="info-value copyable" @click="copyText(detail.erpOrderNo)">{{ detail.erpOrderNo }}</text>
+              <text class="info-value">线下订单</text>
             </view>
             <view class="info-row">
               <text class="info-label">下单时间</text>
@@ -189,14 +155,6 @@
             <view class="info-row">
               <text class="info-label">结算方式</text>
               <text class="info-value">{{ detail.orderSource === 'ERP_MANUAL' ? '账户本金支付' : paymentModeText(detail.paymentMode, detail.paymentStatus, detail.orderStatus) }}</text>
-            </view>
-            <view class="info-row">
-              <text class="info-label">支付状态</text>
-              <text class="info-value" :style="{ color: paymentStatus.color }">{{ paymentStatus.text }}</text>
-            </view>
-            <view v-if="detail.orderSource !== 'ERP_MANUAL'" class="info-row">
-              <text class="info-label">订单确认</text>
-              <text class="info-value">{{ confirmationStatusText }}</text>
             </view>
             <view class="info-row" v-if="detail.customerRemark">
               <text class="info-label">发货备注</text>
@@ -253,6 +211,13 @@
               <text class="price-label">已支付</text>
               <text class="price-value">¥{{ Number(detail.paidAmount || 0).toFixed(2) }}</text>
             </view>
+            <view v-if="refundDisplay" class="refund-progress">
+              <view class="price-row">
+                <text class="price-label">退款进度</text>
+                <text class="price-value">{{ refundDisplay.text }}</text>
+              </view>
+              <text class="refund-description">{{ refundDisplay.description }}</text>
+            </view>
             <view class="price-row" v-if="detail.refundedAmount > 0">
               <text class="price-label">已退款</text>
               <text class="price-value">¥{{ Number(detail.refundedAmount || 0).toFixed(2) }}</text>
@@ -294,7 +259,7 @@
 import { ref, computed } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getOrderDetail, confirmReceipt, generateClientRequestId } from '../../api/orderApi.js'
-import { ERP_REVIEW_STATUS, FULFILLMENT_SPLIT_STATUS, FULFILLMENT_SPLIT_STATUS_MAP, FULFILLMENT_STATUS, ORDER_STATUS, ORDER_STATUS_MAP, PAYMENT_MODE, PAYMENT_STATUS, PAYMENT_STATUS_MAP } from '@/app/config/constant.js'
+import { ERP_REVIEW_STATUS, ORDER_STATUS, PAYMENT_MODE, PAYMENT_STATUS } from '@/app/config/constant.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -309,12 +274,15 @@ import { batchAddToCart } from '@/shared/api/cartApi.js'
 import { buildReorderCartItems } from '../../domain/reorderCart.js'
 import { formatDateTime } from '../../../../shared/utils/format.js'
 import { getOrderActionButtons } from '../../model/orderActions.js'
+import { getOrderCustomerDisplay, getCustomerRefundDisplay, getSplitCustomerDisplay } from '../../model/orderDisplay.js'
 
 
 const orderId = ref(null)
 const detail = ref(null)
 const reordering = ref(false)
 const collapsedProductGroups = ref({})
+const expandedSplitItems = ref({})
+const showSplitHistory = ref(false)
 
 onLoad(async (options) => {
   if (options.orderId) {
@@ -335,6 +303,8 @@ async function loadOrderDetail() {
     const res = await getOrderDetail(orderId.value)
     detail.value = res
     collapsedProductGroups.value = {}
+    expandedSplitItems.value = {}
+    showSplitHistory.value = false
   } catch (e) {
     console.error('加载订单详情失败:', e)
     uni.showToast({ title: e.message || '加载失败', icon: 'none' })
@@ -348,17 +318,12 @@ const fullAddress = computed(() => {
   return `${d.receiverProvince || ''}${d.receiverCity || ''}${d.receiverDistrict || ''}${d.receiverAddress || ''}`
 })
 
+/** 当前批次由后端标识，旧响应仅按最新配送记录回显历史结构。 */
 const currentSplitBatch = computed(() => {
   const splits = detail.value?.fulfillmentSplits ?? []
-  const live = splits.filter(split => ![FULFILLMENT_SPLIT_STATUS.FAILED, FULFILLMENT_SPLIT_STATUS.CANCELLED].includes(Number(split.status)))
-  const batchNo = live[live.length - 1]?.splitBatchNo || splits[splits.length - 1]?.splitBatchNo
-  const current = batchNo ? splits.filter(split => split.splitBatchNo === batchNo) : []
-  return {
-    batchNo,
-    total: current.length,
-    approved: current.filter(split => Number(split.erpReviewStatus) === ERP_REVIEW_STATUS.APPROVED).length,
-    rejected: current.filter(split => [ERP_REVIEW_STATUS.REJECTED, ERP_REVIEW_STATUS.REJECTED_AFTER_SHIPMENT].includes(Number(split.erpReviewStatus))).length
-  }
+  const latest = splits.find(split => split.isCurrentBatch)
+    || [...splits].sort((left, right) => Number(right.splitId) - Number(left.splitId))[0]
+  return { batchNo: latest?.splitBatchNo || '' }
 })
 
 const splitBatchGroups = computed(() => {
@@ -368,175 +333,35 @@ const splitBatchGroups = computed(() => {
   splits.forEach(split => {
     const batchNo = split.splitBatchNo || ''
     if (!byBatch.has(batchNo)) {
-      const group = { batchNo, splits: [], sequence: groups.length + 1, isCurrent: batchNo === currentSplitBatch.value.batchNo, total: 0, approved: 0, rejected: 0 }
+      const group = { batchNo, splits: [], sequence: groups.length + 1, isCurrent: batchNo === currentSplitBatch.value.batchNo, total: 0 }
       byBatch.set(batchNo, group)
       groups.push(group)
     }
     const group = byBatch.get(batchNo)
     group.splits.push(split)
     group.total += 1
-    if (Number(split.erpReviewStatus) === ERP_REVIEW_STATUS.APPROVED) group.approved += 1
-    if ([ERP_REVIEW_STATUS.REJECTED, ERP_REVIEW_STATUS.REJECTED_AFTER_SHIPMENT].includes(Number(split.erpReviewStatus))) group.rejected += 1
   })
   return groups
 })
 
-// 状态文本映射：订单主状态优先，其次是支付，再补充 ERP 确认和履约阶段。
-const orderStatusText = computed(() => {
-  const status = Number(detail.value?.orderStatus)
-  if (status === ORDER_STATUS.CANCELLING) return '取消处理中'
-  if (status === ORDER_STATUS.CANCELLED) return '已取消'
-  if (status === ORDER_STATUS.COMPLETED) return '交易完成'
-  if (detail.value?.fulfillmentDisplayStatus === 'ALL_SPLITS_CANCELLED') return '配送需重新安排'
-  if (detail.value?.fulfillmentDisplayStatus === 'PARTIALLY_FULFILLED') return '部分配送已完成'
-  if (isActivePaymentPending.value) return paymentProgressTitle.value
-  if (confirmationDisplay.value) return confirmationDisplay.value.title
-  if (isPaymentConfirmedBeforeProcessing.value || status === ORDER_STATUS.PROCESSING) {
-    return processingStatusTitle.value
-  }
-  return ORDER_STATUS_MAP[detail.value?.orderStatus]?.text || '状态同步中'
-})
+/** 当前配送优先展示；历史安排留给客户按需查看。 */
+const hasSplitHistory = computed(() => splitBatchGroups.value.some(batch => !batch.isCurrent))
+const visibleSplitBatchGroups = computed(() => showSplitHistory.value
+  ? splitBatchGroups.value
+  : splitBatchGroups.value.filter(batch => batch.isCurrent))
 
-const orderStatusDesc = computed(() => {
-  const status = Number(detail.value?.orderStatus)
-  if (status === ORDER_STATUS.CANCELLING) {
-    return cancellationReasonText.value || '订单取消处理中，请稍候查看退款结果'
-  }
-  if (status === ORDER_STATUS.CANCELLED) {
-    return cancellationReasonText.value || '订单已取消，相关退款将按原支付方式处理'
-  }
-  if (status === ORDER_STATUS.COMPLETED) {
-    return detail.value?.orderSource === 'ERP_MANUAL'
-      ? 'ERP手工订单已扣款、扣库存并完成'
-      : '交易已完成，感谢您的采购'
-  }
-  if (isActivePaymentPending.value) return paymentProgressDescription.value
-  if (confirmationDisplay.value) return confirmationDisplay.value.description
-  if (isPaymentConfirmedBeforeProcessing.value || status === ORDER_STATUS.PROCESSING) {
-    return processingStatusDescription.value
-  }
-  const map = {
-    [ORDER_STATUS.DRAFT]: '订单草稿已保存',
-    [ORDER_STATUS.PENDING_REVIEW]: '订单正在确认中',
-    [ORDER_STATUS.REVIEW_REJECTED]: '订单确认未通过',
-    [ORDER_STATUS.PENDING_PAYMENT]: '请在付款时限内完成支付',
-  }
-  return map[status] || ''
+/** 这里只概括配送单数量，阶段文案由主状态和每个配送单各展示一次。 */
+const splitOverview = computed(() => {
+  const batch = splitBatchGroups.value.find(group => group.isCurrent)
+  return batch ? `共 ${batch.total} 个配送单` : ''
 })
-
-/** 根据履约状态生成客户可理解的阶段标题，屏蔽内部系统与消息处理细节。 */
-const processingStatusTitle = computed(() => {
-  const fulfillmentStatus = Number(detail.value?.fulfillmentStatus || 0)
-  if (fulfillmentStatus >= FULFILLMENT_STATUS.SHIPPED) return '配送中'
-  if (fulfillmentStatus >= FULFILLMENT_STATUS.PICKING) return '备货中'
-  return '待发货'
-})
-
-/** 根据客户可理解的履约阶段生成状态说明，屏蔽内部系统与消息处理细节。 */
-const processingStatusDescription = computed(() => {
-  const fulfillmentStatus = Number(detail.value?.fulfillmentStatus || 0)
-  if (fulfillmentStatus >= FULFILLMENT_STATUS.SHIPPED) return '商品配送中，请留意物流进度'
-  if (fulfillmentStatus >= FULFILLMENT_STATUS.PICKING) return '商品正在备货，请耐心等待发出'
-  return '订单确认完成，等待仓库发货'
-})
-/** 将 ERP 审核转换为客户可理解的订单确认文案。 */
-const confirmationDisplay = computed(() => {
-  const orderStatus = Number(detail.value?.orderStatus)
-  if (orderStatus === ORDER_STATUS.CANCELLING || orderStatus === ORDER_STATUS.CANCELLED) {
-    return null
-  }
-
-  // 未支付时先展示支付状态，避免“待付款”订单被 ERP 确认文案覆盖。
-  const paymentStatus = Number(detail.value?.paymentStatus)
-  if ((orderStatus === ORDER_STATUS.PENDING_PAYMENT || orderStatus === ORDER_STATUS.PROCESSING)
-    && paymentStatus !== PAYMENT_STATUS.CONFIRMED) {
-    return null
-  }
-
-  const status = Number(detail.value?.erpReviewStatus)
-  const rejectedSplit = (detail.value?.fulfillmentSplits ?? [])
-    .find(split => Number(split.erpReviewStatus) === ERP_REVIEW_STATUS.REJECTED)
-  if (status === ERP_REVIEW_STATUS.PENDING
-    && Number(detail.value?.fulfillmentStatus) === FULFILLMENT_STATUS.NOT_STARTED
-    && rejectedSplit) {
-    return {
-      title: '配送安排需重新提交',
-      description: rejectedSplit.erpReviewReasonMessage || '有配送子单未通过 ERP 审核，请重新安排配送',
-    }
-  }
-  if (detail.value?.fulfillmentDisplayMessage && Number(detail.value?.fulfillmentSplitTotalCount || 0) > 0) {
-    return detail.value.fulfillmentDisplayMessage
-  }
-  if (status === ERP_REVIEW_STATUS.PENDING) {
-    return {
-      title: '订单确认中',
-      description: detail.value?.confirmationMessage || '正在确认订单，结果将通过消息通知',
-    }
-  }
-  if (status === ERP_REVIEW_STATUS.REJECTED) {
-    return {
-      title: '订单未通过确认',
-      description: detail.value?.erpReviewReasonMessage || '订单确认未通过，请查看订单说明',
-    }
-  }
-  if (status === ERP_REVIEW_STATUS.REJECTED_AFTER_SHIPMENT
-    || status === ERP_REVIEW_STATUS.DECISION_CONFLICT) {
-    return { title: '订单确认待处理', description: '订单确认结果异常，客服正在处理' }
-  }
-  return null
-})
-const confirmationStatusText = computed(() => {
-  const status = Number(detail.value?.erpReviewStatus)
-  return ({
-    [ERP_REVIEW_STATUS.LEGACY_UNTRACKED]: '历史订单',
-    [ERP_REVIEW_STATUS.PENDING]: '确认中',
-    [ERP_REVIEW_STATUS.APPROVED]: '已确认',
-    [ERP_REVIEW_STATUS.REJECTED]: '未通过',
-    [ERP_REVIEW_STATUS.REJECTED_AFTER_SHIPMENT]: '异常待处理',
-    [ERP_REVIEW_STATUS.DECISION_CONFLICT]: '异常待处理',
-  })[status] || '状态同步中'
-})
-
-const isActivePaymentPending = computed(() => {
-  const status = Number(detail.value?.orderStatus)
-  const paymentStatus = Number(detail.value?.paymentStatus)
-  if (status === ORDER_STATUS.CANCELLING || status === ORDER_STATUS.CANCELLED) return false
-  return (status === ORDER_STATUS.PENDING_PAYMENT || status === ORDER_STATUS.PROCESSING)
-    && paymentStatus !== PAYMENT_STATUS.CONFIRMED
-})
-const isPaymentConfirmedBeforeProcessing = computed(() => {
-  return Number(detail.value?.orderStatus) === ORDER_STATUS.PENDING_PAYMENT
-    && Number(detail.value?.paymentStatus) === PAYMENT_STATUS.CONFIRMED
-})
-
-const paymentProgressTitle = computed(() => {
-  const status = Number(detail.value?.paymentStatus)
-  if (status === PAYMENT_STATUS.PAYING) return '支付处理中'
-  if (status === PAYMENT_STATUS.PARTIALLY_PAID) return '部分支付'
-  if (status === PAYMENT_STATUS.FAILED) return '支付失败'
-  if (status === PAYMENT_STATUS.UNKNOWN) return '支付结果待确认'
-  return '待付款'
-})
-
-const paymentProgressDescription = computed(() => {
-  const status = Number(detail.value?.paymentStatus)
-  if (status === PAYMENT_STATUS.PAYING) return '支付结果确认中，请稍候刷新订单状态'
-  if (status === PAYMENT_STATUS.PARTIALLY_PAID) return '订单尚未完成全额支付，请继续完成付款'
-  if (status === PAYMENT_STATUS.FAILED) return '本次支付未完成，请重新发起支付'
-  if (status === PAYMENT_STATUS.UNKNOWN) return '支付结果待确认，请勿重复支付'
-  return '请在付款时限内完成支付'
-})
-
-const paymentStatus = computed(() => {
-  return PAYMENT_STATUS_MAP[detail.value?.paymentStatus]
-    || { text: '支付状态未知', color: '#707783' }
-})
+/** 主状态及退款提示由后端通过启用字典生成，列表与详情完全共用。 */
+const orderDisplay = computed(() => getOrderCustomerDisplay(detail.value))
+const refundDisplay = computed(() => getCustomerRefundDisplay(detail.value))
 
 const cancellationReasonText = computed(() => {
   if (!detail.value?.cancellationReason) return ''
-  return detail.value.cancellationReasonCode === 'PAYMENT_TIMEOUT'
-    ? `${detail.value.cancellationReason}（本地库存占用已释放）`
-    : detail.value.cancellationReason
+  return detail.value.cancellationReason
 })
 
 /** 仅使用客户旅程节点生成时间线，不渲染 ERP、WMS、Outbox 等内部日志。 */
@@ -571,17 +396,9 @@ const canArrangeFulfillment = computed(() => {
     && detail.value?.canArrangeFulfillment === true
 })
 
-const showFulfillmentCard = computed(() => {
-  const order = detail.value
-  if (!order || order.orderSource === 'ERP_MANUAL') return false
-  if (![ORDER_STATUS.PENDING_PAYMENT, ORDER_STATUS.PROCESSING].includes(Number(order.orderStatus))) return false
-  return Number(order.paymentStatus) === PAYMENT_STATUS.CONFIRMED
-})
-
-const fulfillmentSummary = computed(() => {
-  if (canArrangeFulfillment.value) return 'ERP 最终审批前，可安排配送地址'
-  return detail.value?.fulfillmentDisabledReason || '当前暂不能安排配送，请查看原因'
-})
+// 未产生配送单且没有可执行配送操作时，不重复显示禁用原因卡片。
+const showFulfillmentCard = computed(() => canArrangeFulfillment.value)
+const fulfillmentSummary = computed(() => '可以按收货地址安排配送')
 
 // 可用操作按钮由服务端 AllowedActions 决定，前端只做统一展示。
 const actionButtons = computed(() => {
@@ -759,33 +576,35 @@ function toggleProductGroup(groupKey) {
   }
 }
 
-function splitStatusText(status) {
-  return FULFILLMENT_SPLIT_STATUS_MAP[Number(status)]?.text || '配送处理中'
+/** 读取配送子单在当前页的展开状态。 */
+function isSplitItemsExpanded(split) {
+  return expandedSplitItems.value[String(split.splitId || split.splitNo || split.sequenceNo)] === true
 }
 
-function splitStatusClass(status) {
-  const value = Number(status)
-  if (value === FULFILLMENT_SPLIT_STATUS.SHIPPED || value === FULFILLMENT_SPLIT_STATUS.COMPLETED) return 'is-success'
-  if (value === FULFILLMENT_SPLIT_STATUS.FAILED || value === FULFILLMENT_SPLIT_STATUS.CANCELLED) return 'is-warning'
-  return 'is-processing'
+/** 在当前订单详情页切换子单商品明细。 */
+function toggleSplitItems(split) {
+  const key = String(split.splitId || split.splitNo || split.sequenceNo)
+  expandedSplitItems.value = { ...expandedSplitItems.value, [key]: !isSplitItemsExpanded(split) }
 }
 
-function splitReviewText(status) {
-  return ({
-    [ERP_REVIEW_STATUS.LEGACY_UNTRACKED]: '待确认',
-    [ERP_REVIEW_STATUS.PENDING]: '确认中',
-    [ERP_REVIEW_STATUS.APPROVED]: '已确认',
-    [ERP_REVIEW_STATUS.REJECTED]: '安排未通过',
-    [ERP_REVIEW_STATUS.REJECTED_AFTER_SHIPMENT]: '发货后调整',
-    [ERP_REVIEW_STATUS.DECISION_CONFLICT]: '处理中',
-  })[Number(status)] || '确认中'
+
+/** 只展示实际数量，没有发货事实时不显示“已发零件”。 */
+function splitQuantityText(split) {
+  const total = Number(split.totalQuantity) || 0
+  const sent = Number(split.shippedQuantity) || 0
+  return sent > 0 ? `共 ${total} 件 · 已发 ${sent} 件` : `共 ${total} 件`
 }
 
-function splitReviewStatusClass(status) {
-  const value = Number(status)
-  if (value === ERP_REVIEW_STATUS.APPROVED) return 'is-success'
-  if ([ERP_REVIEW_STATUS.REJECTED, ERP_REVIEW_STATUS.REJECTED_AFTER_SHIPMENT, ERP_REVIEW_STATUS.DECISION_CONFLICT].includes(value)) return 'is-warning'
-  return 'is-processing'
+/** 仅按字典提醒样式突出说明，不在页面重新推导退款或审核结果。 */
+function splitNotice(split) {
+  const display = getSplitCustomerDisplay(split)
+  return !display.metadataComplete || ['warning', 'error'].includes(display.type) ? display.description : ''
+}
+
+/** 有发货事实时逐项展示实发数量，包含未发的零数量商品。 */
+function splitItemQuantityText(split, item) {
+  const sent = Number(item.shippedQuantity) || 0
+  return Number(split.shippedQuantity) > 0 ? `已发 ${sent} / 共 ${item.quantity}` : `共 ${item.quantity} 件`
 }
 </script>
 
@@ -814,35 +633,13 @@ function splitReviewStatusClass(status) {
   }
 }
 
-.fulfillment-arrange-card {
-  padding-bottom: 20rpx;
-}
-
-.fulfillment-arrange-head {
+.split-card-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16rpx;
+  gap: 12px;
 }
-
-.fulfillment-arrange-copy {
-  min-width: 0;
-  flex: 1;
-}
-
-.fulfillment-arrange-summary,
-.fulfillment-disabled-reason {
-  display: block;
-  margin-top: 6rpx;
-  color: var(--type-muted-color, #707783);
-  font-size: var(--type-micro-size, 11px);
-  line-height: 1.5;
-}
-
-.fulfillment-disabled-reason {
-  color: #c47a19;
-}
-
+.split-card-heading .card-title { margin-bottom: 0; }
 .arrange-button {
   flex: 0 0 auto;
   min-width: 88px;
@@ -856,114 +653,92 @@ function splitReviewStatusClass(status) {
   font-size: var(--type-button-size, 13px);
   line-height: 38px;
 }
-
-.arrange-button[disabled] {
-  color: #a8abb2;
-  background: #eceef2;
-}
-
-.split-batch-summary {
-  margin: -8rpx 0 16rpx;
+.split-overview {
+  display: block;
+  margin-top: 10px;
   color: var(--text-secondary);
   font-size: 12px;
   line-height: 1.5;
 }
-.split-batch-group { margin-bottom: 12px; }
-.split-batch-head {
+.split-batch-group { margin-top: 8px; }
+.split-history-heading {
+  display: block;
+  margin: 16px 0 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+.split-block {
+  padding: 14px 0;
+  border-bottom: 1rpx solid var(--border-color);
+}
+.split-block:last-child { border-bottom: none; }
+.split-header {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 7px 12px;
-  margin: 8px 0;
-  padding: 8px 10px;
-  border-radius: 10px;
-  color: #747781;
-  background: #f7f8fa;
-  font-size: 11px;
-}
-.split-batch-title {
-  display: flex;
-  min-width: 0;
-  flex: 1 1 240px;
-  align-items: center;
-  gap: 7px;
-}
-.split-batch-title > text:first-child { flex-shrink: 0; }
-.split-batch-no { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #9b9da5; }
-.split-batch-progress { flex: 0 0 auto; white-space: nowrap; }
-.split-batch-invalid { flex: 1 0 100%; color: #c43c42; }
-.split-batch-no { color: #9b9da5; }
-.split-batch-invalid { color: #c43c42; }
-
-.split-block {
-  padding: 18rpx 0;
-  border-bottom: 1rpx solid var(--border-color);
-
-  &:last-child { border-bottom: none; }
-}
-
-.split-header {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(110px, auto);
-  align-items: start;
-  gap: 10px 16px;
-}
-.split-total {
-  display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 16rpx;
+  gap: 6px 10px;
 }
-.split-heading { min-width: 0; }
 .split-name {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  min-width: 0;
+  flex: 1 1 120px;
   color: var(--text-primary);
   font-size: 14px;
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
-.split-no {
-  display: block;
-  min-width: 0;
-  margin-top: 6rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--text-placeholder);
+.split-status {
+  flex: 0 1 auto;
+  max-width: 60%;
   font-size: 12px;
-}
-.split-address { display: block; margin-top: 6rpx; color: var(--text-placeholder); font-size: 12px; }
-.split-statuses {
-  display: flex;
-  min-width: 0;
-  max-width: 100%;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4rpx;
   text-align: right;
 }
-.split-status, .split-review-status {
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.split-status { flex-shrink: 0; font-size: 12px; }
 .split-status.is-success { color: var(--success-color, #67c23a); }
 .split-status.is-warning { color: var(--warning-color, #e6a23c); }
 .split-status.is-processing { color: var(--text-secondary); }
-.split-review-status { font-size: 11px; }
-.split-review-status.is-success { color: var(--success-color, #67c23a); }
-.split-review-status.is-warning { color: var(--warning-color, #e6a23c); }
-.split-review-status.is-processing { color: var(--text-secondary); }
-.split-item { display: flex; justify-content: space-between; gap: 16rpx; margin-top: 12rpx; color: var(--text-secondary); font-size: 12px; }
-.split-item-name { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.split-item-qty { flex-shrink: 0; }
-.split-total { margin-top: 14rpx; color: var(--text-primary); font-size: 12px; font-weight: 600; }
-.split-failure { display: block; margin-top: 12rpx; color: var(--error-color, #d7192d); font-size: 12px; line-height: 1.5; }
-
+.split-status.is-info { color: var(--info-color, #2678c8); }
+.split-status.is-error { color: var(--error-color, #d7192d); }
+.split-status.is-default { color: var(--text-secondary); }
+.refund-description { display: block; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.split-address {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.split-quantity {
+  display: block;
+  margin-top: 6px;
+  color: var(--text-placeholder);
+  font-size: 12px;
+}
+.split-notice {
+  display: block;
+  margin-top: 8px;
+  color: var(--error-color, #d7192d);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.split-items-toggle, .split-history-toggle {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--color-brand, #D7192D);
+  font-size: 12px;
+  line-height: 24px;
+}
+.split-items-toggle { margin-top: 8px; }
+.split-history-toggle { justify-content: center; margin-top: 10px; padding-top: 10px; border-top: 1rpx solid var(--border-color); }
+.split-toggle-icon { transition: transform .2s ease; }
+.split-toggle-icon.expanded { transform: rotate(90deg); }
+.split-items-detail { margin-top: 8px; padding: 10px; border-radius: 8px; background: #f7f8fa; }
+.split-no { display: block; margin-bottom: 8px; color: var(--text-placeholder); font-size: 11px; overflow-wrap: anywhere; }
+.split-item { display: flex; justify-content: space-between; gap: 12px; margin-top: 7px; color: var(--text-secondary); font-size: 12px; }
+.split-item-name { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.split-item-qty { flex: 0 0 auto; }
 .logistics-info {
   display: flex;
   align-items: center;

@@ -71,6 +71,28 @@ export function changeDealerFrozenBalance(params = {}) {
   })
 }
 
+/**
+ * 创建或复用微信 APP 充值意图。
+ * 仅返回服务端签发的短期 SDK 调起数据；客户端支付回调不能作为余额到账依据。
+ */
+export async function createWeChatAppRecharge(params = {}) {
+  const result = await dispatch('Finance', 'Mini.DealerFinanceController', 'CreateWeChatAppRecharge', {
+    Amount: Number(params.amount || 0),
+    ClientRequestId: params.clientRequestId,
+    FundAccountCode: params.fundAccountCode || null,
+  })
+  return {
+    rechargeNo: String(result?.rechargeNo ?? result?.RechargeNo ?? ''),
+    status: Number(result?.status ?? result?.Status ?? 0),
+    resultCertainty: Number(result?.resultCertainty ?? result?.ResultCertainty ?? 0),
+    clientPayload: result?.clientPayload ?? result?.ClientPayload ?? null,
+    expiresAtUtc: result?.expiresAtUtc ?? result?.ExpiresAtUtc ?? null,
+    nextQueryAtUtc: result?.nextQueryAtUtc ?? result?.NextQueryAtUtc ?? null,
+    failureCode: result?.failureCode ?? result?.FailureCode ?? null,
+    failureMessage: result?.failureMessage ?? result?.FailureMessage ?? null,
+  }
+}
+
 export function confirmDealerOrderPayment(params = {}) {
   return dispatch('Finance', 'Mini.DealerFinanceController', 'ConfirmOrderPayment', {
     OrderId: Number(params.orderId || 0),
