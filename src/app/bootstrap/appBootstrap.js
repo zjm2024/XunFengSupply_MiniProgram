@@ -21,9 +21,9 @@
 
 import { getBootstrapContext, checkAppVersion } from './bootstrapApi.js'
 import { useUserStore } from '../../shared/session/userStore.js'
-import storage from '../../shared/utils/storage.js'
 import { LOGIN, HOME, ACCOUNT_STATUS } from '../config/routes.js'
 import { AppError, ErrorKind } from '../../shared/api/appError.js'
+import { initializeAppLocale } from '../i18n/localePersistence.js'
 
 // ==================== 配置常量 ====================
 
@@ -331,12 +331,7 @@ function _handleBootError(error) {
  * @private
  */
 function _normalizeLanguage() {
-  const supported = ['zh-CN', 'en-US']
-  const current = storage.get('language', 'zh-CN')
-
-  if (!supported.includes(current)) {
-    storage.set('language', 'zh-CN')
-  }
+  initializeAppLocale()
 }
 
 /**

@@ -1,7 +1,7 @@
 ﻿﻿<template>
   <AppPageShell>
     <template #header>
-      <app-header title="关于我们" :show-back="true" />
+      <app-header :title="t('content.titles.about')" :show-back="true" />
     </template>
 
     <template #content>
@@ -13,18 +13,18 @@
               <text class="logo-text">薰风</text>
             </view>
             <text class="brand-name">薰风体育</text>
-            <text class="brand-slogan">专业 · 品质 · 创新</text>
+            <text class="brand-slogan">{{ t('content.about.slogan') }}</text>
 
             <!-- 版本信息 -->
             <view class="version-info">
-              <text class="version-label">当前版本</text>
+              <text class="version-label">{{ t('content.about.version') }}</text>
               <text class="version-value">{{ version }}</text>
             </view>
           </view>
 
           <!-- 公司简介 -->
           <view class="info-card">
-            <text class="card-title">公司简介</text>
+            <text class="card-title">{{ t('content.about.company') }}</text>
             <text class="card-text">
               薰风（XUNFENG）是专业的羽毛球运动品牌，致力于为全球羽毛球爱好者提供高品质的运动装备。公司成立于2008年，总部位于中国广州，拥有完整的研发、生产、销售体系。
             </text>
@@ -35,13 +35,13 @@
 
           <!-- 联系方式 -->
           <view class="info-card">
-            <text class="card-title">联系方式</text>
+            <text class="card-title">{{ t('content.about.contact') }}</text>
 
             <view class="contact-list">
               <view class="contact-item">
                 <text class="contact-icon">📍</text>
                 <view class="contact-detail">
-                  <text class="contact-label">公司地址</text>
+                  <text class="contact-label">{{ t('content.about.address') }}</text>
                   <text class="contact-value">广州市番禺区南村镇万惠二路103号2栋209</text>
                 </view>
               </view>
@@ -49,7 +49,7 @@
               <view class="contact-item">
                 <text class="contact-icon">📞</text>
                 <view class="contact-detail">
-                  <text class="contact-label">品牌热线</text>
+                  <text class="contact-label">{{ t('content.about.hotline') }}</text>
                   <text class="contact-value">86-(20)38106798</text>
                 </view>
               </view>
@@ -58,7 +58,7 @@
               <view class="contact-item">
                 <text class="contact-icon">🌐</text>
                 <view class="contact-detail">
-                  <text class="contact-label">官方网站</text>
+                  <text class="contact-label">{{ t('content.about.website') }}</text>
                   <text class="contact-value link" @click="openWebsite">www.kumpoo.com</text>
                 </view>
               </view>
@@ -80,9 +80,9 @@
 
           <!-- 法律信息 -->
           <view class="legal-section">
-            <button class="legal-link" @click="viewPrivacy">隐私政策</button>
+            <button class="legal-link" @click="viewPrivacy">{{ t('content.about.privacy') }}</button>
             <text class="divider">|</text>
-            <button class="legal-link" @click="viewTerms">用户协议</button>
+            <button class="legal-link" @click="viewTerms">{{ t('content.about.agreement') }}</button>
           </view>
 
           <!-- 版权信息 -->
@@ -99,7 +99,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/content/i18n/register.js'
+import { computed, ref } from 'vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -109,18 +111,19 @@ import { routes } from '@/app/config/routes.js'
 const version = ref('1.0.0')
 
 // 相关链接
-const links = ref([
-  { key: 'user_agreement', name: '用户协议' },
-  { key: 'privacy_policy', name: '隐私政策' },
-  { key: 'disclaimer', name: '免责声明' }
+const links = computed(() => [
+  { key: 'user_agreement', name: t('content.about.agreement') },
+  { key: 'privacy_policy', name: t('content.about.privacy') },
+  { key: 'disclaimer', name: t('content.about.disclaimer') }
 ])
 
+/** 保留现有网站目标与跨端打开方式。 */
 function openWebsite() {
   // #ifdef H5
   window.open('https://www.xunfeng.com', '_blank')
   // #endif
   // #ifndef H5
-  uni.showToast({ title: '请在浏览器中访问', icon: 'none' })
+  uni.showToast({ title: t('content.about.browserHint'), icon: 'none' })
   // #endif
 }
 
@@ -137,9 +140,10 @@ function openLink(link) {
   }
 }
 
+/** 保留隐私政策尚未开放的占位反馈。 */
 function viewPrivacy() {
   // webview 页面暂未实现，显示暂未开放提示
-  uni.showToast({ title: '隐私政策 暂未开放', icon: 'none' })
+  uni.showToast({ title: t('content.about.privacyUnavailable'), icon: 'none' })
 }
 
 function viewTerms() {

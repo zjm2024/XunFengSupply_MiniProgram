@@ -3,11 +3,11 @@
     <template #header>
       <view class="inventory-header">
         <AppHeader
-          title="我的库存"
+          :title="t('account.titles.inventory')"
           :show-back="true"
           :searchable="true"
           :search-value="keywordInput"
-          search-placeholder="搜索商品、规格或 SKU"
+          :search-placeholder="t('account.titles.inventorySearch')"
           @update:search-value="keywordInput = $event"
           @search="applySearch"
           @clear-search="clearSearch"
@@ -34,8 +34,8 @@
             </view> -->
             <AppPageState
               :state="pageState"
-              title="暂无库存"
-              :description="pageState === PageStatus.ERROR ? loadError : '采购订单确认收货后，商品会自动进入这里'"
+              :title="t('account.inventory.empty')"
+              :description="pageState === PageStatus.ERROR ? loadError : t('account.inventory.emptyHint')"
               @retry="reload"
               @action="reload"
             >
@@ -45,23 +45,23 @@
                     <AppProductImage class="product-image" :src="item.imageUrl" :stock="item.availableQuantity" mode="aspectFill" />
                     <view class="product-copy">
                       <view class="name-line">
-                        <text class="product-name">{{ item.productName || '未命名商品' }}</text>
+                        <text class="product-name">{{ item.productName || t('account.inventory.unnamed') }}</text>
                         <AppIcon name="chevron-right" :size="16" color="#A4A8AF" />
                       </view>
                       <text class="sku-name">{{ item.skuName || `SKU ${item.skuId}` }}</text>
                       <view class="spec-line">
-                        <text v-if="item.colorName">颜色 {{ item.colorName }}</text>
-                        <text v-if="item.sizeName">尺码 {{ item.sizeName }}</text>
+                        <text v-if="item.colorName">{{ t('account.inventory.color', { value: item.colorName }) }}</text>
+                        <text v-if="item.sizeName">{{ t('account.inventory.size', { value: item.sizeName }) }}</text>
                         <text v-if="item.skuCode">{{ item.skuCode }}</text>
                       </view>
                       <view class="quantity-row">
-                        <view class="primary-qty"><text>可用</text><text>{{ formatQty(item.availableQuantity) }} {{ item.unit }}</text></view>
-                        <view><text>在手</text><text>{{ formatQty(item.onHandQuantity) }}</text></view>
-                        <view><text>锁定/不可用</text><text>{{ formatQty(item.reservedQuantity + item.unavailableQuantity) }}</text></view>
+                        <view class="primary-qty"><text>{{ t('account.inventory.available') }}</text><text>{{ formatQty(item.availableQuantity) }} {{ item.unit }}</text></view>
+                        <view><text>{{ t('account.inventory.onHand') }}</text><text>{{ formatQty(item.onHandQuantity) }}</text></view>
+                        <view><text>{{ t('account.inventory.lockedUnavailable') }}</text><text>{{ formatQty(item.reservedQuantity + item.unavailableQuantity) }}</text></view>
                       </view>
                       <view class="card-foot">
-                        <text>{{ item.warehouseCount }} 个仓位</text>
-                        <text>最近入库 {{ formatDate(item.lastInboundAt) }}</text>
+                        <text>{{ t('account.inventory.warehouseCount', { count: item.warehouseCount }) }}</text>
+                        <text>{{ t('account.inventory.lastInbound', { date: formatDate(item.lastInboundAt) }) }}</text>
                       </view>
                     </view>
                   </view>
@@ -81,6 +81,8 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/account/i18n/register.js'
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
@@ -98,11 +100,11 @@ import { getDealerInventoryList } from '../../api/inventory.js'
 import { formatDate } from '../../../../shared/utils/format.js'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
-const tabs = Object.freeze([
-  { key: 'all', label: '全部库存' },
-  { key: 'available', label: '有可用库存' },
-  { key: 'low', label: '低库存' },
-  { key: 'out', label: '无可用库存' },
+const tabs = computed(() => [
+  { key: 'all', label: t('account.inventory.all') },
+  { key: 'available', label: t('account.inventory.withStock') },
+  { key: 'low', label: t('account.inventory.low') },
+  { key: 'out', label: t('account.inventory.out') },
 ])
 const items = ref([])
 const totalCount = ref(0)
@@ -115,9 +117,11 @@ const pageState = ref(PageStatus.LOADING)
 const loadingMore = ref(false)
 const isRefreshing = ref(false)
 const hasMore = ref(false)
-const loadError = ref('')
+const loadFailure = ref(null)
+const loadError = computed(() => loadFailure.value?.message
+  || (loadFailure.value?.messageKey ? t(loadFailure.value.messageKey) : ''))
 const loadMoreError = ref(false)
-const activeTabLabel = computed(() => tabs.find(item => item.key === activeTab.value)?.label || '全部库存')
+const activeTabLabel = computed(() => tabs.value.find(item => item.key === activeTab.value)?.label || t('account.inventory.all'))
 const loadMoreStatus = computed(() => {
   if (loadMoreError.value) return 'error'
   if (loadingMore.value) return 'loading'
@@ -127,11 +131,12 @@ const loadMoreStatus = computed(() => {
 
 onShow(() => { if (pageState.value === PageStatus.LOADING) reload() })
 
+/** 按原搜索与库存筛选读取列表，保留错误对象供重新取词。 */
 async function reload() {
   pageNum.value = 1
   items.value = []
   pageState.value = PageStatus.LOADING
-  loadError.value = ''
+  loadFailure.value = null
   loadMoreError.value = false
   try {
     const result = await getDealerInventoryList({
@@ -142,7 +147,7 @@ async function reload() {
     })
     applyResult(result, false)
   } catch (error) {
-    loadError.value = error?.message || '库存读取失败，请稍后重试'
+    loadFailure.value = error?.message ? error : { messageKey: 'account.inventory.loadFailed' }
     pageState.value = PageStatus.ERROR
   }
 }
@@ -163,6 +168,7 @@ function handleRefresherRestore() {
   if (!loadingMore.value && pageState.value !== PageStatus.LOADING) isRefreshing.value = false
 }
 
+/** 沿用原分页和追加规则，仅本地化读取反馈。 */
 async function loadMore() {
   if (!hasMore.value || loadingMore.value || pageState.value !== PageStatus.CONTENT) return
   loadingMore.value = true
@@ -175,7 +181,7 @@ async function loadMore() {
   } catch (error) {
     pageNum.value = Math.max(1, pageNum.value)
     loadMoreError.value = true
-    uni.showToast({ title: error?.message || '加载失败', icon: 'none' })
+    uni.showToast({ title: error?.message || t('account.inventory.moreFailed'), icon: 'none' })
   } finally { loadingMore.value = false }
 }
 
@@ -213,8 +219,9 @@ function formatQty(value) { return Number(value || 0).toLocaleString('zh-CN') }
 .quantity-row view { min-width: 0; }
 .quantity-row text { display: block; overflow: hidden; color: #92969D; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
 .quantity-row text + text { margin-top: 3px; color: #3D434B; font-size: 11px; font-weight: 660; }
+.quantity-row > view > text:first-child { white-space: normal; min-height: 22px; line-height: 1.35; }
 .quantity-row .primary-qty text + text { color: #000000; }
-.card-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; color: #9A9EA5; font-size: 8px; }
+.card-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 10px; color: #9A9EA5; font-size: 8px; }
 .load-status { padding: 20px 0 2px; color: #9B9FA6; font-size: 10px; text-align: center; }
 @media screen and (min-width: 720px) {
   .stock-grid { gap: 14px; }

@@ -1,7 +1,7 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="消息通知" :show-back="true" />
+      <AppHeader :title="t('account.titles.notifications')" :show-back="true" />
     </template>
 
     <template #content>
@@ -12,15 +12,15 @@
               <AppIcon name="bell" :size="28" :stroke-width="1.8" />
             </view>
             <view class="hero-copy">
-              <text class="hero-title">消息通知设置</text>
-              <text class="hero-desc">按你的需要接收订单、审核、账单和平台公告提醒</text>
+              <text class="hero-title">{{ t('account.notifications.title') }}</text>
+              <text class="hero-desc">{{ t('account.notifications.intro') }}</text>
             </view>
           </view>
 
-          <AppListGroup title="消息接收" description="总开关">
+          <AppListGroup :title="t('account.notifications.receive')" :description="t('account.notifications.master')">
             <AppListItem
-              label="接收消息通知"
-              description="关闭后不影响消息中心查看历史消息"
+              :label="t('account.notifications.enabled')"
+              :description="t('account.notifications.enabledHint')"
               icon="bell"
               :clickable="false"
               :show-arrow="false"
@@ -31,7 +31,7 @@
             </AppListItem>
           </AppListGroup>
 
-          <AppListGroup title="业务消息" description="订单进度变化时提醒">
+          <AppListGroup :title="t('account.notifications.business')" :description="t('account.notifications.businessHint')">
             <AppListItem
               v-for="item in businessItems"
               :key="item.key"
@@ -53,10 +53,10 @@
             </AppListItem>
           </AppListGroup>
 
-          <AppListGroup title="平台提醒" description="服务与公告">
+          <AppListGroup :title="t('account.notifications.platform')" :description="t('account.notifications.platformHint')">
             <AppListItem
-              label="系统公告"
-              description="平台规则、服务变更和重要公告"
+              :label="t('account.notifications.announcement')"
+              :description="t('account.notifications.announcementHint')"
               icon="announcement"
               :clickable="false"
               :show-arrow="false"
@@ -67,8 +67,8 @@
               </template>
             </AppListItem>
             <AppListItem
-              label="声音提醒"
-              description="收到新消息时播放提示音"
+              :label="t('account.notifications.sound')"
+              :description="t('account.notifications.soundHint')"
               icon="bell"
               :clickable="false"
               :show-arrow="false"
@@ -79,8 +79,8 @@
               </template>
             </AppListItem>
             <AppListItem
-              label="震动提醒"
-              description="收到新消息时触发设备震动"
+              :label="t('account.notifications.vibration')"
+              :description="t('account.notifications.vibrationHint')"
               icon="settings"
               :clickable="false"
               :show-arrow="false"
@@ -94,7 +94,7 @@
 
           <view class="notification-note">
             <AppIcon name="info" :size="16" :stroke-width="1.8" />
-            <text>通知偏好会保存在当前设备。后续接入服务端推送后，将同步用于控制推送范围。</text>
+            <text>{{ t('account.notifications.note') }}</text>
           </view>
         </view>
       </AppContent>
@@ -103,8 +103,10 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/account/i18n/register.js'
 import { onShow } from '@dcloudio/uni-app'
-import { reactive } from 'vue'
+import { computed, reactive } from 'vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -115,11 +117,11 @@ import { getNotificationSettings, saveNotificationSettings } from '@/shared/mode
 
 const settings = reactive(getNotificationSettings())
 
-const businessItems = Object.freeze([
-  { key: 'order', label: '订单消息', description: '下单、付款、发货和订单状态变化', icon: 'order' },
-  { key: 'audit', label: '审核消息', description: '签约、资质和售后审核进度', icon: 'check' },
-  { key: 'bill', label: '账单与授信', description: '充值、对账、授信和还款提醒', icon: 'invoice' },
-  { key: 'afterSale', label: '售后消息', description: '售后申请、退款和处理结果', icon: 'refresh' },
+const businessItems = computed(() => [
+  { key: 'order', label: t('account.notifications.order'), description: t('account.notifications.orderHint'), icon: 'order' },
+  { key: 'audit', label: t('account.notifications.audit'), description: t('account.notifications.auditHint'), icon: 'check' },
+  { key: 'bill', label: t('account.notifications.bill'), description: t('account.notifications.billHint'), icon: 'invoice' },
+  { key: 'afterSale', label: t('account.notifications.afterSale'), description: t('account.notifications.afterSaleHint'), icon: 'refresh' },
 ])
 
 onShow(() => Object.assign(settings, getNotificationSettings()))

@@ -6,11 +6,11 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="订单详情" :show-back="true" />
+      <AppHeader :title="t('order.detail.title')" :show-back="true" />
     </template>
     <template #content>
       <AppContent padding="0">
-        <view class="order-detail-page" :class="{ 'has-logistics': detail?.shipments?.length > 0 }" v-if="detail">
+        <view class="order-detail-page" :class="{ 'has-logistics': detail?.shipments?.length > 0, 'is-english': locale === 'en-US' }" v-if="detail">
           <view class="detail-columns">
             <view class="detail-main-column">
           <!-- 淘宝式订单状态进度 -->
@@ -29,7 +29,7 @@
               <AppIcon name="shipping" :size="20" color="#67C23A" />
               <view class="logistics-text">
                 <text class="logistics-company">{{ detail.shipments[0]?.carrierName || '物流运输中' }}</text>
-                <text class="tracking-no" v-if="detail.shipments[0]?.trackingNo">运单号 {{ detail.shipments[0].trackingNo }}</text>
+                <text class="tracking-no" v-if="detail.shipments[0]?.trackingNo">{{ t('order.detail.trackingNo') }} {{ detail.shipments[0].trackingNo }}</text>
               </view>
               <AppIcon name="chevron-right" :size="16" color="#CCC" />
             </view>
@@ -51,7 +51,7 @@
 
           <!-- 商品列表 -->
           <view class="goods-card">
-            <view class="card-title">商品信息</view>
+            <view class="card-title">{{ t('order.detail.productInfo') }}</view>
             <view v-if="productGroups.length" class="spu-order-list">
               <view v-for="group in productGroups" :key="group.key" class="spu-order-card">
                 <view class="spu-order-header" @tap="toggleProductGroup(group.key)">
@@ -60,9 +60,9 @@
                   </view>
                   <view class="spu-order-copy">
                     <text class="spu-order-name">{{ group.name }}</text>
-                    <text class="spu-order-meta">{{ group.items.length }} 个 SKU · 共 {{ group.totalQuantity }} 件</text>
+                    <text class="spu-order-meta">{{ t('order.detail.productSummary', { count: group.items.length, quantity: group.totalQuantity }) }}</text>
                   </view>
-                  <text class="spu-order-total">¥{{ group.totalAmount.toFixed(2) }}</text>
+                  <AmountText class="spu-order-total" :text="'¥' + (group.totalAmount.toFixed(2))" />
                   <view class="spu-collapse-button">
                     <AppIcon
                       name="chevron-right"
@@ -83,15 +83,15 @@
                       <AppProductImage class="goods-image" :src="item.image" mode="aspectFill" />
                     </view>
                     <view class="goods-info">
-                      <text class="goods-name">{{ item.skuName || '默认规格' }}</text>
+                      <text class="goods-name">{{ item.skuName || t('order.detail.defaultVariant') }}</text>
                       <text class="sku-name">SKU：{{ item.skuCode || item.skuId || '-' }}</text>
                       <view class="price-row">
-                        <text class="price">¥{{ Number(item.salePrice || 0).toFixed(2) }}</text>
-                        <text v-if="item.basePrice > item.salePrice" class="list-price">¥{{ Number(item.basePrice).toFixed(2) }}</text>
+                        <AmountText class="price" :text="'¥' + (Number(item.salePrice || 0).toFixed(2))" />
+                        <AmountText v-if="item.basePrice > item.salePrice" class="list-price" :text="'¥' + (Number(item.basePrice).toFixed(2))" />
                         <text class="qty">x{{ item.quantity }}</text>
                       </view>
-                      <text v-if="item.strategyDiscount > 0" class="strategy-discount">策略优惠 ¥{{ item.strategyDiscount.toFixed(2) }}</text>
-                      <text v-if="item.promotionDiscount > 0" class="promotion-discount">活动优惠 ¥{{ item.promotionDiscount.toFixed(2) }}</text>
+                      <AmountText v-if="item.strategyDiscount > 0" class="strategy-discount" :text="(t('order.detail.strategyDiscount')) + ' ¥' + (item.strategyDiscount.toFixed(2))" />
+                      <AmountText v-if="item.promotionDiscount > 0" class="promotion-discount" :text="(t('order.detail.promotionDiscount')) + ' ¥' + (item.promotionDiscount.toFixed(2))" />
                     </view>
                   </view>
                 </view>
@@ -102,36 +102,36 @@
           <!-- 客户在订单详情中查看配送结果，并按需展开商品明细。 -->
           <view v-if="showFulfillmentCard || splitBatchGroups.length" class="split-card">
             <view class="split-card-heading">
-              <text class="card-title">配送信息</text>
-              <button v-if="canArrangeFulfillment" class="arrange-button" @tap="goToFulfillmentSplit">安排配送</button>
+              <text class="card-title">{{ t('order.detail.deliveryInfo') }}</text>
+              <button v-if="canArrangeFulfillment" class="arrange-button" @tap="goToFulfillmentSplit">{{ t('order.detail.arrange') }}</button>
             </view>
             <text class="split-overview">{{ splitBatchGroups.length ? splitOverview : fulfillmentSummary }}</text>
             <view v-for="batch in visibleSplitBatchGroups" :key="batch.batchNo || batch.sequence" class="split-batch-group">
-              <text v-if="!batch.isCurrent" class="split-history-heading">历史配送安排 {{ batch.sequence }}</text>
+              <text v-if="!batch.isCurrent" class="split-history-heading">{{ t('order.detail.historyBatch', { sequence: batch.sequence }) }}</text>
               <view v-for="split in batch.splits" :key="split.splitId || split.splitNo" class="split-block">
                 <view class="split-header">
-                  <text class="split-name">{{ split.splitName || `配送单${split.sequenceNo || ''}` }}</text>
+                  <text class="split-name">{{ split.splitName || t('order.detail.deliveryDefault', { sequence: split.sequenceNo || '' }) }}</text>
                   <text class="split-status" :class="'is-' + getSplitCustomerDisplay(split).type">{{ getSplitCustomerDisplay(split).text }}</text>
                 </view>
                 <text v-if="split.fullAddress" class="split-address">{{ split.fullAddress }}</text>
                 <text class="split-quantity">{{ splitQuantityText(split) }}</text>
                 <text v-if="splitNotice(split)" class="split-notice">{{ splitNotice(split) }}</text>
                 <view v-if="split.items?.length" class="split-items-toggle" @tap="toggleSplitItems(split)">
-                  <text>{{ isSplitItemsExpanded(split) ? '收起商品明细' : `查看商品明细（${split.items.length}）` }}</text>
+                  <text>{{ isSplitItemsExpanded(split) ? t('order.detail.itemsCollapse') : t('order.detail.itemsShow', { count: split.items.length }) }}</text>
                   <AppIcon name="chevron-right" :size="14" class="split-toggle-icon" :class="{ expanded: isSplitItemsExpanded(split) }" />
                 </view>
                 <view v-if="isSplitItemsExpanded(split)" class="split-items-detail">
-                  <text v-if="split.erpReviewReasonMessage" class="split-no">原因：{{ split.erpReviewReasonMessage }}</text>
-                  <text v-if="split.splitNo" class="split-no">配送单号：{{ split.splitNo }}</text>
+                  <text v-if="split.erpReviewReasonMessage" class="split-no">{{ t('order.detail.reason') }}{{ split.erpReviewReasonMessage }}</text>
+                  <text v-if="split.splitNo" class="split-no">{{ t('order.detail.deliveryNo') }}{{ split.splitNo }}</text>
                   <view v-for="item in split.items" :key="`${split.splitId}-${item.orderItemId}`" class="split-item">
-                    <text class="split-item-name">{{ item.skuName || item.productName || '商品' }}</text>
+                    <text class="split-item-name">{{ item.skuName || item.productName || t('order.detail.genericProduct') }}</text>
                     <text class="split-item-qty">{{ splitItemQuantityText(split, item) }}</text>
                   </view>
                 </view>
               </view>
             </view>
             <view v-if="hasSplitHistory" class="split-history-toggle" @tap="showSplitHistory = !showSplitHistory">
-              <text>{{ showSplitHistory ? '收起历史安排' : '查看历史安排' }}</text>
+              <text>{{ showSplitHistory ? t('order.detail.historyCollapse') : t('order.detail.historyShow') }}</text>
               <AppIcon name="chevron-right" :size="14" class="split-toggle-icon" :class="{ expanded: showSplitHistory }" />
             </view>
           </view>
@@ -139,25 +139,25 @@
             <view class="detail-side-column">
           <!-- 订单信息 -->
           <view class="info-card order-info-card">
-            <view class="card-title">订单信息</view>
+            <view class="card-title">{{ t('order.detail.orderInfo') }}</view>
             <view class="info-row">
-              <text class="info-label">订单编号</text>
+              <text class="info-label">{{ t('order.detail.orderNo') }}</text>
               <text class="info-value copyable" @click="copyText(detail.orderNo)">{{ detail.orderNo }}</text>
             </view>
             <view v-if="detail.orderSource === 'ERP_MANUAL'" class="info-row">
-              <text class="info-label">订单来源</text>
+              <text class="info-label">{{ t('order.detail.source') }}</text>
               <text class="info-value">线下订单</text>
             </view>
             <view class="info-row">
-              <text class="info-label">下单时间</text>
+              <text class="info-label">{{ t('order.detail.placedAt') }}</text>
               <text class="info-value">{{ formatDateTime(detail.createdAt) }}</text>
             </view>
             <view class="info-row">
-              <text class="info-label">结算方式</text>
+              <text class="info-label">{{ t('order.detail.paymentMode') }}</text>
               <text class="info-value">{{ detail.orderSource === 'ERP_MANUAL' ? '账户本金支付' : paymentModeText(detail.paymentMode, detail.paymentStatus, detail.orderStatus) }}</text>
             </view>
             <view class="info-row" v-if="detail.customerRemark">
-              <text class="info-label">发货备注</text>
+              <text class="info-label">{{ t('order.detail.shippingRemark') }}</text>
               <text class="info-value">{{ detail.customerRemark }}</text>
             </view>
           </view>
@@ -166,16 +166,16 @@
             v-if="detail.orderStatus === ORDER_STATUS.CANCELLED && cancellationReasonText"
             class="info-card cancellation-card"
           >
-            <view class="card-title">取消说明</view>
+            <view class="card-title">{{ t('order.detail.cancelInfo') }}</view>
             <view class="info-row">
-              <text class="info-label">取消原因</text>
+              <text class="info-label">{{ t('order.detail.cancelReason') }}</text>
               <text class="info-value cancellation-reason">{{ cancellationReasonText }}</text>
             </view>
           </view>
 
           <!-- 客户可见的订单进度，不展示内部系统状态与处理日志 -->
           <view class="info-card timeline-card" v-if="customerTimeline.length > 0">
-            <view class="card-title">订单进度</view>
+            <view class="card-title">{{ t('order.detail.progress') }}</view>
             <view
               class="timeline-item"
               v-for="item in customerTimeline"
@@ -192,35 +192,35 @@
           <!-- 价格明细 -->
           <view class="price-card summary-card">
             <view class="price-row">
-              <text class="price-label">商品总额</text>
-              <text class="price-value">¥{{ Number(detail.goodsAmount || 0).toFixed(2) }}</text>
+              <text class="price-label">{{ t('order.detail.subtotal') }}</text>
+              <AmountText class="price-value" :text="'¥' + (Number(detail.goodsAmount || 0).toFixed(2))" />
             </view>
             <view class="price-row" v-if="detail.discountAmount > 0">
-              <text class="price-label">优惠金额</text>
-              <text class="price-value">-¥{{ Number(detail.discountAmount || 0).toFixed(2) }}</text>
+              <text class="price-label">{{ t('order.detail.discount') }}</text>
+              <AmountText class="price-value" :text="'-¥' + (Number(detail.discountAmount || 0).toFixed(2))" />
             </view>
             <view class="price-row">
-              <text class="price-label">运费</text>
-              <text class="price-value">¥{{ Number(detail.freightAmount || 0).toFixed(2) }}</text>
+              <text class="price-label">{{ t('order.detail.freight') }}</text>
+              <AmountText class="price-value" :text="'¥' + (Number(detail.freightAmount || 0).toFixed(2))" />
             </view>
             <view class="price-row total">
-              <text class="price-label">应付金额</text>
-              <text class="price-value highlight">¥{{ Number(detail.payableAmount || 0).toFixed(2) }}</text>
+              <text class="price-label">{{ t('order.detail.payable') }}</text>
+              <AmountText class="price-value highlight" :text="'¥' + (Number(detail.payableAmount || 0).toFixed(2))" />
             </view>
             <view class="price-row" v-if="detail.paidAmount > 0">
-              <text class="price-label">已支付</text>
-              <text class="price-value">¥{{ Number(detail.paidAmount || 0).toFixed(2) }}</text>
+              <text class="price-label">{{ t('order.detail.paid') }}</text>
+              <AmountText class="price-value" :text="'¥' + (Number(detail.paidAmount || 0).toFixed(2))" />
             </view>
             <view v-if="refundDisplay" class="refund-progress">
               <view class="price-row">
-                <text class="price-label">退款进度</text>
+                <text class="price-label">{{ t('order.detail.refundProgress') }}</text>
                 <text class="price-value">{{ refundDisplay.text }}</text>
               </view>
               <text class="refund-description">{{ refundDisplay.description }}</text>
             </view>
             <view class="price-row" v-if="detail.refundedAmount > 0">
-              <text class="price-label">已退款</text>
-              <text class="price-value">¥{{ Number(detail.refundedAmount || 0).toFixed(2) }}</text>
+              <text class="price-label">{{ t('order.detail.refunded') }}</text>
+              <AmountText class="price-value" :text="'¥' + (Number(detail.refundedAmount || 0).toFixed(2))" />
             </view>
           </view>
 
@@ -234,14 +234,14 @@
         <AppInitializing
           v-else
           class="order-initializing"
-          title="正在加载订单"
-          description="正在同步订单与履约进度"
+          :title="t('order.detail.loadingTitle')"
+          :description="t('order.detail.loadingDescription')"
           :fill="true"
         />
       </AppContent>
     </template>
     <template #footer>
-      <FixedActionBar v-if="actionButtons.length > 0">
+      <FixedActionBar v-if="actionButtons.length > 0" class="order-action-bar" :class="{ 'is-english': locale === 'en-US' }">
         <button
           v-for="action in actionButtons"
           :key="action.key"
@@ -256,8 +256,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { onLoad, onShow } from '@dcloudio/uni-app'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
+import { ref, computed, watch } from 'vue'
+import { locale, t } from '@/shared/i18n/index.js'
+import { createLocaleReadCoordinator } from '@/shared/composables/localeReadCoordinator.js'
+import { openAppDialog } from '@/shared/composables/useAppDialog.js'
+import '../../i18n/register.js'
+import { onHide, onLoad, onShow, onUnload } from '@dcloudio/uni-app'
 import { getOrderDetail, confirmReceipt, generateClientRequestId } from '../../api/orderApi.js'
 import { ERP_REVIEW_STATUS, ORDER_STATUS, PAYMENT_MODE, PAYMENT_STATUS } from '@/app/config/constant.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
@@ -284,6 +289,16 @@ const collapsedProductGroups = ref({})
 const expandedSplitItems = ref({})
 const showSplitHistory = ref(false)
 
+const orderRead = createLocaleReadCoordinator({
+  isReady: () => Boolean(orderId.value),
+  read: () => getOrderDetail(orderId.value),
+  apply: applyOrderDetailSnapshot,
+  onError: showOrderDetailReadError,
+})
+watch(locale, () => orderRead.localeChanged(), { flush: 'sync' })
+onHide(() => orderRead.deactivate())
+onUnload(() => orderRead.dispose())
+
 onLoad(async (options) => {
   if (options.orderId) {
     orderId.value = Number(options.orderId)
@@ -292,23 +307,30 @@ onLoad(async (options) => {
 })
 
 onShow(() => {
-  if (orderId.value) loadOrderDetail()
+  orderRead.activate()
 })
 
 /**
  * 加载订单详情
  */
 async function loadOrderDetail() {
-  try {
-    const res = await getOrderDetail(orderId.value)
-    detail.value = res
+  return orderRead.refresh()
+}
+
+/** 应用服务端只读详情；仅语种刷新时保留用户的商品/配送展开状态。 */
+function applyOrderDetailSnapshot(value, context) {
+  detail.value = value
+  if (!context.localeChanged) {
     collapsedProductGroups.value = {}
     expandedSplitItems.value = {}
     showSplitHistory.value = false
-  } catch (e) {
-    console.error('加载订单详情失败:', e)
-    uni.showToast({ title: e.message || '加载失败', icon: 'none' })
   }
+}
+
+/** 只展示当前语种详情读取错误；写操作的处理流程不经过此协调器。 */
+function showOrderDetailReadError(error) {
+  console.error('加载订单详情失败:', error)
+  uni.showToast({ title: error?.message || t('common.ui.errorTitle'), icon: 'none' })
 }
 
 // 完整地址
@@ -353,7 +375,7 @@ const visibleSplitBatchGroups = computed(() => showSplitHistory.value
 /** 这里只概括配送单数量，阶段文案由主状态和每个配送单各展示一次。 */
 const splitOverview = computed(() => {
   const batch = splitBatchGroups.value.find(group => group.isCurrent)
-  return batch ? `共 ${batch.total} 个配送单` : ''
+  return batch ? t('order.detail.splitBatchSummary', { count: batch.total }) : ''
 })
 /** 主状态及退款提示由后端通过启用字典生成，列表与详情完全共用。 */
 const orderDisplay = computed(() => getOrderCustomerDisplay(detail.value))
@@ -398,7 +420,7 @@ const canArrangeFulfillment = computed(() => {
 
 // 未产生配送单且没有可执行配送操作时，不重复显示禁用原因卡片。
 const showFulfillmentCard = computed(() => canArrangeFulfillment.value)
-const fulfillmentSummary = computed(() => '可以按收货地址安排配送')
+const fulfillmentSummary = computed(() => t('order.detail.arrangeHint'))
 
 // 可用操作按钮由服务端 AllowedActions 决定，前端只做统一展示。
 const actionButtons = computed(() => {
@@ -406,7 +428,7 @@ const actionButtons = computed(() => {
 
   const reorderAction = {
     key: 'reorder',
-    label: reordering.value ? '加入中…' : '再来一单',
+    label: reordering.value ? t('order.list.reordering') : t('order.list.reorder'),
     type: reordering.value ? 'disabled' : 'default',
   }
 
@@ -458,17 +480,17 @@ async function reorderToCart() {
   if (reordering.value) return
   const items = buildReorderCartItems(detail.value?.items)
   if (!items.length) {
-    uni.showToast({ title: '该订单暂无可再次购买的商品', icon: 'none' })
+    uni.showToast({ title: t('order.list.noReorderProducts'), icon: 'none' })
     return
   }
 
   reordering.value = true
   try {
     await batchAddToCart({ items, clientRequestId: generateClientRequestId() })
-    uni.showToast({ title: '已加入购物车', icon: 'success' })
+    uni.showToast({ title: t('order.list.addedToCart'), icon: 'success' })
     setTimeout(() => navigator.navigateTo(routes.commerce.cart()), 350)
   } catch (error) {
-    uni.showToast({ title: error?.message || '商品状态已变化，请稍后重试', icon: 'none' })
+    uni.showToast({ title: error?.message || t('order.list.productChanged'), icon: 'none' })
   } finally {
     reordering.value = false
   }
@@ -486,31 +508,26 @@ async function handleAction(key) {
       navigator.navigateTo(routes.order.cancelOrder(orderId.value))
       break
     case 'confirmReceipt':
-      uni.showModal({
-        title: '提示',
-        content: '确定已收到商品吗？',
-        success: async (res) => {
-          if (res.confirm) {
-            try {
-              await confirmReceipt({
-                orderId: orderId.value,
-                clientRequestId: generateClientRequestId(),
-              })
-              uni.showToast({ title: '已确认收货', icon: 'success' })
-              setTimeout(() => loadOrderDetail(), 1000)
-            } catch (e) {
-              uni.showToast({ title: e.message || '操作失败', icon: 'none' })
-            }
-          }
-        }
-      })
+      if (!await openAppDialog({
+        confirmText: t('common.confirm'),
+        cancelText: t('common.cancel'),
+        title: t('common.tip'),
+        description: t('order.detail.receiptContent'),
+      })) return
+      try {
+        await confirmReceipt({ orderId: orderId.value, clientRequestId: generateClientRequestId() })
+        uni.showToast({ title: t('order.list.receiptSuccess'), icon: 'success' })
+        setTimeout(() => loadOrderDetail(), 1000)
+      } catch (e) {
+        uni.showToast({ title: e.message || t('common.errors.operation'), icon: 'none' })
+      }
       break
     case 'viewLogistics':
       if (detail.value?.shipments?.[0]?.trackingNo) {
         copyText(detail.value.shipments[0].trackingNo)
-        uni.showToast({ title: '复制成功', icon: 'none' })
+        uni.showToast({ title: t('order.detail.copySuccess'), icon: 'none' })
       } else {
-        uni.showToast({ title: '暂未生成物流信息', icon: 'none' })
+        uni.showToast({ title: t('order.detail.noLogistics'), icon: 'none' })
       }
       break
     case 'afterSale':
@@ -526,7 +543,7 @@ const productGroups = computed(() => {
     const productId = Number(item.productId ?? item.ProductId ?? 0)
     const skuId = Number(item.skuId ?? item.SkuId ?? 0)
     const rawProductName = item.productName || item.ProductName || ''
-    const productName = rawProductName || item.skuName || item.SkuName || '采购商品'
+    const productName = rawProductName || item.skuName || item.SkuName || t('order.detail.productFallback')
     const key = productId > 0
       ? `spu-${productId}`
       : rawProductName
@@ -592,7 +609,7 @@ function toggleSplitItems(split) {
 function splitQuantityText(split) {
   const total = Number(split.totalQuantity) || 0
   const sent = Number(split.shippedQuantity) || 0
-  return sent > 0 ? `共 ${total} 件 · 已发 ${sent} 件` : `共 ${total} 件`
+  return sent > 0 ? t('order.detail.shippedQuantity', { total, sent }) : t('order.detail.totalQuantity', { total })
 }
 
 /** 仅按字典提醒样式突出说明，不在页面重新推导退款或审核结果。 */
@@ -604,7 +621,7 @@ function splitNotice(split) {
 /** 有发货事实时逐项展示实发数量，包含未发的零数量商品。 */
 function splitItemQuantityText(split, item) {
   const sent = Number(item.shippedQuantity) || 0
-  return Number(split.shippedQuantity) > 0 ? `已发 ${sent} / 共 ${item.quantity}` : `共 ${item.quantity} 件`
+  return Number(split.shippedQuantity) > 0 ? t('order.detail.shippedItemQuantity', { sent, quantity: item.quantity }) : t('order.detail.itemQuantity', { quantity: item.quantity })
 }
 </script>
 
@@ -953,8 +970,11 @@ function splitItemQuantityText(split, item) {
     border: 1rpx solid var(--border-color);
   }
 }
-</style>
 
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.goods-item .price-row { min-width: 0; flex-wrap: wrap; gap: 4px; }
+.price-row > .price-value { flex-shrink: 1; }
+</style>
 <style lang="scss" scoped>
 /* 成品页覆盖层：统一使用项目字体与间距 token，并保持 390px/800px 两档布局。 */
 .order-detail-page { width: 100%; max-width: 1120px; min-height: 0; margin: 0 auto; padding: 10px 16px calc(22px + env(safe-area-inset-bottom)); box-sizing: border-box; background: transparent; }
@@ -974,7 +994,7 @@ function splitItemQuantityText(split, item) {
 .goods-card .card-title::before, .info-card .card-title::before { width: 3px; height: 16px; flex: 0 0 3px; border-radius: 2px; background: var(--color-brand, #D7192D); content: ''; }
 .spu-order-list { display: flex; flex-direction: column; gap: 8px; }
 .spu-order-card { overflow: hidden; border-radius: 12px; background: rgba(255,255,255,.34); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
-.spu-order-header { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto 28px; align-items: center; gap: 10px; min-height: 68px; padding: 8px; box-sizing: border-box; }
+.spu-order-header { display: grid; grid-template-columns: 52px minmax(0, 1fr) minmax(0, .7fr) 28px; align-items: center; gap: 10px; min-height: 68px; padding: 8px; box-sizing: border-box; }
 .spu-image-link { width: 52px; height: 52px; overflow: hidden; border-radius: 9px; background: #FFF; }
 .spu-image { width: 100%; height: 100%; }
 .spu-order-copy { min-width: 0; }
@@ -997,7 +1017,8 @@ function splitItemQuantityText(split, item) {
 .goods-item .goods-info .price-row .qty { color: var(--type-secondary-color); font-size: var(--type-caption-size, 12px); }
 .info-row, .price-row { gap: 18px; padding: 9px 0; }
 .info-row .info-label, .price-row .price-label { flex: 0 0 76px; color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); }
-.info-row .info-value, .price-row .price-value { min-width: 0; color: var(--type-title-color); font-size: var(--type-body-small-size, 13px); text-align: right; overflow-wrap: anywhere; }
+.info-row .info-value, .price-row .price-value { min-width: 0; color: var(--type-title-color); font-size: var(--type-body-small-size, 13px); text-align: right; }
+.info-row .info-value { overflow-wrap: anywhere; }
 .price-row.total { margin-top: 7px; padding-top: 14px; border-top: 1px solid #EEF0F2; }
 .price-row .price-value.highlight { color: var(--color-brand, #D7192D); font-size: var(--type-money-size, 18px); }
 .timeline-item { position: relative; display: flex; gap: 12px; min-height: 48px; padding-bottom: 8px; }
@@ -1012,6 +1033,10 @@ function splitItemQuantityText(split, item) {
 .action-btn.primary { border-color: var(--color-brand, #D7192D); color: #FFF; background: var(--color-brand, #D7192D); }
 .action-btn.default { border-color: var(--color-border, #DDE0E4); color: var(--type-title-color); background: #FFF; }
 .action-btn.disabled { color: #A8ABB2; background: #ECEEF2; }
+.order-action-bar.is-english :deep(.action-content) { flex-wrap: wrap; }
+.order-action-bar.is-english .action-btn { flex: 1 1 128px; height: auto; min-height: 44px; padding: 10px 8px; line-height: 1.25; white-space: normal; overflow-wrap: anywhere; }
+.order-detail-page.is-english .info-row .info-label,
+.order-detail-page.is-english .price-row .price-label { flex-basis: 96px; line-height: 1.4; overflow-wrap: anywhere; }
  .detail-columns { display: flex; flex-direction: column; gap: 10px; }
  .detail-main-column, .detail-side-column { display: flex; min-width: 0; flex-direction: column; gap: 10px; }
  .detail-main-column > *, .detail-side-column > * { margin: 0; }
@@ -1027,14 +1052,14 @@ function splitItemQuantityText(split, item) {
   .order-detail-page { padding: 12px 14px 18px; }
   .detail-columns { grid-template-columns: minmax(0, 1fr) minmax(260px, .78fr); gap: 8px 10px; }
   .logistics-card, .address-card, .goods-card, .info-card, .price-card { padding: 12px; }
-  .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) auto 26px; gap: 8px; min-height: 62px; }
+  .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) minmax(0, .7fr) 26px; gap: 8px; min-height: 62px; }
   .spu-image-link { width: 48px; height: 48px; }
 }
 
 @media (max-width: 719px) {
   .order-detail-page { padding-right: 12px; padding-left: 12px; }
   .logistics-card, .address-card, .goods-card, .info-card, .price-card { padding: 12px; }
-  .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) auto 26px; gap: 8px; min-height: 62px; }
+  .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) minmax(0, .7fr) 26px; gap: 8px; min-height: 62px; }
   .spu-image-link { width: 48px; height: 48px; }
   .spu-order-total { font-size: 12px; }
   .goods-item .goods-image { width: 64px; height: 64px; }

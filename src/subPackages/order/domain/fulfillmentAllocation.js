@@ -1,10 +1,12 @@
 let allocationSequence = 0
 
+/** 将地址、订单明细标识和原始数量转换为正整数。 */
 function positiveInteger(value, fallback = 0) {
   const parsed = Math.floor(Number(value))
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
 }
 
+/** 复制商品分配行，避免编辑时改写调用方的旧方案。 */
 function clonePlanItem(item) {
   return {
     ...item,
@@ -12,6 +14,7 @@ function clonePlanItem(item) {
   }
 }
 
+/** 为新增配送去向生成稳定的页面行标识。 */
 function nextAllocationKey(orderItemId) {
   allocationSequence += 1
   return `${orderItemId}-${allocationSequence}`
@@ -49,7 +52,7 @@ export function changeAllocationAddress(planItem, allocationIndex, addressId) {
   if (!target || normalizedAddressId <= 0) return next
 
   const duplicateIndex = next.allocations.findIndex((allocation, index) => (
-    index !== allocationIndex && allocation.addressId === normalizedAddressId
+    index !== allocationIndex && positiveInteger(allocation.addressId) === normalizedAddressId
   ))
   if (duplicateIndex >= 0) {
     next.allocations[duplicateIndex].addressId = target.addressId
@@ -134,32 +137,110 @@ export function maximumAllocationQuantity(planItem) {
   return Math.max(1, Number(planItem?.totalQuantity || 0) - Math.max(0, (planItem?.allocations?.length || 1) - 1))
 }
 
+/** 返回单个 SKU 的订单、已分配、剩余及当前地址可设置的数量上限。 */
+export function allocationBalance(planItem, addressId) {
+  const total = positiveInteger(planItem?.totalQuantity)
+  const normalizedAddressId = positiveInteger(addressId)
+  let allocated = 0
+  let current = 0
+  for (const allocation of planItem?.allocations || []) {
+    const quantity = positiveInteger(allocation.quantity)
+    allocated += quantity
+    if (positiveInteger(allocation.addressId) === normalizedAddressId) current += quantity
+  }
+  return {
+    total,
+    allocated,
+    remaining: Math.max(0, total - allocated),
+    current,
+    maximum: Math.max(0, total - (allocated - current)),
+  }
+}
+
+/** 独立编辑当前地址的数量；减量回到待分配、增量仅取剩余，零分配不进入提交明细。 */
+export function setAddressAllocationQuantity(planItem, addressId, requestedQuantity) {
+  const next = clonePlanItem(planItem)
+  const normalizedAddressId = positiveInteger(addressId)
+  const parsed = Number(requestedQuantity)
+  if (!normalizedAddressId || !Number.isFinite(parsed)) return next
+  const balance = allocationBalance(next, normalizedAddressId)
+  const quantity = Math.min(balance.maximum, Math.max(0, Math.floor(parsed)))
+  const existing = next.allocations.find(allocation => positiveInteger(allocation.addressId) === normalizedAddressId)
+  next.allocations = next.allocations.filter(allocation => positiveInteger(allocation.addressId) !== normalizedAddressId)
+  if (quantity > 0) {
+    next.allocations.push({
+      key: existing?.key || nextAllocationKey(next.orderItemId),
+      addressId: normalizedAddressId,
+      quantity,
+    })
+  }
+  return next
+}
+
+/** 逐 SKU 将真实剩余追加到目标地址，保留其他地址数量，不修改原方案。 */
+export function allocateRemainingToAddress(plan = [], addressId) {
+  const id = positiveInteger(addressId)
+  if (!id) return plan
+  return plan.map(item => {
+    const balance = allocationBalance(item, id)
+    return balance.remaining > 0
+      ? setAddressAllocationQuantity(item, id, balance.current + balance.remaining)
+      : item
+  })
+}
+
+/** 清空指定地址的所有 SKU 分配并释放为剩余，保留其他地址及订单原数量。 */
+export function clearAddressAllocation(plan = [], addressId) {
+  const id = positiveInteger(addressId)
+  if (!id) return plan
+  return plan.map(item => allocationBalance(item, id).current > 0
+    ? setAddressAllocationQuantity(item, id, 0)
+    : item)
+}
+
+
+/** 显式将一个规格从来源地址调到目标地址，守恒总量且不修改原方案或其他地址。 */
+export function transferAddressAllocation(planItem, fromAddressId, toAddressId, requestedQuantity) {
+  const from = positiveInteger(fromAddressId)
+  const to = positiveInteger(toAddressId)
+  const parsed = Number(requestedQuantity)
+  if (!from || !to || from === to || !Number.isInteger(parsed) || parsed <= 0) return planItem
+  const source = allocationBalance(planItem, from)
+  if (parsed > source.current) return planItem
+  const target = allocationBalance(planItem, to)
+  const reduced = setAddressAllocationQuantity(planItem, from, source.current - parsed)
+  return setAddressAllocationQuantity(reduced, to, target.current + parsed)
+}
+
 /**
  * 校验商品维度的分配方案，返回可直接展示给客户的错误提示；空字符串表示通过。
  */
-export function validateAllocationPlan(plan = [], availableAddressIds = [], maximumGroups = 10) {
-  if (!plan.length) return '订单没有可安排配送的商品'
+export function validateAllocationPlan(plan = [], availableAddressIds = [], maximumGroups = 10, translate = null) {
+  const message = (key, fallback, parameters = {}) => translate ? translate(key, parameters) : fallback
+  if (!plan.length) return message('noItems', '订单没有可安排配送的商品')
   const addressSet = new Set(availableAddressIds.map(value => positiveInteger(value)).filter(Boolean))
   const usedAddressIds = new Set()
 
   for (const item of plan) {
     if (!item.orderItemId || item.totalQuantity <= 0 || !item.allocations?.length) {
-      return '存在未完成配送安排的商品'
+      return message('incomplete', '存在未完成配送安排的商品')
     }
     const itemAddressIds = new Set()
     let allocated = 0
     for (const allocation of item.allocations) {
-      if (!addressSet.has(positiveInteger(allocation.addressId))) return '请选择有效的收货地址'
-      if (itemAddressIds.has(allocation.addressId)) return '同一商品不能重复选择相同地址'
-      if (!Number.isInteger(allocation.quantity) || allocation.quantity <= 0) return '配送数量必须是大于 0 的整数'
-      itemAddressIds.add(allocation.addressId)
-      usedAddressIds.add(allocation.addressId)
+      if (!Number.isInteger(allocation.quantity) || allocation.quantity < 0) return message('invalidQuantity', '配送数量必须是大于或等于 0 的整数')
+      if (allocation.quantity === 0) continue
+      const addressId = positiveInteger(allocation.addressId)
+      if (!addressSet.has(addressId)) return message('invalidAddress', '请选择有效的收货地址')
+      if (itemAddressIds.has(addressId)) return message('duplicateAddress', '同一商品不能重复选择相同地址')
+      itemAddressIds.add(addressId)
+      usedAddressIds.add(addressId)
       allocated += allocation.quantity
     }
-    if (allocated !== item.totalQuantity) return '每件商品都必须按原数量完整分配'
+    if (allocated !== item.totalQuantity) return message('quantityMismatch', '每件商品都必须按原数量完整分配')
   }
 
-  if (usedAddressIds.size > maximumGroups) return `一次最多安排到 ${maximumGroups} 个收货地址`
+  if (usedAddressIds.size > maximumGroups) return message('tooManyAddresses', `一次最多安排到 ${maximumGroups} 个收货地址`, { maximum: maximumGroups })
   return ''
 }
 
@@ -170,13 +251,15 @@ export function buildFulfillmentGroups(plan = []) {
   const groupMap = new Map()
   for (const item of plan) {
     for (const allocation of item.allocations || []) {
-      if (!groupMap.has(allocation.addressId)) {
-        groupMap.set(allocation.addressId, {
-          addressId: allocation.addressId,
+      if (!Number.isInteger(allocation.quantity) || allocation.quantity <= 0) continue
+      const addressId = positiveInteger(allocation.addressId)
+      if (!groupMap.has(addressId)) {
+        groupMap.set(addressId, {
+          addressId,
           items: [],
         })
       }
-      groupMap.get(allocation.addressId).items.push({
+      groupMap.get(addressId).items.push({
         orderItemId: item.orderItemId,
         quantity: allocation.quantity,
       })

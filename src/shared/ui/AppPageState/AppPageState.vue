@@ -73,7 +73,7 @@
       </view>
       <text class="state-title">{{ displayTitle }}</text>
       <text v-if="displayDescription" class="state-desc">{{ displayDescription }}</text>
-      <text v-if="hasStaleContent" class="stale-hint">显示之前加载的内容</text>
+      <text v-if="hasStaleContent" class="stale-hint">{{ t('common.ui.stale') }}</text>
       <view class="state-actions">
         <slot name="actions">
           <button
@@ -117,6 +117,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { t } from '@/shared/i18n/index.js'
 import { PageStatus, DEFAULT_MESSAGES, EmptyType } from '../../model/pageState.js'
 import AppSvgIllustration from '../AppSvgIllustration/AppSvgIllustration.vue'
 
@@ -174,10 +175,12 @@ const emit = defineEmits(['retry', 'action', 'secondary-action'])
 // ==================== 计算属性 ====================
 
 /** 显示标题 */
-const displayTitle = computed(() => props.title || DEFAULT_MESSAGES[props.state]?.title || '')
+const displayTitle = computed(() => props.title || (DEFAULT_MESSAGES[props.state]?.titleKey
+  ? t(DEFAULT_MESSAGES[props.state].titleKey) : ''))
 
 /** 显示描述 */
-const displayDescription = computed(() => props.description || DEFAULT_MESSAGES[props.state]?.description || '')
+const displayDescription = computed(() => props.description || (DEFAULT_MESSAGES[props.state]?.descriptionKey
+  ? t(DEFAULT_MESSAGES[props.state].descriptionKey) : ''))
 
 const EMPTY_ILLUSTRATIONS = Object.freeze({
   [EmptyType.CART]: 'empty-cart',

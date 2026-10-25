@@ -1,26 +1,27 @@
 <template>
   <view class="quantity-stepper" :class="[`size-${size}`, { 'is-disabled': disabled }]">
-    <button class="stepper-button" :disabled="minusDisabled" aria-label="减少数量" @tap="decrease">
+    <button class="stepper-button" :disabled="minusDisabled" :aria-label="t('common.ui.decrease')" @tap="decrease">
       <text class="stepper-symbol">−</text>
     </button>
     <input
       v-if="allowInput"
       class="stepper-value"
       type="number"
-      :value="modelValue"
+      :value="inputValue"
       :disabled="disabled"
       @input="handleInput"
       @blur="handleBlur"
     />
     <text v-else class="stepper-value">{{ modelValue }}</text>
-    <button class="stepper-button" :disabled="plusDisabled" aria-label="增加数量" @tap="increase">
+    <button class="stepper-button" :disabled="plusDisabled" :aria-label="t('common.ui.increase')" @tap="increase">
       <text class="stepper-symbol">＋</text>
     </button>
   </view>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { t } from '@/shared/i18n/index.js'
+import { computed, nextTick, ref, watch } from 'vue'
 
 const props = defineProps({
   modelValue: { type: Number, default: 0 },
@@ -30,16 +31,22 @@ const props = defineProps({
   disabled: { type: Boolean, default: false },
   allowInput: { type: Boolean, default: false },
   allowZero: { type: Boolean, default: false },
-  size: { type: String, default: 'md', validator: value => ['sm', 'md', 'lg'].includes(value) },
+  size: { type: String, default: 'md', validator: value => ['sm', 'md', 'lg', 'compact'].includes(value) },
 })
 
 const emit = defineEmits(['update:modelValue', 'change', 'minus', 'plus'])
+const inputValue = ref(props.modelValue)
+let inputRevision = 0
+
+/** 外部数量更新时同步显示，不依赖父值发生变化来纠正超限输入。 */
+watch(() => props.modelValue, value => { inputRevision += 1; inputValue.value = value })
 const minusDisabled = computed(() => props.disabled || (props.allowZero ? props.modelValue <= 0 : props.modelValue <= props.min))
 const plusDisabled = computed(() => props.disabled || props.modelValue >= props.max)
 
 /** 将任意输入限制为当前数量控件允许的整数。 */
 function normalize(value) {
   const parsed = Math.floor(Number(value)) || 0
+  if (props.allowZero && props.max <= 0) return 0
   if (props.allowZero && parsed <= 0) return 0
   return Math.max(props.min, Math.min(props.max, parsed))
 }
@@ -68,12 +75,23 @@ function increase() {
 
 /** 输入过程中只更新受控值，失焦时再发出最终 change 事件。 */
 function handleInput(event) {
-  emit('update:modelValue', normalize(event.detail.value))
+  if (props.disabled) { inputValue.value = props.modelValue; return }
+  const revision = ++inputRevision
+  const raw = event?.detail?.value ?? event?.target?.value ?? ''
+  const next = normalize(raw)
+  inputValue.value = raw
+  emit('update:modelValue', next)
+  nextTick(() => { if (revision === inputRevision) inputValue.value = next })
 }
 
 /** 直接输入结束后提交规范化整数。 */
 function handleBlur(event) {
-  const next = normalize(event.detail.value)
+  if (props.disabled) { inputValue.value = props.modelValue; return }
+  const revision = ++inputRevision
+  const raw = event?.detail?.value ?? event?.target?.value ?? ''
+  const next = normalize(raw)
+  inputValue.value = raw
+  nextTick(() => { if (revision === inputRevision) inputValue.value = next })
   emit('update:modelValue', next)
   emit('change', next)
 }
@@ -99,6 +117,11 @@ function handleBlur(event) {
     .stepper-button { width: 44px; height: 44px; border-radius: var(--radius-control, 10px); }
     .stepper-symbol { font-size: 22px; }
     .stepper-value { width: 56px; height: 44px; font-size: 16px; }
+  }
+  &.size-compact {
+    .stepper-button { width: 44px; height: 44px; flex: 0 0 44px; background: transparent; border-radius: 8px; }
+    .stepper-symbol { display: flex; width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: 7px; background: var(--surface-page, #f4f5f8); font-size: 16px; }
+    .stepper-value { width: 36px; height: 44px; flex: 0 0 36px; border: 0; font-size: 14px; }
   }
 }
 

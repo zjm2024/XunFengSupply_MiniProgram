@@ -1,13 +1,16 @@
+import { t } from '@/shared/i18n/index.js'
+import '../i18n/register.js'
+
 /**
  * 客户端订单动作展示定义。
  * 是否可展示、可执行由服务端 AllowedActions 决定；此处仅负责统一 UI 文案和样式。
  */
 const ACTION_BUTTONS = Object.freeze({
-  pay: { key: 'pay', label: '立即付款', type: 'primary' },
-  cancel: { key: 'cancel', label: '取消订单', type: 'secondary' },
-  viewLogistics: { key: 'viewLogistics', label: '查看物流', type: 'secondary' },
-  confirmReceipt: { key: 'confirmReceipt', label: '确认收货', type: 'primary' },
-  afterSale: { key: 'afterSale', label: '申请售后', type: 'secondary' },
+  pay: { key: 'pay', labelKey: 'order.actions.pay', type: 'primary' },
+  cancel: { key: 'cancel', labelKey: 'order.actions.cancel', type: 'secondary' },
+  viewLogistics: { key: 'viewLogistics', labelKey: 'order.actions.viewLogistics', type: 'secondary' },
+  confirmReceipt: { key: 'confirmReceipt', labelKey: 'order.actions.confirmReceipt', type: 'primary' },
+  afterSale: { key: 'afterSale', labelKey: 'order.actions.afterSale', type: 'secondary' },
 })
 
 /**
@@ -17,5 +20,8 @@ const ACTION_BUTTONS = Object.freeze({
  */
 export function getOrderActionButtons(actions) {
   if (!Array.isArray(actions)) return []
-  return actions.map(action => ACTION_BUTTONS[action]).filter(Boolean)
+  return actions
+    .map(action => Object.prototype.hasOwnProperty.call(ACTION_BUTTONS, action) ? ACTION_BUTTONS[action] : null)
+    .filter(Boolean)
+    .map(action => ({ key: action.key, label: t(action.labelKey), type: action.type }))
 }

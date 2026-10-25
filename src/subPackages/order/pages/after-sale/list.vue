@@ -2,7 +2,7 @@
   <AppPageShell>
     <template #header>
       <view class="after-sale-header">
-        <AppHeader title="售后服务" :show-back="true" />
+        <AppHeader :title="t('order.titles.afterSale')" :show-back="true" />
           <view class="filter-panel">
             <StatusTabBar :items="statusTabs" :model-value="currentStatus" :max-width="700" @change="switchStatus" />
           </view>
@@ -33,9 +33,9 @@
           <AppPageState
             v-else-if="loadError && afterSaleList.length === 0"
             state="error"
-            title="售后记录加载失败"
-            :description="loadError"
-            action-text="重新加载"
+            :title="t('order.afterSaleList.loadFailed')"
+            :description="loadErrorText"
+            :action-text="t('common.retry')"
             compact
             @retry="resetAndLoad"
           />
@@ -49,7 +49,7 @@
                     <text class="type-tag">{{ getTypeLabel(item.afterSaleType) }}</text>
                     <text class="after-sale-no">{{ item.afterSaleNo }}</text>
                   </view>
-                  <text class="order-no">采购订单 {{ item.orderNo || '-' }}</text>
+                  <text class="order-no">{{ t('order.afterSaleList.orderNo') }} {{ item.orderNo || '-' }}</text>
                 </view>
                 <StatusTag :type="getStatusType(item.status)" :text="getStatusLabel(item.status)" />
               </view>
@@ -57,9 +57,9 @@
               <view class="goods-row">
                 <AppProductImage class="goods-image" :src="item.firstItemImageUrl" mode="aspectFill" />
                 <view class="goods-copy">
-                  <text class="goods-name">{{ item.firstItemProductName || '售后商品' }}</text>
-                  <text class="goods-count">{{ item.itemCount || 1 }} 种商品 · {{ formatDate(item.createdAt) }}</text>
-                  <text class="reason">{{ item.reason || '未填写补充原因' }}</text>
+                  <text class="goods-name">{{ item.firstItemProductName || t('order.afterSaleList.productFallback') }}</text>
+                  <text class="goods-count">{{ t('order.afterSaleList.goodsCount', { count: item.itemCount || 1, date: formatDate(item.createdAt) }) }}</text>
+                  <text class="reason">{{ item.reason || t('order.afterSaleList.reasonFallback') }}</text>
                 </view>
               </view>
 
@@ -74,12 +74,12 @@
 
               <view class="card-footer">
                 <view class="refund-amount">
-                  <text>申请退款</text>
-                  <text>¥{{ formatMoney(item.refundAmount) }}</text>
+                  <text>{{ t('order.afterSaleList.refundRequested') }}</text>
+                  <AmountText :text="'¥' + (formatMoney(item.refundAmount))" />
                 </view>
                 <view class="actions">
-                  <button v-if="canCancel(item.status)" class="action-btn secondary" @tap="confirmCancel(item)">取消申请</button>
-                  <button class="action-btn secondary" @tap="viewOrder(item)">查看订单</button>
+                  <button v-if="canCancel(item.status)" class="action-btn secondary" @tap="confirmCancel(item)">{{ t('order.afterSaleList.cancel') }}</button>
+                  <button class="action-btn secondary" @tap="viewOrder(item)">{{ t('order.afterSaleList.viewOrder') }}</button>
                 </view>
               </view>
               </view>
@@ -90,13 +90,13 @@
           <AppPageState
             v-else
             state="empty"
-            title="暂无售后记录"
-            description="如需售后，请从已完成订单中发起申请"
+            :title="t('order.afterSaleList.emptyTitle')"
+            :description="t('order.afterSaleList.emptyDescription')"
             icon-type="order"
             compact
           >
             <template #actions>
-              <button class="empty-action" @tap="viewCompletedOrders">查看已完成订单</button>
+              <button class="empty-action" @tap="viewCompletedOrders">{{ t('order.afterSaleList.viewCompletedOrders') }}</button>
             </template>
           </AppPageState>
 
@@ -107,6 +107,9 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/order/i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, reactive, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { ORDER_STATUS } from '@/app/config/constant.js'
@@ -124,21 +127,24 @@ import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
 import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import { formatDate } from '../../../../shared/utils/format.js'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
+import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 
 const STATUS = Object.freeze({ APPLIED: 0, PENDING_REVIEW: 1, PENDING_RETURN: 2, RETURNING: 3, RECEIVED: 4, REFUNDING: 5, COMPLETED: 6, REJECTED: 7, FAILED: 8, CLOSED: 9 })
-const statusTabs = [
-  { value: null, label: '全部' },
+const statusTabs = computed(() => [
+  { value: null, label: t('order.afterSaleList.all') },
   { value: STATUS.PENDING_REVIEW, label: '待审核' },
   { value: STATUS.PENDING_RETURN, label: '待退货' },
   { value: STATUS.RETURNING, label: '退货中' },
   { value: STATUS.REFUNDING, label: '退款中' },
   { value: STATUS.COMPLETED, label: '已完成' },
-]
+])
 const currentStatus = ref(null)
 const afterSaleList = ref([])
 const loading = ref(false)
 const isRefreshing = ref(false)
 const loadError = ref('')
+const loadErrorText = computed(() => loadError.value?.message
+  || (loadError.value?.key ? t(loadError.value.key) : ''))
 const hasMore = ref(true)
 const totalCount = ref(0)
 const loadMoreError = ref(false)
@@ -184,6 +190,7 @@ function handleRefresherRestore() {
   if (!loading.value) isRefreshing.value = false
 }
 
+/** 读取售后列表，保留错误对象让已有页面按当前语言显示。 */
 async function loadRecords() {
   if (loading.value || !hasMore.value) return
   loading.value = true
@@ -196,7 +203,7 @@ async function loadRecords() {
     hasMore.value = afterSaleList.value.length < totalCount.value
     loadMoreError.value = false
   } catch (error) {
-    loadError.value = error?.message || '请检查网络后重试'
+    loadError.value = error?.message ? error : { key: 'order.afterSaleList.networkFailed' }
     if (page.current > 1) page.current--
     if (page.current > 1 || afterSaleList.value.length) loadMoreError.value = true
   } finally {
@@ -210,7 +217,8 @@ function loadMore() {
   loadRecords()
 }
 
-function getTypeLabel(type) { return ({ 1: '仅退款', 2: '退货退款' })[type] || '售后申请' }
+/** 仅格式化售后申请类型名称，状态投影仍沿用原显示来源。 */
+function getTypeLabel(type) { return ({ 1: t('order.afterSale.onlyRefund'), 2: t('order.afterSale.returnRefund') })[type] || t('order.afterSaleList.request') }
 function getStatusLabel(status) {
   return ({ 0: '已申请', 1: '待审核', 2: '待退货', 3: '退货中', 4: '已收货', 5: '退款中', 6: '已完成', 7: '已驳回', 8: '处理失败', 9: '已关闭' })[status] || '状态更新中'
 }
@@ -245,22 +253,20 @@ function formatMoney(value) {
 }
 function viewOrder(item) { navigator.navigateTo(routes.order.detail(item.orderId)) }
 function viewCompletedOrders() { navigator.navigateTo(routes.order.list({ status: ORDER_STATUS.COMPLETED })) }
-function confirmCancel(item) {
-  uni.showModal({
-    title: '取消售后申请',
-    content: `确定取消售后单 ${item.afterSaleNo} 吗？`,
-    confirmText: '确认取消',
-    success: async result => {
-      if (!result.confirm) return
-      try {
-        await cancelAfterSale({ afterSaleId: item.afterSaleId, reason: '经销商主动取消' })
-        uni.showToast({ title: '申请已取消', icon: 'success' })
-        resetAndLoad()
-      } catch (error) {
-        uni.showToast({ title: error?.message || '取消失败', icon: 'none' })
-      }
-    },
-  })
+/** 确认取消当前售后申请，提交固定审计原因并刷新原列表。 */
+async function confirmCancel(item) {
+  if (!await openAppDialog({
+    title: t('order.afterSaleList.cancelTitle'),
+    description: t('order.afterSaleList.cancelContent', { number: item.afterSaleNo }),
+    confirmText: t('order.afterSaleList.confirmCancel'),
+  })) return
+  try {
+    await cancelAfterSale({ afterSaleId: item.afterSaleId, reason: '经销商主动取消' })
+    uni.showToast({ title: t('order.afterSaleList.cancelled'), icon: 'success' })
+    resetAndLoad()
+  } catch (error) {
+    uni.showToast({ title: error?.message || t('order.afterSaleList.cancelFailed'), icon: 'none' })
+  }
 }
 </script>
 
@@ -292,7 +298,7 @@ function confirmCancel(item) {
 .card-footer { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #EEF0F2; }
 .refund-amount text { display: block; }
 .refund-amount text:first-child { color: #989DA5; font-size: 9px; }
-.refund-amount text:last-child { margin-top: 4px; color: #22262B; font-size: 16px; font-weight: 730; }
+.refund-amount > .amount-text { margin-top: 4px; color: #22262B; font-size: 16px; font-weight: 730; }
 .actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
 .action-btn, .empty-action { display: inline-flex; min-width: 76px; height: 34px; align-items: center; justify-content: center; margin: 0; padding: 0 13px; border: 1px solid #DDE0E3; border-radius: 11px; color: #555C66; background: #FFF; font-size: 11px; line-height: 1; }
 .action-btn::after, .empty-action::after { border: 0; }
@@ -308,4 +314,7 @@ function confirmCancel(item) {
 @media screen and (max-width: 380px) {
   .filter-panel { padding-right: 10px; padding-left: 10px; }
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.refund-amount { min-width: 0; max-width: 65%; }
 </style>

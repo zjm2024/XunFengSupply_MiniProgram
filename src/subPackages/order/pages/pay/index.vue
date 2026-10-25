@@ -6,42 +6,42 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="订单支付" :show-back="true" />
+      <AppHeader :title="t('order.titles.pay')" :show-back="true" />
     </template>
     <template #content>
       <AppContent>
         <view class="pay-page">
           <!-- 支付金额与付款时限 -->
           <view class="amount-section">
-            <text class="pay-label">{{ payMode === 1 ? '应付金额' : '赊账金额' }}</text>
-            <text class="amount">¥{{ Number(payAmount || 0).toFixed(2) }}</text>
-            <text class="order-no">订单号 {{ orderNo }}</text>
+            <text class="pay-label">{{ payMode === PAYMENT_MODE.CASH ? t('order.pay.amountDue') : t('order.pay.creditAmount') }}</text>
+            <AmountText class="amount" :text="'¥' + (Number(payAmount || 0).toFixed(2))" />
+            <text class="order-no">{{ t('order.pay.orderNo') }} {{ orderNo }}</text>
             <view v-if="confirmationPending" class="deadline-panel">
               <view class="deadline-copy">
-                <text class="deadline-label">订单确认中</text>
-                <text class="deadline-note">现在可以支付；暂不支付将在确认通过后开始计算付款时限</text>
+                <text class="deadline-label">{{ t('order.pay.confirmationPending') }}</text>
+                <text class="deadline-note">{{ t('order.pay.confirmationNote') }}</text>
               </view>
               <AppIcon name="info" :size="18" color="#667085" />
             </view>
             <view v-else-if="!paymentExpired && remainTime > 0" class="deadline-panel">
               <view class="deadline-copy">
-                <text class="deadline-label">剩余支付时间</text>
-                <text class="deadline-note">逾期订单将自动关闭</text>
+                <text class="deadline-label">{{ t('order.pay.timeRemaining') }}</text>
+                <text class="deadline-note">{{ t('order.pay.timeoutNote') }}</text>
               </view>
               <text class="deadline-time">{{ formatRemainTime }}</text>
             </view>
             <view v-else-if="paymentExpired" class="deadline-panel is-expired">
               <view class="deadline-copy">
-                <text class="deadline-label">支付时间已结束</text>
-                <text class="deadline-note">请返回订单详情查看处理结果</text>
+                <text class="deadline-label">{{ t('order.pay.paymentEnded') }}</text>
+                <text class="deadline-note">{{ t('order.pay.paymentEndedNote') }}</text>
               </view>
               <AppIcon name="warning" :size="18" color="#B42318" />
             </view>
           </view>
 
           <view class="pay-methods mode-panel">
-            <view class="method-title">选择支付方式</view>
-            <text class="method-tip">支付方式仅在本次收银台确认时生效</text>
+            <view class="method-title">{{ t('order.pay.chooseMethod') }}</view>
+            <text class="method-tip">{{ t('order.pay.methodEffective') }}</text>
             <button
               v-for="method in paymentModeOptions"
               :key="method.value"
@@ -60,8 +60,8 @@
           </view>
 
           <view v-if="payMode === PAYMENT_MODE.CASH" class="pay-methods channel-panel">
-            <view class="method-title">在线支付通道</view>
-            <text class="method-tip">请选择常用支付方式；通道开通后可在此直接支付</text>
+            <view class="method-title">{{ t('order.pay.onlineChannel') }}</view>
+            <text class="method-tip">{{ t('order.pay.channelTip') }}</text>
             <button
               v-for="channel in cashPaymentMethods"
               :key="channel.key"
@@ -83,37 +83,37 @@
           <view class="credit-info" v-if="payMode === 2">
             <view class="credit-card-display">
               <view class="credit-header">
-                <text class="credit-title">授信账户</text>
+                <text class="credit-title">{{ t('order.pay.creditAccount') }}</text>
                 <text v-if="userStore.creditLevel" class="credit-level">{{ userStore.creditLevel }}</text>
               </view>
               <view class="credit-rows">
             <view class="credit-row">
-                <text class="cr-label">本次赊账</text>
-                <text class="cr-value primary">¥{{ Number(payAmount || 0).toFixed(2) }}</text>
+                <text class="cr-label">{{ t('order.pay.creditAmountLabel') }}</text>
+                <AmountText class="cr-value primary" :text="'¥' + (Number(payAmount || 0).toFixed(2))" />
               </view>
               <view class="credit-row">
-                <text class="cr-label">当前可用额度</text>
-                <text class="cr-value">¥{{ availableCreditAmount.toFixed(2) }}</text>
+                <text class="cr-label">{{ t('order.pay.availableCredit') }}</text>
+                <AmountText class="cr-value" :text="'¥' + (availableCreditAmount.toFixed(2))" />
               </view>
               <view class="credit-row">
-                <text class="cr-label">赊账后剩余额度</text>
-                <text class="cr-value warn">¥{{ Math.max(0, availableCreditAmount - Number(payAmount || 0)).toFixed(2) }}</text>
+                <text class="cr-label">{{ t('order.pay.remainingCredit') }}</text>
+                <AmountText class="cr-value warn" :text="'¥' + (Math.max(0, availableCreditAmount - Number(payAmount || 0)).toFixed(2))" />
               </view>
               </view>
               <view class="credit-tips">
                 <AppIcon name="info" :size="14" color="#999" />
-                <text>赊账金额将计入本月账单，请于每月5日前完成还款</text>
+                <text>{{ t('order.pay.creditTip') }}</text>
               </view>
             </view>
           </view>
 
           <view v-if="payMode === PAYMENT_MODE.CASH" class="channel-notice">
             <AppIcon name="info" :size="16" color="#B76500" />
-            <text>当前订单暂不支持在线付款，请联系客户经理处理。</text>
+            <text>{{ t('order.pay.cashUnavailableNotice') }}</text>
           </view>
 
           <view class="pay-methods" v-if="payMode === PAYMENT_MODE.COMBINATION">
-            <view class="method-title">账户余额分摊</view>
+            <view class="method-title">{{ t('order.pay.balanceAllocation') }}</view>
             <view
               v-for="account in availableAccounts"
               :key="account.accountCustomerId"
@@ -122,8 +122,8 @@
             >
               <checkbox :checked="isSelected(account)" color="#D7192D" />
               <view class="source-copy">
-                <text>{{ account.isMaster ? '主账户' : (account.realName || account.username) }}</text>
-                <text>可用 ¥{{ Number(account.availableBalance || 0).toFixed(2) }}</text>
+                <text>{{ account.isMaster ? t('order.pay.masterAccount') : (account.realName || account.username) }}</text>
+                <AmountText :text="t('order.pay.availableBalance', { amount: Number(account.availableBalance || 0).toFixed(2) })" />
               </view>
               <input
                 v-if="isSelected(account)"
@@ -136,8 +136,8 @@
               />
             </view>
             <view class="allocation-summary">
-              <text>已分配 ¥{{ allocationTotal.toFixed(2) }}</text>
-              <text>应付 ¥{{ Number(payAmount || 0).toFixed(2) }}</text>
+              <AmountText :text="t('order.pay.allocated', { amount: allocationTotal.toFixed(2) })" />
+              <AmountText :text="t('order.pay.payable', { amount: Number(payAmount || 0).toFixed(2) })" />
             </view>
           </view>
 
@@ -153,7 +153,7 @@
           :disabled="paying || !orderPayable || paymentExpired || (payMode === PAYMENT_MODE.CASH && !cashPaymentAvailable)"
           @click="handleConfirmPay"
         >
-          {{ paying ? '支付中...' : (paymentExpired ? '支付时间已结束' : (payMode === PAYMENT_MODE.CASH && !cashPaymentAvailable ? '暂不支持在线付款' : (payMode === PAYMENT_MODE.CREDIT ? '确认授信支付' : '确认支付'))) }}
+          {{ confirmButtonText }}
         </button>
       </FixedActionBar>
     </template>
@@ -161,6 +161,9 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/order/i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { ref, computed, onUnmounted } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getOrderDetail } from '../../api/orderApi.js'
@@ -175,6 +178,8 @@ import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { confirmDealerOrderPayment, getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
+import { AppError, ErrorKind } from '@/shared/api/appError.js'
+import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 
 const userStore = useUserStore()
 
@@ -212,15 +217,21 @@ const allocationTotal = computed(() => selectedAccountIds.value.reduce(
 ))
 const availableCreditAmount = computed(() => Math.max(0, Number(finance.value.credit?.availableAmount || 0)))
 const paymentModeOptions = computed(() => [
-  { value: PAYMENT_MODE.CASH, label: '现款支付', description: '线上微信、支付宝暂未接通订单直付', icon: 'pay-cash', disabled: true },
-  { value: PAYMENT_MODE.CREDIT, label: '授信支付', description: '使用经销商主体授信结算，生成应收账单', icon: 'pay-credit', disabled: Number(finance.value.credit?.status) !== 1 },
-  { value: PAYMENT_MODE.COMBINATION, label: '账户余额支付', description: '选择一个资金账户支付订单', icon: 'pay-combine', disabled: false },
+  { value: PAYMENT_MODE.CASH, label: t('order.pay.cash'), description: t('order.pay.cashDescription'), icon: 'pay-cash', disabled: true },
+  { value: PAYMENT_MODE.CREDIT, label: t('order.pay.credit'), description: t('order.pay.creditDescription'), icon: 'pay-credit', disabled: Number(finance.value.credit?.status) !== 1 },
+  { value: PAYMENT_MODE.COMBINATION, label: t('order.pay.balance'), description: t('order.pay.balanceDescription'), icon: 'pay-combine', disabled: false },
 ])
-const cashPaymentMethods = [
-  { key: 'wechat', label: '微信支付', description: '推荐使用微信安全支付', icon: 'pay-wechat' },
-  { key: 'alipay', label: '支付宝', description: '支付宝快捷支付', icon: 'pay-alipay' },
-  { key: 'bank-card', label: '银行卡支付', description: '支持已开通网银的银行卡', icon: 'bank' },
-]
+const cashPaymentMethods = computed(() => [
+  { key: 'wechat', label: t('order.pay.wechat'), description: t('order.pay.wechatDescription'), icon: 'pay-wechat' },
+  { key: 'alipay', label: t('order.pay.alipay'), description: t('order.pay.alipayDescription'), icon: 'pay-alipay' },
+  { key: 'bank-card', label: t('order.pay.bankCard'), description: t('order.pay.bankCardDescription'), icon: 'bank' },
+])
+const confirmButtonText = computed(() => {
+  if (paying.value) return t('order.pay.paying')
+  if (paymentExpired.value) return t('order.pay.paymentEnded')
+  if (payMode.value === PAYMENT_MODE.CASH && !cashPaymentAvailable) return t('order.pay.cashUnavailable')
+  return payMode.value === PAYMENT_MODE.CREDIT ? t('order.pay.confirmCredit') : t('order.pay.confirm')
+})
 onLoad(async (options) => {
   orderId.value = Number(options.orderId) || null
 
@@ -256,35 +267,33 @@ function startCountdown() {
   }, 1000)
 }
 
-function handlePaymentExpired() {
+async function handlePaymentExpired() {
   paymentExpired.value = true
   if (expireHandled) return
   expireHandled = true
-  uni.showModal({
-    title: '支付时间已结束',
-    content: '该订单已超过 15 分钟支付期限，请到订单详情查看后端最终处理状态。',
+  const confirmed = await openAppDialog({
+    title: t('order.pay.expiredTitle'),
+    description: t('order.pay.expiredContent'),
     showCancel: false,
-    success: () => {
-      navigator.redirectTo(routes.order.detail(orderId.value))
-    }
   })
+  if (confirmed) navigator.redirectTo(routes.order.detail(orderId.value))
 }
 
 /**
  * 订单已离开待付款状态时停止支付，并引导用户查看后端最终状态。
  */
-function handlePaymentUnavailable() {
+async function handlePaymentUnavailable() {
   orderPayable.value = false
   if (countdownTimer) {
     clearInterval(countdownTimer)
     countdownTimer = null
   }
-  uni.showModal({
-    title: '订单当前不可支付',
-    content: '订单状态已发生变化，请到订单详情查看处理结果。',
+  const confirmed = await openAppDialog({
+    title: t('order.pay.unavailableTitle'),
+    description: t('order.pay.unavailableContent'),
     showCancel: false,
-    success: () => navigator.redirectTo(routes.order.detail(orderId.value)),
   })
+  if (confirmed) navigator.redirectTo(routes.order.detail(orderId.value))
 }
 
 function syncPaymentCountdown(order) {
@@ -329,7 +338,7 @@ async function loadOrderInfo() {
     syncPaymentCountdown(res)
   } catch (e) {
     console.error('加载订单信息失败:', e)
-    uni.showToast({ title: e.message || '加载订单信息失败', icon: 'none' })
+    uni.showToast({ title: e.message || t('order.pay.loadOrderFailed'), icon: 'none' })
   }
 }
 
@@ -339,7 +348,7 @@ async function loadFinanceContext() {
     if (payMode.value === PAYMENT_MODE.COMBINATION) autoAllocate()
   } catch (error) {
     console.error('加载收银台资金信息失败:', error)
-    uni.showToast({ title: error?.message || '资金信息加载失败', icon: 'none' })
+    uni.showToast({ title: error?.message || t('order.pay.financeLoadFailed'), icon: 'none' })
   }
 }
 
@@ -368,7 +377,7 @@ async function handleConfirmPay() {
 
   try {
     if (payMode.value === PAYMENT_MODE.CREDIT) {
-      if (Number(finance.value.credit?.status) !== 1) throw new Error('主体授信当前不可用')
+      if (Number(finance.value.credit?.status) !== 1) throw localError('creditUnavailable')
       await confirmDealerOrderPayment({
         orderId: orderId.value,
         clientRequestId: `credit-pay-${orderId.value}-${Date.now()}`,
@@ -379,18 +388,18 @@ async function handleConfirmPay() {
       return handlePaid()
     }
     if (payMode.value === PAYMENT_MODE.COMBINATION) {
-      if (selectedAccountIds.value.length === 0) throw new Error('请至少选择一个余额账户')
+      if (selectedAccountIds.value.length === 0) throw localError('accountRequired')
       for (const id of selectedAccountIds.value) {
         const account = availableAccounts.value.find(item => item.accountCustomerId === id)
         const amount = Number(allocationAmounts.value[id])
-        if (!account) throw new Error('存在不可用的余额账户，请刷新后重试')
-        if (!Number.isFinite(amount) || amount <= 0) throw new Error('每个账户的分摊金额必须大于 0')
+        if (!account) throw localError('accountUnavailable')
+        if (!Number.isFinite(amount) || amount <= 0) throw localError('amountRequired')
         if (amount - Number(account.availableBalance || 0) > 0.005) {
-          throw new Error(`${account.isMaster ? '主账户' : (account.realName || account.username)}分摊金额超过可用余额`)
+          throw new AppError('', ErrorKind.UNKNOWN, { messageKey: 'order.pay.exceedsBalance', messageParameters: { name: account.isMaster ? t('order.pay.masterAccount') : (account.realName || account.username) } })
         }
       }
       if (Math.abs(allocationTotal.value - Number(payAmount.value)) >= 0.005) {
-        throw new Error('账户分摊合计必须等于订单应付金额')
+        throw localError('totalMismatch')
       }
       await confirmDealerOrderPayment({
         orderId: orderId.value,
@@ -404,10 +413,10 @@ async function handleConfirmPay() {
       })
       return handlePaid()
     }
-    throw new Error('现款支付渠道尚未完成生产联调')
+    throw localError('cashIntegration')
   } catch (e) {
     console.error('支付失败:', e)
-    uni.showToast({ title: e.message || '支付失败', icon: 'none' })
+    uni.showToast({ title: e.message || t('order.pay.failed'), icon: 'none' })
   } finally {
     paying.value = false
   }
@@ -439,8 +448,13 @@ function autoAllocate() {
   allocationAmounts.value[account.accountCustomerId] = amount.toFixed(2)
 }
 function handlePaid() {
-  uni.showToast({ title: '支付成功', icon: 'success' })
+  uni.showToast({ title: t('order.pay.paid'), icon: 'success' })
   setTimeout(() => navigator.redirectTo(routes.order.detail(orderId.value)), 500)
+}
+
+/** 创建支付页本地校验错误，使用 messageKey 让已存在页面随语言切换重新取词。 */
+function localError(key, messageParameters = {}) {
+  return new AppError('', ErrorKind.UNKNOWN, { messageKey: 'order.pay.' + key, messageParameters })
 }
 </script>
 
@@ -485,7 +499,7 @@ function handlePaid() {
 .credit-tips text { color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); line-height: var(--type-micro-line-height, 16px); }
 .balance-source { display: flex; min-height: 58px; align-items: center; gap: 10px; border-top: 1px solid #EEF0F2; }
 .source-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; gap: 3px; color: var(--type-body-color); font-size: var(--type-body-small-size, 13px); }
-.source-copy text + text { color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
+.source-copy .amount-text { color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
 .source-input { width: 92px; height: 36px; padding: 0 9px; border: 1px solid var(--color-border); border-radius: var(--radius-control); box-sizing: border-box; background: var(--surface-subtle); font-size: var(--type-body-size); text-align: right; }
 .allocation-summary { display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 1px solid #EEF0F2; color: var(--type-secondary-color); font-size: var(--type-caption-size, 12px); }
 .channel-notice { display: flex; align-items: flex-start; gap: 8px; margin-top: 14px; padding: 12px 14px; border-radius: var(--radius-control, 10px); color: #8A5200; background: #FFF8EB; font-size: var(--type-body-small-size, 13px); line-height: 20px; }
@@ -493,4 +507,11 @@ function handlePaid() {
 .confirm-pay-btn { display: flex; width: 100%; height: 48px; align-items: center; justify-content: center; margin: 0; border: 0; border-radius: var(--radius-card, 14px); color: #FFF; background: var(--color-brand, #D7192D); font-size: var(--type-button-size, 14px); font-weight: 700; line-height: 1; }
 .confirm-pay-btn[disabled] { color: #A8ABB2; background: #ECEEF2; opacity: 1; }
 @media (min-width: 800px) { .pay-page { padding: 20px 20px 40px; } .amount-section { padding: 30px 28px 22px; } .pay-methods, .credit-info { padding: 20px 22px; } }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.credit-card-display, .credit-rows, .allocation-summary { min-width: 0; }
+.credit-card-display { width: 100%; }
+.allocation-summary { flex-wrap: wrap; gap: 6px 12px; }
+.allocation-summary .amount-text { font-size: inherit; }
+.amount { margin-left: auto; margin-right: auto; }
 </style>

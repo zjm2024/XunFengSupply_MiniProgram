@@ -5,18 +5,19 @@
       class="brand-logo" 
       src="/static/images/logo-v.png" 
       mode="aspectFit"
-      alt="薰风logo"
+      :alt="t('main.startup.logoAlt')"
     ></image>
     
     <!-- 品牌名 -->
     <text class="brand-name">薰风</text>
     
     <!-- 副标题 -->
-    <text class="brand-subtitle">经销商订货平台</text>
+    <text class="brand-subtitle">{{ t('main.startup.platform') }}</text>
   </view>
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
 /**
  * StartupBrand - 品牌展示组件
  * 仅负责品牌 Logo、品牌名及副文案展示

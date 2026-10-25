@@ -24,13 +24,13 @@
       </view>
       
       <!-- 操作按钮 -->
-      <view class="popup-actions">
+      <view class="popup-actions" :class="{ 'is-single': !showCancel }">
         <button 
           v-if="showCancel" 
           class="action-btn btn-cancel" 
           @click="handleCancel"
         >
-          {{ cancelText }}
+          {{ cancelText ?? t('common.cancel') }}
         </button>
         <button 
           class="action-btn btn-confirm" 
@@ -38,7 +38,7 @@
           :disabled="confirmDisabled"
           @click="handleConfirm"
         >
-          {{ confirmText }}
+          {{ confirmText ?? t('common.ui.confirmAction') }}
         </button>
       </view>
       
@@ -50,6 +50,7 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { t } from '@/shared/i18n/index.js'
 
 const props = defineProps({
   // 是否显示
@@ -75,12 +76,12 @@ const props = defineProps({
   // 取消按钮文字
   cancelText: {
     type: String,
-    default: '取消'
+    default: null
   },
   // 确认按钮文字
   confirmText: {
     type: String,
-    default: '确认'
+    default: null
   },
   // 是否显示取消按钮
   showCancel: {
@@ -104,7 +105,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue', 'confirm', 'cancel', 'close'])
+const emit = defineEmits(['update:modelValue', 'confirm', 'cancel', 'close', 'input'])
 
 const visible = ref(props.modelValue)
 
@@ -138,24 +139,29 @@ function handleOverlayClick() {
 <style lang="scss" scoped>
 .popup-overlay {
   position: fixed;
+  pointer-events: auto;
   inset: 0;
   z-index: var(--z-modal, 500);
   background: rgba(17, 18, 22, 0.52);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
+  padding: 20px;
   animation: xf-popup-fade-in 180ms ease-out both;
 }
 
 .popup-sheet {
   position: relative;
-  width: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: min(100%, 520px);
   max-width: 560px;
   max-height: 88vh;
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--modal-surface, #FFFFFF);
-  border-radius: 18px 18px 0 0;
-  padding: 22px 18px calc(18px + env(safe-area-inset-bottom));
+  border-radius: 18px;
+  padding: 24px 20px calc(18px + env(safe-area-inset-bottom));
   box-shadow: var(--shadow-lg, 0 12px 32px rgba(17, 18, 22, 0.12));
   transform-origin: center bottom;
   animation: xf-popup-sheet-in 260ms cubic-bezier(.2, .8, .2, 1) both;
@@ -199,6 +205,8 @@ function handleOverlayClick() {
 }
 
 .popup-content {
+  min-height: 0;
+  overflow-y: auto;
   margin-bottom: 18px;
 }
 
@@ -208,6 +216,8 @@ function handleOverlayClick() {
   font-weight: 600;
   color: var(--text-primary, #1B1C20);
   margin-bottom: 8px;
+  padding-right: 28px;
+  overflow-wrap: anywhere;
   line-height: 1.4;
 }
 
@@ -225,6 +235,20 @@ function handleOverlayClick() {
   border-radius: var(--radius-control, 10px);
 }
 
+.app-dialog-input {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  box-sizing: border-box;
+  margin: 4px 0 14px;
+  padding: 0 13px;
+  border: 1px solid #d9dce2;
+  border-radius: 10px;
+  color: var(--text-primary, #1b1c20);
+  background: #f8f9fa;
+  font-size: 15px;
+}
+
 .preview-text {
   font-size: 13px;
   color: var(--text-secondary, #62666F);
@@ -233,12 +257,19 @@ function handleOverlayClick() {
 
 .popup-actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  flex: 0 0 auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 10px;
 }
+.popup-actions.is-single { grid-template-columns: minmax(0, 1fr); }
 
 .action-btn {
-  height: var(--control-height, 48px);
+  min-width: 0;
+  min-height: var(--control-height, 48px);
+  height: auto;
+  padding: 12px 10px;
+  line-height: 20px;
+  white-space: normal;
   border-radius: var(--radius-control, 10px);
   font-size: 15px;
   font-weight: 650;

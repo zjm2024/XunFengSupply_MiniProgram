@@ -5,38 +5,43 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="提交签约资料" :show-back="true" :show-shadow="true" />
+      <AppHeader :title="t('auth.titles.apply')" :show-back="true" :show-shadow="true" />
     </template>
 
     <template #content>
       <AppContent :scroll-into-view="scrollTarget">
         <view class="apply-page">
-          <view v-if="applicationState" class="application-status-card">
-            <view class="application-status-badge" :class="`status-${applicationState.status}`">
-              <AppIcon :name="applicationState.status === 'pending' ? 'shield-check' : 'lock'" :size="28" color="#D7192D" />
+          <view v-if="applicationState" class="application-status-card" :class="`status-${applicationState.status}`">
+            <view class="status-hero">
+              <view class="application-status-badge">
+                <AppIcon :name="applicationState.status === 'approved' ? 'shield-check' : applicationState.status === 'rejected' ? 'info' : 'clock'" :size="30" color="currentColor" />
+              </view>
+              <text class="status-eyebrow">{{ t('auth.apply.eyebrow') }}</text>
+              <text class="application-status-title">{{ applicationStatusTitle }}</text>
+              <text class="application-status-description">{{ applicationStatusDescription }}</text>
             </view>
-            <text class="application-status-title">{{ applicationStatusTitle }}</text>
-            <text class="application-status-description">{{ applicationStatusDescription }}</text>
+            <view class="application-receipt">
+              <view v-if="applicationState.companyName" class="receipt-row"><text class="receipt-label">{{ t('auth.apply.company') }}</text><text class="receipt-value">{{ applicationState.companyName }}</text></view>
+              <view v-if="applicationState.mobile" class="receipt-row"><text class="receipt-label">{{ t('auth.apply.loginAccount') }}</text><text class="receipt-value">{{ applicationState.mobile }}</text></view>
+              <view v-if="applicationState.applicationId" class="receipt-row"><text class="receipt-label">{{ t('auth.apply.applicationNo') }}</text><text class="receipt-value">{{ applicationState.applicationId }}</text></view>
+              <view v-if="applicationState.submittedAt" class="receipt-row"><text class="receipt-label">{{ t('auth.apply.submittedAt') }}</text><text class="receipt-value">{{ formatDateTime(applicationState.submittedAt) }}</text></view>
+            </view>
             <view class="application-timeline">
-              <view class="timeline-step active">
-                <view class="timeline-dot">✓</view>
-                <text>资料已提交</text>
-              </view>
-              <view class="timeline-line active"></view>
-              <view class="timeline-step" :class="{ active: applicationState.status === 'approved', current: applicationState.status === 'pending' }">
-                <view class="timeline-dot">{{ applicationState.status === 'approved' ? '✓' : '2' }}</view>
-                <text>{{ applicationState.status === 'approved' ? '审核通过' : '平台审核' }}</text>
-              </view>
+              <view class="timeline-step completed"><view class="timeline-dot"><AppIcon name="check" :size="14" color="#fff" /></view><view><text class="timeline-title">资料已提交</text><text class="timeline-copy">申请资料已收到</text></view></view>
+              <view class="timeline-step" :class="{ current: applicationState.status === 'pending', completed: applicationState.status === 'approved' }"><view class="timeline-dot">2</view><view><text class="timeline-title">{{ applicationState.status === 'rejected' ? '审核未通过' : '平台审核' }}</text><text class="timeline-copy">{{ applicationState.status === 'pending' ? '请耐心等待审核结果' : applicationState.status === 'approved' ? '审核通过，可以登录' : '请完善资料后重新提交' }}</text></view></view>
             </view>
-            <text v-if="applicationState.companyName" class="application-company">{{ applicationState.companyName }}</text>
-            <button v-if="applicationState.status === 'rejected'" class="status-action" @tap="resetApplicationState">重新提交申请</button>
-            <button v-else class="status-action secondary" @tap="leaveApplicationStatus">返回</button>
+            <view class="status-actions">
+              <button v-if="applicationState.status === 'rejected'" class="status-action button-center" :loading="statusRefreshing" :disabled="statusRefreshing" @tap="resetApplicationState">{{ t('auth.apply.editResubmit') }}</button>
+              <button v-else-if="applicationState.status === 'approved'" class="status-action button-center" @tap="goToLogin">{{ t('auth.apply.goLogin') }}</button>
+              <button v-else class="status-action button-center" :loading="statusRefreshing" :disabled="statusRefreshing" @tap="refreshApplicationStatus">{{ t('auth.apply.refreshStatus') }}</button>
+              <button class="status-action secondary button-center" @tap="leaveApplicationStatus">{{ t('auth.apply.returnLogin') }}</button>
+            </view>
           </view>
           <template v-else>
-          <view class="progress-card" aria-label="签约进度">
+          <view class="progress-card" :aria-label="t('auth.apply.progress')">
             <view class="progress-step active">
               <view class="step-dot">1</view>
-              <text class="step-name">资料提交</text>
+              <text class="step-name">{{ t('auth.apply.stepSubmit') }}</text>
             </view>
             <view class="progress-line"></view>
             <view class="progress-step">
@@ -46,104 +51,120 @@
           </view>
 
           <view class="form-card">
+            <view class="section-heading"><view class="heading-accent"></view><view><text class="section-title">{{ t('auth.apply.passwordSection') }}</text><text class="section-description">{{ t('auth.apply.passwordNote') }}</text></view></view>
+            <view class="form-grid">
+              <view id="field-password" class="form-item">
+                <text class="field-label"><text class="required">*</text>{{ formData.applicationId ? t('auth.apply.originalPassword') : t('auth.apply.password') }}</text>
+                <input v-model="formData.password" class="form-control" :class="{ error: errors.password }" password maxlength="64" :placeholder="t('auth.apply.passwordPlaceholder')" :placeholder-style="placeholderStyle" @input="clearFieldError('password')" @blur="validateField('password')" />
+                <text v-if="errors.password" class="field-error">{{ displayError(errors.password) }}</text>
+              </view>
+              <view id="field-confirmPassword" class="form-item">
+                <text class="field-label"><text class="required">*</text>{{ t('auth.apply.confirmPassword') }}</text>
+                <input v-model="formData.confirmPassword" class="form-control" :class="{ error: errors.confirmPassword }" password maxlength="64" :placeholder="t('auth.apply.confirmPasswordPlaceholder')" :placeholder-style="placeholderStyle" @input="clearFieldError('confirmPassword')" @blur="validateField('confirmPassword')" />
+                <text v-if="errors.confirmPassword" class="field-error">{{ displayError(errors.confirmPassword) }}</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="form-card">
             <view class="section-heading">
               <view class="heading-accent"></view>
               <view>
-                <text class="section-title">企业与联系人</text>
-                <text class="section-description">请填写营业执照及负责人对应的真实信息</text>
+                <text class="section-title">{{ t('auth.apply.companyContact') }}</text>
+                <text class="section-description">{{ t('auth.apply.companyContactNote') }}</text>
               </view>
             </view>
 
             <view class="form-grid">
               <view id="field-companyName" class="form-item full">
-                <text class="field-label"><text class="required">*</text>公司名称</text>
+                <text class="field-label"><text class="required">*</text>{{ t('auth.apply.companyName') }}</text>
                 <input
                   v-model="formData.companyName"
                   class="form-control"
                   :class="{ error: errors.companyName }"
                   maxlength="120"
-                  placeholder="请输入营业执照上的公司名称"
+                  :placeholder="t('auth.apply.companyPlaceholder')"
                   :placeholder-style="placeholderStyle"
                   @input="clearFieldError('companyName')"
                   @blur="validateField('companyName')"
                 />
-                <text v-if="errors.companyName" class="field-error">{{ errors.companyName }}</text>
+                <text v-if="errors.companyName" class="field-error">{{ displayError(errors.companyName) }}</text>
               </view>
 
               <view id="field-contactName" class="form-item">
-                <text class="field-label"><text class="required">*</text>联系人姓名</text>
+                <text class="field-label"><text class="required">*</text>{{ t('auth.apply.contactName') }}</text>
                 <input
                   v-model="formData.contactName"
                   class="form-control"
                   :class="{ error: errors.contactName }"
                   maxlength="50"
-                  placeholder="请输入联系人姓名"
+                  :placeholder="t('auth.apply.contactPlaceholder')"
                   :placeholder-style="placeholderStyle"
                   @input="clearFieldError('contactName')"
                   @blur="validateField('contactName')"
                 />
-                <text v-if="errors.contactName" class="field-error">{{ errors.contactName }}</text>
+                <text v-if="errors.contactName" class="field-error">{{ displayError(errors.contactName) }}</text>
               </view>
 
               <view id="field-mobile" class="form-item">
-                <text class="field-label"><text class="required">*</text>手机号码</text>
+                <text class="field-label"><text class="required">*</text>{{ t('auth.apply.mobile') }}</text>
                 <input
                   v-model="formData.mobile"
                   class="form-control"
                   :class="{ error: errors.mobile }"
                   type="number"
                   maxlength="11"
-                  placeholder="请输入11位手机号码"
+                  :placeholder="t('auth.apply.mobilePlaceholder')"
                   :placeholder-style="placeholderStyle"
                   @input="clearFieldError('mobile')"
                   @blur="validateField('mobile')"
                 />
-                <text v-if="errors.mobile" class="field-error">{{ errors.mobile }}</text>
+                <text v-if="errors.mobile" class="field-error">{{ displayError(errors.mobile) }}</text>
               </view>
 
               <view id="field-landlinePhone" class="form-item">
-                <text class="field-label"><text class="required">*</text>固定电话</text>
+                <text class="field-label"><text class="required">*</text>{{ t('auth.apply.landline') }}</text>
                 <input
                   v-model="formData.landlinePhone"
                   class="form-control"
                   :class="{ error: errors.landlinePhone }"
                   maxlength="20"
-                  placeholder="如：0571-88888888"
+                  :placeholder="t('auth.apply.landlinePlaceholder')"
                   :placeholder-style="placeholderStyle"
                   @input="clearFieldError('landlinePhone')"
                   @blur="validateField('landlinePhone')"
                 />
-                <text v-if="errors.landlinePhone" class="field-error">{{ errors.landlinePhone }}</text>
+                <text v-if="errors.landlinePhone" class="field-error">{{ displayError(errors.landlinePhone) }}</text>
               </view>
 
               <view id="field-taxNo" class="form-item">
-                <text class="field-label">统一社会信用代码<text class="optional">（选填）</text></text>
+                <text class="field-label">{{ t('auth.apply.taxNo') }}<text class="optional">{{ t('auth.apply.optional') }}</text></text>
                 <input
                   v-model="formData.taxNo"
                   class="form-control"
                   :class="{ error: errors.taxNo }"
                   maxlength="32"
-                  placeholder="请输入统一社会信用代码"
+                  :placeholder="t('auth.apply.taxPlaceholder')"
                   :placeholder-style="placeholderStyle"
                   @input="clearFieldError('taxNo')"
                   @blur="validateField('taxNo')"
                 />
-                <text v-if="errors.taxNo" class="field-error">{{ errors.taxNo }}</text>
+                <text v-if="errors.taxNo" class="field-error">{{ displayError(errors.taxNo) }}</text>
               </view>
 
               <view id="field-email" class="form-item full">
-                <text class="field-label">联系邮箱<text class="optional">（选填）</text></text>
+                <text class="field-label">{{ t('auth.apply.email') }}<text class="optional">{{ t('auth.apply.optional') }}</text></text>
                 <input
                   v-model="formData.email"
                   class="form-control"
                   :class="{ error: errors.email }"
                   maxlength="100"
-                  placeholder="用于接收入驻通知"
+                  :placeholder="t('auth.apply.emailPlaceholder')"
                   :placeholder-style="placeholderStyle"
                   @input="clearFieldError('email')"
                   @blur="validateField('email')"
                 />
-                <text v-if="errors.email" class="field-error">{{ errors.email }}</text>
+                <text v-if="errors.email" class="field-error">{{ displayError(errors.email) }}</text>
               </view>
             </view>
           </view>
@@ -152,50 +173,50 @@
             <view class="section-heading">
               <view class="heading-accent"></view>
               <view>
-                <text class="section-title">经营地址</text>
-                <text class="section-description">省市区来自已启用的国标行政区划</text>
+                <text class="section-title">{{ t('auth.apply.addressSection') }}</text>
+                <text class="section-description">{{ t('auth.apply.addressNote') }}</text>
               </view>
             </view>
 
             <view class="form-grid">
               <view id="field-region" class="form-item full">
-                <text class="field-label"><text class="required">*</text>所在地区</text>
+                <text class="field-label"><text class="required">*</text>{{ t('auth.apply.region') }}</text>
                 <AreaCascadePicker
                   v-model="regionValue"
                   :error="Boolean(errors.region)"
                   @open="regionPickerVisible = true"
                 />
-                <text v-if="errors.region" class="field-error">{{ errors.region }}</text>
+                <text v-if="errors.region" class="field-error">{{ displayError(errors.region) }}</text>
               </view>
 
               <view id="field-addressDetail" class="form-item full">
-                <text class="field-label"><text class="required">*</text>详细地址</text>
+                <text class="field-label"><text class="required">*</text>{{ t('auth.apply.addressDetail') }}</text>
                 <textarea
                   v-model="formData.addressDetail"
                   class="form-textarea"
                   :class="{ error: errors.addressDetail }"
                   maxlength="200"
-                  placeholder="请输入街道、门牌号等详细地址"
+                  :placeholder="t('auth.apply.addressPlaceholder')"
                   :placeholder-style="placeholderStyle"
                   @input="clearFieldError('addressDetail')"
                   @blur="validateField('addressDetail')"
                 />
-                <text v-if="errors.addressDetail" class="field-error">{{ errors.addressDetail }}</text>
+                <text v-if="errors.addressDetail" class="field-error">{{ displayError(errors.addressDetail) }}</text>
               </view>
 
               <view id="field-registeredAddress" class="form-item full">
-                <text class="field-label">工商注册地址<text class="optional">（选填）</text></text>
+                <text class="field-label">{{ t('auth.apply.registeredAddress') }}<text class="optional">{{ t('auth.apply.optional') }}</text></text>
                 <textarea
                   v-model="formData.registeredAddress"
                   class="form-textarea compact"
                   :class="{ error: errors.registeredAddress }"
                   maxlength="200"
-                  placeholder="与经营地址不同时填写"
+                  :placeholder="t('auth.apply.registeredPlaceholder')"
                   :placeholder-style="placeholderStyle"
                   @input="clearFieldError('registeredAddress')"
                   @blur="validateField('registeredAddress')"
                 />
-                <text v-if="errors.registeredAddress" class="field-error">{{ errors.registeredAddress }}</text>
+                <text v-if="errors.registeredAddress" class="field-error">{{ displayError(errors.registeredAddress) }}</text>
               </view>
             </view>
           </view>
@@ -204,20 +225,20 @@
             <view class="section-heading">
               <view class="heading-accent"></view>
               <view>
-                <text class="section-title">营业执照</text>
-                <text class="section-description">请上传清晰、完整且在有效期内的证照</text>
+                <text class="section-title">{{ t('auth.apply.license') }}</text>
+                <text class="section-description">{{ t('auth.apply.licenseNote') }}</text>
               </view>
             </view>
 
             <view id="field-licenseUrl" class="form-item">
-              <text class="field-label"><text class="required">*</text>营业执照照片</text>
+              <text class="field-label"><text class="required">*</text>{{ t('auth.apply.licensePhoto') }}</text>
               <FileUploader
                 v-model="licenseImages"
                 scene="dealer-application-license"
                 :maxCount="1"
-                tips="支持相册或拍照上传，最多1张"
+                :tips="t('auth.apply.licenseTip')"
               />
-              <text v-if="errors.licenseUrl" class="field-error">{{ errors.licenseUrl }}</text>
+              <text v-if="errors.licenseUrl" class="field-error">{{ displayError(errors.licenseUrl) }}</text>
             </view>
           </view>
 
@@ -225,11 +246,11 @@
             <checkbox-group @change="handleAgreementChange">
               <label class="agreement-label">
                 <checkbox value="agreed" :checked="agreed" color="#D7192D" />
-                <text class="agreement-text">我已阅读并同意</text>
-                <text class="agreement-link" @tap.stop="openAgreement">《经销商签约协议》</text>
+                <text class="agreement-text">{{ t('auth.apply.agreementLead') }}</text>
+                <text class="agreement-link" @tap.stop="openAgreement">{{ t('auth.apply.agreement') }}</text>
               </label>
             </checkbox-group>
-            <text v-if="errors.agreed" class="field-error agreement-error">{{ errors.agreed }}</text>
+            <text v-if="errors.agreed" class="field-error agreement-error">{{ displayError(errors.agreed) }}</text>
           </view>
           </template>
         </view>
@@ -250,13 +271,13 @@
         <view class="captcha-modal" @click.stop>
           <view class="captcha-modal__header">
             <view class="captcha-modal__heading">
-              <text class="captcha-modal__title">安全验证</text>
-              <text class="captcha-modal__description">提交申请前请完成图形验证</text>
+              <text class="captcha-modal__title">{{ t('auth.apply.verification') }}</text>
+              <text class="captcha-modal__description">{{ t('auth.apply.verificationNote') }}</text>
             </view>
             <view
               class="captcha-modal__close"
               hover-class="captcha-modal__close--pressed"
-              aria-label="关闭安全验证"
+              :aria-label="t('auth.apply.closeVerification')"
               @click="closeCaptchaModal"
             >
               <AppIcon name="close" :size="24" color="#5E626B" />
@@ -268,7 +289,7 @@
             :loading="captchaLoading"
             :verifying="captchaVerifying"
             :verified="captchaVerified"
-            :error-text="captchaError"
+            :error-text="captchaErrorText"
             @refresh="refreshCaptcha"
             @verify="verifyCaptcha"
             @image-error="handleCaptchaImageError"
@@ -280,13 +301,13 @@
     <template #footer>
       <view v-if="!applicationState" class="submit-footer">
         <button
-          class="submit-button"
-          :disabled="submitting"
+          class="submit-button button-center"
+          :disabled="submitting || captchaVerifying"
           :loading="submitting"
           hover-class="submit-button-hover"
           @tap="handleSubmit"
         >
-          {{ submitting ? '提交中...' : '提交审核' }}
+          {{ submitting ? t('auth.apply.submitting') : t('auth.apply.submit') }}
         </button>
       </view>
     </template>
@@ -294,9 +315,12 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import { AppError, ErrorKind } from '@/shared/api/appError.js'
+import '@/subPackages/auth/i18n/register.js'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { onBackPress, onLoad, onUnload } from '@dcloudio/uni-app'
-import { applySign, getApplicationCaptcha, getSignStatus, verifyApplicationCaptcha } from '../../api/auth.js'
+import { applySign, getApplicationCaptcha, getSignStatus, queryApplicationStatus, verifyApplicationCaptcha } from '../../api/auth.js'
 import { validateSignForm } from '../../../../shared/utils/validate.js'
 import { navigator } from '../../../../app/navigation/navigator.js'
 import { routes } from '../../../../app/config/routes.js'
@@ -310,6 +334,7 @@ import FileUploader from '../../../../shared/ui/FileUploader/FileUploader.vue'
 import LoginSliderCaptcha from '../../components/LoginSliderCaptcha.vue'
 import storage from '../../../../shared/utils/storage.js'
 import { useUserStore } from '../../../../shared/session/userStore.js'
+import { formatDateTime } from '../../../../shared/utils/format.js'
 
 const placeholderStyle = 'color: #989BA3; font-size: 14px;'
 const CAPTCHA_CHALLENGE_SAFETY_WINDOW_MS = 10 * 1000
@@ -324,14 +349,17 @@ const agreed = ref(false)
 const scrollTarget = ref('')
 const regionPickerVisible = ref(false)
 const licenseImages = ref([])
-const successTimer = ref(null)
 const applicationState = ref(null)
+const applicationDetails = ref(null)
+const statusRefreshing = ref(false)
+const submitAfterVerification = ref(false)
 const captchaLoading = ref(false)
 const captchaVerifying = ref(false)
 const captchaVerified = ref(false)
 const captchaChallenge = ref(null)
 const captchaToken = ref('')
 const captchaError = ref('')
+const captchaErrorText = computed(() => displayError(captchaError.value))
 const captchaChallengeExpiresAt = ref(0)
 const captchaTokenExpiresAt = ref(0)
 const showCaptchaModal = ref(false)
@@ -348,12 +376,46 @@ const applicationStatusTitle = computed(() => {
 const applicationStatusDescription = computed(() => {
   if (applicationState.value?.status === 'approved') return '平台已完成审核，后续请使用经销商账号登录。'
   if (applicationState.value?.status === 'rejected') return '当前申请未通过审核，可修改资料后重新提交。'
-  return '资料已提交，平台正在审核。审核完成后会通过站内通知或联系方式告知你。'
+  return '资料已成功提交。审核通过后，即可使用手机号和设置的密码登录。'
 })
 
+/** 主动查询本次申请的审核结果，不用本地缓存代替远端审核事实。 */
+async function refreshApplicationStatus() {
+  const current = applicationState.value
+  if (!current?.mobile || statusRefreshing.value) return
+  statusRefreshing.value = true
+  try {
+    const result = await queryApplicationStatus(current.mobile)
+    if (!result || Number(result.applicationId) !== Number(current.applicationId)) {
+      uni.showToast({ title: t('auth.apply.notFound'), icon: 'none' })
+      return
+    }
+    const status = Number(result.status) === 1 ? 'approved' : Number(result.status) === 2 ? 'rejected' : 'pending'
+    applicationDetails.value = result
+    applicationState.value = { ...current, status }
+    storage.set(APPLICATION_CACHE_KEY, applicationState.value)
+    if (status === 'pending') uni.showToast({ title: t('auth.apply.pendingNotice'), icon: 'none' })
+  } catch (error) {
+    uni.showToast({ title: error?.message || t('auth.apply.statusFailed'), icon: 'none' })
+  } finally {
+    statusRefreshing.value = false
+  }
+}
+
+/** 携带申请手机号进入登录页，密码始终由用户重新输入。 */
+function goToLogin() {
+  navigator.reLaunch(routes.auth.login({ account: applicationState.value?.mobile || '' }))
+}
+
+/** 返回登录页，保留申请回执供后续查询。 */
+function leaveApplicationStatus() {
+  goToLogin()
+}
+
+/** 根据当前账号或本机申请回执恢复审核界面。 */
 async function loadApplicationState() {
   const cached = storage.get(APPLICATION_CACHE_KEY, null)
-  if (cached?.status === 'pending') applicationState.value = cached
+  if (['pending', 'approved', 'rejected'].includes(cached?.status)) applicationState.value = cached
   if (!userStore.isLogin) return
   try {
     const context = await getSignStatus({ authStrategy: 'passive' })
@@ -377,13 +439,25 @@ async function loadApplicationState() {
   }
 }
 
-function resetApplicationState() {
+/** 恢复被驳回申请的资料草稿，密码需重新输入并由服务端核验。 */
+async function resetApplicationState() {
+  if (statusRefreshing.value) return
+  await refreshApplicationStatus()
+  if (applicationState.value?.status !== 'rejected') return
+  const receipt = applicationState.value
   applicationState.value = null
   storage.remove(APPLICATION_CACHE_KEY)
-}
-
-function leaveApplicationStatus() {
-  navigator.back()
+  restoreApplicationDraft()
+  formData.applicationId = receipt.applicationId || null
+  const details = applicationDetails.value
+  if (details) {
+    for (const field of ['companyName', 'contactName', 'mobile', 'landlinePhone', 'taxNo', 'email', 'addressDetail', 'registeredAddress']) {
+      formData[field] = details[field] || ''
+    }
+    licenseImages.value = details.licenseUrl ? [details.licenseUrl] : []
+  }
+  formData.password = ''
+  formData.confirmPassword = ''
 }
 
 onLoad(async () => {
@@ -409,6 +483,9 @@ const formData = reactive({
   email: '',
   addressDetail: '',
   registeredAddress: '',
+  applicationId: null,
+  password: '',
+  confirmPassword: '',
 })
 
 const errors = reactive({})
@@ -429,6 +506,7 @@ watch(licenseImages, () => {
 watch(agreed, persistApplicationDraft)
 
 watch(() => formData.mobile, () => {
+  submitAfterVerification.value = false
   resetCaptchaVerification()
   showCaptchaModal.value = false
 })
@@ -452,6 +530,7 @@ function restoreApplicationDraft() {
     email: draft.email || '',
     addressDetail: draft.addressDetail || '',
     registeredAddress: draft.registeredAddress || '',
+    applicationId: draft.applicationId || formData.applicationId,
   })
   Object.assign(regionValue.value, draft.regionValue || {})
   licenseImages.value = Array.isArray(draft.licenseImages) ? draft.licenseImages : []
@@ -470,6 +549,7 @@ function persistApplicationDraft() {
     email: formData.email,
     addressDetail: formData.addressDetail,
     registeredAddress: formData.registeredAddress,
+    applicationId: formData.applicationId,
     regionValue: { ...regionValue.value },
     licenseImages: [...licenseImages.value],
     agreed: agreed.value,
@@ -486,8 +566,9 @@ function clearFieldError(field) {
   if (errors[field]) delete errors[field]
 }
 
+/** 校验当前字段并保留本地资源描述，语言切换时按最新语言显示。 */
 function validateField(field) {
-  const result = validateSignForm(validationData.value)
+  const result = validateSignForm(validationData.value, key => localError(key))
   if (result.errors[field]) {
     errors[field] = result.errors[field]
   } else {
@@ -517,6 +598,7 @@ function scrollToError(field) {
 }
 
 function closeCaptchaModal() {
+  submitAfterVerification.value = false
   showCaptchaModal.value = false
 }
 
@@ -550,7 +632,7 @@ function normalizeCaptchaChallenge(result) {
     || !Number.isFinite(imageWidth) || !Number.isFinite(imageHeight)
     || !Number.isFinite(pieceSize) || !Number.isFinite(pieceY)
     || imageWidth <= 0 || imageHeight <= 0 || pieceSize <= 0 || pieceY < 0) {
-    throw new Error('图形验证码数据不完整，请点击刷新重试')
+    throw localError('captchaIncomplete')
   }
 
   return {
@@ -581,11 +663,11 @@ function hasUsableCaptchaChallenge(mobile) {
 /** 将验证码服务错误转换为用户可操作的提示。 */
 function getCaptchaErrorMessage(error) {
   const errorCode = error?.errorCode || ''
-  if (errorCode === 'DEALER_LOGIN_CAPTCHA_TOO_FREQUENT') return '验证码刷新过快，请稍后再试'
-  if (errorCode === 'DEALER_LOGIN_CAPTCHA_EXPIRED') return '验证码已过期，已为你更换，请重新验证'
-  if (errorCode === 'DEALER_LOGIN_CAPTCHA_INVALID') return '拼图位置不正确，已为你更换，请重试'
-  if (errorCode === 'DEALER_LOGIN_CAPTCHA_REQUIRED') return '请完成安全验证后提交'
-  return error?.message || error?.msg || '验证码加载失败，请点击刷新重试'
+  if (errorCode === 'DEALER_LOGIN_CAPTCHA_TOO_FREQUENT') return localError('captchaFrequent')
+  if (errorCode === 'DEALER_LOGIN_CAPTCHA_EXPIRED') return localError('captchaExpired')
+  if (errorCode === 'DEALER_LOGIN_CAPTCHA_INVALID') return localError('captchaInvalid')
+  if (errorCode === 'DEALER_LOGIN_CAPTCHA_REQUIRED') return localError('captchaRequired')
+  return error?.message ? error : (error?.msg ? { message: error.msg } : localError('captchaLoadFailed'))
 }
 
 /** 打开验证码弹层；过期或缺失时自动生成新的挑战。 */
@@ -594,7 +676,7 @@ async function openCaptchaModal() {
   showCaptchaModal.value = true
 
   if (!mobile) {
-    captchaError.value = '请先填写联系人手机号码'
+    captchaError.value = localError('mobileRequired')
     return
   }
 
@@ -609,7 +691,7 @@ async function refreshCaptcha(options = {}) {
   showCaptchaModal.value = true
 
   if (!mobile) {
-    captchaError.value = '请先填写联系人手机号码'
+    captchaError.value = localError('mobileRequired')
     return
   }
   if (captchaLoading.value || captchaVerifying.value) return
@@ -641,7 +723,7 @@ async function refreshCaptcha(options = {}) {
 function handleCaptchaImageError() {
   captchaChallenge.value = null
   captchaChallengeExpiresAt.value = 0
-  captchaError.value = '验证码图片加载失败，请点击刷新重试'
+  captchaError.value = localError('captchaImageFailed')
 }
 
 /** 校验滑块位置，成功后保存一次性提交凭证。 */
@@ -657,15 +739,18 @@ async function verifyCaptcha(offsetX) {
   captchaError.value = ''
 
   let shouldRefresh = false
+  let shouldSubmit = false
   try {
     const result = await verifyApplicationCaptcha(mobile, captchaId, offsetX)
-    if (!result?.verificationToken) throw new Error('图形验证码校验结果无效')
-    if (formData.mobile.trim() !== mobile) return
+    if (!result?.verificationToken) throw localError('captchaResultInvalid')
+    if (formData.mobile.trim() !== mobile || captchaChallenge.value?.captchaId !== captchaId || !showCaptchaModal.value) return
 
     captchaToken.value = result.verificationToken
     captchaTokenExpiresAt.value = Date.now() + Math.max(Number(result.expiresIn) || 0, 1) * 1000
     captchaVerified.value = true
     showCaptchaModal.value = false
+    shouldSubmit = submitAfterVerification.value
+    submitAfterVerification.value = false
   } catch (error) {
     console.error('[ApplySign] 验证码校验失败:', error)
     captchaError.value = getCaptchaErrorMessage(error)
@@ -675,21 +760,24 @@ async function verifyCaptcha(offsetX) {
   }
 
   if (shouldRefresh) await refreshCaptcha({ preserveError: true })
+  if (shouldSubmit) await handleSubmit()
 }
+/** 校验完整资料，完成滑块验证后只提交一次入驻申请。 */
 async function handleSubmit() {
-  if (submitting.value) return
+  if (submitting.value || captchaVerifying.value || applicationState.value) return
 
-  const result = validateSignForm(validationData.value)
+  const result = validateSignForm(validationData.value, key => localError(key))
   replaceErrors(result.errors)
 
   if (!result.valid) {
     const firstField = Object.keys(result.errors)[0]
     scrollToError(firstField)
-    uni.showToast({ title: result.firstError, icon: 'none' })
+    uni.showToast({ title: displayError(result.firstError), icon: 'none' })
     return
   }
 
   if (!hasUsableCaptchaToken()) {
+    submitAfterVerification.value = true
     resetCaptchaVerification()
     await openCaptchaModal()
     return
@@ -712,36 +800,52 @@ async function handleSubmit() {
       registeredAddress: data.registeredAddress.trim() || null,
       licenseUrl: data.licenseUrl,
       captchaToken: captchaToken.value,
+      password: data.password,
+      applicationId: data.applicationId || null,
     })
     // 只有后端确认申请提交成功后，才清理本地申请草稿。
+    applicationState.value = { applicationId, companyName: data.companyName.trim(), mobile: data.mobile.trim(), status: 'pending', submittedAt: Date.now() }
+    storage.set(APPLICATION_CACHE_KEY, applicationState.value)
     storage.remove(APPLICATION_DRAFT_CACHE_KEY)
-    storage.set(APPLICATION_CACHE_KEY, { applicationId, companyName: data.companyName.trim(), status: 'pending', submittedAt: Date.now() })
-
-    uni.showToast({ title: '提交成功，等待审核', icon: 'success', duration: 1500 })
-    successTimer.value = setTimeout(() => {
-      navigator.reLaunch(routes.auth.applySign())
-    }, 1500)
+    formData.password = ''
+    formData.confirmPassword = ''
+    resetCaptchaVerification()
+    scrollTarget.value = ''
   } catch (error) {
     console.error('[ApplySign] 提交失败:', error)
     if (CAPTCHA_RECOVERABLE_ERRORS.has(error?.errorCode || '')) {
       resetCaptchaVerification()
       captchaError.value = getCaptchaErrorMessage(error)
       showCaptchaModal.value = true
+      submitAfterVerification.value = true
       await refreshCaptcha({ preserveError: true })
       return
     }
 
     uni.showToast({
-      title: error?.message || error?.msg || '提交失败，请稍后重试',
+      title: error?.message || error?.msg || t('auth.apply.submitFailed'),
       icon: 'none',
-    })  } finally {
+    })
+    resetCaptchaVerification()
+  } finally {
     submitting.value = false
   }
 }
 
 onUnload(() => {
-  if (successTimer.value) clearTimeout(successTimer.value)
+  submitAfterVerification.value = false
+  formData.password = ''
+  formData.confirmPassword = ''
 })
+/** 创建签约本地提示，不附加业务错误码或改变验证码恢复策略。 */
+function localError(key) {
+  return new AppError('', ErrorKind.UNKNOWN, { messageKey: 'auth.apply.' + key })
+}
+
+/** 延迟显示本地错误；服务端 message 或 msg 保持原文。 */
+function displayError(value) {
+  return value?.message || (typeof value === 'string' ? value : '')
+}
 </script>
 
 <style lang="scss" scoped>
@@ -754,28 +858,38 @@ onUnload(() => {
 }
 
 .application-status-card {
-  min-height: 520rpx;
-  padding: $space-8 $space-6;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: $radius-card;
+  width: 100%;
+  max-width: 600px;
+  margin: 12px auto 0;
+  overflow: hidden;
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 8px 32px rgba(33, 39, 50, .05);
 }
-.application-status-badge { width: 88rpx; height: 88rpx; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: $color-error-bg; }
-.application-status-title { margin-top: $space-4; color: $color-text-primary; font-size: $font-size-h2; line-height: $line-height-h2; font-weight: $font-weight-semibold; }
-.application-status-description { max-width: 620rpx; margin-top: $space-2; color: $color-text-secondary; font-size: $font-size-body-m; line-height: $line-height-body-m; }
-.application-timeline { width: 100%; max-width: 620rpx; margin: $space-8 0 $space-5; display: flex; align-items: flex-start; justify-content: center; }
-.timeline-step { min-width: 160rpx; display: flex; flex-direction: column; align-items: center; gap: $space-2; color: $color-text-disabled; font-size: $font-size-caption; }
-.timeline-step.active, .timeline-step.current { color: $color-action-primary; }
-.timeline-dot { width: 48rpx; height: 48rpx; display: flex; align-items: center; justify-content: center; border: 2rpx solid $color-gray-300; border-radius: 50%; background: $color-bg-card; }
-.timeline-step.active .timeline-dot, .timeline-step.current .timeline-dot { color: $color-gray-0; border-color: $color-action-primary; background: $color-action-primary; }
-.timeline-line { flex: 1; height: 2rpx; margin: 24rpx $space-2 0; background: $color-gray-200; }
-.timeline-line.active { background: $color-action-primary; }
-.application-company { color: $color-text-primary; font-size: $font-size-body-m; font-weight: $font-weight-semibold; }
-.status-action { width: min(520rpx, 100%); margin-top: $space-6; display: flex; align-items: center; justify-content: center; color: $color-gray-0; background: $color-action-primary; border: 0; border-radius: $radius-control; font-size: $font-size-body-m; }
+.status-hero { display: flex; flex-direction: column; align-items: center; padding: 32px 24px 24px; text-align: center; background: linear-gradient(180deg, #fff5f0, #fff); }
+.application-status-badge { width: 68px; height: 68px; display: flex; align-items: center; justify-content: center; border-radius: 22px; color: #b76a23; background: #fff0df; }
+.status-approved .application-status-badge { color: #287852; background: #eaf6ef; }
+.status-rejected .application-status-badge { color: #d7192d; background: #fff0f2; }
+.status-eyebrow { margin-top: 20px; color: #9b7c6a; font-size: var(--type-caption-size, 12px); letter-spacing: 2px; }
+.application-status-title { display: block; margin-top: 8px; color: $color-text-primary; font-size: var(--type-page-title-size, 20px); line-height: 32px; font-weight: 700; }
+.application-status-description { max-width: 360px; margin-top: 12px; color: $color-text-secondary; font-size: var(--type-body-size, 14px); line-height: 24px; }
+.application-receipt { margin: 0 20px; padding: 16px; border-radius: 14px; background: #f7f8fa; }
+.receipt-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.receipt-row + .receipt-row { margin-top: 12px; }
+.receipt-label { flex: 0 0 auto; color: #8a8e98; font-size: var(--type-body-small-size, 13px); line-height: 22px; }
+.receipt-value { min-width: 0; color: #343944; font-size: var(--type-body-small-size, 13px); line-height: 22px; text-align: right; overflow-wrap: anywhere; }
+.application-timeline { margin: 24px 36px; }
+.timeline-step { position: relative; display: flex; align-items: flex-start; gap: 14px; padding-bottom: 24px; }
+.timeline-step:first-child::after { content: ''; position: absolute; top: 32px; left: 13px; bottom: 4px; width: 2px; background: #eceef2; }
+.timeline-step:last-child { padding-bottom: 0; }
+.timeline-dot { flex: 0 0 28px; height: 28px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: 50%; background: #f0f1f4; color: #9096a1; font-size: 12px; line-height: 18px; }
+.timeline-step.completed .timeline-dot { background: #d7192d; color: #fff; }
+.timeline-step.current .timeline-dot { color: #a9682e; background: #fff0df; }
+.timeline-title, .timeline-copy { display: block; }
+.timeline-title { color: #343944; font-size: var(--type-body-size, 14px); line-height: 24px; font-weight: 600; }
+.timeline-copy { color: #9196a0; font-size: var(--type-caption-size, 12px); line-height: 20px; }
+.status-actions { display: flex; flex-direction: column; gap: 10px; padding: 0 24px 24px; }
+.status-action { width: 100%; min-height: 46px; margin: 0; padding: 12px 16px; color: $color-gray-0; background: $color-action-primary; border: 0; border-radius: 12px; font-size: 14px; line-height: 20px; }
 .status-action::after { border: 0; }
 .status-action.secondary { color: $color-text-secondary; background: $color-gray-100; }
 .progress-card,

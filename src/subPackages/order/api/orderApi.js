@@ -11,6 +11,7 @@
  * - 响应统一转换为 camelCase 领域模型
  */
 import { dispatch } from '../../../shared/api/dispatchClient.js'
+import { getLocale } from '../../../shared/i18n/index.js'
 
 // ==================== 内部工具函数 ====================
 
@@ -38,14 +39,9 @@ function normalizeCustomerDisplay(value) {
   }
 }
 
-/** 兼容现有语言设置，英文请求提交标准化 en-US，其余由后端回退中文。 */
+/** 仅为既有只读查询选择后端字典投影语言，不在 APP 重建状态文案。 */
 function customerLanguageParams() {
-  try {
-    const saved = typeof uni !== 'undefined' ? uni.getStorageSync('app_language') : ''
-    return /^(en|en-US)$/i.test(String(saved)) ? { Language: 'en-US' } : {}
-  } catch {
-    return {}
-  }
+  return getLocale() === 'en-US' ? { Language: 'en-US' } : {}
 }
 
 /**

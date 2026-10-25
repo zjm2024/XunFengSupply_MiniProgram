@@ -6,18 +6,18 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="取消订单" :show-back="true" />
+      <AppHeader :title="t('order.titles.cancel')" :show-back="true" />
     </template>
     <template #content>
       <AppContent>
         <view class="cancel-page" v-if="orderId">
           <!-- 订单信息摘要 -->
           <view class="order-summary">
-            <text class="order-no">订单编号：{{ orderNo || orderId }}</text>
+            <text class="order-no">{{ t('order.cancel.orderNo') }}{{ orderNo || orderId }}</text>
           </view>
 
           <!-- 提示文本 -->
-          <text class="hint-text">请选择取消原因</text>
+          <text class="hint-text">{{ t('order.cancel.chooseReason') }}</text>
 
           <!-- 原因列表 -->
           <view class="reason-list">
@@ -31,7 +31,7 @@
               }"
               @click="selectedReasonCode = reason.code"
             >
-              <text class="reason-text">{{ reason.label }}</text>
+              <text class="reason-text">{{ t(reason.labelKey) }}</text>
               <view class="reason-check" v-if="selectedReasonCode === reason.code">
                 <AppIcon name="check" :size="16" color="#FFFFFF" />
               </view>
@@ -42,13 +42,13 @@
           <view class="reason-input-block" v-if="selectedReasonCode === 'other'">
             <view class="input-label-text">
               <text class="required-mark">*</text>
-              <text class="label-text">请填写取消原因</text>
+               <text class="label-text">{{ t('order.cancel.fillReason') }}</text>
             </view>
             <textarea
               class="reason-textarea"
               :value="customReason"
               @input="customReason = $event.detail.value"
-              placeholder="请详细描述取消原因..."
+              :placeholder="t('order.cancel.reasonPlaceholder')"
               placeholder-class="reason-placeholder"
               maxlength="200"
               :auto-height="true"
@@ -64,7 +64,7 @@
     <template #footer>
       <FixedActionBar>
         <button class="submit-btn" :disabled="!canSubmit || submitting" @click="handleSubmit">
-          {{ submitting ? '提交中...' : '确认取消' }}
+          {{ submitting ? t('order.cancel.submitting') : t('order.cancel.confirm') }}
         </button>
       </FixedActionBar>
     </template>
@@ -72,6 +72,8 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/order/i18n/register.js'
 import { ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { cancelOrder, generateClientRequestId } from '../../api/orderApi.js'
@@ -91,12 +93,12 @@ const submitting = ref(false)
 
 // 取消原因列表
 const cancelReasons = Object.freeze([
-  { code: 'changed_mind', label: '不想要了/改变主意' },
-  { code: 'duplicate_order', label: '重复下单' },
-  { code: 'wrong_info', label: '商品信息/地址填写错误' },
-  { code: 'price_reason', label: '价格原因/更便宜的选择' },
-  { code: 'delivery_too_slow', label: '发货太慢' },
-  { code: 'other', label: '其他原因' },
+  { code: 'changed_mind', labelKey: 'order.cancel.reasons.changedMind', reason: '不想要了/改变主意' },
+  { code: 'duplicate_order', labelKey: 'order.cancel.reasons.duplicateOrder', reason: '重复下单' },
+  { code: 'wrong_info', labelKey: 'order.cancel.reasons.wrongInfo', reason: '商品信息/地址填写错误' },
+  { code: 'price_reason', labelKey: 'order.cancel.reasons.priceReason', reason: '价格原因/更便宜的选择' },
+  { code: 'delivery_too_slow', labelKey: 'order.cancel.reasons.deliveryTooSlow', reason: '发货太慢' },
+  { code: 'other', labelKey: 'order.cancel.reasons.other', reason: '其他原因' },
 ])
 
 // 是否可以提交
@@ -135,18 +137,19 @@ async function handleSubmit() {
     params.reason = customReason.value.trim()
   } else {
     params.reasonCode = selectedReasonCode.value
-    params.reason = selected?.label || null
+    // reason 是订单取消事实/审计文本，必须保留原始中文；页面展示只使用 labelKey。
+    params.reason = selected?.reason || null
   }
 
   try {
     await cancelOrder(params)
-    uni.showToast({ title: '取消成功', icon: 'success' })
+    uni.showToast({ title: t('order.cancel.success'), icon: 'success' })
     // 返回订单详情页（重新加载状态）
     setTimeout(() => {
       navigator.redirectTo(routes.order.detail(orderId.value))
     }, 300)
   } catch (e) {
-    uni.showToast({ title: e.message || '取消失败', icon: 'none' })
+    uni.showToast({ title: e.message || t('order.cancel.failed'), icon: 'none' })
   } finally {
     submitting.value = false
   }

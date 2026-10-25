@@ -1,7 +1,7 @@
 <template>
   <view class="home-tab tab-page">
     <view class="feature-strip">
-      <view v-for="feature in features" :key="feature.label" class="feature-item">
+      <view v-for="feature in features" :key="feature.icon" class="feature-item">
         <AppIcon :name="feature.icon" :size="18" />
         <text>{{ feature.label }}</text>
       </view>
@@ -10,10 +10,10 @@
       <view class="entry-card card-left order-card" hover-class="card--pressed" @click="openCategory">
         <view class="entry-copy">
           <view class="entry-kicker">PURCHASE</view>
-          <text class="entry-title">商品下单</text>
-          <text class="entry-description">浏览商品目录，按分类、SKU 或名称快速完成批量采购。</text>
+          <text class="entry-title">{{ t('main.home.purchase') }}</text>
+          <text class="entry-description">{{ t('main.home.purchaseDescription') }}</text>
           <view class="entry-action entry-action--primary">
-            <text>立即选购</text>
+            <text>{{ t('main.home.shop') }}</text>
             <AppIcon name="arrow-right" :size="17" />
           </view>
         </view>
@@ -27,10 +27,10 @@
       <view class="entry-card news-card" hover-class="card--pressed" @click="openNewsList">
         <view class="entry-copy">
           <view class="entry-kicker entry-kicker--muted">NEWS</view>
-          <text class="entry-title">新闻资讯</text>
-          <text class="entry-description">查看品牌动态、政策公告与行业资讯，及时掌握最新消息。</text>
+          <text class="entry-title">{{ t('main.home.news') }}</text>
+          <text class="entry-description">{{ t('main.home.newsDescription') }}</text>
           <view class="entry-action entry-action--secondary">
-            <text>进入资讯</text>
+            <text>{{ t('main.home.readNews') }}</text>
             <AppIcon name="arrow-right" :size="17" />
           </view>
         </view>
@@ -44,10 +44,10 @@
       <view class="entry-card manual-card" hover-class="card--pressed" @click="openManualList">
         <view class="entry-copy">
           <view class="entry-kicker entry-kicker--manual">MANUAL</view>
-          <text class="entry-title">产品手册</text>
-          <text class="entry-description">浏览产品电子手册、参数资料与最新产品信息。</text>
+          <text class="entry-title">{{ t('main.home.manual') }}</text>
+          <text class="entry-description">{{ t('main.home.manualDescription') }}</text>
           <view class="entry-action entry-action--manual">
-            <text>查看手册</text>
+            <text>{{ t('main.home.readManual') }}</text>
             <AppIcon name="arrow-right" :size="17" />
           </view>
         </view>
@@ -65,6 +65,8 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
+import { t } from '@/shared/i18n/index.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
@@ -73,11 +75,11 @@ defineProps({ active: { type: Boolean, default: false } })
 
 const emit = defineEmits(['select-tab'])
 
-const features = Object.freeze([
-  { label: '批量采购', icon: 'batch-order' },
-  { label: 'SKU 快速检索', icon: 'search' },
-  { label: '库存实时同步', icon: 'inventory' },
-  { label: '品牌政策公告', icon: 'announcement' },
+const features = computed(() => [
+  { label: t('main.home.bulk'), icon: 'batch-order' },
+  { label: t('main.home.sku'), icon: 'search' },
+  { label: t('main.home.inventory'), icon: 'inventory' },
+  { label: t('main.home.announcements'), icon: 'announcement' },
 ])
 
 function openCategory() {

@@ -1,7 +1,7 @@
 ﻿﻿﻿﻿﻿﻿﻿<template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="对账账单" :show-back="true" />
+      <AppHeader :title="t('account.titles.bills')" :show-back="true" />
     </template>
 
     <template #content>
@@ -17,13 +17,13 @@
         <view class="bill-page">
           <view class="toolbar-card">
             <view>
-              <text class="toolbar-label">账单周期</text>
-              <text class="toolbar-desc">按月查看经销商主体对账结果</text>
+              <text class="toolbar-label">{{ t('account.billing.period') }}</text>
+              <text class="toolbar-desc">{{ t('account.billing.periodHint') }}</text>
             </view>
             <picker mode="date" fields="month" :value="currentMonth" @change="onMonthChange">
               <view class="month-trigger">
                 <AppIcon name="calendar" :size="17" />
-                <text>{{ formatMonthDisplay(currentMonth) }}</text>
+                <text>{{ formatMonthDisplay(currentMonth, monthDisplayLabel) }}</text>
                 <AppIcon name="chevron-down" :size="14" />
               </view>
             </picker>
@@ -31,13 +31,13 @@
 
           <view class="overview-card">
             <view class="overview-main">
-              <text class="overview-label">本期账单总额</text>
-              <text class="overview-amount"><text>¥</text>{{ formatMoney(overview.totalAmount) }}</text>
-              <text class="overview-period">{{ formatMonthDisplay(currentMonth) }} · {{ totalCount }} 份账单</text>
+              <text class="overview-label">{{ t('account.billing.periodTotal') }}</text>
+              <AmountText class="overview-amount" :text="'¥' + (formatMoney(overview.totalAmount))" />
+              <text class="overview-period">{{ formatMonthDisplay(currentMonth, monthDisplayLabel) }} · {{ t('account.billing.totalStatements', { count: totalCount }) }}</text>
             </view>
             <view class="overview-metrics">
-              <view><text>已结金额</text><text>¥{{ formatMoney(overview.paidAmount) }}</text></view>
-              <view><text>未结金额</text><text class="outstanding">¥{{ formatMoney(overview.outstandingAmount) }}</text></view>
+              <view><text>{{ t('account.billing.paidAmount') }}</text><AmountText :text="'¥' + (formatMoney(overview.paidAmount))" /></view>
+              <view><text>{{ t('account.billing.outstandingAmount') }}</text><AmountText class="outstanding" :text="'¥' + (formatMoney(overview.outstandingAmount))" /></view>
             </view>
           </view>
 
@@ -47,8 +47,8 @@
 
           <AppPageState
             :state="pageState"
-            title="暂无账单"
-            :description="pageState === PageStatus.ERROR ? loadError : '账单由财务系统按月生成，生成后会显示在这里'"
+            :title="t('account.billing.empty')"
+            :description="pageState === PageStatus.ERROR ? loadError : t('account.billing.emptyHint')"
             icon-type="order"
             @retry="loadBillList"
             @action="loadBillList"
@@ -66,8 +66,8 @@
                     <view class="bill-identity">
                       <view class="bill-icon"><AppIcon name="receipt" :size="21" /></view>
                       <view>
-                        <text class="bill-period">{{ formatMonthDisplay(bill.billPeriod) }}对账单</text>
-                        <text class="bill-no">{{ bill.billNo || `账单 ${bill.billId}` }}</text>
+                        <text class="bill-period">{{ t('account.billing.periodStatement', { period: formatMonthDisplay(bill.billPeriod, monthDisplayLabel) }) }}</text>
+                        <text class="bill-no">{{ bill.billNo || t('account.billing.statementRef', { id: bill.billId }) }}</text>
                       </view>
                     </view>
                     <StatusTag :type="statusType(bill.status)" :text="statusText(bill.status)" />
@@ -75,25 +75,25 @@
 
                   <view class="bill-amount-row">
                     <view>
-                      <text class="amount-label">账单金额</text>
-                      <text class="bill-amount"><text>¥</text>{{ formatMoney(bill.totalAmount) }}</text>
+                      <text class="amount-label">{{ t('account.billing.amount') }}</text>
+                      <AmountText class="bill-amount" :text="'¥' + (formatMoney(bill.totalAmount))" />
                     </view>
                     <view class="outstanding-copy">
-                      <text>未结金额</text>
-                      <text>¥{{ formatMoney(bill.outstandingAmount) }}</text>
+                      <text>{{ t('account.billing.outstandingAmount') }}</text>
+                      <AmountText :text="'¥' + (formatMoney(bill.outstandingAmount))" />
                     </view>
                   </view>
 
                   <view class="bill-foot">
-                    <text>生成于 {{ formatDate(bill.generatedAt) }}</text>
-                    <view><text>查看明细</text><AppIcon name="chevron-right" :size="15" /></view>
+                    <text>{{ t('account.billing.generated', { date: formatDate(bill.generatedAt) }) }}</text>
+                    <view><text>{{ t('account.billing.details') }}</text><AppIcon name="chevron-right" :size="15" /></view>
                   </view>
                 </view>
               </view>
 
               <view v-if="!visibleBills.length" class="filter-empty">
                 <AppSvgIllustration class="filter-empty-illustration" name="no-revenue" size="sm" />
-                <text>当前状态下暂无账单</text>
+                <text>{{ t('account.billing.filterEmpty') }}</text>
               </view>
               <AppLoadMore :status="loadMoreStatus" @retry="loadMore" />
             </template>
@@ -105,6 +105,9 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/account/i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, reactive, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getBillList } from '../../api/settlement.js'
@@ -129,7 +132,9 @@ const bills = ref([])
 const totalCount = ref(0)
 const activeStatus = ref('all')
 const pageState = ref(PageStatus.LOADING)
-const loadError = ref('')
+const loadFailure = ref(null)
+const loadError = computed(() => loadFailure.value?.message
+  || (loadFailure.value?.messageKey ? t(loadFailure.value.messageKey) : ''))
 const isRefreshing = ref(false)
 const pageNum = ref(1)
 const pageSize = 20
@@ -138,7 +143,7 @@ const loadingMore = ref(false)
 const loadMoreError = ref(false)
 const overview = reactive({ totalAmount: 0, paidAmount: 0, outstandingAmount: 0 })
 const statusTabs = Object.freeze([
-  { key: 'all', label: '全部' },
+  { key: 'all', /** 筛选通用名称随语言刷新，状态码保持不变。 */ get label() { return t('account.billing.all') } },
   { key: 'open', label: '未结清', status: 0 },
   { key: 'settled', label: '已结清', status: 1 },
   { key: 'closed', label: '已关闭', status: 2 },
@@ -161,6 +166,7 @@ onLoad((options = {}) => {
 })
 onShow(loadBillList)
 
+/** 按原账期与状态重载账单，只保留可重新取词的错误。 */
 async function loadBillList() {
   pageNum.value = 1
   bills.value = []
@@ -168,10 +174,11 @@ async function loadBillList() {
   hasMore.value = true
   loadMoreError.value = false
   pageState.value = PageStatus.LOADING
-  loadError.value = ''
+  loadFailure.value = null
   await fetchBillPage(false)
 }
 
+/** 沿用原账期、状态、分页与金额汇总规则。 */
 async function fetchBillPage(append) {
   if (append) loadingMore.value = true
   try {
@@ -195,7 +202,7 @@ async function fetchBillPage(append) {
       pageNum.value = Math.max(1, pageNum.value - 1)
       loadMoreError.value = true
     }
-    loadError.value = error?.message || '账单读取失败，请稍后重试'
+    loadFailure.value = error?.message ? error : { messageKey: 'account.billing.loadFailed' }
     if (!append) pageState.value = PageStatus.ERROR
   } finally {
     loadingMore.value = false
@@ -236,6 +243,11 @@ function changeStatus(key) {
   loadBillList()
 }
 function goToDetail(billId) { navigator.navigateTo(routes.account.billDetail(billId)) }
+/** 仅格式化账期显示，不改变查询中的 YYYY-MM。 */
+function monthDisplayLabel(year, month) {
+  return t('account.billing.monthDisplay', { year, month })
+}
+
 function formatMoney(value) { const number = Number(value); return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
 function statusText(status) { return ({ 0: '未结清', 1: '已结清', 2: '已关闭' })[status] || '未知状态' }
 function statusType(status) { return ({ 0: 'warning', 1: 'success', 2: 'info' })[status] || 'default' }
@@ -253,13 +265,12 @@ function statusType(status) { return ({ 0: 'warning', 1: 'success', 2: 'info' })
 .overview-label, .overview-amount, .overview-period { display: block; }
 .overview-label { color: #797F88; font-size: 11px; }
 .overview-amount { margin-top: 7px; font-size: 31px; font-weight: 760; font-variant-numeric: tabular-nums; }
-.overview-amount > text { margin-right: 3px; font-size: 17px; }
 .overview-period { margin-top: 5px; color: #9A9FA6; font-size: 10px; }
 .overview-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); border-top: 1px solid #ECEEF1; background: #FAFAFB; }
 .overview-metrics > view { padding: 13px 19px; }
 .overview-metrics > view + view { border-left: 1px solid #ECEEF1; }
 .overview-metrics text { display: block; color: #878D96; font-size: 10px; }
-.overview-metrics text + text { margin-top: 4px; color: #282D34; font-size: 14px; font-weight: 650; }
+.overview-metrics .amount-text { margin-top: 4px; color: #282D34; font-size: 14px; font-weight: 650; }
 .overview-metrics .outstanding { color: #D7192D; }
 .filter-tabs { display: flex; gap: 8px; margin: 16px 0 12px; overflow-x: auto; }
 .filter-tab { display: flex; min-width: 66px; height: 36px; align-items: center; justify-content: center; padding: 0 13px; border: 1px solid #E1E3E7; border-radius: 11px; color: #696E77; background: #FFFFFF; box-sizing: border-box; font-size: 12px; }
@@ -278,10 +289,9 @@ function statusType(status) { return ({ 0: 'warning', 1: 'success', 2: 'info' })
 .amount-label, .bill-amount { display: block; }
 .amount-label { color: #81868F; font-size: 10px; }
 .bill-amount { margin-top: 4px; color: #1F2329; font-size: 22px; font-weight: 750; font-variant-numeric: tabular-nums; }
-.bill-amount > text { margin-right: 3px; font-size: 12px; }
 .outstanding-copy { text-align: right; }
 .outstanding-copy > text { display: block; color: #92969E; font-size: 10px; }
-.outstanding-copy > text:last-child { margin-top: 5px; color: #A04B42; font-size: 13px; font-weight: 650; }
+.outstanding-copy > .amount-text { margin-top: 5px; color: #A04B42; font-size: 13px; font-weight: 650; }
 .bill-foot { justify-content: space-between; gap: 12px; padding-top: 13px; color: #969AA2; font-size: 10px; }
 .bill-foot > view { gap: 2px; color: #5D636C; font-size: 11px; }
 .filter-empty { display: flex; flex-direction: column; align-items: center; padding: 20px 0 34px; color: #92969E; font-size: 12px; text-align: center; }
@@ -293,4 +303,9 @@ function statusType(status) { return ({ 0: 'warning', 1: 'success', 2: 'info' })
   .bill-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
   .bill-card { padding: 19px; }
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.overview-main, .overview-metrics > view, .bill-amount-row > view { min-width: 0; }
+.bill-amount-row > view { flex: 1; }
+.outstanding-copy { display: flex; flex-direction: column; align-items: flex-end; }
 </style>

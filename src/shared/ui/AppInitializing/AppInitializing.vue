@@ -12,31 +12,32 @@
     </view>
 
     <view class="initializing-copy">
-      <text class="initializing-title">{{ title }}</text>
+      <text class="initializing-title">{{ title ?? t('common.ui.loadingTitle') }}</text>
       <view class="initializing-description">
-        <text>{{ description }}</text>
+        <text>{{ description ?? t('common.ui.loadingDescription') }}</text>
         <view class="loading-dots" aria-hidden="true">
           <view v-for="index in 3" :key="index" class="loading-dot" :class="`dot-${index}`" />
         </view>
       </view>
     </view>
 
-    <text v-if="showBrand" class="initializing-brand">薰风体育 · 经销商采购平台</text>
+    <text v-if="showBrand" class="initializing-brand">薰风体育 · {{ t('common.ui.platform') }}</text>
   </view>
 </template>
 
 <script setup>
 import AppSvgIllustration from '../AppSvgIllustration/AppSvgIllustration.vue'
+import { t } from '@/shared/i18n/index.js'
 import loadingSvg from '../../assets/illustrations/loading.svg?raw'
 
 defineProps({
   title: {
     type: String,
-    default: '正在加载',
+    default: null,
   },
   description: {
     type: String,
-    default: '正在准备页面',
+    default: null,
   },
   /** 填满父容器，适合路由首屏和 Tab 首次初始化。 */
   fill: {

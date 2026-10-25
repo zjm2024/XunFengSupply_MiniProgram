@@ -1,7 +1,7 @@
 ﻿﻿<template>
   <AppPageShell>
     <template #header>
-      <app-header title="帮助中心" :show-back="true" />
+      <app-header :title="t('content.titles.help')" :show-back="true" />
     </template>
 
     <template #content>
@@ -13,7 +13,7 @@
             <input
               class="search-input"
               v-model="keyword"
-              placeholder="搜索帮助内容"
+              :placeholder="t('content.help.search')"
               placeholder-class="placeholder"
               @confirm="handleSearch"
             />
@@ -21,7 +21,7 @@
 
           <!-- 常见问题分类 -->
           <view class="category-section">
-            <text class="section-title">常见问题</text>
+            <text class="section-title">{{ t('content.help.faq') }}</text>
 
             <view class="category-grid">
               <view
@@ -32,7 +32,7 @@
               >
                 <text class="cat-icon">{{ cat.icon }}</text>
                 <text class="cat-name">{{ cat.name }}</text>
-                <text class="cat-count">{{ cat.count }}篇</text>
+                <text class="cat-count">{{ t('content.help.articleCount', { count: cat.count }) }}</text>
               </view>
             </view>
           </view>
@@ -40,8 +40,8 @@
           <!-- 热门问题 -->
           <view class="hot-section">
             <view class="section-header">
-              <text class="section-title">热门问题</text>
-              <button class="more-btn" @click="viewAll">查看全部</button>
+              <text class="section-title">{{ t('content.help.popular') }}</text>
+              <button class="more-btn" @click="viewAll">{{ t('content.help.viewAll') }}</button>
             </view>
 
             <view class="question-list">
@@ -57,7 +57,7 @@
                 </view>
                 <text class="q-summary">{{ item.summary }}</text>
                 <view class="q-footer">
-                  <text class="q-views">{{ item.views }} 次浏览</text>
+                  <text class="q-views">{{ t('content.help.viewCount', { count: item.views }) }}</text>
                   <text class="q-arrow">›</text>
                 </view>
               </view>
@@ -66,13 +66,13 @@
 
           <!-- 联系客服 -->
           <view class="contact-section">
-            <text class="section-title">联系我们</text>
+            <text class="section-title">{{ t('content.help.contact') }}</text>
 
             <view class="contact-card">
               <view class="contact-item" @click="callService">
                 <text class="contact-icon">📞</text>
                 <view class="contact-info">
-                  <text class="contact-label">电话客服</text>
+                  <text class="contact-label">{{ t('content.help.phone') }}</text>
                   <text class="contact-value">400-888-8888</text>
                 </view>
                 <text class="contact-arrow">›</text>
@@ -81,8 +81,8 @@
               <view class="contact-item" @click="onlineService">
                 <text class="contact-icon">💬</text>
                 <view class="contact-info">
-                  <text class="contact-label">在线客服</text>
-                  <text class="contact-value">工作日 9:00-18:00</text>
+                  <text class="contact-label">{{ t('content.help.online') }}</text>
+                  <text class="contact-value">{{ t('content.help.hours') }}</text>
                 </view>
                 <text class="contact-arrow">›</text>
               </view>
@@ -90,7 +90,7 @@
               <view class="contact-item" @click="sendEmail">
                 <text class="contact-icon">✉️</text>
                 <view class="contact-info">
-                  <text class="contact-label">邮件支持</text>
+                  <text class="contact-label">{{ t('content.help.email') }}</text>
                   <text class="contact-value">support@xunfeng.com</text>
                 </view>
                 <text class="contact-arrow">›</text>
@@ -100,7 +100,7 @@
 
           <!-- 使用指南入口 -->
           <view class="guide-section">
-            <text class="section-title">使用指南</text>
+            <text class="section-title">{{ t('content.help.guides') }}</text>
 
             <view class="guide-list">
               <view
@@ -127,7 +127,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/content/i18n/register.js'
+import { computed, ref } from 'vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import statusTagNew from '@/shared/ui/StatusTag/StatusTag.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
@@ -139,91 +141,96 @@ import { routes } from '@/app/config/routes.js'
 const keyword = ref('')
 
 // 问题分类
-const categories = ref([
-  { key: 'order', name: '订单相关', icon: '📦', count: 12 },
-  { key: 'payment', name: '支付问题', icon: '💰', count: 8 },
-  { key: 'account', name: '账户管理', icon: '👤', count: 6 },
-  { key: 'product', name: '商品咨询', icon: '🏸', count: 10 },
-  { key: 'after_sale', name: '售后服务', icon: '🔄', count: 7 },
-  { key: 'other', name: '其他问题', icon: '❓', count: 5 }
+const categories = computed(() => [
+  { key: 'order', name: t('content.help.order'), icon: '📦', count: 12 },
+  { key: 'payment', name: t('content.help.payment'), icon: '💰', count: 8 },
+  { key: 'account', name: t('content.help.account'), icon: '👤', count: 6 },
+  { key: 'product', name: t('content.help.product'), icon: '🏸', count: 10 },
+  { key: 'after_sale', name: t('content.help.afterSale'), icon: '🔄', count: 7 },
+  { key: 'other', name: t('content.help.other'), icon: '❓', count: 5 }
 ])
 
 // 热门问题
-const hotQuestions = ref([
+const hotQuestions = computed(() => [
   {
     id: '1',
-    title: '如何下单购买商品？',
-    summary: '详细介绍从浏览商品到完成下单的完整流程',
+    title: t('content.help.orderQuestion'),
+    summary: t('content.help.orderSummary'),
     views: 1520,
     isHot: true
   },
   {
     id: '2',
-    title: '支付方式有哪些？',
-    summary: '支持银行转账、在线支付等多种付款方式',
+    title: t('content.help.payQuestion'),
+    summary: t('content.help.paySummary'),
     views: 1280,
     isHot: true
   },
   {
     id: '3',
-    title: '如何申请售后？',
-    summary: '退货、换货、退款等售后服务的申请流程说明',
+    title: t('content.help.afterSaleQuestion'),
+    summary: t('content.help.afterSaleSummary'),
     views: 980,
     isHot: false
   },
   {
     id: '4',
-    title: '发票如何开具？',
-    summary: '增值税专用发票和普通发票的开具方法',
+    title: t('content.help.invoiceQuestion'),
+    summary: t('content.help.invoiceSummary'),
     views: 860,
     isHot: false
   }
 ])
 
 // 使用指南
-const guides = ref([
+const guides = computed(() => [
   {
     id: '1',
-    name: '新手入门指南',
-    desc: '快速了解系统功能和使用方法',
+    name: t('content.help.starter'),
+    desc: t('content.help.starterHint'),
     cover: '/static/images/guide-1.png'
   },
   {
     id: '2',
-    name: '下单操作手册',
-    desc: '详细的下单步骤和注意事项',
+    name: t('content.help.orderGuide'),
+    desc: t('content.help.orderGuideHint'),
     cover: '/static/images/guide-2.png'
   }
 ])
 
+/** 保留搜索占位行为并按当前语言显示反馈。 */
 function handleSearch() {
   if (!keyword.value.trim()) {
-    uni.showToast({ title: '请输入搜索关键词', icon: 'none' })
+    uni.showToast({ title: t('content.help.keywordRequired'), icon: 'none' })
     return
   }
-  uni.showToast({ title: `搜索：${keyword.value}`, icon: 'none' })
+  uni.showToast({ title: t('content.help.searchFeedback', { keyword: keyword.value }), icon: 'none' })
 }
 
+/** 保留分类占位行为和原分类标识。 */
 function openCategory(cat) {
-  uni.showToast({ title: `打开：${cat.name}`, icon: 'none' })
+  uni.showToast({ title: t('content.help.openFeedback', { name: cat.name }), icon: 'none' })
 }
 
 function viewQuestion(item) {
   uni.showToast({ title: item.title, icon: 'none' })
 }
 
+/** 保留查看问题的占位反馈。 */
 function viewAll() {
-  uni.showToast({ title: '查看全部问题', icon: 'none' })
+  uni.showToast({ title: t('content.help.allQuestions'), icon: 'none' })
 }
 
 function callService() {
   uni.makePhoneCall({ phoneNumber: '4008888888' })
 }
 
+/** 保留在线客服占位反馈。 */
 function onlineService() {
-  uni.showToast({ title: '正在连接在线客服...', icon: 'none' })
+  uni.showToast({ title: t('content.help.connecting'), icon: 'none' })
 }
 
+/** 保留邮件目标与跨端处理，仅翻译复制反馈。 */
 function sendEmail() {
   // #ifdef H5
   window.location.href = 'mailto:support@xunfeng.com'
@@ -232,7 +239,7 @@ function sendEmail() {
   uni.setClipboardData({
     data: 'support@xunfeng.com',
     success: () => {
-      uni.showToast({ title: '邮箱已复制', icon: 'success' })
+      uni.showToast({ title: t('content.help.emailCopied'), icon: 'success' })
     }
   })
   // #endif

@@ -10,7 +10,7 @@
         :style="pieceStyle"
       />
       <view v-if="loading || !hasChallenge" class="stage-placeholder">
-        <text>{{ loading ? '正在生成验证码…' : '验证码加载失败' }}</text>
+        <text>{{ loading ? t('auth.login.captchaGenerating') : t('auth.login.captchaLoadError') }}</text>
       </view>
       <view class="refresh-button" @click.stop="emit('refresh')">
         <AppIcon name="refresh" :size="18" color="#FFFFFF" />
@@ -43,6 +43,8 @@
 <script setup>
 import { computed, getCurrentInstance, nextTick, ref, watch } from 'vue'
 import AppIcon from '../../../shared/ui/AppIcon/AppIcon.vue'
+import { t } from '@/shared/i18n/index.js'
+import '../i18n/register.js'
 
 const props = defineProps({
   challenge: { type: Object, default: null },
@@ -78,9 +80,9 @@ const isDisabled = computed(() => (
 ))
 
 const stageMessage = computed(() => {
-  if (props.loading) return '正在生成验证码…'
-  if (imageLoadFailed.value) return '验证码图片加载失败，请点击刷新'
-  return '验证码加载失败，请点击刷新'
+  if (props.loading) return t('auth.login.captchaGenerating')
+  if (imageLoadFailed.value) return t('auth.login.captchaImageError')
+  return t('auth.login.captchaRefresh')
 })
 
 const sourcePieceX = computed(() => {
@@ -106,9 +108,9 @@ const progressStyle = computed(() => ({
   width: props.verified ? '100%' : `${dragX.value + thumbWidth.value / 2}px`,
 }))
 const sliderLabel = computed(() => {
-  if (props.verified) return '验证通过'
-  if (props.verifying) return '正在验证…'
-  return dragging.value ? '移到缺口后松开' : '按住滑块向右拖动'
+  if (props.verified) return t('auth.login.captchaPassed')
+  if (props.verifying) return t('auth.login.captchaVerifying')
+  return dragging.value ? t('auth.login.captchaRelease') : t('auth.login.captchaDrag')
 })
 
 watch(

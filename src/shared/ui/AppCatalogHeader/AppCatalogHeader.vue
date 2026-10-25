@@ -35,7 +35,7 @@
               v-else
               class="search-input"
               :value="editingKeyword"
-              :placeholder="placeholder"
+              :placeholder="placeholder ?? t('common.search.placeholder')"
               :focus="autoFocus"
               confirm-type="search"
               @input="handleKeywordInput"
@@ -45,7 +45,7 @@
               <AppIcon name="close" :size="14" />
             </view>
             <view class="search-submit" hover-class="search-submit--pressed" @click.stop="$emit('search')">
-              <text>搜索</text>
+              <text>{{ t('common.search.label') }}</text>
             </view>
           </view>
 
@@ -64,7 +64,7 @@
             hover-class="quick-sort-item--pressed"
             @click="$emit('sort', item.key)"
           >
-            <text>{{ item.label }}</text>
+            <text>{{ t(item.labelKey) }}</text>
             <view v-if="item.directional" class="sort-direction">
               <text :class="{ 'is-active': isSortDirection(item.key, 'asc') }">▲</text>
               <text :class="{ 'is-active': isSortDirection(item.key, 'desc') }">▼</text>
@@ -77,7 +77,7 @@
             hover-class="quick-sort-item--pressed"
             @click="$emit('filter')"
           >
-            <text>筛选</text>
+            <text>{{ t('common.search.filter') }}</text>
             <AppIcon name="filter" :size="15" />
             <text v-if="filterCount" class="filter-count">{{ filterCount }}</text>
           </view>
@@ -90,6 +90,7 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue'
+import { t } from '@/shared/i18n/index.js'
 import AppBackButton from '../AppBackButton/AppBackButton.vue'
 import AppIcon from '../AppIcon/AppIcon.vue'
 import AppStatusBarSpacer from '../AppStatusBarSpacer/AppStatusBarSpacer.vue'
@@ -100,7 +101,7 @@ const props = defineProps({
   sticky: { type: Boolean, default: true },
   statusBarExtra: { type: Number, default: 8 },
   keyword: { type: String, default: '' },
-  placeholder: { type: String, default: '商品名称 / SKU / 69码' },
+  placeholder: { type: String, default: null },
   autoFocus: { type: Boolean, default: false },
   keywordCommitted: { type: Boolean, default: false },
   showTools: { type: Boolean, default: true },
@@ -137,10 +138,10 @@ watch(() => props.keyword, value => {
 })
 
 const quickSortItems = Object.freeze([
-  { key: 'default', label: '综合' },
-  { key: 'latest', label: '最新' },
-  { key: 'price', label: '价格', directional: true },
-  { key: 'stock', label: '库存', directional: true },
+  { key: 'default', labelKey: 'common.search.sortDefault' },
+  { key: 'latest', labelKey: 'common.search.sortLatest' },
+  { key: 'price', labelKey: 'common.search.sortPrice', directional: true },
+  { key: 'stock', labelKey: 'common.search.sortStock', directional: true },
 ])
 
 function handleKeywordInput(event) {
@@ -259,13 +260,14 @@ watch(() => props.theme, applyStatusBarStyle)
   position: absolute;
   top: 1px;
   right: -1px;
-  display: grid;
+  display: flex;
   min-width: 18px;
   max-width: 32px;
   height: 18px;
   padding: 0 4px;
   box-sizing: border-box;
-  place-items: center;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
   border: 1.5px solid #fff;
   border-radius: 9px;
@@ -431,17 +433,19 @@ watch(() => props.theme, applyStatusBarStyle)
 }
 
 .filter-count {
-  display: grid;
+  display: flex;
   min-width: 16px;
   height: 16px;
   padding: 0 4px;
   box-sizing: border-box;
-  place-items: center;
+  align-items: center;
+  justify-content: center;
   border-radius: 8px;
   color: #fff;
   font-size: 8px;
   font-weight: 700;
   background: #d7192d;
+  line-height: 1;
 }
 
 .quick-filter-row {

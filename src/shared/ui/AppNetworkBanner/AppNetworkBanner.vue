@@ -29,6 +29,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { t } from '@/shared/i18n/index.js'
 
 const props = defineProps({
   /** 是否可见 */
@@ -66,12 +67,12 @@ const displayMessage = computed(() => {
   if (props.message) return props.message
 
   const messages = {
-    offline: '当前无网络连接，请检查网络设置',
-    'weak-network': '网络信号较弱，部分功能可能受影响',
-    'refresh-fail': '刷新失败，显示的可能不是最新数据',
+    offline: 'common.ui.offlineBanner',
+    'weak-network': 'common.ui.weakBanner',
+    'refresh-fail': 'common.ui.refreshBanner',
     custom: '',
   }
-  return messages[props.type] || ''
+  return messages[props.type] ? t(messages[props.type]) : ''
 })
 
 /** 图标字符 */
@@ -100,7 +101,7 @@ function handleClose() {
 .network-banner {
   // 固定在顶部或作为页面内横幅
   position: relative;
-  z-index: $z-sticky;
+  z-index: var(--z-sticky, 200);
 
   .banner-content {
     display: flex;

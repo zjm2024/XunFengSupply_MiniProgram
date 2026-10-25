@@ -3,7 +3,7 @@
     <view class="sku-sheet" @tap.stop>
       <view class="sheet-handle" />
       <view class="sheet-header">
-        <text class="sheet-title">选择采购规格</text>
+        <text class="sheet-title">{{ t('commerce.purchase.title') }}</text>
         <button class="sheet-close button-center" :disabled="submitting" @tap="close">×</button>
       </view>
 
@@ -15,17 +15,16 @@
         />
         <view class="summary-copy">
           <view class="summary-price">
-            <text class="price-symbol">¥</text>
-            <text>{{ formatMoney(selectedSku?.price ?? product?.price) }}</text>
+            <AmountText class="price" :text="'¥' + (formatMoney(selectedSku?.price ?? product?.price))" />
           </view>
           <text class="summary-stock" :class="{ empty: !selectedSku?.canPurchase }">{{ stockText }}</text>
-          <text class="summary-selected">已选：{{ selectedSkuName }}</text>
+          <text class="summary-selected">{{ t('commerce.purchase.selected', { name: selectedSkuName }) }}</text>
         </view>
       </view>
 
       <scroll-view class="sheet-scroll" scroll-y>
         <view class="sheet-section">
-          <text class="section-label">颜色</text>
+          <text class="section-label">{{ t('commerce.purchase.color') }}</text>
           <view class="sku-options">
             <button
               v-for="group in colorGroups"
@@ -43,8 +42,8 @@
 
         <view class="sheet-section size-section">
           <view class="section-label-row">
-            <text class="section-label">尺码</text>
-            <text v-if="selectedColorName" class="selected-color">已选 {{ selectedColorName }}</text>
+            <text class="section-label">{{ t('commerce.purchase.size') }}</text>
+            <text v-if="selectedColorName" class="selected-color">{{ t('commerce.purchase.colorSelected', { name: selectedColorName }) }}</text>
           </view>
           <view class="sku-options">
             <button
@@ -55,16 +54,16 @@
               :disabled="!sku.canPurchase"
               @tap="selectSize(sku)"
             >
-              {{ sku.sizeName || sku.specName || sku.skuCode || '默认尺码' }}
+              {{ sku.sizeName || sku.specName || sku.skuCode || t('commerce.purchase.defaultSize') }}
             </button>
           </view>
-          <text v-if="!hasPurchasableSku" class="empty-hint">当前商品暂无可采购规格</text>
-          <text v-else-if="!sizeOptions.length" class="empty-hint">请先选择颜色</text>
+          <text v-if="!hasPurchasableSku" class="empty-hint">{{ t('commerce.purchase.noPurchasable') }}</text>
+          <text v-else-if="!sizeOptions.length" class="empty-hint">{{ t('commerce.purchase.chooseColor') }}</text>
         </view>
 
         <view class="sheet-section quantity-section">
           <view>
-            <text class="section-label">采购数量</text>
+            <text class="section-label">{{ t('commerce.purchase.quantity') }}</text>
             <text class="quantity-hint">{{ minimumText }}</text>
           </view>
           <QuantityStepper
@@ -77,11 +76,9 @@
       </scroll-view>
 
       <view class="sheet-actions">
-        <button class="batch-button button-center" :disabled="!hasPurchasableSku || submitting" @tap="emit('batch')">
-          批量采购
-        </button>
+        <button class="batch-button button-center" :disabled="!hasPurchasableSku || submitting" @tap="emit('batch')">{{ t('commerce.purchase.batch') }}</button>
         <button class="confirm-button button-center" :disabled="!canConfirm || submitting" @tap="confirm">
-          {{ submitting ? '加入中…' : '加入购物车' }}
+          {{ submitting ? t('commerce.purchase.adding') : t('commerce.purchase.add') }}
         </button>
       </view>
     </view>
@@ -89,6 +86,9 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/commerce/i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, ref, watch } from 'vue'
 import AppProductImage from '../../../../shared/ui/AppProductImage/AppProductImage.vue'
 import QuantityStepper from '@/shared/ui/QuantityStepper/QuantityStepper.vue'
@@ -113,7 +113,7 @@ const colorGroups = computed(() => {
     if (!groups.has(key)) {
       groups.set(key, {
         key,
-        name: sku.colorName || '默认颜色',
+        name: sku.colorName || t('commerce.purchase.defaultColor'),
         items: [],
         image: '',
         canPurchase: false,
@@ -143,17 +143,17 @@ const canConfirm = computed(() => Boolean(
   && quantity.value <= maximumQuantity.value,
 ))
 const selectedSkuName = computed(() => {
-  if (!selectedSku.value) return '请先选颜色，再选尺码'
-  const color = selectedSku.value.colorName || '默认颜色'
-  const size = selectedSku.value.sizeName || selectedSku.value.specName || selectedSku.value.skuCode || '默认尺码'
+  if (!selectedSku.value) return t('commerce.purchase.chooseVariant')
+  const color = selectedSku.value.colorName || t('commerce.purchase.defaultColor')
+  const size = selectedSku.value.sizeName || selectedSku.value.specName || selectedSku.value.skuCode || t('commerce.purchase.defaultSize')
   return `${color} / ${size}`
 })
 const selectedImageStock = computed(() => selectedSku.value?.stockKnown ? selectedSku.value.stock : undefined)
-const minimumText = computed(() => `${minimumQuantity.value} ${props.product?.unit || '件'}起订`)
+const minimumText = computed(() => t('commerce.purchase.minimum', { count: minimumQuantity.value, unit: props.product?.unit || '件' }))
 const stockText = computed(() => {
   if (!selectedSku.value) return '请选择规格'
   if (!selectedSku.value.canPurchase) return selectedSku.value.invalidReason || '暂无库存'
-  if (!selectedSku.value.stockKnown) return '库存以提交结果为准'
+  if (!selectedSku.value.stockKnown) return '库存状态暂不可用，请稍后重试'
   return `库存 ${selectedSku.value.stock} ${props.product?.unit || '件'}`
 })
 
@@ -432,4 +432,8 @@ function formatMoney(value) {
   .sku-sheet-mask,
   .sku-sheet { animation-duration: 1ms; }
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.summary-price { min-width: 0; }
+.summary-price .amount-text { font-size: inherit; }
 </style>

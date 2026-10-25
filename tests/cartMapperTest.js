@@ -9,8 +9,10 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.resetModules()
+  const { registerMainLocales } = await import('@/app/i18n/registerMain.js')
+  registerMainLocales()
 })
 
 describe('Cart API Layer', () => {

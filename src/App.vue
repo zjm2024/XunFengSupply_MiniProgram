@@ -1,12 +1,14 @@
 <template>
   <view id="app">
     <router-view />
+    <ConfirmHost />
   </view>
 </template>
 
 <script setup>
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
 import { STARTUP_CONFIG } from './app/config/startupConfig.js'
+import ConfirmHost from './shared/ui/ConfirmPopup/ConfirmHost.vue'
 
 /**
  * App 启动时执行

@@ -1,7 +1,7 @@
 ﻿<template>
   <AppPageShell>
     <template #header>
-      <app-header title="语言设置" :show-back="true" />
+      <app-header :title="t('account.language.title')" :show-back="true" />
     </template>
 
     <template #content>
@@ -9,7 +9,7 @@
         <view class="content">
           <!-- 当前语言 -->
           <view class="current-card">
-            <text class="current-label">当前显示语言</text>
+            <text class="current-label">{{ t('account.language.current') }}</text>
             <view class="current-value">
               <text class="current-text">{{ currentLanguage.name }}</text>
               <text class="current-native">{{ currentLanguage.native }}</text>
@@ -37,19 +37,21 @@
 
           <!-- 提示信息 -->
           <view class="tips-card">
-            <text class="tips-title">温馨提示</text>
+            <text class="tips-title">{{ t('account.language.tips') }}</text>
+            <text v-if="saving" class="tip-text">{{ t('account.language.saving') }}</text>
+            <text v-else-if="syncFailed" class="tip-text">{{ t('account.language.syncFailed') }}</text>
             <view class="tips-list">
               <view class="tip-item">
                 <text class="tip-dot">•</text>
-                <text class="tip-text">切换语言后，界面文字将立即更新为所选语言</text>
+                <text class="tip-text">{{ t('account.language.immediate') }}</text>
               </view>
               <view class="tip-item">
                 <text class="tip-dot">•</text>
-                <text class="tip-text">部分内容（如商品名称、订单详情）可能仍以原始语言显示</text>
+                <text class="tip-text">{{ t('account.language.original') }}</text>
               </view>
               <view class="tip-item">
                 <text class="tip-dot">•</text>
-                <text class="tip-text">如需完整的多语言支持，请联系管理员配置翻译资源</text>
+                <text class="tip-text">{{ t('account.language.status') }}</text>
               </view>
             </view>
           </view>
@@ -62,45 +64,31 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import { locale, t } from '@/shared/i18n/index.js'
+import { useLanguageSettings } from '../../composables/useLanguageSettings.js'
+import '../../i18n/register.js'
 
-const currentLang = ref('zh-CN')
-
-// 支持的语言列表
-const languages = ref([
-  { code: 'zh-CN', name: '简体中文', native: '简体中文' },
-  { code: 'zh-TW', name: '繁體中文', native: '繁體中文' },
-  { code: 'en', name: 'English', native: 'English' },
-  { code: 'ja', name: '日本語', native: '日本語' },
-  { code: 'ko', name: '한국어', native: '한국어' }
+const currentLang = locale
+const { saving, syncFailed, selectLanguage: changeLanguage } = useLanguageSettings()
+const languages = computed(() => [
+  { code: 'zh-CN', name: t('account.language.zh'), native: 'ZH' },
+  { code: 'en-US', name: t('account.language.en'), native: 'EN' },
 ])
+const currentLanguage = computed(() => languages.value.find(item => item.code === currentLang.value))
 
-// 尝试读取已保存的语言设置
-try {
-  const savedLang = uni.getStorageSync('app_language')
-  if (savedLang) {
-    currentLang.value = savedLang
-  }
-} catch (e) {}
-
-const currentLanguage = computed(() => {
-  return languages.value.find(l => l.code === currentLang.value) || languages.value[0]
-})
-
-function selectLanguage(lang) {
-  currentLang.value = lang.code
-  uni.setStorageSync('app_language', lang.code)
-
-  // 触发语言变更事件
-  uni.$emit('languageChanged', lang)
-
+/** 只切换显示语言，不重建页面、不清表单、不重发业务写请求。 */
+async function selectLanguage(lang) {
+  const result = await changeLanguage(lang.code)
+  if (!result) return
   uni.showToast({
-    title: `已切换至${lang.name}`,
-    icon: 'success',
-    duration: 1500
+    title: result === 'local-only' ? t('account.language.syncFailed')
+      : t('account.language.changed', { language: currentLanguage.value.name }),
+    icon: result === 'local-only' ? 'none' : 'success',
+    duration: result === 'local-only' ? 3000 : 1500,
   })
 }
 </script>

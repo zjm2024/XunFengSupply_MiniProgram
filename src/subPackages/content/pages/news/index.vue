@@ -1,7 +1,7 @@
 ﻿﻿<template>
   <AppPageShell>
     <template #header>
-      <app-header title="新闻资讯" :show-back="true" />
+      <app-header :title="t('content.titles.news')" :show-back="true" />
     </template>
 
     <template #content>
@@ -23,7 +23,7 @@
                 class="tab-btn"
                 :class="{ 'is-active': activeTab === tab.key }"
                 @click="activeTab = tab.key"
-              >{{ tab.label }}</button>
+              >{{ tab.key === 'all' ? t('content.news.all') : tab.label }}</button>
             </view>
           </scroll-view>
 
@@ -32,7 +32,7 @@
             :state="pageStatus.status.value"
             :has-stale-content="pageStatus.hasStaleContent.value"
             icon-type="message"
-            action-text="重新加载"
+            :action-text="t('content.news.reload')"
             :fullscreen="false"
             @retry="handleRetry"
           >
@@ -48,8 +48,8 @@
                 />
                 <view class="item-info">
                   <view class="item-meta">
-                    <text class="item-type">{{ item.categoryTitle || item.type || '品牌资讯' }}</text>
-                    <text class="item-date">{{ item.date || item.publishedAt || '最新发布' }}</text>
+                    <text class="item-type">{{ item.categoryTitle || item.type || t('content.news.categoryFallback') }}</text>
+                    <text class="item-date">{{ item.date || item.publishedAt || t('content.news.latest') }}</text>
                   </view>
                   <text class="item-title">{{ item.title }}</text>
                   <text v-if="item.summary || item.desc" class="item-summary">{{ item.summary || item.desc }}</text>
@@ -90,6 +90,8 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/content/i18n/register.js'
 import { computed, onMounted, ref, watch } from 'vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'

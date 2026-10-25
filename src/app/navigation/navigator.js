@@ -26,6 +26,8 @@ import {
 } from '../config/routes.js'
 import { canAccess, isPublicRoute } from './routeGuard.js'
 import { useUserStore } from '../../shared/session/userStore.js'
+import { openAppDialog } from '@/shared/composables/useAppDialog.js'
+import { t } from '@/shared/i18n/index.js'
 
 // ==================== 内部实现 ====================
 
@@ -319,22 +321,12 @@ export const navigator = {
   backWithConfirm(options = {}) {
     const { hasUnsavedChanges = false, delta = 1 } = options
     if (hasUnsavedChanges) {
-      return new Promise((resolve) => {
-        uni.showModal({
-          title: '确认离开',
-          content: '当前有未保存的修改，确定要离开吗？',
-          confirmText: '离开',
-          cancelText: '留下',
-          success: (res) => {
-            if (res.confirm) {
-              resolve(doNavigateBack(delta))
-            } else {
-              resolve(false)
-            }
-          },
-          fail: () => resolve(false),
-        })
-      })
+      return openAppDialog({
+        title: t('common.tip'),
+        description: t('common.unsavedChanges'),
+        confirmText: t('common.confirm'),
+        cancelText: t('common.cancel'),
+      }).then(confirmed => confirmed ? doNavigateBack(delta) : false)
     }
     return doNavigateBack(delta)
   },

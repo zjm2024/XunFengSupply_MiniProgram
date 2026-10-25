@@ -16,6 +16,7 @@
  */
 
 import { AppError, ErrorKind } from './appError.js'
+import { getLocale, t } from '../i18n/index.js'
 import { useUserStore } from '../session/userStore.js'
 import { navigator } from '../../app/navigation/navigator.js'
 
@@ -40,7 +41,8 @@ const PUBLIC_METHODS = new Set([
 
 let _loadingCount = 0
 
-function _showLoading(text = '加载中...') {
+/** 仅在请求开始读取语言，切换不创建或重试请求。 */
+function _showLoading(text = t('common.loading')) {
   if (_loadingCount === 0) {
     uni.showLoading({ title: text, mask: true })
   }
@@ -134,7 +136,7 @@ export function request(config) {
     data = {},
     header = {},
     showLoading: shouldShowLoading = false,
-    loadingText = '加载中...',
+    loadingText = t('common.loading'),
     timeout = DEFAULT_TIMEOUT,
     rawResponse = false,
     anonymous = false,
@@ -155,7 +157,8 @@ export function request(config) {
   const mergeHeader = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...header,
+    ...Object.fromEntries(Object.entries(header).filter(([key]) => key.toLowerCase() !== 'accept-language')),
+    'Accept-Language': getLocale(),
   }
 
   return new Promise((resolve, reject) => {
@@ -280,7 +283,7 @@ export async function dispatch(module, className, method, params = {}, options =
     method: 'POST',
     data: { module, class: className, method, params },
     showLoading: options.showLoading ?? false,
-    loadingText: options.loadingText || '加载中...',
+    loadingText: options.loadingText || t('common.loading'),
     timeout: options.timeout || DEFAULT_TIMEOUT,
     rawResponse: options.rawResponse || false,
     authStrategy: options.authStrategy || 'auto',

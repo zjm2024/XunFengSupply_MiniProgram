@@ -2,18 +2,18 @@
   <view class="category-tab tab-page">
     <view v-if="loading && !initialized" class="state-box state-box--loading">
       <view class="loading-dot" />
-      <text>正在加载商品分类...</text>
+      <text>{{ t('main.category.loading') }}</text>
     </view>
 
     <view v-else-if="loadFailed || !categoryTree.length" class="state-box">
       <view class="state-illustration">
         <AppSvgIllustration :svg="noSearchResultSvg" size="lg" />
       </view>
-      <text class="state-title">暂未获取到商品分类</text>
-      <text class="state-description">请检查网络后重新加载</text>
+      <text class="state-title">{{ t('main.category.empty') }}</text>
+      <text class="state-description">{{ t('main.category.retryHint') }}</text>
       <view class="retry-button" hover-class="control--pressed" @click="loadCategories">
         <AppIcon name="refresh" :size="16" />
-        <text>重新加载</text>
+        <text>{{ t('main.category.retry') }}</text>
       </view>
     </view>
 
@@ -100,15 +100,15 @@
               <view v-else class="product-empty" hover-class="control--pressed" @click="openCategoryProducts(section)">
                 <AppIcon name="product" :size="24" />
                 <view class="product-empty-copy">
-                  <text class="product-empty-title">暂无商品预览</text>
-                  <text class="product-empty-description">进入商品列表查看该分类</text>
+                  <text class="product-empty-title">{{ t('main.category.noPreview') }}</text>
+                  <text class="product-empty-description">{{ t('main.category.openList') }}</text>
                 </view>
                 <AppIcon name="arrow-right" :size="16" />
               </view>
 
               <view v-if="section.children?.length" class="deeper-entry" @click="openCategoryProducts(section)">
                 <AppIcon name="filter" :size="14" />
-                <text>该分类还有下级分类，进入列表继续筛选</text>
+                <text>{{ t('main.category.deeper') }}</text>
               </view>
             </view>
 
@@ -124,6 +124,7 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
 import { computed, nextTick, ref, watch } from 'vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
@@ -273,8 +274,8 @@ function getSectionProducts(section) {
 
 function getGroupSubtitle(section) {
   const products = getSectionProducts(section)
-  if (products.length) return `精选 ${products.length} 件商品`
-  return section.children?.length ? `${section.children.length} 个更深层分类` : '分类商品'
+  if (products.length) return t('main.category.selected', { count: products.length })
+  return section.children?.length ? t('main.category.subcategories', { count: section.children.length }) : t('main.category.products')
 }
 
 function openProduct(product) {

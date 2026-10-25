@@ -8,6 +8,7 @@
  * 调度器使用 createCartSyncScheduler 工厂创建独立实例
  */
 import { ref } from 'vue'
+import { t } from '../i18n/index.js'
 import { useCartStore } from '../model/cartStore.js'
 import {
   addToCart,
@@ -126,12 +127,12 @@ export function useCart(options = {}) {
     if (skuId && item.quantity) {
       const success = await addSkuToCart({ skuId, quantity: item.quantity })
       if (success && !options.silent) {
-        if (typeof uni !== 'undefined') uni.showToast({ title: '已加入购物车', icon: 'success' })
+        if (typeof uni !== 'undefined') uni.showToast({ title: t('common.cart.added'), icon: 'success' })
       }
       return success
     }
     if (typeof uni !== 'undefined') {
-      uni.showToast({ title: '缺少商品规格信息', icon: 'none' })
+      uni.showToast({ title: t('common.cart.missingVariant'), icon: 'none' })
     }
     return false
   }

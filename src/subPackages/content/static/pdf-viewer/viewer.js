@@ -11,6 +11,59 @@ const pageStates = new Map()
 let pdfDocument = null
 const RANGE_CHUNK_SIZE = 256 * 1024
 let resizeTimer = null
+let viewerMessages = {}
+let progressState = { key: 'preparing', parameters: {} }
+let errorState = null
+
+/** 从宿主接收 JSON 显示资源；只更新文字，不启动 PDF 或网络流程。 */
+function setViewerLocale(payload) {
+  if (payload?.type !== 'pdf-viewer-locale' || !payload.messages || typeof payload.messages !== 'object') return
+  viewerMessages = Object.fromEntries(Object.entries(payload.messages).filter(([, value]) => typeof value === 'string'))
+  document.documentElement.lang = payload.locale === 'en-US' ? 'en-US' : 'zh-CN'
+  document.title = viewerText('title')
+  const title = document.querySelector('.viewer-title')
+  if (title) title.textContent = viewerText('title')
+  document.getElementById('backButton')?.setAttribute('aria-label', viewerText('back'))
+  if (progressState) setProgressMessage(progressState.key, progressState.parameters)
+  if (errorState && errorBox) errorBox.textContent = viewerText('previewFailed')
+  document.querySelectorAll('[data-viewer-message]').forEach(element => {
+    element.textContent = viewerText(element.dataset.viewerMessage)
+  })
+}
+
+/** 插值仅用于本地显示资源，不把词条用作 HTML 或业务字段。 */
+function viewerText(key, parameters = {}) {
+  return String(viewerMessages[key] || key).replace(/\{(\w+)\}/g, (token, name) =>
+    Object.prototype.hasOwnProperty.call(parameters, name) ? String(parameters[name]) : token)
+}
+
+/** 保存当前进度资源描述，以便已显示页面随宿主语言重新取词。 */
+function setProgressMessage(key, parameters = {}) {
+  progressState = { key, parameters }
+  if (progressText) progressText.textContent = viewerText(key, parameters)
+}
+
+/** 创建范围校验本地错误，显示层只公开可操作的预览提示。 */
+function viewerError(key) { return new Error(viewerText(key)) }
+
+/** 创建可原地更新语言的分页占位，不替换已渲染 canvas。 */
+function pagePlaceholder(element, key) {
+  const placeholder = document.createElement('div')
+  placeholder.className = 'page-placeholder'
+  placeholder.dataset.viewerMessage = key
+  placeholder.textContent = viewerText(key)
+  element.replaceChildren(placeholder)
+}
+
+window.setPdfViewerLocale = setViewerLocale
+window.addEventListener('message', event => {
+  if (event.source === window.parent && event.origin === window.location.origin) setViewerLocale(event.data)
+})
+try {
+  setViewerLocale(JSON.parse(params.get('ui') || 'null'))
+} catch (error) {
+  console.warn('[PdfViewer] Invalid display resource payload', error)
+}
 
 document.body.classList.toggle('is-embedded', params.get('embedded') === '1')
 
@@ -18,18 +71,21 @@ document.getElementById('backButton')?.addEventListener('click', () => {
   window.history.back()
 })
 
+/** 显示原始数值下载进度，语言更新不重置该数值。 */
 function setProgress(text) {
+  progressState = null
   if (progressText) progressText.textContent = text
 }
 
+/** 记录原异常并显示用户可操作的本地化预览失败提示。 */
 function showError(error) {
-  const detail = error?.message || String(error || '')
+  errorState = error
   console.error('[PdfViewer]', error)
   if (errorBox) {
     errorBox.hidden = false
-    errorBox.textContent = `PDF 预览失败：${detail}。请检查文件地址是否有效，以及七牛域名是否支持 CORS 和 Range 分片请求。`
+    errorBox.textContent = viewerText('previewFailed')
   }
-  setProgress('加载失败')
+  setProgressMessage('failed')
 }
 
 function parseContentRange(value) {
@@ -42,6 +98,7 @@ function parseContentRange(value) {
   }
 }
 
+/** 按原签名地址读取指定分片，严格保留 206、范围与长度校验。 */
 async function fetchRange(url, begin, end, signal) {
   const response = await fetch(url, {
     headers: { Range: `bytes=${begin}-${end - 1}` },
@@ -50,15 +107,15 @@ async function fetchRange(url, begin, end, signal) {
   })
   const contentRange = parseContentRange(response.headers.get('Content-Range'))
   if (response.status !== 206 || !contentRange) {
-    throw new Error('PDF 文件服务器未返回 206/Content-Range，已阻止整文件回退')
+    throw viewerError('rangeRequired')
   }
   if (contentRange.begin !== begin || contentRange.total <= 0 || contentRange.end < contentRange.begin) {
-    throw new Error('PDF 分片响应范围无效')
+    throw viewerError('rangeInvalid')
   }
 
   const bytes = new Uint8Array(await response.arrayBuffer())
   const expectedLength = contentRange.end - contentRange.begin + 1
-  if (bytes.byteLength !== expectedLength) throw new Error('PDF 分片响应长度不一致')
+  if (bytes.byteLength !== expectedLength) throw viewerError('rangeLength')
   return { bytes, contentRange }
 }
 
@@ -88,16 +145,18 @@ class HttpRangeTransport extends pdfjsLib.PDFDataRangeTransport {
   }
 }
 
+/** 为指定 PDF 页建立懒加载占位及原页码状态。 */
 function createPageElement(pageNumber) {
   const section = document.createElement('section')
   section.className = 'pdf-page'
   section.dataset.page = String(pageNumber)
-  section.innerHTML = '<div class="page-placeholder">滑动到此处时加载本页</div>'
+  pagePlaceholder(section, 'lazyPage')
   pagesElement.appendChild(section)
   pageStates.set(pageNumber, { element: section, rendered: false, rendering: false })
   return section
 }
 
+/** 按当前容器尺寸绘制单页，保留防重绘门禁和原 canvas 精度。 */
 async function renderPage(pageNumber) {
   const state = pageStates.get(pageNumber)
   if (!state || state.rendered || state.rendering || !pdfDocument) return
@@ -124,19 +183,20 @@ async function renderPage(pageNumber) {
     }).promise
     state.rendered = true
   } catch (error) {
-    state.element.innerHTML = '<div class="page-placeholder">本页加载失败，请稍后重试</div>'
+    pagePlaceholder(state.element, 'pageFailed')
     console.error(`[PdfViewer] 第 ${pageNumber} 页渲染失败`, error)
   } finally {
     state.rendering = false
   }
 }
 
+/** 只在屏幕尺寸变化时重新排版已渲染页面。 */
 function rerenderPagesAfterResize() {
   pageStates.forEach((state, pageNumber) => {
     if (!state.rendered) return
     state.rendered = false
     state.element.replaceChildren()
-    state.element.innerHTML = '<div class="page-placeholder">正在按当前屏幕重新排版</div>'
+    pagePlaceholder(state.element, 'relayout')
     void renderPage(pageNumber)
   })
 }
@@ -170,10 +230,11 @@ function observePages() {
   pageStates.forEach((state) => observer.observe(state.element))
 }
 
+/** 检查首分片后按原 Range 配置打开 PDF，并建立分页观察。 */
 async function openPdf() {
-  if (!pdfUrl) throw new Error('缺少 PDF 地址')
+  if (!pdfUrl) throw viewerError('missingUrl')
 
-  setProgress('检查分片')
+  setProgressMessage('checkingRange')
   const firstChunk = await fetchRange(pdfUrl, 0, RANGE_CHUNK_SIZE)
   const rangeTransport = new HttpRangeTransport(
     pdfUrl,
@@ -203,7 +264,7 @@ async function openPdf() {
   for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber += 1) {
     createPageElement(pageNumber)
   }
-  setProgress(`${pdfDocument.numPages} 页`)
+  setProgressMessage('pages', { count: pdfDocument.numPages })
   observePages()
 }
 

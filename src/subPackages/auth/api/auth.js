@@ -152,7 +152,28 @@ export function refreshToken() {
  * @returns {Promise<number>} 新创建的申请ID
  */
 export function submitApplication(params) {
-  return dispatch('MallDealer', 'Mini.ApplicationController', 'SubmitApplication', params, { anonymous: true })
+  return dispatch('MallDealer', 'Mini.ApplicationController', 'SubmitApplication', {
+    ApplicationId: params.applicationId ?? null,
+    CaptchaToken: params.captchaToken,
+    Password: params.password,
+    CompanyName: params.companyName,
+    ContactName: params.contactName,
+    Mobile: params.mobile,
+    LandlinePhone: params.landlinePhone,
+    TaxNo: params.taxNo,
+    Email: params.email,
+    Province: params.province,
+    City: params.city,
+    District: params.district,
+    AddressDetail: params.addressDetail,
+    RegisteredAddress: params.registeredAddress,
+    LicenseUrl: params.licenseUrl,
+  }, { anonymous: true })
+}
+
+/** 查询本次手机号对应的申请进度；页面只显示与本机申请编号一致的结果。 */
+export function queryApplicationStatus(mobile) {
+  return dispatch('MallDealer', 'Mini.ApplicationController', 'QueryApplicationStatus', { Mobile: mobile }, { anonymous: true })
 }
 
 // ==================== 子账号管理接口 ====================

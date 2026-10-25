@@ -1,208 +1,170 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader :title="existingSplits.length ? '配送拆单详情' : '订单按地址拆单'" :show-back="true" />
+      <AppHeader :title="existingSplits.length ? t('order.split.detailsTitle') : t('order.split.editorTitle')" :show-back="true" />
     </template>
-
     <template #content>
-      <AppContent>
+      <AppContent padding="0">
         <view class="allocation-page">
-          <view v-if="loading" class="state-card">正在读取订单拆单信息…</view>
-
+          <view v-if="loading" class="state-card">{{ t('order.split.loading') }}</view>
           <template v-else-if="context">
-            <view class="hero-card">
-              <text class="eyebrow">{{ existingSplits.length ? '配送拆单详情' : `订单 ${orderNo}` }}</text>
-              <text class="hero-title">{{ existingSplits.length ? '查看各地址的配送进度' : '每件商品，送到正确的地址' }}</text>
-              <text class="hero-copy">{{ existingSplits.length ? '各配送地址分别处理，发货和未发商品以系统最终处理结果为准。' : '整件商品可以直接更换地址；数量大于 1 时，还可以拆分到多个地址。' }}</text>
-              <view class="hero-summary">
-                <view><text class="summary-value">{{ sourceItems.length }}</text><text class="summary-label">款商品</text></view>
-                <view class="summary-divider" />
-                <view><text class="summary-value">{{ totalQuantity }}</text><text class="summary-label">件</text></view>
-                <view class="summary-divider" />
-                <view><text class="summary-value">{{ deliveryGroupCount }}</text><text class="summary-label">个地址</text></view>
-              </view>
+            <view class="order-meta">
+              <text class="eyebrow">{{ t('order.split.order', { number: orderNo }) }}</text>
+              <text class="order-summary-total">{{ t('order.split.quantity', { count: totalQuantity }) }}</text>
             </view>
-
             <view v-if="lastSplitFailureReason" class="notice-card">
-              上次订单拆单未通过：{{ lastSplitFailureReason }}。
-              <text>本批配送安排已失效，历史子单仅供查看，原订单将按完整商品数量重新安排配送。</text>
+              <text>{{ t('order.split.previousFailure', { reason: lastSplitFailureReason }) }}</text>
+              <text>{{ t('order.split.retryPlan') }}</text>
             </view>
-
             <view v-if="failedSplits.length && remainingItems.length" class="notice-card">
-              <text>当前有 {{ remainingQuantity }} 件商品尚未安排到有效子单。</text>
-              <text v-if="reallocationDisabledReason"> {{ reallocationDisabledReason }}</text>
-              <view class="remaining-item-list">
-                <text v-for="item in remainingItems" :key="itemIdOf(item)" class="remaining-item">
-                  {{ valueOf(item, 'productName', 'ProductName', '') }} ×{{ quantityOf(item) }}
-                </text>
-              </view>
+              <text>{{ t('order.split.notPlanned', { count: remainingQuantity }) }}</text>
+              <text v-if="reallocationDisabledReason">{{ reallocationDisabledReason }}</text>
+              <view class="remaining-item-list"><text v-for="item in remainingItems" :key="itemIdOf(item)" class="remaining-item">{{ valueOf(item, 'productName', 'ProductName', '') }} ×{{ quantityOf(item) }}</text></view>
             </view>
-
             <template v-if="existingSplits.length">
-              <view class="section-heading">
-                <text>配送拆单明细</text>
-                <text class="section-note">共 {{ existingSplits.length }} 个配送地址</text>
-              </view>
+              <view class="section-heading"><text>{{ t('order.split.details') }}</text><text class="section-note">{{ t('order.split.addressCount', { count: existingSplits.length }) }}</text></view>
               <view class="split-progress-card">
-                <view>
-                  <text class="split-progress-title">当前配送进度</text>
-                  <text class="split-progress-copy">{{ processedSplitCount }}/{{ existingSplits.length }} 个配送单已有处理结果</text>
-                </view>
-                <text class="split-progress-number">{{ shippedQuantityTotal }} 件</text>
+                <view><text class="split-progress-title">{{ t('order.split.progress') }}</text><text class="split-progress-copy">{{ t('order.split.processed', { count: processedSplitCount, total: existingSplits.length }) }}</text></view>
+                <text class="split-progress-number">{{ t('order.split.quantity', { count: shippedQuantityTotal }) }}</text>
               </view>
               <view class="readonly-grid">
                 <view v-for="split in existingSplits" :key="splitIdOf(split)" class="split-card readonly-card">
                   <view class="card-head">
-                    <view>
-                      <text class="card-title">{{ valueOf(split, 'splitName', 'SplitName', '拆分子单') }}</text>
-                      <text class="card-subtitle">{{ valueOf(split, 'splitNo', 'SplitNo', '') }}</text>
-                    </view>
+                    <view><text class="card-title">{{ valueOf(split, 'splitName', 'SplitName', '') || t('order.split.deliveryFallback') }}</text><text class="card-subtitle">{{ valueOf(split, 'splitNo', 'SplitNo', '') }}</text></view>
                     <text class="status-tag">{{ customerStatusText(split) }}</text>
                   </view>
-                  <view class="readonly-address">
-                    <text class="address-person">{{ valueOf(split, 'receiverName', 'ReceiverName', '') }}　{{ valueOf(split, 'receiverPhone', 'ReceiverPhone', '') }}</text>
-                    <text class="address-detail">{{ valueOf(split, 'fullAddress', 'FullAddress', '') }}</text>
-                  </view>
-                  <view v-for="item in itemsOf(split)" :key="`${splitIdOf(split)}-${itemIdOf(item)}`" class="readonly-item">
+                  <view class="readonly-address"><text class="address-person">{{ valueOf(split, 'receiverName', 'ReceiverName', '') }} {{ valueOf(split, 'receiverPhone', 'ReceiverPhone', '') }}</text><text class="address-detail">{{ valueOf(split, 'fullAddress', 'FullAddress', '') }}</text></view>
+                  <view v-for="item in itemsOf(split)" :key="splitIdOf(split) + '-' + itemIdOf(item)" class="readonly-item">
                     <AppImage class="item-image" width="100%" height="100%" :src="valueOf(item, 'imageUrl', 'ImageUrl', '')" mode="aspectFill" />
-                    <view class="item-copy">
-                      <text class="item-name">{{ valueOf(item, 'productName', 'ProductName', '') }}</text>
-                      <text class="item-spec">{{ valueOf(item, 'skuName', 'SkuName', '') }}</text>
-                    </view>
-                    <view class="readonly-quantity-copy">
-                      <text class="readonly-quantity">应发 {{ quantityOf(item) }}</text>
-                      <text class="readonly-shipped">实发 {{ shippedQuantityOf(item) }}</text>
-                    </view>
+                    <view class="item-copy"><text class="item-name">{{ valueOf(item, 'productName', 'ProductName', '') }}</text><text class="item-spec">{{ valueOf(item, 'skuName', 'SkuName', '') }}</text></view>
+                    <view class="readonly-quantity-copy"><text class="readonly-quantity">{{ t('order.split.expected', { count: quantityOf(item) }) }}</text><text class="readonly-shipped">{{ t('order.split.shipped', { count: shippedQuantityOf(item) }) }}</text></view>
                   </view>
-                  <text v-if="unshippedQuantityOf(split) > 0" class="split-result-warning">
-                    未发 {{ unshippedQuantityOf(split) }} 件，系统将按实际结果处理退款和库存。
-                  </text>
-                  <text v-else-if="shippedQuantityOf(split) > 0" class="split-result-success">
-                    已按实际结果完成发货处理。
-                  </text>
-                  <text v-if="valueOf(split, 'shippedAt', 'ShippedAt', null)" class="split-shipped-time">
-                    发货时间：{{ formatDateTime(valueOf(split, 'shippedAt', 'ShippedAt', null)) }}
-                  </text>
-                  <text v-if="isReviewRejected(split)" class="split-result-warning">
-                    配送安排未通过{{ valueOf(split, 'erpReviewReasonMessage', 'ErpReviewReasonMessage', '') ? `：${valueOf(split, 'erpReviewReasonMessage', 'ErpReviewReasonMessage', '')}` : '' }}。原订单可重新安排配送。
-                  </text>
+                  <text v-if="unshippedQuantityOf(split) > 0" class="split-result-warning">{{ t('order.split.notShipped', { count: unshippedQuantityOf(split) }) }}</text>
+                  <text v-else-if="shippedQuantityOf(split) > 0" class="split-result-success">{{ t('order.split.shipmentHandled') }}</text>
+                  <text v-if="valueOf(split, 'shippedAt', 'ShippedAt', null)" class="split-shipped-time">{{ t('order.split.shippedAt', { time: formatDateTime(valueOf(split, 'shippedAt', 'ShippedAt', null)) }) }}</text>
+                  <text v-if="isReviewRejected(split)" class="split-result-warning">{{ t('order.split.reviewRejected', { reason: valueOf(split, 'erpReviewReasonMessage', 'ErpReviewReasonMessage', '') ? '：' + valueOf(split, 'erpReviewReasonMessage', 'ErpReviewReasonMessage', '') : '' }) }}</text>
                 </view>
               </view>
             </template>
-
             <template v-else>
               <view v-if="disabledReason" class="notice-card">{{ disabledReason }}</view>
-
               <view v-if="!disabledReason && !addresses.length" class="empty-address-card">
-                <view class="empty-icon"><AppIcon name="location" :size="24" color="#d7192d" /></view>
-                <text class="empty-title">还没有可用收货地址</text>
-                <text class="empty-copy">新增地址后即可按地址拆分订单。</text>
-                <button class="secondary-button button-center" @tap="openAddressManager">新增收货地址</button>
+                <AppIcon name="location" :size="28" color="#d7192d" />
+                <text class="empty-title">{{ t('order.split.emptyAddress') }}</text><text class="empty-copy">{{ t('order.split.emptyAddressCopy') }}</text>
+                <button class="secondary-button button-center" @tap="openAddressManager">{{ t('order.split.addAddress') }}</button>
               </view>
-
               <template v-else-if="!disabledReason">
-                <view class="guide-card">
-                  <view class="guide-item"><text class="guide-number">1</text><text>先添加需要配送的收货地址。</text></view>
-                  <view class="guide-item"><text class="guide-number">2</text><text>在每个地址下分配商品数量，同一个 SKU 可以分到多个地址。</text></view>
-                  <view class="guide-item"><text class="guide-number">3</text><text>每个拆分地址至少需要 1 件商品，商品总数量必须全部分配。</text></view>
-                </view>
-
-                <view class="section-heading address-section-heading">
-                  <view>
-                    <text class="section-title">按收货地址拆分</text>
-                    <text class="section-note">已使用 {{ addressGroups.length }} 个地址</text>
-                  </view>
-                  <button
-                    class="manage-address"
-                    :disabled="!canAddAddressGroup"
-                    @tap="addAddressGroup"
-                  >{{ canAddAddressGroup ? '添加拆分地址' : '无法继续添加' }}</button>
-                </view>
-
-                <view class="address-group-list">
-                  <view
-                    v-for="(group, groupIndex) in addressGroups"
-                    :key="group.key"
-                    class="address-group-card"
-                  >
-                    <view class="address-group-head">
-                      <view class="address-group-copy">
-                        <text class="address-group-title">拆分地址 {{ groupIndex + 1 }}</text>
-                        <text v-if="group.address" class="address-group-contact">
-                          {{ group.address.name }}　{{ group.address.phone }}
-                        </text>
+                <view class="allocation-workspace">
+                  <view class="address-controls">
+                    <view class="editor-toolbar">
+                      <text class="section-title">{{ t('order.split.addressesHeading', { count: addressGroups.length }) }}</text>
+                      <picker v-if="canAddAddressGroup" class="add-address-picker" :range="addressOptions()" range-key="label" :value="0" :disabled="editingLocked" @change="selectAddress(0, $event)">
+                        <view class="add-address-button" :class="{ 'is-disabled': editingLocked }">{{ t('order.split.addShort') }}</view>
+                      </picker>
+                    </view>
+                    <scroll-view v-if="addressGroups.length > 1" class="address-tabs" scroll-x :scroll-into-view="'allocation-address-' + activeAddressId" :show-scrollbar="false">
+                      <view class="address-tab-list">
+                        <button v-for="(group, groupIndex) in addressGroups" :key="group.key" :id="'allocation-address-' + group.addressId" class="address-tab" :class="{ active: activeAddressId === group.addressId }" :disabled="editingLocked" @tap="selectActiveAddress(group.addressId)">
+                          <text class="address-tab-name">{{ groupIndex + 1 }}. {{ group.address?.name || t('order.split.addressFallback') }}</text>
+                          <text class="address-tab-quantity">{{ t('order.split.quantity', { count: groupTotalQuantity(group.addressId) }) }}</text>
+                        </button>
                       </view>
-                      <button
-                        v-if="addressGroups.length > 1"
-                        class="remove-address-button"
-                        @tap="removeAddressGroup(group.addressId)"
-                      >移除地址</button>
+                    </scroll-view>
+                  </view>
+                <view class="address-group-list">
+                  <view v-for="group in activeAddressGroups" :key="group.key" class="address-group-card">
+                    <view class="address-summary">
+                      <view class="address-group-head">
+                        <view class="address-group-copy">
+                          <text class="address-group-contact">{{ group.address?.name || t('order.split.addressFallback') }}</text>
+                          <text v-if="group.address?.phone" class="address-phone">{{ group.address.phone }}</text>
+                        </view>
+                        <picker class="change-address-picker" :range="addressOptions(group.addressId)" range-key="label" :value="addressOptionIndex(group.addressId)" :disabled="editingLocked" @change="selectAddress(group.addressId, $event)"><view class="change-address-button">{{ t('order.split.changeAddressShort') }}</view></picker>
+                      </view>
+                      <text v-if="group.address" class="group-address-detail">{{ group.address.fullAddress }}</text>
                     </view>
-
-                    <view v-if="group.address" class="group-address-detail">
-                      {{ group.address.fullAddress }}
+                    <view class="items-heading">
+                      <text class="section-title">{{ t('order.split.itemsHeading') }}</text>
+                      <button class="more-actions-toggle" :aria-label="t('order.split.moreActions')" :disabled="editingLocked" @tap="actionsExpanded = true">{{ t('order.list.more') }}<text aria-hidden="true"> ···</text></button>
                     </view>
-
-                    <view class="group-item-list">
-                      <view v-for="item in sourceItems" :key="group.key + '-' + itemIdOf(item)" class="group-item-row">
-                        <AppImage
-                          class="item-image group-item-image"
-                          width="100%"
-                          height="100%"
-                          :src="valueOf(item, 'imageUrl', 'ImageUrl', '')"
-                          mode="aspectFill"
-                        />
-                        <view class="item-copy">
-                          <text class="item-name">{{ valueOf(item, 'productName', 'ProductName', '') }}</text>
-                          <text class="item-spec">订单数量 {{ quantityOf(item) }} 件</text>
+                    <view v-if="groupTotalQuantity(group.addressId) === 0" class="target-hint">{{ t('order.split.emptyTargetShort') }}</view>
+                    <view v-if="onlyUnallocated" class="active-filter"><text>{{ t('order.split.onlyRemaining') }}</text><button class="text-action" @tap="onlyUnallocated = false">{{ t('order.split.showAll') }}</button></view>
+                    <view v-if="onlyUnallocated && !visibleProductGroups.length" class="filtered-empty"><text>{{ t('order.split.filterEmpty') }}</text><button class="text-action" @tap="onlyUnallocated = false">{{ t('order.split.showAll') }}</button></view>
+                    <view v-for="product in visibleProductGroups" :key="product.key" class="allocation-product">
+                      <view class="product-head">
+                        <AppImage v-if="product.imageUrl" class="item-image" width="40px" height="40px" :src="product.imageUrl" mode="aspectFill" />
+                        <view class="item-copy"><text class="item-name">{{ product.name }}</text><text class="item-spec">{{ t('order.split.variants', { count: product.items.length }) }}</text></view>
+                      </view>
+                      <view v-for="item in product.items" :key="itemIdOf(item)" class="group-item-row">
+                        <view class="sku-copy">
+                          <text class="sku-name">{{ valueOf(item, 'skuName', 'SkuName', '') || valueOf(item, 'skuCode', 'SkuCode', '') || t('order.split.defaultVariant') }}</text>
+                          <text v-if="valueOf(item, 'isGift', 'IsGift', false)" class="gift-tag">{{ t('order.split.gift') }}</text>
+                          <view class="sku-balance">
+                            <text>{{ t('order.split.ordered', { count: quantityOf(item) }) }}</text>
+                            <text v-if="balanceFor(group.addressId, itemIdOf(item)).allocated > balanceFor(group.addressId, itemIdOf(item)).current">{{ t('order.split.elsewhere', { count: balanceFor(group.addressId, itemIdOf(item)).allocated - balanceFor(group.addressId, itemIdOf(item)).current }) }}</text>
+                            <text v-if="balanceFor(group.addressId, itemIdOf(item)).remaining > 0" class="has-remaining">{{ t('order.split.remaining', { count: balanceFor(group.addressId, itemIdOf(item)).remaining }) }}</text>
+                          </view>
+                          <button v-if="hasTransferSource(group.addressId, itemIdOf(item))" class="transfer-button" :disabled="editingLocked" @tap="openTransfer(group.addressId, itemIdOf(item))">{{ t('order.split.moveShort') }}</button>
                         </view>
                         <view class="group-item-quantity">
-                          <text class="quantity-label">分配数量</text>
-                          <QuantityStepper
-                            :model-value="quantityAtAddress(group.addressId, itemIdOf(item))"
-                            :min="1"
-                            :max="maximumForAddressItem(group.addressId, itemIdOf(item))"
-                            :allow-zero="canSetAddressItemZero(group.addressId, itemIdOf(item))"
-                            size="sm"
-                            @update:model-value="setAddressItemQuantity(group.addressId, itemIdOf(item), $event)"
-                          />
+                          <QuantityStepper class="split-quantity-stepper" :model-value="balanceFor(group.addressId, itemIdOf(item)).current" :min="1" :max="balanceFor(group.addressId, itemIdOf(item)).maximum" :allow-zero="true" :allow-input="true" :disabled="editingLocked || balanceFor(group.addressId, itemIdOf(item)).maximum <= 0" size="compact" @update:model-value="setAddressItemQuantity(group.addressId, itemIdOf(item), $event)" />
                         </view>
                       </view>
                     </view>
-
-                    <view class="address-group-total">
-                      <text>本地址分配</text>
-                      <text class="address-group-total-number">{{ groupTotalQuantity(group.addressId) }} 件</text>
-                    </view>
                   </view>
                 </view>
-
-                <view class="allocation-summary" :class="{ invalid: Boolean(validationError) }">
-                  <view>
-                    <text class="allocation-title">{{ validationError || '商品数量已完整分配' }}</text>
-                    <text class="allocation-copy">系统将按收货地址生成 {{ deliveryGroupCount }} 个拆分子单</text>
-                  </view>
-                  <text class="allocation-total">{{ totalQuantity }} 件</text>
                 </view>
+                <view v-if="submitFailure" class="notice-card submit-error">{{ submitFailure.message || t('order.split.submitFailed') }}</view>
               </template>
-              <view class="bottom-space" />
             </template>
           </template>
+          <view v-else class="state-card"><text>{{ loadError?.message || t('order.split.loadFailed') }}</text><button class="secondary-button button-center" @tap="loadData">{{ t('order.split.retry') }}</button></view>
         </view>
       </AppContent>
     </template>
-
-    <template v-if="!loading && context && !existingSplits.length" #footer>
+    <template v-if="!loading && context && !existingSplits.length && canEdit" #footer>
       <FixedActionBar>
-        <button class="submit-button button-center" :disabled="!canSubmit || submitting" @tap="submitSplits">
-          {{ submitting ? '正在生成拆分子单…' : submitButtonText }}
-        </button>
+        <view class="footer-stack">
+          <text class="footer-hint" :class="{ pending: unallocatedQuantity > 0 }">{{ submissionAccepted ? t('order.split.accepted') : unallocatedQuantity > 0 ? t('order.split.pending', { count: unallocatedQuantity }) : validationError || t('order.split.footerReady', { count: allocatedQuantity, total: totalQuantity, addresses: deliveryGroupCount }) }}</text>
+          <button v-if="submissionAccepted" class="submit-button button-center" @tap="loadData">{{ t('order.split.refreshResult') }}</button>
+          <button v-else class="submit-button button-center" :disabled="!canSubmit || submitting" @tap="openReview">{{ submitting ? t('order.split.submitting') : t('order.split.reviewAction') }}</button>
+        </view>
       </FixedActionBar>
+    </template>
+    <template #overlay>
+      <ConfirmPopup v-model="actionsExpanded" :title="t('order.split.moreActions')" :show-cancel="false" :confirm-text="t('order.split.done')" @confirm="actionsExpanded = false">
+        <view class="action-menu">
+          <button class="menu-action" :disabled="editingLocked || unallocatedQuantity <= 0" @tap="assignAllRemaining(activeAddressId); actionsExpanded = false">{{ t('order.split.assignRemaining') }}</button>
+          <button class="menu-action" :disabled="editingLocked || groupTotalQuantity(activeAddressId) <= 0" @tap="actionsExpanded = false; clearCurrentAddress(activeAddressId)">{{ t('order.split.clear') }}</button>
+          <button v-if="addressGroups.length > 1" class="menu-action danger-action" :disabled="editingLocked" @tap="actionsExpanded = false; requestRemoveAddress(activeAddressId)">{{ t('order.split.removeAddress') }}</button>
+          <button class="menu-action" :disabled="editingLocked" @tap="onlyUnallocated = !onlyUnallocated; actionsExpanded = false">{{ onlyUnallocated ? t('order.split.showAll') : t('order.split.onlyRemaining') }}</button>
+          <button class="menu-action" :disabled="editingLocked" @tap="actionsExpanded = false; openAddressManager()">{{ t('order.split.manageAddress') }}</button>
+          <button class="menu-action" @tap="guideExpanded = !guideExpanded">{{ t('order.split.guide') }} {{ guideExpanded ? '−' : '+' }}</button>
+          <view v-if="guideExpanded" class="guide-copy"><text>{{ t('order.split.step2Hint') }}</text><text>{{ t('order.split.bulkHint') }}</text><text>{{ t('order.split.step3Hint') }}</text></view>
+        </view>
+      </ConfirmPopup>
+      <ConfirmPopup v-model="reviewVisible" :title="t('order.split.reviewTitle')" :description="t('order.split.reviewCopy')" :cancel-text="t('order.split.keepEditing')" :confirm-text="t('order.split.submitPlan')" :confirm-disabled="!canSubmit || submitting" @confirm="confirmReview">
+        <view class="review-groups">
+          <view v-for="group in reviewGroups" :key="group.addressId" class="review-group">
+            <view class="review-heading"><text>{{ group.address?.name || t('order.split.addressFallback') }}</text><text>{{ t('order.split.quantity', { count: group.quantity }) }}</text></view>
+            <text class="review-address">{{ group.address?.phone }} {{ group.address?.fullAddress }}</text>
+            <view v-for="item in group.items" :key="item.orderItemId" class="review-item"><view><text>{{ item.name }}</text><text class="review-spec">{{ item.spec }}</text></view><text class="review-quantity">×{{ item.quantity }}</text></view>
+          </view>
+        </view>
+      </ConfirmPopup>
+      <ConfirmPopup v-model="transferVisible" class="transfer-dialog" :title="t('order.split.transferTitle')" :description="t('order.split.transferCopy')" :confirm-text="t('order.split.transferConfirm')" :confirm-disabled="editingLocked || transferMaximum < 1" @confirm="confirmTransfer">
+        <text class="transfer-variant">{{ transferItemLabel }}</text>
+        <text class="transfer-label">{{ t('order.split.transferSource') }}</text>
+        <picker :range="transferSources" range-key="label" :value="transferSourceIndex" @change="chooseTransferSource"><view class="transfer-source">{{ transferSources[transferSourceIndex]?.label || t('order.split.selectAddress') }}</view></picker>
+        <view class="transfer-controls"><text>{{ t('order.split.transferQuantity', { count: transferMaximum }) }}</text><QuantityStepper class="split-quantity-stepper" size="compact" v-model="transferQuantity" :min="1" :max="transferMaximum" :disabled="transferMaximum < 1" :allow-input="true" /></view>
+      </ConfirmPopup>
     </template>
   </AppPageShell>
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/order/i18n/register.js'
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
@@ -211,18 +173,22 @@ import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppImage from '@/shared/ui/AppImage/AppImage.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
+import ConfirmPopup from '@/shared/ui/ConfirmPopup/ConfirmPopup.vue'
 import QuantityStepper from '@/shared/ui/QuantityStepper/QuantityStepper.vue'
+import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { ERP_REVIEW_STATUS, FULFILLMENT_SPLIT_STATUS, FULFILLMENT_SPLIT_STATUS_MAP } from '@/app/config/constant.js'
 import { formatDateTime } from '../../../../shared/utils/format.js'
 import {
-  addAllocation,
+  allocationBalance,
+  allocateRemainingToAddress,
   buildFulfillmentGroups,
   changeAllocationAddress,
-  changeAllocationQuantity,
+  clearAddressAllocation,
   createAllocationPlan,
-  removeAllocation,
+  setAddressAllocationQuantity,
+  transferAddressAllocation,
   validateAllocationPlan,
 } from '../../domain/fulfillmentAllocation.js'
 import {
@@ -236,10 +202,25 @@ const orderId = ref(0)
 const context = ref(null)
 const addresses = ref([])
 const allocationPlan = ref([])
+const selectedAddressIds = ref([])
+const activeAddressId = ref(0)
+const onlyUnallocated = ref(false)
 const loading = ref(true)
 const submitting = ref(false)
 const pageReady = ref(false)
+const guideExpanded = ref(false)
+const actionsExpanded = ref(false)
+const reviewVisible = ref(false)
+const submitFailure = ref(null)
+const loadError = ref(null)
+const submissionAccepted = ref(false)
+const editingLocked = computed(() => submitting.value || submissionAccepted.value)
+const transferDraft = ref(null)
+const transferQuantity = ref(1)
+const transferFromId = ref(0)
+const transferVisible = computed({ get: () => Boolean(transferDraft.value), set: value => { if (!value) transferDraft.value = null } })
 
+/** 兼容配送上下文现有的两种字段命名。 */
 const valueOf = (source, camel, pascal, fallback = undefined) => source?.[camel] ?? source?.[pascal] ?? fallback
 const orderNo = computed(() => valueOf(context.value, 'orderNo', 'OrderNo', ''))
 const disabledReason = computed(() => valueOf(context.value, 'disabledReason', 'DisabledReason', ''))
@@ -257,34 +238,59 @@ const reallocationDisabledReason = computed(() => valueOf(
 const lastSplitFailureReason = computed(() => valueOf(context.value, 'lastSplitFailureReason', 'LastSplitFailureReason', ''))
 const canEdit = computed(() => valueOf(context.value, 'canSplit', 'CanSplit', false) === true)
 const addressIds = computed(() => addresses.value.map(item => item.id))
-const usedAddressIds = computed(() => {
-  const ids = []
-  for (const item of allocationPlan.value) {
-    for (const allocation of item.allocations || []) {
-      const addressId = Number(allocation.addressId)
-      if (addressId > 0 && !ids.includes(addressId)) ids.push(addressId)
-    }
+const productGroups = computed(() => {
+  const groups = new Map()
+  for (const item of sourceItems.value) {
+    const name = valueOf(item, 'productName', 'ProductName', '')
+    const productId = valueOf(item, 'productId', 'ProductId', 0)
+    const code = valueOf(item, 'productCode', 'ProductCode', '')
+    const key = productId ? `id:${productId}` : `name:${name}|code:${code}`
+    if (!groups.has(key)) groups.set(key, { key, name, imageUrl: valueOf(item, 'imageUrl', 'ImageUrl', ''), items: [] })
+    groups.get(key).items.push(item)
   }
-  return ids
+  return [...groups.values()]
 })
-const addressGroups = computed(() => usedAddressIds.value.map(addressId => ({
+const visibleProductGroups = computed(() => {
+  if (!onlyUnallocated.value) return productGroups.value
+  const remainingIds = new Set(allocationPlan.value
+    .filter(item => allocationBalance(item).remaining > 0)
+    .map(item => item.orderItemId))
+  return productGroups.value
+    .map(product => ({ ...product, items: product.items.filter(item => remainingIds.has(itemIdOf(item))) }))
+    .filter(product => product.items.length > 0)
+})
+const addressGroups = computed(() => selectedAddressIds.value.map(addressId => ({
   key: String(addressId),
   addressId,
   address: addressById(addressId),
 })))
+const activeAddressGroups = computed(() => addressGroups.value.filter(group => group.addressId === activeAddressId.value))
 const canAddAddressGroup = computed(() => (
   addressGroups.value.length < 10
-  && addresses.value.some(address => !usedAddressIds.value.includes(address.id))
-  && totalQuantity.value > addressGroups.value.length
+  && addresses.value.some(address => !selectedAddressIds.value.includes(address.id))
 ))
 const totalQuantity = computed(() => sourceItems.value.reduce((sum, item) => sum + quantityOf(item), 0))
+const allocatedQuantity = computed(() => allocationPlan.value.reduce((sum, item) => sum + allocationBalance(item).allocated, 0))
+const unallocatedQuantity = computed(() => totalQuantity.value - allocatedQuantity.value)
 const deliveryGroups = computed(() => buildFulfillmentGroups(allocationPlan.value))
 const deliveryGroupCount = computed(() => deliveryGroups.value.length)
-const validationError = computed(() => validateAllocationPlan(allocationPlan.value, addressIds.value))
-const canSubmit = computed(() => canEdit.value && !validationError.value && !submitting.value)
+/** 按当前方案生成只读核对内容；不重排原始商品、不发请求。 */
+const reviewGroups = computed(() => deliveryGroups.value.map(group => ({
+  addressId: group.addressId,
+  address: addressById(group.addressId),
+  quantity: group.items.reduce((sum, item) => sum + item.quantity, 0),
+  items: group.items.map(item => {
+    const source = sourceItems.value.find(row => itemIdOf(row) === item.orderItemId)
+    return { ...item, name: valueOf(source, 'productName', 'ProductName', ''),
+      spec: valueOf(source, 'skuName', 'SkuName', '') || valueOf(source, 'skuCode', 'SkuCode', '') || t('order.split.defaultVariant') }
+  }),
+})))
+const validationError = computed(() => validateAllocationPlan(allocationPlan.value, addressIds.value, 10,
+  (key, parameters) => t('order.split.validation.' + key, parameters)))
+const canSubmit = computed(() => canEdit.value && !validationError.value && !editingLocked.value)
 const submitButtonText = computed(() => deliveryGroupCount.value > 1
-  ? `生成 ${deliveryGroupCount.value} 个拆分子单`
-  : '确认订单拆分')
+  ? t('order.split.submitAddresses', { count: deliveryGroupCount.value })
+  : t('order.split.submit'))
 const processedSplitCount = computed(() => existingSplits.value.filter(split => shippedQuantityOf(split) > 0 || [FULFILLMENT_SPLIT_STATUS.SHIPPED, FULFILLMENT_SPLIT_STATUS.COMPLETED, FULFILLMENT_SPLIT_STATUS.FAILED, FULFILLMENT_SPLIT_STATUS.CANCELLED].includes(Number(valueOf(split, 'status', 'Status', -1)))).length)
 const shippedQuantityTotal = computed(() => existingSplits.value.reduce((sum, split) => sum + shippedQuantityOf(split), 0))
 
@@ -301,7 +307,9 @@ onShow(async () => {
 
 /** 加载配送上下文和地址，并建立不会丢失数量的商品分配方案。 */
 async function loadData() {
+  if (loading.value && pageReady.value) return
   loading.value = true
+  loadError.value = null
   try {
     const [splitContext, addressList] = await Promise.all([
       getFulfillmentSplitContext(orderId.value),
@@ -311,7 +319,8 @@ async function loadData() {
     addresses.value = addressList
     if (!existingSplits.value.length && canEdit.value) initializePlan()
   } catch (error) {
-    uni.showToast({ title: error?.message || '订单拆单信息加载失败', icon: 'none' })
+    loadError.value = error
+    uni.showToast({ title: error?.message || t('order.split.loadFailed'), icon: 'none' })
   } finally {
     loading.value = false
   }
@@ -321,182 +330,133 @@ async function loadData() {
 function initializePlan() {
   const preferred = addresses.value.find(item => item.isDefault) || addresses.value[0]
   allocationPlan.value = createAllocationPlan(sourceItems.value, preferred?.id || 0)
+  selectedAddressIds.value = preferred ? [preferred.id] : []
+  activeAddressId.value = preferred?.id || 0
 }
 
-/** 从地址管理返回后刷新列表，并只修复已被删除的地址，不覆盖用户已完成的分配。 */
+/** 刷新地址；已删除地址的数量退回待分配，不擅自转给其他收货人。 */
 async function refreshAddresses() {
   try {
     addresses.value = await getFulfillmentAddressList()
     const validIds = new Set(addresses.value.map(item => item.id))
-    const fallbackId = (addresses.value.find(item => item.isDefault) || addresses.value[0])?.id || 0
-    allocationPlan.value = allocationPlan.value.map(item => {
-      const used = new Set()
-      return {
-        ...item,
-        allocations: item.allocations.map(allocation => {
-          let addressId = validIds.has(allocation.addressId) ? allocation.addressId : 0
-          if (!addressId) {
-            addressId = addresses.value.find(address => !used.has(address.id))?.id || fallbackId
-          }
-          used.add(addressId)
-          return { ...allocation, addressId }
-        }),
-      }
-    })
+    const hadDeletedAddress = selectedAddressIds.value.some(id => !validIds.has(id))
+    allocationPlan.value = allocationPlan.value.map(item => ({
+      ...item,
+      allocations: item.allocations.filter(allocation => validIds.has(Number(allocation.addressId))),
+    }))
+    selectedAddressIds.value = selectedAddressIds.value.filter(id => validIds.has(id))
+    if (!selectedAddressIds.value.length && addresses.value.length) {
+      selectedAddressIds.value = [(addresses.value.find(item => item.isDefault) || addresses.value[0]).id]
+    }
+    if (!selectedAddressIds.value.includes(activeAddressId.value)) activeAddressId.value = selectedAddressIds.value[0] || 0
+    if (hadDeletedAddress) uni.showToast({ title: t('order.split.addressRemoved'), icon: 'none' })
   } catch (error) {
-    uni.showToast({ title: error?.message || '收货地址刷新失败', icon: 'none' })
+    uni.showToast({ title: error?.message || t('order.split.addressRefreshFailed'), icon: 'none' })
   }
 }
 
-function findPlanItem(orderItemId) {
-  return allocationPlan.value.find(item => item.orderItemId === Number(orderItemId))
+/** 按订单明细查找当前 SKU 的分配余额。 */
+function balanceFor(addressId, orderItemId) {
+  return allocationBalance(allocationPlan.value.find(item => item.orderItemId === Number(orderItemId)), addressId)
 }
 
-function allocationIndexAtAddress(orderItemId, addressId) {
-  const planItem = findPlanItem(orderItemId)
-  return planItem?.allocations?.findIndex(allocation => allocation.addressId === Number(addressId)) ?? -1
+/** 返回明确的联系人和完整地址；已被其他配送地址使用的选项不再重复出现。 */
+function addressOptions(currentAddressId = 0) {
+  return [
+    { id: 0, label: t('order.split.selectAddress') },
+    ...addresses.value
+      .filter(address => address.id === Number(currentAddressId) || !selectedAddressIds.value.includes(address.id))
+      .map(address => ({ ...address, label: `${address.name} ${address.phone} ${address.fullAddress}` })),
+  ]
 }
 
-function quantityAtAddress(addressId, orderItemId) {
-  const planItem = findPlanItem(orderItemId)
-  const allocation = planItem?.allocations?.find(item => item.addressId === Number(addressId))
-  return Number(allocation?.quantity || 0)
+/** picker 的 value 是选项索引，与业务地址 ID 分开处理。 */
+function addressOptionIndex(addressId) {
+  return Math.max(0, addressOptions(addressId).findIndex(address => address.id === Number(addressId)))
 }
 
-function maximumForAddressItem(addressId, orderItemId) {
-  const planItem = findPlanItem(orderItemId)
-  if (!planItem) return 0
-  const targetIndex = allocationIndexAtAddress(orderItemId, addressId)
-  if (targetIndex < 0 && planItem.allocations.length === 1) {
-    const sourceAddressId = planItem.allocations[0].addressId
-    if (groupTotalQuantity(sourceAddressId) > 1) return planItem.totalQuantity
-  }
-  const otherQuantity = (planItem.allocations || [])
-    .filter(allocation => allocation.addressId !== Number(addressId))
-    .reduce((sum, allocation) => sum + Number(allocation.quantity || 0), 0)
-  return Math.max(0, planItem.totalQuantity - otherQuantity)
-}
+/** 将 picker 返回的字符串或数字索引映射到地址 ID，再新增或整体更换配送地址。 */
+function selectAddress(currentAddressId, event) {
+  if (editingLocked.value) return
+  const rawIndex = event?.detail?.value
+  if (!/^\d+$/.test(String(rawIndex ?? ''))) return
+  const selected = addressOptions(currentAddressId)[Number(rawIndex)]
+  if (!selected?.id) return
+  const sourceId = Number(currentAddressId)
+  if (selected.id === sourceId || selectedAddressIds.value.includes(selected.id)) return
 
-function canSetAddressItemZero(addressId, orderItemId) {
-  const planItem = findPlanItem(orderItemId)
-  const targetIndex = allocationIndexAtAddress(orderItemId, addressId)
-  return Boolean(
-    planItem
-    && targetIndex >= 0
-    && (planItem.allocations.length > 1 || addressGroups.value.length > 1),
-  )
-}
-
-function addAddressGroup() {
-  if (!canAddAddressGroup.value) {
-    uni.showToast({ title: '请先保证有可拆分的商品数量', icon: 'none' })
-    return
-  }
-  const candidate = addresses.value.find(address => !usedAddressIds.value.includes(address.id))
-  if (!candidate) return
-
-  const splitPlanIndex = allocationPlan.value.findIndex(item => (
-    (item.allocations || []).some(allocation => allocation.quantity > 1)
-  ))
-  if (splitPlanIndex >= 0) {
-    allocationPlan.value[splitPlanIndex] = addAllocation(
-      allocationPlan.value[splitPlanIndex],
-      candidate.id,
-    )
-    return
-  }
-
-  const movablePlanIndex = allocationPlan.value.findIndex(item => (
-    item.allocations?.length === 1
-    && groupTotalQuantity(item.allocations[0].addressId) > 1
-  ))
-  if (movablePlanIndex >= 0) {
-    allocationPlan.value[movablePlanIndex] = changeAllocationAddress(
-      allocationPlan.value[movablePlanIndex],
-      0,
-      candidate.id,
-    )
-  }
-}
-
-function removeAddressGroup(addressId) {
-  if (addressGroups.value.length <= 1) return
-  const fallback = addressGroups.value.find(group => group.addressId !== Number(addressId))
-  if (!fallback) return
-
-  allocationPlan.value = allocationPlan.value.map(planItem => {
-    const targetIndex = planItem.allocations.findIndex(
-      allocation => allocation.addressId === Number(addressId),
-    )
-    if (targetIndex < 0) return planItem
-    if (planItem.allocations.length > 1) {
-      return removeAllocation(planItem, targetIndex)
-    }
-    return changeAllocationAddress(planItem, targetIndex, fallback.addressId)
-  })
-}
-
-function setAddressItemQuantity(addressId, orderItemId, requestedQuantity) {
-  const planIndex = allocationPlan.value.findIndex(item => item.orderItemId === Number(orderItemId))
-  if (planIndex < 0) return
-
-  const planItem = allocationPlan.value[planIndex]
-  const targetIndex = allocationIndexAtAddress(orderItemId, addressId)
-  const quantity = Math.max(0, Math.floor(Number(requestedQuantity)) || 0)
-  let next = planItem
-
-  if (targetIndex < 0) {
-    if (quantity <= 0) return
-    next = addAllocation(planItem, addressId)
-    let addedIndex = allocationIndexAtAddress(orderItemId, addressId)
-    if (addedIndex < 0 && planItem.allocations.length === 1) {
-      const sourceAddressId = planItem.allocations[0].addressId
-      if (groupTotalQuantity(sourceAddressId) > 1 && quantity === planItem.totalQuantity) {
-        next = changeAllocationAddress(planItem, 0, addressId)
-        addedIndex = allocationIndexAtAddress(orderItemId, addressId)
-      }
-    }
-    if (addedIndex < 0) return
-    if (quantity > 1) next = changeAllocationQuantity(next, addedIndex, quantity)
-  } else if (quantity <= 0) {
-    if (!canSetAddressItemZero(addressId, orderItemId)) {
-      uni.showToast({ title: '每件商品至少要保留一个拆分地址', icon: 'none' })
-      return
-    }
-    if (planItem.allocations.length > 1) {
-      next = removeAllocation(planItem, targetIndex)
-    } else {
-      const fallback = addressGroups.value.find(group => group.addressId !== Number(addressId))
-      if (!fallback) return
-      next = changeAllocationAddress(planItem, targetIndex, fallback.addressId)
-    }
-  } else if (planItem.allocations.length === 1 && quantity < planItem.totalQuantity) {
-    const fallback = addressGroups.value.find(group => group.addressId !== Number(addressId))
-    if (!fallback) {
-      uni.showToast({ title: '请先添加另一个拆分地址', icon: 'none' })
-      return
-    }
-    next = addAllocation(planItem, fallback.addressId)
-    const refreshedTargetIndex = allocationIndexAtAddress(orderItemId, addressId)
-    next = changeAllocationQuantity(next, refreshedTargetIndex, quantity)
+  if (sourceId === 0) {
+    if (!canAddAddressGroup.value) return
+    selectedAddressIds.value = [...selectedAddressIds.value, selected.id]
   } else {
-    next = changeAllocationQuantity(planItem, targetIndex, quantity)
+    if (!selectedAddressIds.value.includes(sourceId)) return
+    allocationPlan.value = allocationPlan.value.map(item => {
+      const index = item.allocations.findIndex(allocation => Number(allocation.addressId) === sourceId)
+      return index < 0 ? item : changeAllocationAddress(item, index, selected.id)
+    })
+    selectedAddressIds.value = selectedAddressIds.value.map(id => id === sourceId ? selected.id : id)
   }
-
-  allocationPlan.value[planIndex] = next
+  activeAddressId.value = selected.id
 }
+
+/** 移除地址并释放其所有尺码数量，其他地址数量和订单总数不变。 */
+function removeAddressGroup(addressId) {
+  const id = Number(addressId)
+  if (editingLocked.value || selectedAddressIds.value.length <= 1 || !selectedAddressIds.value.includes(id)) return
+  allocationPlan.value = allocationPlan.value.map(item => setAddressAllocationQuantity(item, id, 0))
+  selectedAddressIds.value = selectedAddressIds.value.filter(selectedId => selectedId !== id)
+  if (activeAddressId.value === id) activeAddressId.value = selectedAddressIds.value[0]
+}
+
+/** 将所有规格的真实剩余追加到指定地址，包含筛选后隐藏的商品。 */
+function assignAllRemaining(addressId) {
+  const id = Number(addressId)
+  if (editingLocked.value || !selectedAddressIds.value.includes(id) || unallocatedQuantity.value <= 0) return
+  allocationPlan.value = allocateRemainingToAddress(allocationPlan.value, id)
+}
+
+/** 确认后清空指定地址的全部规格；数量回到待分配，其他地址不受影响。 */
+async function clearCurrentAddress(addressId) {
+  const id = Number(addressId)
+  if (editingLocked.value || !selectedAddressIds.value.includes(id) || groupTotalQuantity(id) <= 0) return
+  const confirmed = await openAppDialog({
+    title: t('order.split.clearTitle'),
+    description: t('order.split.clearContent'),
+    confirmText: t('order.split.clearConfirm'),
+    cancelText: t('common.cancel'),
+  })
+  if (!confirmed || editingLocked.value || !selectedAddressIds.value.includes(id)) return
+  allocationPlan.value = clearAddressAllocation(allocationPlan.value, id)
+}
+
+/** 独立编辑所选地址的 SKU 数量，领域方法负责限制剩余上限并允许归零。 */
+function setAddressItemQuantity(addressId, orderItemId, requestedQuantity) {
+  if (editingLocked.value || !selectedAddressIds.value.includes(Number(addressId))) return
+  const index = allocationPlan.value.findIndex(item => item.orderItemId === Number(orderItemId))
+  if (index < 0) return
+  allocationPlan.value[index] = setAddressAllocationQuantity(allocationPlan.value[index], addressId, requestedQuantity)
+}
+/** 读取订单明细标识，区分同商品下不同尺码。 */
 function itemIdOf(item) { return Number(valueOf(item, 'orderItemId', 'OrderItemId', 0)) }
+/** 读取已生成配送安排的标识。 */
 function splitIdOf(split) { return Number(valueOf(split, 'splitId', 'SplitId', 0)) }
+/** 读取配送地址包含的商品明细。 */
 function itemsOf(split) { return valueOf(split, 'items', 'Items', []) || [] }
+/** 读取订单或配送明细的件数。 */
 function quantityOf(item) { return Number(valueOf(item, 'quantity', 'Quantity', 0)) }
+/** 读取配送地址的应发总件数。 */
 function totalQuantityOf(split) { return Number(valueOf(split, 'totalQuantity', 'TotalQuantity', 0)) }
+/** 读取实际发货件数。 */
 function shippedQuantityOf(source) { return Number(valueOf(source, 'shippedQuantity', 'ShippedQuantity', 0)) }
+/** 读取未发件数，缺失时按应发与实发差额计算。 */
 function unshippedQuantityOf(split) {
   const explicit = valueOf(split, 'unshippedQuantity', 'UnshippedQuantity', null)
   if (explicit !== null && explicit !== undefined) return Math.max(0, Number(explicit) || 0)
   return Math.max(0, totalQuantityOf(split) - shippedQuantityOf(split))
 }
+/** 按业务地址标识查找完整收货信息。 */
 function addressById(id) { return addresses.value.find(item => item.id === Number(id)) }
+/** 汇总当前地址已分配的各规格数量。 */
 function groupTotalQuantity(addressId) {
   return allocationPlan.value.reduce((sum, item) => (
     sum + (item.allocations || [])
@@ -507,6 +467,84 @@ function groupTotalQuantity(addressId) {
 /** 打开统一地址管理页；返回后 onShow 会保留方案并刷新新增地址。 */
 function openAddressManager() {
   navigator.navigateTo(routes.account.address())
+}
+
+
+/** 仅切换当前编辑地址，不改变任何商品数量。 */
+function selectActiveAddress(addressId) {
+  if (!editingLocked.value && selectedAddressIds.value.includes(Number(addressId))) activeAddressId.value = Number(addressId)
+}
+
+/** 删除前明确数量会回到待分配；取消不改变方案。 */
+async function requestRemoveAddress(addressId) {
+  const id = Number(addressId)
+  if (editingLocked.value || selectedAddressIds.value.length < 2) return
+  const quantity = groupTotalQuantity(id)
+  if (quantity <= 0) { removeAddressGroup(id); return }
+  const confirmed = await openAppDialog({
+    title: t('order.split.removeTitle'),
+    description: t('order.split.removeContent', { count: quantity }),
+    confirmText: t('order.split.removeAddress'), cancelText: t('common.cancel'),
+  })
+  if (confirmed) removeAddressGroup(id)
+}
+
+/** 判断当前规格是否在其他已选择地址中有可调入的数量。 */
+function hasTransferSource(targetId, itemId) {
+  const item = allocationPlan.value.find(row => row.orderItemId === Number(itemId))
+  return (item?.allocations || []).some(row => row.addressId !== Number(targetId) && row.quantity > 0)
+}
+
+const transferSources = computed(() => {
+  const draft = transferDraft.value
+  if (!draft) return []
+  const item = allocationPlan.value.find(row => row.orderItemId === draft.itemId)
+  return (item?.allocations || [])
+    .filter(row => row.addressId !== draft.targetId && row.quantity > 0 && selectedAddressIds.value.includes(row.addressId))
+    .map(row => {
+      const address = addressById(row.addressId)
+      return { id: row.addressId, quantity: row.quantity,
+        label: (address ? address.name + ' · ' + address.fullAddress : t('order.split.addressFallback')) + ' · ' + t('order.split.quantity', { count: row.quantity }) }
+    })
+})
+const transferSourceIndex = computed(() => Math.max(0, transferSources.value.findIndex(row => row.id === transferFromId.value)))
+const transferMaximum = computed(() => transferSources.value.find(row => row.id === transferFromId.value)?.quantity || 0)
+const transferItemLabel = computed(() => {
+  const item = sourceItems.value.find(row => itemIdOf(row) === transferDraft.value?.itemId)
+  return item ? valueOf(item, 'productName', 'ProductName', '') + ' · ' + valueOf(item, 'skuName', 'SkuName', '') : ''
+})
+
+/** 打开当前规格调入面板，默认仅调一件，确认前不改任何分配。 */
+function openTransfer(targetId, itemId) {
+  if (editingLocked.value || !selectedAddressIds.value.includes(Number(targetId))) return
+  transferDraft.value = { targetId: Number(targetId), itemId: Number(itemId) }
+  transferFromId.value = transferSources.value[0]?.id || 0
+  transferQuantity.value = 1
+  if (!transferFromId.value) transferDraft.value = null
+}
+
+/** picker 索引显式映射到来源地址，切换来源重置数量而不立即修改方案。 */
+function chooseTransferSource(event) {
+  const raw = event?.detail?.value
+  if (!/^\d+$/.test(String(raw ?? ''))) return
+  const source = transferSources.value[Number(raw)]
+  if (!source) return
+  transferFromId.value = source.id
+  transferQuantity.value = 1
+}
+
+/** 再次校验来源、目标和数量后一次完成守恒转移；不调用写接口。 */
+function confirmTransfer() {
+  const draft = transferDraft.value
+  if (editingLocked.value || !draft || !selectedAddressIds.value.includes(draft.targetId)) return
+  const quantity = Number(transferQuantity.value)
+  const index = allocationPlan.value.findIndex(row => row.orderItemId === draft.itemId)
+  if (index < 0 || !Number.isInteger(quantity) || quantity < 1 || quantity > transferMaximum.value) {
+    uni.showToast({ title: t('order.split.transferUnavailable'), icon: 'none' })
+    return
+  }
+  allocationPlan.value[index] = transferAddressAllocation(allocationPlan.value[index], transferFromId.value, draft.targetId, quantity)
+  transferDraft.value = null
 }
 
 /** 将后端返回的客户状态优先转换为配送详情文案，避免展示 ERP/WMS 内部状态。 */
@@ -524,23 +562,38 @@ function isReviewRejected(split) {
   )
 }
 
-/** 校验商品分配后按地址归并并提交，客户无需理解系统内部拆单结构。 */
+/** 打开本地核对层，让客户确认每个地址实际分配的商品。 */
+function openReview() {
+  if (canSubmit.value) reviewVisible.value = true
+}
+
+/** 只响应当前核对层的一次确认，关层后沿用原提交入口。 */
+async function confirmReview() {
+  if (!reviewVisible.value || !canSubmit.value || submitting.value) return
+  reviewVisible.value = false
+  await submitSplits()
+}
+
+/** 沿用配送分配、请求标识和提交结果处理，失败保留草稿供继续编辑。 */
 async function submitSplits() {
   if (!canSubmit.value || submitting.value) {
     if (validationError.value) uni.showToast({ title: validationError.value, icon: 'none' })
     return
   }
   submitting.value = true
+  submitFailure.value = null
   try {
     await createFulfillmentSplits({
       orderId: orderId.value,
       clientRequestId: generateClientRequestId(),
       groups: deliveryGroups.value,
     })
-    uni.showToast({ title: '订单拆分已提交', icon: 'success' })
+    submissionAccepted.value = true
+    uni.showToast({ title: t('order.split.submitSuccess'), icon: 'success' })
     await loadData()
   } catch (error) {
-    uni.showToast({ title: error?.message || '订单拆分提交失败', icon: 'none' })
+    submitFailure.value = error || {}
+    uni.showToast({ title: error?.message || t('order.split.submitFailed'), icon: 'none' })
   } finally {
     submitting.value = false
   }
@@ -548,208 +601,122 @@ async function submitSplits() {
 </script>
 
 <style lang="scss" scoped>
-.allocation-page {
-  width: 100%;
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 12px 14px 28px;
-  box-sizing: border-box;
-}
-
-.state-card,
-.notice-card,
-.hero-card,
-.guide-card,
-.product-card,
-.split-card,
-.empty-address-card {
-  border-radius: 16px;
-  background: var(--glass-card-background, rgba(255,255,255,.74));
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-}
-
-.state-card,
-.notice-card { padding: 24px 18px; color: #676a73; font-size: 14px; text-align: center; }
-.notice-card { margin-bottom: 12px; color: #9a5a00; background: rgba(255,250,242,.72); }
-.hero-card { padding: 20px 18px; margin-bottom: 14px; }
-.eyebrow { display: block; color: #d7192d; font-size: var(--type-caption, 12px); font-weight: 650; }
-.hero-title { display: block; margin-top: 6px; color: #111216; font-size: 22px; font-weight: 750; }
-.hero-copy { display: block; margin-top: 8px; color: #676a73; font-size: var(--type-body-small, 13px); line-height: 20px; }
-.hero-summary { display: flex; align-items: center; margin-top: 18px; padding: 13px 16px; border-radius: 12px; background: rgba(247,248,250,.56); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
-.hero-summary > view:not(.summary-divider) { display: flex; flex: 1; align-items: baseline; justify-content: center; gap: 4px; }
-.summary-value { color: #111216; font-size: 18px; font-weight: 750; font-variant-numeric: tabular-nums; }
-.summary-label { color: #676a73; font-size: 12px; }
-.summary-divider { width: 1px; height: 22px; background: #e4e6eb; }
-
-.guide-card { padding: 14px 16px; margin-bottom: 16px; background: rgba(255,247,248,.64); }
-.guide-item { display: flex; align-items: flex-start; gap: 9px; color: #5f5053; font-size: 12px; line-height: 18px; }
-.guide-item + .guide-item { margin-top: 7px; }
-.guide-number { display: flex; width: 18px; height: 18px; flex: 0 0 18px; align-items: center; justify-content: center; border-radius: 50%; color: #fff; background: #d7192d; font-size: 11px; font-weight: 700; }
-
-.section-heading { display: flex; align-items: center; justify-content: space-between; margin: 18px 3px 10px; color: #111216; font-size: 17px; font-weight: 700; }
-.section-note { color: #94969c; font-size: 12px; font-weight: 400; }
-.manage-address { display: flex; align-items: center; justify-content: center; margin: 0; padding: 4px 0 4px 12px; border: 0; color: #d7192d; background: transparent; font-size: 13px; line-height: 20px; }
-.manage-address::after { border: 0; }
-.section-title { display: block; }
-.address-section-heading { align-items: flex-end; }
-.manage-address[disabled] { color: #a9abb1; opacity: .75; }
-
-.address-group-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.address-group-card {
-  padding: 17px;
-  border-radius: 16px;
-  background: var(--glass-card-background, rgba(255,255,255,.74));
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-}
-.address-group-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
-.address-group-copy { min-width: 0; }
-.address-group-title,
-.address-group-contact,
-.group-address-detail { display: block; }
-.address-group-title { color: #111216; font-size: 16px; font-weight: 700; }
-.address-group-contact { margin-top: 5px; overflow: hidden; color: #676a73; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.remove-address-button {
-  flex: 0 0 auto;
-  margin: 0;
-  padding: 4px 0 4px 10px;
-  border: 0;
-  color: #d7192d;
-  background: transparent;
-  font-size: 12px;
-  line-height: 20px;
-}
-.remove-address-button::after { border: 0; }
-.group-address-detail {
-  margin-top: 10px;
-  padding: 10px 12px;
-  overflow: hidden;
-  border-radius: 10px;
-  color: #676a73;
-  background: #f7f8fa;
-  font-size: 12px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.group-item-list { margin-top: 12px; }
-.group-item-row { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #f0f1f3; }
-.group-item-row:last-child { border-bottom: 0; }
-.group-item-image { width: 48px; height: 48px; flex-basis: 48px; }
-.group-item-quantity { flex: 0 0 auto; }
-.group-item-quantity .quantity-label { margin-bottom: 4px; }
-.address-group-total {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-top: 8px;
-  padding-top: 12px;
-  border-top: 1px solid #f0f1f3;
-  color: #676a73;
-  font-size: 12px;
-}
-.address-group-total-number { color: #111216; font-size: 15px; font-weight: 700; }
-.product-grid,
-.readonly-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.product-card,
-.split-card { padding: 17px; }
-.product-head,
-.card-head { display: flex; align-items: flex-start; gap: 11px; }
-.card-head { justify-content: space-between; }
-.item-image { width: 54px; height: 54px; flex: 0 0 54px; border-radius: 9px; background: #f4f5f8; }
-.product-image { width: 58px; height: 58px; flex-basis: 58px; }
+/* 手机端以地址和规格数量为主，编辑区只保留一层卡片。 */
+.allocation-page { width: 100%; max-width: 720px; margin: 0 auto; padding: 10px 14px 24px; box-sizing: border-box; color: #1b1c20; }
+.order-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 2px 2px 10px; }
+.eyebrow { min-width: 0; color: #747b86; font-size: 11px; line-height: 18px; overflow-wrap: anywhere; }
+.order-summary-total { flex: none; color: #62666f; font-size: 12px; white-space: nowrap; }
+.allocation-workspace, .address-group-list { min-width: 0; }
+.editor-toolbar { display: flex; min-height: 44px; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.section-title { color: #252a32; font-size: 15px; font-weight: 650; line-height: 22px; }
+.add-address-picker, .change-address-picker { flex: none; }
+.add-address-button { display: flex; min-height: 36px; align-items: center; justify-content: center; padding: 0 12px; border: 1px solid #e2e5ea; border-radius: 9px; background: #fff; color: #343b46; font-size: 12px; font-weight: 550; line-height: 20px; }
+.is-disabled { opacity: .45; }
+.address-tabs { width: 100%; min-width: 0; margin-bottom: 10px; white-space: nowrap; }
+.address-tab-list { display: inline-flex; gap: 8px; padding: 1px 0 5px; }
+.address-tab { display: inline-flex; flex: none; align-items: center; gap: 10px; min-height: 44px; max-width: 210px; margin: 0; padding: 8px 12px; border: 1px solid #e2e5ea; border-radius: 10px; color: #62666f; background: #fff; line-height: 20px; }
+.address-tab.active { color: #bd172a; border-color: #d7192d; background: #fff5f6; }
+.address-tab-name { min-width: 0; max-width: 125px; overflow: hidden; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.address-tab-quantity { flex: none; color: #747b86; font-size: 11px; white-space: nowrap; }
+.address-group-card { min-width: 0; overflow: hidden; border: 1px solid #e9ebef; border-radius: 16px; background: #fff; }
+.address-summary { padding: 10px 14px 14px; border-bottom: 1px solid #eceef2; }
+.address-group-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.address-group-copy { display: flex; flex: 1; min-width: 0; flex-wrap: wrap; align-items: baseline; gap: 3px 9px; }
+.address-group-contact { color: #242a33; font-size: 15px; font-weight: 650; line-height: 22px; overflow-wrap: anywhere; }
+.address-phone { color: #747b86; font-size: 12px; line-height: 20px; overflow-wrap: anywhere; }
+.change-address-button { display: flex; min-height: 44px; min-width: 44px; align-items: center; justify-content: flex-end; color: #b91d31; font-size: 12px; line-height: 20px; }
+.group-address-detail { display: block; margin-top: 2px; color: #62666f; font-size: 12px; line-height: 19px; overflow-wrap: anywhere; }
+.items-heading { display: flex; min-height: 50px; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px; }
+.items-heading .section-title { font-size: 13px; font-weight: 600; }
+.more-actions-toggle { display: flex; min-height: 44px; align-items: center; margin: 0; padding: 0; border: 0; color: #747b86; background: transparent; font-size: 12px; line-height: 20px; }
+.more-actions-toggle text { margin-left: 5px; font-size: 18px; }
+.allocation-product { margin: 0 14px; }
+.allocation-product + .allocation-product { margin-top: 8px; padding-top: 14px; border-top: 1px solid #e9ebef; }
+.product-head { display: flex; min-width: 0; align-items: center; gap: 10px; padding: 3px 0 7px; }
+.item-image { width: 40px; height: 40px; flex: 0 0 40px; overflow: hidden; border-radius: 8px; background: #f4f5f8; }
 .item-copy { min-width: 0; flex: 1; }
-.item-title-line { display: flex; align-items: center; gap: 6px; }
-.item-name,
-.item-spec { display: block; }
-.item-name { overflow: hidden; color: #111216; font-size: 14px; font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
-.item-spec { margin-top: 4px; color: #94969c; font-size: 12px; }
-.gift-tag,
-.status-tag { padding: 3px 7px; border-radius: 6px; color: #b22131; background: #fff0f2; font-size: 11px; }
-.total-badge { display: flex; align-items: baseline; gap: 2px; padding: 5px 8px; border-radius: 8px; color: #676a73; background: #f7f8fa; font-size: 11px; white-space: nowrap; }
-.total-number { color: #111216; font-size: 16px; font-weight: 750; font-variant-numeric: tabular-nums; }
-
-.destination-list { margin-top: 15px; }
-.destination-row { padding: 13px; border-radius: 13px; background: #f7f8fa; }
-.destination-row + .destination-row { margin-top: 9px; }
-.destination-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
-.destination-label { color: #676a73; font-size: 12px; font-weight: 650; }
-.remove-button { display: flex; align-items: center; justify-content: center; height: 24px; margin: 0; padding: 0 2px; border: 0; color: #d7192d; background: transparent; font-size: 11px; line-height: 18px; }
-.remove-button::after { border: 0; }
-.destination-controls { display: flex; align-items: flex-end; gap: 10px; }
-.address-control { min-width: 0; flex: 1; }
-.address-picker { display: flex; min-height: 48px; align-items: center; justify-content: space-between; gap: 8px; padding: 9px 11px; border: 1px solid #e5e6ea; border-radius: 10px; color: #111216; background: #fff; box-sizing: border-box; }
-.address-picker.placeholder { color: #94969c; }
-.address-copy { min-width: 0; flex: 1; }
-.address-person,
-.address-detail { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.address-person { color: #24252a; font-size: 12px; font-weight: 600; }
-.address-detail { margin-top: 3px; color: #777a83; font-size: 11px; }
-.quantity-control { flex: 0 0 auto; }
-.quantity-label { display: block; margin-bottom: 5px; color: #94969c; font-size: 11px; text-align: center; }
-.split-more-button { width: 100%; min-height: 40px; margin: 11px 0 0; padding: 8px 12px; border: 1px dashed rgba(215, 25, 45, .35); border-radius: 11px; gap: 6px; color: #d7192d; background: #fff; font-size: 13px; line-height: 20px; }
-.split-more-button::after { border: 0; }
-.split-more-button[disabled] { border-color: #e3e4e8; color: #a9abb1; background: #f7f8fa; }
-
-.allocation-summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 14px; padding: 14px 16px; border-radius: 13px; color: #2f6d4e; background: #eff8f3; }
-.allocation-summary.invalid { color: #9a5a00; background: #fffaf2; }
-.allocation-title,
-.allocation-copy { display: block; }
-.allocation-title { font-size: 13px; font-weight: 650; }
-.allocation-copy { margin-top: 3px; font-size: 11px; opacity: .82; }
-.allocation-total { flex: 0 0 auto; font-size: 16px; font-weight: 750; font-variant-numeric: tabular-nums; }
-
-.empty-address-card { display: flex; flex-direction: column; align-items: center; padding: 34px 20px; text-align: center; }
-.empty-icon { display: flex; width: 48px; height: 48px; align-items: center; justify-content: center; border-radius: 50%; background: #fff0f2; }
-.empty-title { margin-top: 13px; color: #111216; font-size: 16px; font-weight: 700; }
-.empty-copy { margin-top: 6px; color: #777a83; font-size: 13px; }
-.secondary-button { height: 42px; margin: 18px 0 0; padding: 0 22px; border: 0; border-radius: 11px; color: #fff; background: #d7192d; font-size: 14px; }
-.secondary-button::after { border: 0; }
-
-.card-title,
-.card-subtitle { display: block; }
-.card-title { color: #111216; font-size: 16px; font-weight: 680; }
-.card-subtitle { margin-top: 4px; color: #94969c; font-size: 11px; }
-.split-progress-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 12px; padding: 14px 16px; border-radius: 13px; color: #2f6d4e; background: #eff8f3; }
-.split-progress-title,
-.split-progress-copy { display: block; }
-.split-progress-title { font-size: 13px; font-weight: 650; }
-.split-progress-copy { margin-top: 4px; font-size: 11px; opacity: .82; }
-.split-progress-number { flex: 0 0 auto; color: #111216; font-size: 16px; font-weight: 750; }
-.readonly-address { margin: 14px 0 4px; padding: 12px 13px; border-radius: 11px; background: #f7f8fa; }
-.readonly-item { display: flex; align-items: center; gap: 11px; padding: 13px 0; border-bottom: 1px solid #f0f1f3; }
-.readonly-item:last-child { border-bottom: 0; padding-bottom: 0; }
-.readonly-quantity-copy { display: flex; flex: 0 0 auto; flex-direction: column; align-items: flex-end; gap: 3px; }
-.readonly-quantity { color: #111216; font-size: 12px; font-weight: 650; }
-.readonly-shipped { color: #676a73; font-size: 11px; }
-.split-result-warning,
-.split-result-success,
-.split-shipped-time { display: block; margin-top: 12px; font-size: 12px; line-height: 18px; }
-.split-result-warning { color: #9a5a00; }
-.split-result-success { color: #2f6d4e; }
-.split-shipped-time { color: #94969c; font-size: 11px; }
-
-.bottom-space { height: 86px; }
-.submit-button { width: 100%; height: 46px; margin: 0; border: 0; border-radius: 12px; color: #fff; background: #d7192d; font-size: 15px; font-weight: 650; line-height: 20px; }
-.submit-button::after { border: 0; }
-.submit-button[disabled] { color: #b2b4ba; background: #f1f2f4; }
+.item-name { display: block; color: #303640; font-size: 13px; font-weight: 600; line-height: 20px; overflow-wrap: anywhere; }
+.item-spec { display: block; margin-top: 2px; color: #8a909a; font-size: 11px; line-height: 17px; }
+.group-item-row { display: grid; grid-template-columns: minmax(0, 1fr) 124px; align-items: center; gap: 10px; min-height: 68px; padding: 9px 0; border-top: 1px solid #f1f2f5; }
+.sku-copy { min-width: 0; }
+.sku-name { color: #333a45; font-size: 13px; font-weight: 500; line-height: 20px; overflow-wrap: anywhere; }
+.sku-balance { display: flex; flex-wrap: wrap; gap: 1px 8px; margin-top: 3px; color: #828995; font-size: 11px; line-height: 17px; font-variant-numeric: tabular-nums; }
+.sku-balance text { white-space: normal; }
+.has-remaining { color: #a76713; }
+.group-item-quantity { min-width: 0; }
+.split-quantity-stepper { width: 124px; }
+.gift-tag { display: inline-block; margin-left: 5px; padding: 0 4px; border-radius: 4px; color: #a15a20; background: #fff5e8; font-size: 10px; line-height: 17px; }
+.transfer-button { display: flex; align-items: center; justify-content: flex-start; min-height: 32px; margin: 2px 0 -3px; padding: 0; border: 0; color: #b91d31; background: transparent; font-size: 11px; line-height: 18px; text-align: left; }
+.target-hint { margin: 0 14px 10px; padding: 9px 11px; border-radius: 8px; color: #8d641e; background: #fff8ed; font-size: 12px; line-height: 19px; }
+.active-filter { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; margin: 0 14px 10px; color: #8d641e; font-size: 12px; line-height: 20px; }
+.text-action { min-height: 36px; margin: 0; padding: 5px 0; border: 0; color: #b91d31; background: transparent; font-size: 12px; line-height: 20px; white-space: normal; }
+.filtered-empty { padding: 18px 14px 22px; color: #747b86; font-size: 13px; line-height: 21px; text-align: center; }
+.filtered-empty .text-action { display: block; margin: 6px auto 0; }
+.footer-stack { width: 100%; max-width: 692px; margin: 0 auto; min-width: 0; }
+.footer-hint { display: block; margin: 0 0 8px; color: #687681; font-size: 12px; line-height: 18px; text-align: center; }
+.footer-hint.pending { color: #a76713; }
+.submit-button { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 46px; margin: 0; padding: 11px 14px; border: 0; border-radius: 11px; color: #fff; background: #d7192d; font-size: 14px; font-weight: 600; line-height: 22px; white-space: normal; }
+.submit-button[disabled] { color: #969aa3; background: #eceef2; }
+.state-card, .notice-card, .empty-address-card { padding: 22px 16px; border: 1px solid #e9ebef; border-radius: 14px; background: #fff; color: #62666f; font-size: 13px; line-height: 21px; text-align: center; }
+.notice-card { margin-bottom: 12px; padding: 12px 14px; border: 0; color: #94621d; background: #fff7e9; text-align: left; overflow-wrap: anywhere; }
+.notice-card > text, .remaining-item { display: block; }
+.submit-error { margin-top: 14px; color: #a32b29; background: #fff1ef; }
+.empty-address-card { display: flex; align-items: center; flex-direction: column; gap: 8px; padding: 30px 18px; }
+.empty-title { font-size: 15px; font-weight: 600; }
+.empty-copy { font-size: 13px; line-height: 21px; }
+.secondary-button { min-height: 44px; margin: 14px auto 0; padding: 10px 18px; border: 0; border-radius: 10px; color: #fff; background: #d7192d; font-size: 13px; line-height: 20px; }
 .button-center { display: flex; align-items: center; justify-content: center; text-align: center; }
-
+.action-menu { display: flex; flex-direction: column; }
+.menu-action { width: 100%; min-height: 48px; margin: 0; padding: 12px 0; border: 0; border-bottom: 1px solid #eceef2; color: #343b46; background: transparent; font-size: 13px; line-height: 21px; text-align: left; white-space: normal; }
+.menu-action[disabled] { color: #a2a8b1; }
+.danger-action { color: #b42318; }
+.guide-copy { padding: 12px; border-radius: 8px; color: #62666f; background: #f4f5f8; font-size: 12px; line-height: 20px; }
+.guide-copy > text { display: block; }
+.guide-copy > text + text { margin-top: 8px; }
+.review-groups { display: flex; flex-direction: column; gap: 14px; }
+.review-group { padding: 12px; border: 1px solid #e9ebef; border-radius: 10px; }
+.review-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; color: #303640; font-size: 14px; font-weight: 600; line-height: 21px; }
+.review-heading > text:first-child { min-width: 0; overflow-wrap: anywhere; }
+.review-heading > text:last-child { flex: none; }
+.review-address { display: block; margin: 5px 0 8px; color: #747b86; font-size: 12px; line-height: 19px; overflow-wrap: anywhere; }
+.review-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #eceef2; color: #454e5b; font-size: 12px; line-height: 19px; }
+.review-item > view { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.review-spec { display: block; color: #828995; }
+.review-quantity { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
+.transfer-label, .transfer-variant { display: block; margin: 12px 0 7px; color: #454e5b; font-size: 13px; line-height: 20px; }
+.transfer-variant { font-weight: 600; }
+.transfer-source { padding: 11px; border: 1px solid #e2e5ea; border-radius: 8px; color: #454e5b; font-size: 12px; line-height: 19px; overflow-wrap: anywhere; }
+.transfer-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; color: #62666f; font-size: 12px; line-height: 20px; }
+button::after { border: 0; }
+/* 已安排配送的只读详情继续展示后端状态及实际发货数量。 */
+.section-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin: 14px 0 10px; font-size: 15px; font-weight: 600; }
+.section-note { color: #828995; font-size: 12px; font-weight: 400; }
+.split-progress-card { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; margin-bottom: 12px; padding: 14px; border-radius: 12px; background: #eef6f1; color: #35674f; font-size: 13px; line-height: 20px; }
+.split-progress-title, .split-progress-copy { display: block; }
+.split-progress-title { font-weight: 600; }
+.split-progress-copy { font-size: 12px; }
+.split-progress-number { flex: none; font-variant-numeric: tabular-nums; }
+.readonly-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.split-card { min-width: 0; padding: 14px; border: 1px solid #e9ebef; border-radius: 14px; background: #fff; }
+.card-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.card-head > view { min-width: 0; flex: 1; }
+.card-title, .card-subtitle { display: block; overflow-wrap: anywhere; }
+.card-title { font-size: 14px; font-weight: 600; line-height: 21px; }
+.card-subtitle { margin-top: 3px; color: #828995; font-size: 11px; line-height: 18px; }
+.status-tag { max-width: 100%; padding: 3px 7px; border-radius: 6px; color: #a34450; background: #fff1f3; font-size: 11px; line-height: 18px; overflow-wrap: anywhere; }
+.readonly-address { margin-top: 12px; padding: 10px; border-radius: 8px; background: #f7f8fa; }
+.address-person, .address-detail { display: block; font-size: 12px; line-height: 19px; overflow-wrap: anywhere; }
+.address-detail { margin-top: 3px; color: #747b86; }
+.readonly-item { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid #eceef2; }
+.readonly-quantity-copy { display: flex; flex-direction: column; gap: 3px; margin-left: auto; font-size: 12px; line-height: 19px; text-align: right; }
+.readonly-shipped { color: #747b86; }
+.split-result-warning, .split-result-success, .split-shipped-time { display: block; margin-top: 10px; font-size: 12px; line-height: 19px; overflow-wrap: anywhere; }
+.split-result-warning { color: #94621d; }
+.split-result-success { color: #35674f; }
+.split-shipped-time { color: #828995; }
 @media (min-width: 800px) {
-  .allocation-page { padding: 18px 20px 36px; }
-  .hero-card { padding: 24px; }
-  .product-grid,
+  .allocation-page { padding-top: 16px; }
   .readonly-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .product-card,
-  .split-card { padding: 20px; }
-  .bottom-space { height: 96px; }
 }
-
-@media (max-width: 1050px) {
-  .destination-controls { align-items: stretch; flex-direction: column; }
-  .quantity-control { display: flex; align-items: center; justify-content: space-between; }
-  .quantity-label { margin: 0; text-align: left; }
-}
+@media (prefers-reduced-motion: reduce) { * { transition: none; } }
 </style>

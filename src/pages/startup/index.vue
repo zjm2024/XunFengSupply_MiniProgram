@@ -29,10 +29,10 @@
       >
         <StartupError
           :mode="errorMode"
-          :title="errorTitle"
-          :desc="errorDesc"
-          :primary-text="errorPrimaryText"
-          :secondary-text="errorSecondaryText"
+          :title="displayMessage(errorTitle)"
+          :desc="displayMessage(errorDesc)"
+          :primary-text="displayMessage(errorPrimaryText)"
+          :secondary-text="displayMessage(errorSecondaryText)"
           :show-primary="errorShowPrimary"
           :show-secondary="errorShowSecondary"
           @retry="onRetry"
@@ -66,7 +66,8 @@
  * - uiReady + brandMinReached + bootCompleted 三个条件满足后才能跳转
  */
 
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { t } from '@/shared/i18n/index.js'
 import { onLoad, onReady, onUnload, onBackPress } from '@dcloudio/uni-app'
 import StartupBrand from './components/StartupBrand.vue'
 import StartupLoading from './components/StartupLoading.vue'
@@ -115,15 +116,20 @@ const nativeSplashClosed = ref(false)
 const errorMode = ref('error')
 const errorTitle = ref('')
 const errorDesc = ref('')
-const errorPrimaryText = ref('重试')
+const errorPrimaryText = ref({ key: 'common.retry' })
 const errorSecondaryText = ref('')
 const errorShowPrimary = ref(true)
 const errorShowSecondary = ref(false)
 
+/** UI 提示延迟取词；更新日志正文仍按服务端原始内容展示。 */
+function displayMessage(value) {
+  return value?.key ? t(value.key) : (value ?? '')
+}
+
 // ==================== 加载文案 ====================
 
-const loadingTitle = ref('正在加载采购工作台')
-const loadingTip = ref('正在同步账户与采购数据')
+const loadingTitle = computed(() => t('main.startup.title'))
+const loadingTip = computed(() => t('main.startup.tip'))
 
 // ==================== 计时器 ====================
 
@@ -432,9 +438,9 @@ function handleBootstrapResult(result) {
   if (result.status === 'force-update') {
     currentScene.value = 'force-update'
     errorMode.value = 'force-update'
-    errorTitle.value = '发现新版本'
-    errorDesc.value = result.updateInfo?.releaseNotes || '当前版本过低，请更新后继续使用'
-    errorPrimaryText.value = '立即更新'
+    errorTitle.value = { key: 'main.startup.newVersion' }
+    errorDesc.value = result.updateInfo?.releaseNotes || { key: 'main.startup.updateRequired' }
+    errorPrimaryText.value = { key: 'main.startup.updateNow' }
     errorSecondaryText.value = ''
     errorShowPrimary.value = true
     errorShowSecondary.value = false
@@ -445,9 +451,9 @@ function handleBootstrapResult(result) {
   if (result.status === 'offline') {
     currentScene.value = 'offline'
     errorMode.value = 'offline'
-    errorTitle.value = '网络连接失败'
-    errorDesc.value = '请检查您的网络设置后重试'
-    errorPrimaryText.value = '重试'
+    errorTitle.value = { key: 'main.startup.offlineTitle' }
+    errorDesc.value = { key: 'main.startup.offlineDescription' }
+    errorPrimaryText.value = { key: 'common.retry' }
     errorShowPrimary.value = true
     errorShowSecondary.value = false
     return
@@ -457,9 +463,9 @@ function handleBootstrapResult(result) {
   if (result.status === 'error') {
     currentScene.value = 'error'
     errorMode.value = 'error'
-    errorTitle.value = '加载失败'
-    errorDesc.value = '遇到了一个问题，请稍后再试'
-    errorPrimaryText.value = '重试'
+    errorTitle.value = { key: 'main.startup.errorTitle' }
+    errorDesc.value = { key: 'main.startup.errorDescription' }
+    errorPrimaryText.value = { key: 'common.retry' }
     errorShowPrimary.value = true
     errorShowSecondary.value = false
     return
@@ -489,9 +495,9 @@ async function routeOnce(targetUrl) {
     hasRouted.value = false
     currentScene.value = 'error'
     errorMode.value = 'error'
-    errorTitle.value = '跳转失败'
-    errorDesc.value = '无法确定目标页面，请重试'
-    errorPrimaryText.value = '重试'
+    errorTitle.value = { key: 'main.startup.navigationFailed' }
+    errorDesc.value = { key: 'main.startup.targetUnknown' }
+    errorPrimaryText.value = { key: 'common.retry' }
     errorShowPrimary.value = true
     errorShowSecondary.value = false
     return
@@ -506,9 +512,9 @@ async function routeOnce(targetUrl) {
     hasRouted.value = false
     currentScene.value = 'error'
     errorMode.value = 'error'
-    errorTitle.value = '跳转失败'
-    errorDesc.value = '无法进入目标页面，请重试'
-    errorPrimaryText.value = '重试'
+    errorTitle.value = { key: 'main.startup.navigationFailed' }
+    errorDesc.value = { key: 'main.startup.targetFailed' }
+    errorPrimaryText.value = { key: 'common.retry' }
     errorShowPrimary.value = true
     errorShowSecondary.value = false
   }
@@ -568,9 +574,9 @@ function onUpdate() {
     // 展示明确错误，不能重新执行 bootstrap
     currentScene.value = 'error'
     errorMode.value = 'error'
-    errorTitle.value = '无法更新'
-    errorDesc.value = '下载地址暂不可用，请稍后重试或联系客服'
-    errorPrimaryText.value = '重试'
+    errorTitle.value = { key: 'main.startup.updateFailed' }
+    errorDesc.value = { key: 'main.startup.downloadUnavailable' }
+    errorPrimaryText.value = { key: 'common.retry' }
     errorShowPrimary.value = true
     errorShowSecondary.value = false
     return
@@ -588,7 +594,7 @@ function onUpdate() {
     log(`open update url: ${downloadUrl}`)
   } catch (error) {
     console.error('[Startup] open update url failed', error)
-    uni.showToast({ title: '打开失败，请手动更新', icon: 'none' })
+    uni.showToast({ title: t('main.startup.manualUpdate'), icon: 'none' })
   }
   // #endif
 

@@ -2,9 +2,9 @@
   <AppPageShell>
     <template #header>
       <app-header
-        title="购物车"
+        :title="t('commerce.titles.cart')"
         :show-back="true"
-        :action-text="pageState === PageStatus.CONTENT ? (isManaging ? '完成' : '管理') : ''"
+        :action-text="pageState === PageStatus.CONTENT ? (isManaging ? t('commerce.titles.done') : t('commerce.titles.manage')) : ''"
         @back="goBack"
         @action="toggleManagement"
       />
@@ -22,7 +22,7 @@
           :state="pageState"
           :title="stateTitle"
           :description="stateDescription"
-          :action-text="pageState === PageStatus.EMPTY ? '去选商品' : '重新加载'"
+          :action-text="pageState === PageStatus.EMPTY ? t('commerce.cart.browse') : t('commerce.cart.reload')"
           :has-stale-content="hasStaleForDisplay"
           icon-type="cart"
           @retry="refreshCart"
@@ -56,12 +56,12 @@
                 <!-- 顶部工具栏 -->
                 <view class="cart-toolbar">
                   <view class="toolbar-left">
-                    <text class="toolbar-title">采购清单</text>
+                    <text class="toolbar-title">{{ t('commerce.cart.list') }}</text>
                     <text class="toolbar-desc">
-                      {{ validGroups.length }} 个商品，{{ cartStore.validItems.length }} 个 SKU，共 {{ cartStore.summary.allQuantity }} 件
+                      {{ t('commerce.cart.listCount', { products: validGroups.length, skus: cartStore.validItems.length, quantity: cartStore.summary.allQuantity }) }}
                     </text>
                   </view>
-                  <button v-if="!isManaging" class="outline-btn button-center" @click="goToProductList">继续选购</button>
+                  <button v-if="!isManaging" class="outline-btn button-center" @click="goToProductList">{{ t('commerce.cart.continue') }}</button>
                 </view>
 
                 <!-- 同步状态提示 -->
@@ -72,15 +72,15 @@
 
                 <!-- flush 错误提示 -->
                 <view v-if="flushError" class="sync-hint is-error">
-                  <text class="sync-text">同步失败：{{ flushError.message || '请稍后重试' }}</text>
-                  <button class="retry-link button-center" @click="retryFlush">重试</button>
+                  <text class="sync-text">{{ t('commerce.cart.syncNotice', { message: flushError.message || t('commerce.cart.retryHint') }) }}</text>
+                  <button class="retry-link button-center" @click="retryFlush">{{ t('commerce.cart.retry') }}</button>
                 </view>
 
                 <!-- 失效商品区 -->
                 <view v-if="cartStore.invalidItems.length > 0" class="invalid-section">
                   <view class="invalid-header">
                     <text class="invalid-title">{{ cartStore.invalidSummaryText }}</text>
-                    <button class="link-btn button-center" @click="removeInvalidItems">清空失效</button>
+                    <button class="link-btn button-center" @click="removeInvalidItems">{{ t('commerce.cart.clearInvalid') }}</button>
                   </view>
                   <view class="cart-list">
                     <view v-for="item in cartStore.invalidItems" :key="item.cartItemId" class="cart-card is-invalid">
@@ -92,11 +92,11 @@
                       <view class="invalid-tag">失效</view>
                       <AppProductImage class="product-image" :src="item.image" :stock="item.stock" />
                       <view class="product-info">
-                        <text class="product-name">{{ item.name || `商品 ${item.productId}` }}</text>
-                        <text class="product-code">编号：{{ item.code || item.productId }}</text>
-                        <text class="invalid-reason">{{ item.invalidReason || '商品已下架或不可采购' }}</text>
+                        <text class="product-name">{{ item.name || t('commerce.cart.productRef', { id: item.productId }) }}</text>
+                        <text class="product-code">{{ t('commerce.cart.code', { code: item.code || item.productId }) }}</text>
+                        <text class="invalid-reason">{{ item.invalidReason || t('commerce.cart.invalidHint') }}</text>
                       </view>
-                      <button v-if="!isManaging" class="delete-btn button-center" @click="deleteOne(item.cartItemId)">移除</button>
+                      <button v-if="!isManaging" class="delete-btn button-center" @click="deleteOne(item.cartItemId)">{{ t('commerce.cart.remove') }}</button>
                     </view>
                   </view>
                 </view>
@@ -116,10 +116,10 @@
                       </label>
                       <view class="spu-copy" @tap="goToDetail(group.productId)">
                         <text class="spu-name">{{ group.name }}</text>
-                        <text class="spu-meta">{{ group.skuCount }} 个 SKU · 共 {{ group.totalQuantity }} 件</text>
+                        <text class="spu-meta">{{ t('commerce.cart.groupCount', { count: group.skuCount, quantity: group.totalQuantity }) }}</text>
                       </view>
-                      <view class="spu-total">¥{{ formatMoney(group.totalAmount) }}</view>
-                      <button class="collapse-btn button-center" :aria-label="isGroupCollapsed(group.key) ? '展开规格' : '收起规格'" @tap.stop="toggleGroup(group.key)">
+                      <AmountText class="spu-total" :text="'¥' + (formatMoney(group.totalAmount))" />
+                      <button class="collapse-btn button-center" :aria-label="isGroupCollapsed(group.key) ? t('commerce.cart.expand') : t('commerce.cart.collapse')" @tap.stop="toggleGroup(group.key)">
                         <AppIcon
                           name="chevron-right"
                           :size="17"
@@ -141,7 +141,7 @@
                       >
                         <button class="sku-delete-action button-center" @tap.stop="deleteOne(item.cartItemId)">
                           <AppIcon name="trash" :size="19" color="#FFFFFF" />
-                          <text>删除</text>
+                          <text>{{ t('commerce.cart.delete') }}</text>
                         </button>
                         <view
                           class="sku-row"
@@ -166,15 +166,15 @@
                           />
 
                           <view class="product-info">
-                            <text class="sku-title">{{ item.skuName || '默认规格' }}</text>
+                            <text class="sku-title">{{ item.skuName || t('commerce.cart.defaultVariant') }}</text>
                             <text class="product-code">SKU：{{ item.code || item.skuId }}</text>
                             <view class="price-line">
-                              <text class="price">¥{{ formatMoney(item.price) }}</text>
-                              <text v-if="item.basePrice > item.price" class="list-price">¥{{ formatMoney(item.basePrice) }}</text>
+                              <AmountText class="price" :text="'¥' + (formatMoney(item.price))" />
+                              <AmountText v-if="item.basePrice > item.price" class="list-price" :text="'¥' + (formatMoney(item.basePrice))" />
                               <text class="unit">/ {{ unitText(item) }}</text>
                             </view>
-                            <text v-if="item.strategyDiscount > 0" class="strategy-discount">策略优惠 ¥{{ formatMoney(item.strategyDiscount) }}</text>
-                            <text v-if="item.promotionDiscount > 0" class="promotion-discount">活动优惠 ¥{{ formatMoney(item.promotionDiscount) }}</text>
+                            <AmountText v-if="item.strategyDiscount > 0" class="strategy-discount" :text="t('commerce.cart.strategyAmount', { amount: formatMoney(item.strategyDiscount) })" />
+                            <AmountText v-if="item.promotionDiscount > 0" class="promotion-discount" :text="t('commerce.cart.promotionAmount', { amount: formatMoney(item.promotionDiscount) })" />
                             <view class="quantity-row">
                               <QuantityStepper
                                 :model-value="item.quantity"
@@ -186,7 +186,7 @@
                                 @plus="(val) => onQuantityChange(item, val)"
                                 @minus="(val) => onQuantityChange(item, val)"
                               />
-                              <text class="sku-subtotal">小计 ¥{{ subtotal(item) }}</text>
+                              <AmountText class="sku-subtotal" :text="t('commerce.cart.subtotal', { amount: subtotal(item) })" />
                             </view>
                           </view>
                         </view>
@@ -200,42 +200,40 @@
               <view v-if="cartStore.validItems.length > 0" class="summary-card">
                 <view class="summary-heading">
                   <view>
-                    <text class="summary-title">采购汇总</text>
-                    <text class="summary-subtitle">仅结算当前勾选商品</text>
+                    <text class="summary-title">{{ t('commerce.cart.summary') }}</text>
+                    <text class="summary-subtitle">{{ t('commerce.cart.summaryHint') }}</text>
                   </view>
-                  <view class="summary-badge">{{ cartStore.summary.selectedCount }} 种</view>
+                  <view class="summary-badge">{{ t('commerce.cart.productCount', { count: cartStore.summary.selectedCount }) }}</view>
                 </view>
                 <view class="summary-row">
-                  <text>已选商品</text>
-                  <text>{{ cartStore.summary.selectedCount }} 种</text>
+                  <text>{{ t('commerce.cart.selectedItems') }}</text>
+                  <text>{{ t('commerce.cart.productCount', { count: cartStore.summary.selectedCount }) }}</text>
                 </view>
                 <view class="summary-row">
-                  <text>已选数量</text>
-                  <text>{{ cartStore.summary.selectedQuantity }} 件</text>
+                  <text>{{ t('commerce.cart.selectedQuantity') }}</text>
+                  <text>{{ t('commerce.cart.quantityCount', { count: cartStore.summary.selectedQuantity }) }}</text>
                 </view>
                 <view class="summary-row">
-                  <text>未选数量</text>
-                  <text>{{ cartStore.summary.totalQuantity - cartStore.summary.selectedQuantity }} 件</text>
+                  <text>{{ t('commerce.cart.unselectedQuantity') }}</text>
+                  <text>{{ t('commerce.cart.quantityCount', { count: cartStore.summary.totalQuantity - cartStore.summary.selectedQuantity }) }}</text>
                 </view>
                 <view class="summary-divider" />
                 <view class="summary-row total">
-                  <text>商品净额</text>
-                  <text class="total-amount">{{ cartStore.formattedTotalAmount }}</text>
+                  <text>{{ t('commerce.cart.netAmount') }}</text>
+                  <AmountText class="total-amount" :text="(cartStore.formattedTotalAmount)" />
                 </view>
                 <view v-if="cartStore.summary.discountAmount > 0" class="summary-row discount-summary">
-                  <text>活动优惠</text>
-                  <text>-¥{{ formatMoney(cartStore.summary.discountAmount) }}</text>
+                  <text>{{ t('commerce.cart.promotionDiscount') }}</text>
+                  <AmountText class="discount-amount" :text="'-¥' + (formatMoney(cartStore.summary.discountAmount))" />
                 </view>
                 <view v-if="cartStore.summary.invalidCount > 0" class="summary-row">
-                  <text>含失效商品</text>
-                  <text>{{ cartStore.summary.invalidCount }} 件</text>
+                  <text>{{ t('commerce.cart.invalidItems') }}</text>
+                  <text>{{ t('commerce.cart.quantityCount', { count: cartStore.summary.invalidCount }) }}</text>
                 </view>
                 <view v-if="cartStore.summary.remainingLimit < 100000" class="limit-hint">
-                  <text>距 ¥100,000 限额还可采购 ¥{{ cartStore.summary.remainingLimit.toLocaleString('zh-CN', { minimumFractionDigits: 2 }) }}</text>
+                  <view class="limit-amounts"><text>{{ t('commerce.cart.limitBefore') }}</text><AmountText text="¥100,000" /><text>{{ t('commerce.cart.limitAfter') }}</text><AmountText :text="'¥' + cartStore.summary.remainingLimit.toLocaleString('zh-CN', { minimumFractionDigits: 2 })" /></view>
                 </view>
-                <text v-if="cartStore.summary.isOverLimit" class="risk-text">
-                  已超过 10 万元单次采购上限，请分批结算。
-                </text>
+                <text v-if="cartStore.summary.isOverLimit" class="risk-text">{{ t('commerce.cart.overLimit') }}</text>
               </view>
             </view>
           </template>
@@ -251,18 +249,18 @@
             <view class="check" :class="{ checked: areAllItemsSelected }">
               <text v-if="areAllItemsSelected">✓</text>
             </view>
-            <text>全选</text>
+            <text>{{ t('commerce.cart.selectAll') }}</text>
           </label>
           <button class="clear-cart-btn button-center" @tap="requestClearAll">
             <AppIcon name="trash" :size="17" />
-            <text>一键清空</text>
+            <text>{{ t('commerce.cart.clearAll') }}</text>
           </button>
           <button
             class="manage-delete-btn button-center"
             :disabled="managementSelectedCount === 0"
             @tap="requestDeleteSelected"
           >
-            删除{{ managementSelectedCount ? ` (${managementSelectedCount})` : '' }}
+            {{ t('commerce.cart.delete') }}{{ managementSelectedCount ? ` (${managementSelectedCount})` : '' }}
           </button>
         </view>
         <view v-else class="footer-inner">
@@ -270,19 +268,17 @@
             <view class="check" :class="{ checked: areAllValidSelected }">
               <text v-if="areAllValidSelected">✓</text>
             </view>
-            <text>全选</text>
+            <text>{{ t('commerce.cart.selectAll') }}</text>
           </label>
           <view class="footer-total">
-            <text class="footer-label">已选 {{ cartStore.summary.selectedQuantity }} 件</text>
-            <text class="footer-amount">{{ cartStore.formattedTotalAmount }}</text>
+            <text class="footer-label">{{ t('commerce.cart.selectedCount', { count: cartStore.summary.selectedQuantity }) }}</text>
+            <AmountText class="footer-amount" :text="(cartStore.formattedTotalAmount)" />
           </view>
           <button
             class="checkout-btn button-center"
             :disabled="!canCheckout"
             @click="goToCheckout"
-          >
-            去结算
-          </button>
+          >{{ t('commerce.cart.checkout') }}</button>
         </view>
       </fixed-action-bar>
     </template>
@@ -293,13 +289,17 @@
     v-model="showDeleteConfirm"
     :title="deleteConfirmTitle"
     :description="deleteConfirmText"
-    confirm-text="移除"
+    :confirm-text="t('commerce.cart.remove')"
     :danger="true"
     @confirm="confirmDelete"
   />
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/commerce/i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
+import { AppError, ErrorKind } from '@/shared/api/appError.js'
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { onHide, onShow, onUnload } from '@dcloudio/uni-app'
 import { useCart } from '@/shared/composables/useCart.js'
@@ -336,10 +336,19 @@ const {
 
 // ==================== 本地 UI 状态 ====================
 const loadFailed = ref(false)
-const loadError = ref('')
+const loadFailure = ref(null)
+const loadError = computed(() => loadFailure.value?.message || '')
 const showDeleteConfirm = ref(false)
-const deleteConfirmTitle = ref('确认移除')
-const deleteConfirmText = ref('')
+const deleteTitleKey = ref('commerce.cart.confirmRemove')
+const deleteConfirmTitle = computed(() => t(deleteTitleKey.value))
+const deleteDialog = ref(null)
+const deleteConfirmText = computed(() => {
+  const dialog = deleteDialog.value
+  if (!dialog) return ''
+  const parameters = { ...dialog.parameters }
+  if (dialog.messageKey === 'commerce.cart.removeOne') parameters.name ||= t('commerce.cart.thisProduct')
+  return t(dialog.messageKey, parameters)
+})
 const isManaging = ref(false)
 const collapsedGroupKeys = ref({})
 const activeActionItemId = ref(null)
@@ -361,13 +370,13 @@ const pageState = computed(() => {
 })
 
 const stateTitle = computed(() =>
-  pageState.value === PageStatus.EMPTY ? '购物车为空' : '购物车加载失败',
+  pageState.value === PageStatus.EMPTY ? t('commerce.cart.empty') : t('commerce.cart.loadFailed'),
 )
 
 const stateDescription = computed(() =>
   pageState.value === PageStatus.EMPTY
-    ? '从商品目录选择需要采购的商品'
-    : (loadError.value || '网络异常，请稍后重试'),
+    ? t('commerce.cart.emptyHint')
+    : (loadError.value || t('commerce.cart.network')),
 )
 
 /** 首屏失败但有旧内容可展示 */
@@ -394,12 +403,12 @@ const areAllItemsSelected = computed(() =>
 /** 刷新购物车 */
 async function refreshCart() {
   loadFailed.value = false
-  loadError.value = ''
+  loadFailure.value = null
   try {
     await loadCart({ silent: cartStore.loaded })
   } catch (error) {
     loadFailed.value = true
-    loadError.value = error?.message || '网络异常，请稍后重试'
+    loadFailure.value = error?.message ? error : localError('commerce.cart.network')
     console.error('[Cart] 加载购物车失败:', error)
   }
 }
@@ -576,8 +585,8 @@ function deleteOne(cartItemId) {
   if (!item) return
   pendingDeleteIds = [Number(cartItemId)]
   pendingClearAll = false
-  deleteConfirmTitle.value = '确认移除'
-  deleteConfirmText.value = `确定从购物车移除「${item.name || '该商品'}」？`
+  deleteTitleKey.value = 'commerce.cart.confirmRemove'
+  deleteDialog.value = { messageKey: 'commerce.cart.removeOne', parameters: { name: item.name || null } }
   showDeleteConfirm.value = true
   activeActionItemId.value = null
 }
@@ -588,27 +597,29 @@ function removeInvalidItems() {
   if (ids.length === 0) return
   pendingDeleteIds = ids
   pendingClearAll = false
-  deleteConfirmTitle.value = '清空失效商品'
-  deleteConfirmText.value = `确定清空 ${ids.length} 件失效商品？`
+  deleteTitleKey.value = 'commerce.cart.clearInvalidTitle'
+  deleteDialog.value = { messageKey: 'commerce.cart.removeInvalid', parameters: { count: ids.length } }
   showDeleteConfirm.value = true
 }
 
+/** 保存原已选 SKU 快照并显示可重新取词的删除确认。 */
 function requestDeleteSelected() {
   const ids = managementSelectedItems.value.map(item => Number(item.cartItemId)).filter(Boolean)
   if (ids.length === 0) return
   pendingDeleteIds = ids
   pendingClearAll = false
-  deleteConfirmTitle.value = '删除已选商品'
-  deleteConfirmText.value = `确定删除已选择的 ${ids.length} 个 SKU？`
+  deleteTitleKey.value = 'commerce.cart.deleteSelectedTitle'
+  deleteDialog.value = { messageKey: 'commerce.cart.removeSelected', parameters: { count: ids.length } }
   showDeleteConfirm.value = true
 }
 
+/** 保存清空动作并显示可重新取词的确认，不直接提交。 */
 function requestClearAll() {
   if (cartStore.items.length === 0) return
   pendingDeleteIds = null
   pendingClearAll = true
-  deleteConfirmTitle.value = '清空购物车'
-  deleteConfirmText.value = `确定清空购物车中的 ${cartStore.items.length} 个 SKU？此操作不可撤销。`
+  deleteTitleKey.value = 'commerce.cart.clearAllTitle'
+  deleteDialog.value = { messageKey: 'commerce.cart.removeAll', parameters: { count: cartStore.items.length } }
   showDeleteConfirm.value = true
 }
 
@@ -619,7 +630,7 @@ async function confirmDelete() {
       await clearAll()
       isManaging.value = false
     } catch (error) {
-      if (typeof uni !== 'undefined') uni.showToast({ title: error?.message || '清空失败，请稍后重试', icon: 'none' })
+      if (typeof uni !== 'undefined') uni.showToast({ title: error?.message || t('commerce.cart.clearFailed'), icon: 'none' })
       return
     } finally {
       pendingClearAll = false
@@ -650,7 +661,7 @@ async function goToCheckout() {
   } catch (err) {
     console.error('[Cart] flush 失败，禁止结算:', err)
     if (typeof uni !== 'undefined') {
-      uni.showToast({ title: '同步购物车失败，请重试后结算', icon: 'none' })
+      uni.showToast({ title: t('commerce.cart.syncFailed'), icon: 'none' })
     }
   }
 }
@@ -695,6 +706,11 @@ onBeforeUnmount(() => {
   // 兜底 flush（不 dispose 单例）
   flush().catch(() => {})
 })
+/** 创建可重新取词的本地提示，不附加后端错误码。 */
+function localError(messageKey) {
+  return new AppError('', ErrorKind.UNKNOWN, { messageKey })
+}
+
 </script>
 
 <style lang="scss" scoped>
@@ -852,7 +868,7 @@ onBeforeUnmount(() => {
 
 .spu-header {
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) auto 32px;
+  grid-template-columns: 22px minmax(0, 1fr) minmax(0, .8fr) 32px;
   align-items: center;
   gap: 10px;
   min-height: 64px;
@@ -883,9 +899,9 @@ onBeforeUnmount(() => {
 }
 
 .spu-total {
-  color: $color-text-primary;
+  color: $color-text-secondary;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
@@ -929,8 +945,11 @@ onBeforeUnmount(() => {
   position: relative;
   overflow: hidden;
   border-radius: 12px;
-  background: $color-brand-500;
+  background: transparent;
 }
+
+.sku-action-shell.is-dragging,
+.sku-action-shell.action-open { background: $color-brand-500; }
 
 .sku-delete-action {
   position: absolute;
@@ -951,7 +970,11 @@ onBeforeUnmount(() => {
   color: #FFFFFF;
   background: $color-brand-500;
   font-size: 12px;
+  visibility: hidden;
 }
+
+.sku-action-shell.is-dragging .sku-delete-action,
+.sku-action-shell.action-open .sku-delete-action { visibility: visible; }
 
 .sku-row {
   position: relative;
@@ -993,11 +1016,19 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.strategy-discount { display: block; color: #c45656; font-size: 11px; margin-top: 2px; } .promotion-discount { display: block; color: #d96b24; font-size: 11px; margin-top: 2px; }
-.sku-subtotal {
+.strategy-discount,
+.promotion-discount {
+  display: block;
+  margin-top: 3px;
   color: $color-text-secondary;
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 17px;
+}
+.sku-subtotal {
+  color: $color-gray-800;
   font-size: var(--type-caption-size, 12px);
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1105,6 +1136,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: baseline;
   margin-top: 7px;
+  column-gap: 8px;
+  row-gap: 4px;
 }
 
 .price {
@@ -1112,6 +1145,14 @@ onBeforeUnmount(() => {
   font-size: 16px;
   font-weight: 700;
 }
+
+.price-line .list-price {
+  color: #7B818C;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.list-price :deep(.amount-text__value) { text-decoration: line-through; }
 
 .unit {
   margin-left: 3px;
@@ -1214,9 +1255,15 @@ onBeforeUnmount(() => {
 }
 
 .total-amount {
-  color: $color-brand-500;
-  font-size: 19px;
-  font-weight: 700;
+  color: $color-text-primary;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.discount-summary .discount-amount {
+  color: $color-text-secondary;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .summary-divider {
@@ -1465,4 +1512,14 @@ onBeforeUnmount(() => {
     min-width: 96px;
   }
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.summary-card, .summary-row, .price-line, .quantity-row { min-width: 0; }
+.price-line { flex-wrap: wrap; }
+.quantity-row { flex-wrap: wrap; }
+.quantity-row > .sku-subtotal { margin-left: auto; }
+.summary-row { gap: 10px; }
+.summary-row > text, .unit { flex: none; }
+.limit-amounts { display: flex; min-width: 0; flex-wrap: wrap; align-items: baseline; gap: 3px; }
+.limit-amounts .amount-text { font-size: inherit; }
 </style>

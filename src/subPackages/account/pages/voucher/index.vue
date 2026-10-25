@@ -1,7 +1,7 @@
 ﻿﻿<template>
   <AppPageShell>
     <template #header>
-      <app-header title="优惠券" :show-back="true" />
+      <app-header :title="t('account.titles.coupons')" :show-back="true" />
     </template>
 
     <template #content>
@@ -21,10 +21,9 @@
               <!-- 左侧金额 -->
               <view class="voucher-left">
                 <view class="amount-wrapper">
-                  <text class="currency">¥</text>
-                  <text class="amount">{{ item.amount }}</text>
+                  <AmountText class="amount" :text="'¥' + (item.amount)" />
                 </view>
-                <text class="condition">满{{ item.minAmount }}可用</text>
+                <text class="condition">{{ t('account.voucher.minimum', { amount: item.minAmount }) }}</text>
               </view>
 
               <!-- 分割线 -->
@@ -45,7 +44,7 @@
                   v-if="item.status === 'available'"
                   class="use-btn"
                   @click="useVoucher(item)"
-                >立即使用</button>
+                >{{ t('account.voucher.use') }}</button>
                 <status-tag-new
                   v-else-if="item.status === 'used'"
                   type="default"
@@ -63,8 +62,8 @@
             <AppPageState
               v-if="filteredList.length === 0"
               state="empty"
-              title="暂无优惠券"
-              description="可输入上方兑换码领取优惠券，关注平台营销活动"
+              :title="t('account.voucher.empty')"
+              :description="t('account.voucher.emptyHint')"
             >
               <template #illustration>
                 <AppSvgIllustration :svg="noCouponSvg" size="lg" />
@@ -80,6 +79,9 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/account/i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { ref, computed, watch } from 'vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import statusTagNew from '@/shared/ui/StatusTag/StatusTag.vue'
@@ -119,23 +121,25 @@ const filteredList = computed(() => {
   return voucherList.value.filter(item => item.status === activeTab.value)
 })
 
+/** 保留前往商品列表的占位反馈，不修改优惠券。 */
 function useVoucher(item) {
-  uni.showToast({ title: '跳转至商品列表', icon: 'none' })
+  uni.showToast({ title: t('account.voucher.openProducts'), icon: 'none' })
 }
 
 // 兑换逻辑增加loading、去空格、防重复提交
+/** 保留原兑换占位流程、输入清理和防重入判断。 */
 function exchangeVoucher() {
   const code = exchangeCode.value.trim()
   if (!code) {
-    uni.showToast({ title: '请输入兑换码', icon: 'none' })
+    uni.showToast({ title: t('account.voucher.codeRequired'), icon: 'none' })
     return
   }
   if(exchangeLoading.value) return
   exchangeLoading.value = true
-  uni.showLoading({ title: '兑换中...' })
+  uni.showLoading({ title: t('account.voucher.redeeming') })
   setTimeout(() => {
     uni.hideLoading()
-    uni.showToast({ title: '兑换成功', icon: 'success' })
+    uni.showToast({ title: t('account.voucher.redeemed'), icon: 'success' })
     exchangeCode.value = ''
     exchangeLoading.value = false
     // 兑换成功后重新拉取优惠券列表
@@ -401,4 +405,7 @@ function onExchangeEnter() {
   }
 }
 
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.voucher-left, .amount-wrapper { min-width: 0; }
 </style>

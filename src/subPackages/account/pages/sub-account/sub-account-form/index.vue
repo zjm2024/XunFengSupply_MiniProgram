@@ -1,7 +1,7 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader :title="isEdit ? '编辑子账户' : '新增子账户'" :show-back="true" @back="goBack" />
+      <AppHeader :title="isEdit ? t('account.titles.editSubAccount') : t('account.titles.newSubAccount')" :show-back="true" @back="goBack" />
     </template>
 
     <template #content>
@@ -9,50 +9,50 @@
         <view class="form-container">
           <view class="form-card">
             <view class="form-group">
-              <text class="form-label">登录账号<text class="required">*</text></text>
+              <text class="form-label">{{ t('account.subAccountForm.username') }}<text class="required">*</text></text>
               <input
                 v-model="formData.username"
                 class="form-input"
-                placeholder="请输入登录账号"
+                :placeholder="t('account.subAccountForm.usernameRequired')"
                 :disabled="isEdit || isReadOnly"
               />
             </view>
 
             <view v-if="!isEdit" class="form-group">
-              <text class="form-label">密码<text class="required">*</text></text>
+              <text class="form-label">{{ t('account.subAccountForm.password') }}<text class="required">*</text></text>
               <input
                 v-model="formData.password"
                 class="form-input"
                 type="password"
-                  placeholder="请输入密码"
+                  :placeholder="t('account.subAccountForm.passwordRequired')"
                   password
                   :disabled="isReadOnly"
               />
             </view>
 
             <view class="form-group">
-              <text class="form-label">使用人姓名</text>
+              <text class="form-label">{{ t('account.subAccountForm.realName') }}</text>
               <input
                 v-model="formData.realName"
                   class="form-input"
-                  placeholder="请输入使用人姓名"
+                  :placeholder="t('account.subAccountForm.realNamePlaceholder')"
                   :disabled="isReadOnly"
               />
             </view>
 
             <view class="form-group">
-              <text class="form-label">手机号</text>
+              <text class="form-label">{{ t('account.subAccountForm.mobile') }}</text>
               <input
                 v-model="formData.mobile"
                 class="form-input"
                   type="number"
-                  placeholder="请输入手机号"
+                  :placeholder="t('account.subAccountForm.mobilePlaceholder')"
                   :disabled="isReadOnly"
               />
             </view>
 
             <view v-if="isEdit" class="form-group">
-              <text class="form-label">状态</text>
+              <text class="form-label">{{ t('account.subAccountForm.status') }}</text>
               <view class="status-toggle">
                 <text :class="['toggle-text', { active: formData.status === 'active' }]">
                   {{ formData.status === 'active' ? '已启用' : '已停用' }}
@@ -67,7 +67,7 @@
             </view>
 
             <view class="form-group">
-              <text class="form-label">账户权限</text>
+              <text class="form-label">{{ t('account.subAccountForm.permissions') }}</text>
               <view class="permission-list">
                 <view
                   v-for="item in permissionOptions"
@@ -88,7 +88,7 @@
                 </view>
               </view>
               <text v-if="isReadOnly || (isEdit && formData.status !== 'active')" class="frozen-tip">
-                {{ isReadOnly ? '主账户已冻结，当前页面仅可查看' : '冻结账户的权限仅可查看，解冻后才能编辑' }}
+                {{ isReadOnly ? t('account.subAccountForm.mainFrozen') : t('account.subAccountForm.accountFrozen') }}
               </text>
             </view>
           </view>
@@ -96,7 +96,7 @@
           <!-- 底部按钮 -->
           <view class="bottom-actions">
             <button class="submit-btn" @click="submitForm" :disabled="submitting || isReadOnly">
-              {{ submitting ? '提交中...' : '确认' }}
+              {{ submitting ? t('account.subAccountForm.submitting') : t('account.subAccountForm.confirm') }}
             </button>
           </view>
         </view>
@@ -106,6 +106,8 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/account/i18n/register.js'
 import { computed, ref, reactive } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -131,14 +133,14 @@ const formData = reactive({
   permissions: [],
 })
 
-const permissionOptions = [
-  { code: 'ORDER_VIEW', name: '查看订单', description: '查看经销商主体订单' },
-  { code: 'ORDER_CREATE', name: '下单', description: '创建并提交订单' },
-  { code: 'BALANCE_VIEW', name: '查看余额对账', description: '查看余额、账单和流水' },
-  { code: 'INVENTORY_VIEW', name: '查看库存', description: '查看经销商主体的自有库存与入库流水' },
-  { code: 'SUB_ACCOUNT_MANAGE', name: '管理子账户', description: '保留扩展；主账号始终拥有' },
-  { code: 'COMBINATION_PAY_PARTICIPATE', name: '参与组合支付', description: '允许本账户余额被选作资金来源' },
-]
+const permissionOptions = computed(() => [
+  { code: 'ORDER_VIEW', name: t('account.permissions.viewOrders'), description: t('account.permissions.viewOrdersHint') },
+  { code: 'ORDER_CREATE', name: t('account.permissions.createOrders'), description: t('account.permissions.createOrdersHint') },
+  { code: 'BALANCE_VIEW', name: t('account.permissions.viewBalance'), description: t('account.permissions.viewBalanceHint') },
+  { code: 'INVENTORY_VIEW', name: t('account.permissions.viewInventory'), description: t('account.permissions.viewInventoryHint') },
+  { code: 'SUB_ACCOUNT_MANAGE', name: t('account.permissions.manageAccounts'), description: t('account.permissions.manageAccountsHint') },
+  { code: 'COMBINATION_PAY_PARTICIPATE', name: t('account.permissions.combinedPayment'), description: t('account.permissions.combinedPaymentHint') },
+])
 
 let initialStatus = 'active'
 
@@ -191,12 +193,12 @@ async function submitForm() {
   if (isReadOnly.value) return
   // 表单校验
   if (!formData.username.trim()) {
-    uni.showToast({ title: '请输入登录账号', icon: 'none' })
+    uni.showToast({ title: t('account.subAccountForm.usernameRequired'), icon: 'none' })
     return
   }
 
   if (!isEdit.value && !formData.password.trim()) {
-    uni.showToast({ title: '请输入密码', icon: 'none' })
+    uni.showToast({ title: t('account.subAccountForm.passwordRequired'), icon: 'none' })
     return
   }
 
@@ -217,7 +219,7 @@ async function submitForm() {
           permissions: formData.permissions,
         })
       }
-      uni.showToast({ title: '保存成功', icon: 'success' })
+      uni.showToast({ title: t('account.subAccountForm.saved'), icon: 'success' })
     } else {
       // 创建模式
       await createSubAccount({
@@ -227,14 +229,14 @@ async function submitForm() {
         mobile: formData.mobile.trim() || null,
         permissions: formData.permissions,
       })
-      uni.showToast({ title: '创建成功', icon: 'success' })
+      uni.showToast({ title: t('account.subAccountForm.created'), icon: 'success' })
     }
     setTimeout(() => {
       navigator.back()
     }, 1000)
   } catch (err) {
     console.error('[SubAccountForm] 提交失败:', err)
-    uni.showToast({ title: err.message || '操作失败，请重试', icon: 'none' })
+    uni.showToast({ title: err.message || t('account.subAccountForm.failed'), icon: 'none' })
   } finally {
     submitting.value = false
   }

@@ -1,61 +1,68 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="设置" :show-back="true" :show-shadow="true" />
+      <AppHeader :title="t('account.settings.title')" :show-back="true" :show-shadow="true" />
     </template>
 
     <template #content>
       <AppContent>
         <view class="settings-content">
-          <AppListGroup title="账户与安全" description="核心设置">
+          <AppListGroup :title="t('account.settings.general')">
             <AppListItem
-              label="账户资料"
-              description="查看和维护当前账户信息"
+              :label="t('account.settings.language')"
+              :description="t('account.settings.languageHint')"
+              :value="languageLabel"
+              icon="settings"
+              @tap="goToLanguage"
+            />
+            <AppListItem
+              :label="t('account.settings.clearCache')"
+              :description="t('account.settings.cacheHint')"
+              :value="cacheLabel"
+              icon="trash"
+              @tap="handleClearCache"
+            />
+          </AppListGroup>
+
+          <AppListGroup :title="t('account.settings.accountSecurity')" :description="t('account.settings.core')">
+            <AppListItem
+              :label="t('account.settings.profile')"
+              :description="t('account.settings.profileHint')"
               icon="user"
               @tap="goToProfile"
             />
             <AppListItem
-              label="安全设置"
-              description="登录密码与账户安全"
+              :label="t('account.settings.security')"
+              :description="t('account.settings.securityHint')"
               icon="shield"
               @tap="goToSecurity"
             />
           </AppListGroup>
 
-          <AppListGroup title="支持与信息">
+          <AppListGroup :title="t('account.settings.support')">
             <AppListItem
-              label="消息通知"
-              description="管理订单、审核、账单和公告提醒"
+              :label="t('account.settings.notifications')"
+              :description="t('account.settings.notificationsHint')"
               icon="bell"
               @tap="goToNotificationSettings"
             />
             <AppListItem
-              label="帮助中心"
-              description="采购、支付与售后常见问题"
+              :label="t('account.settings.help')"
+              :description="t('account.settings.helpHint')"
               icon="help"
               @tap="goToHelp"
             />
             <AppListItem
-              label="关于我们"
+              :label="t('account.settings.about')"
               value="V 1.0.0"
               icon="info"
               @tap="goToAbout"
             />
           </AppListGroup>
 
-          <AppListGroup title="通用设置">
-            <AppListItem
-              label="清除缓存"
-              description="清理图片、资讯附件和搜索历史等临时数据"
-              :value="cacheSummary.label"
-              icon="trash"
-              @tap="handleClearCache"
-            />
-          </AppListGroup>
-
           <!-- 退出登录 -->
           <view class="logout-wrap">
-            <button class="logout-btn" @tap="handleLogout">退出登录</button>
+            <button class="logout-btn" @tap="handleLogout">{{ t('account.settings.logout') }}</button>
           </view>
 
           <view class="bottom-spacer"></view>
@@ -67,7 +74,9 @@
 
 <script setup>
 import { onShow } from '@dcloudio/uni-app'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { locale, t } from '@/shared/i18n/index.js'
+import '../../i18n/register.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -77,9 +86,20 @@ import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { useUserStore } from '@/shared/session/userStore.js'
 import { clearAppCache, getCacheSummary } from '@/shared/utils/cacheManager.js'
+import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 
 const userStore = useUserStore()
 const cacheSummary = ref(getCacheSummary())
+const cacheLabel = computed(() => cacheSummary.value.count > 0
+  ? t('account.settings.cacheSummary', { count: cacheSummary.value.count })
+  : t('account.settings.cacheEmpty'))
+const languageLabel = computed(() => locale.value === 'en-US'
+  ? t('account.language.en') : t('account.language.zh'))
+
+/** 前往既有语言页，不通过重启或重新创建当前页面切换语言。 */
+function goToLanguage() {
+  navigator.navigateTo(routes.account.language())
+}
 
 onShow(() => {
   cacheSummary.value = getCacheSummary()
@@ -105,36 +125,31 @@ function goToAbout() {
   navigator.navigateTo(routes.content.about())
 }
 
-function handleClearCache() {
-  uni.showModal({
-    title: '清除缓存',
-    content: '将清理图片、资讯附件和搜索历史等临时数据，不会退出登录，也不会删除购物车、待付款订单和通知设置。确定继续吗？',
-    success: async (res) => {
-      if (!res.confirm) return
-      try {
-        await clearAppCache()
-        cacheSummary.value = getCacheSummary()
-        uni.showToast({ title: '缓存已清除', icon: 'success' })
-      } catch (error) {
-        console.error('[Settings] 清除缓存失败:', error)
-        uni.showToast({ title: '清除失败，请稍后重试', icon: 'none' })
-      }
-    },
-  })
+async function handleClearCache() {
+  if (!await openAppDialog({
+    confirmText: t('common.confirm'),
+    cancelText: t('common.cancel'),
+    title: t('account.settings.clearCache'),
+    description: t('account.settings.cacheConfirm'),
+  })) return
+  try {
+    await clearAppCache()
+    cacheSummary.value = getCacheSummary()
+    uni.showToast({ title: t('account.settings.cacheCleared'), icon: 'success' })
+  } catch (error) {
+    console.error('[Settings] 清除缓存失败:', error)
+    uni.showToast({ title: t('account.settings.cacheFailed'), icon: 'none' })
+  }
 }
 
-function handleLogout() {
-  uni.showModal({
-    title: '确认退出',
-    content: '确定要退出当前账号吗？',
-    success: (res) => {
-      if (res.confirm) {
-        userStore.logout().then(() => {
-          navigator.reLaunch(routes.auth.login())
-        })
-      }
-    }
-  })
+async function handleLogout() {
+  if (!await openAppDialog({
+    confirmText: t('common.confirm'),
+    cancelText: t('common.cancel'),
+    title: t('account.settings.logoutTitle'),
+    description: t('account.settings.logoutConfirm'),
+  })) return
+  userStore.logout().then(() => navigator.reLaunch(routes.auth.login()))
 }
 </script>
 

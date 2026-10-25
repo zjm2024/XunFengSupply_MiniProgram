@@ -5,13 +5,14 @@
       :class="{ 'has-value': displayText, 'has-error': error, disabled }"
       @tap="openPicker"
     >
-      <text class="area-value">{{ displayText || placeholder }}</text>
+      <text class="area-value">{{ displayText || (placeholder ?? t('common.region.placeholder')) }}</text>
       <AppIcon name="chevron-right" :size="16" :color="disabled ? '#C7C9CE' : '#969AA3'" />
     </view>
   </view>
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
 import { computed } from 'vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 
@@ -29,7 +30,7 @@ const props = defineProps({
     type: Object,
     default: () => ({ provinceCode: '', province: '', cityCode: '', city: '', districtCode: '', district: '' }),
   },
-  placeholder: { type: String, default: '请选择省、市、区/县' },
+  placeholder: { type: String, default: null },
   disabled: { type: Boolean, default: false },
   error: { type: Boolean, default: false },
 })

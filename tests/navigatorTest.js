@@ -18,6 +18,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useUserStore } from '@/shared/session/userStore.js'
 import * as sessionCleanup from '@/shared/session/sessionCleanup.js'
+import { settleAppDialog, useAppDialog } from '@/shared/composables/useAppDialog.js'
+import { registerMainLocales } from '@/app/i18n/registerMain.js'
+import { setLocale } from '@/shared/i18n/index.js'
 
 // Mock uni 对象
 const mockUni = {
@@ -32,6 +35,9 @@ global.uni = mockUni
 global.getCurrentPages = vi.fn()
 
 beforeEach(() => {
+  registerMainLocales()
+  setLocale('zh-CN')
+  settleAppDialog(false)
   setActivePinia(createPinia())
   vi.resetAllMocks()
   global.getCurrentPages.mockReturnValue([{ route: 'pages/startup/index' }])
@@ -290,16 +296,11 @@ describe('Navigator - backWithConfirm', () => {
     mockUni.navigateBack.mockImplementation(({ success }) => success())
 
     const { navigator } = await import('@/app/navigation/navigator.js')
-    const result = await navigator.backWithConfirm({ hasUnsavedChanges: true })
-    expect(result).toBe(true)
-    expect(mockUni.showModal).toHaveBeenCalledWith(
-      expect.objectContaining({
-        title: '确认离开',
-        content: '当前有未保存的修改，确定要离开吗？',
-        confirmText: '离开',
-        cancelText: '留下',
-      })
-    )
+    const pending = navigator.backWithConfirm({ hasUnsavedChanges: true })
+    expect(useAppDialog().state.value).toMatchObject({ visible: true, description: '当前有未保存的修改，确定要离开吗？' })
+    expect(mockUni.showModal).not.toHaveBeenCalled()
+    settleAppDialog(true)
+    expect(await pending).toBe(true)
     expect(mockUni.navigateBack).toHaveBeenCalled()
   })
 
@@ -312,8 +313,9 @@ describe('Navigator - backWithConfirm', () => {
     mockUni.showModal.mockImplementation(({ success }) => success({ confirm: false }))
 
     const { navigator } = await import('@/app/navigation/navigator.js')
-    const result = await navigator.backWithConfirm({ hasUnsavedChanges: true })
-    expect(result).toBe(false)
+    const pending = navigator.backWithConfirm({ hasUnsavedChanges: true })
+    settleAppDialog(false)
+    expect(await pending).toBe(false)
     expect(mockUni.navigateBack).not.toHaveBeenCalled()
   })
 

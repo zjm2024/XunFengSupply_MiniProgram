@@ -32,6 +32,7 @@
 <script setup>
 import { computed } from 'vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import { t } from '@/shared/i18n/index.js'
 
 const props = defineProps({
   activeTab: { type: String, default: 'home' },
@@ -42,18 +43,19 @@ const props = defineProps({
 defineEmits(['change'])
 
 const tabItems = Object.freeze([
-  { key: 'home', label: '首页', inactive: 'tab-home', active: 'tab-home-active' },
-  { key: 'category', label: '分类', inactive: 'tab-category', active: 'tab-category-active' },
-  { key: 'news', label: '资讯', inactive: 'tab-news', active: 'tab-news-active' },
-  { key: 'cart', label: '购物车', inactive: 'tab-cart', active: 'tab-cart-active' },
-  { key: 'account', label: '我的', inactive: 'tab-account', active: 'tab-account-active' },
+  { key: 'home', inactive: 'tab-home', active: 'tab-home-active' },
+  { key: 'category', inactive: 'tab-category', active: 'tab-category-active' },
+  { key: 'news', inactive: 'tab-news', active: 'tab-news-active' },
+  { key: 'cart', inactive: 'tab-cart', active: 'tab-cart-active' },
+  { key: 'account', inactive: 'tab-account', active: 'tab-account-active' },
 ])
 
 const sidebarItems = Object.freeze([
   ...tabItems,
 ])
 
-const displayItems = computed(() => (props.mode === 'sidebar' ? sidebarItems : tabItems))
+const displayItems = computed(() => (props.mode === 'sidebar' ? sidebarItems : tabItems)
+  .map(item => ({ ...item, label: t('main.nav.' + item.key) })))
 
 const normalizedCartCount = computed(() => {
   const count = Number(props.cartCount || 0)

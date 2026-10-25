@@ -33,7 +33,7 @@ describe('下单支付流程契约', () => {
   it('倒计时归零只提示期限结束，不应主动取消订单或宣称取消完成', () => {
     const source = readSource('src/subPackages/order/pages/pay/index.vue')
 
-    expect(source).toContain('请到订单详情查看处理结果')
+    expect(source).toContain("t('order.pay.expiredContent')")
     expect(source).not.toContain('系统已取消')
     expect(source).not.toMatch(/handlePaymentExpired[\s\S]*cancelOrder\(/)
   })
@@ -46,6 +46,11 @@ describe('下单支付流程契约', () => {
     expect(detailSource).not.toContain('状态变更为')
     expect(splitSource).not.toContain('确认拆单并推送 WMS')
     expect(splitSource).not.toContain('warehouse-code')
-    expect(splitSource).toContain('确认订单拆分')
+    expect(splitSource).toContain("t('order.split.submit')")
+    const chinese = JSON.parse(readSource('src/subPackages/order/i18n/zh-CN.json'))
+    const english = JSON.parse(readSource('src/subPackages/order/i18n/en-US.json'))
+    expect(chinese.split.submit).toBe('确认配送安排')
+    expect(english.split.submit).toBe('Confirm delivery plan')
+    expect(chinese.split.submit + english.split.submit).not.toMatch(/ERP|WMS/)
   })
 })

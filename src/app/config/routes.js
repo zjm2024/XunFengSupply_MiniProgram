@@ -604,8 +604,8 @@ export const routes = {
   home: () => HOME,
 
   auth: {
-    login: ({ redirect } = {}) =>
-      withQuery(LOGIN, redirect ? { redirect } : null),
+    login: ({ redirect, account } = {}) =>
+      withQuery(LOGIN, { redirect, account }),
     applySign: () => APPLY_SIGN,
     agreement: ({ type = 'user' } = {}) =>
       withQuery(AGREEMENT, { type }),

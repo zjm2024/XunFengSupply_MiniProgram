@@ -2,9 +2,9 @@
   <AppPageShell class="message-shell">
     <template #header>
       <AppHeader
-        title="消息中心"
+        :title="t('content.titles.messages')"
         :show-back="true"
-        action-text="通知设置"
+        :action-text="t('content.titles.notificationSettings')"
         @action="goToNotificationSettings"
       />
     </template>
@@ -33,12 +33,10 @@
               :class="{ disabled: markingAll }"
               hover-class="mark-all-read--pressed"
               @tap="handleMarkAllRead"
-            >
-              全部已读
-            </view>
+            >{{ t('content.messages.markAll') }}</view>
           </view>
 
-          <view v-if="loading && messageList.length === 0" class="message-skeleton" aria-label="正在加载消息">
+          <view v-if="loading && messageList.length === 0" class="message-skeleton" :aria-label="t('content.messages.loadingList')">
             <view v-for="index in 3" :key="index" class="skeleton-card">
               <view class="skeleton-icon" />
               <view class="skeleton-lines">
@@ -68,7 +66,7 @@
                     <view v-if="!item.isRead" class="unread-dot" />
                     <text class="message-title">{{ item.title }}</text>
                   </view>
-                  <text class="message-time">{{ formatRelativeTime(item.createdAt) }}</text>
+                  <text class="message-time">{{ formatRelativeTime(item.createdAt, relativeTimeLabel) }}</text>
                 </view>
                 <text class="message-content">{{ item.content }}</text>
                 <text class="message-type">{{ getTypeMeta(item.type).label }}</text>
@@ -76,7 +74,7 @@
             </view>
           </view>
 
-          <AppPageState v-else-if="!loading" state="empty" title="暂无消息" description="订单、审核和账单进度会在这里通知你">
+          <AppPageState v-else-if="!loading" state="empty" :title="t('content.messages.empty')" :description="t('content.messages.emptyHint')">
             <template #illustration>
               <AppSvgIllustration :svg="noMessageSvg" size="lg" />
             </template>
@@ -94,6 +92,8 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/content/i18n/register.js'
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getMessageList, getUnreadCount, markAllAsRead, markAsRead } from '../../api/message.js'
@@ -115,21 +115,21 @@ import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
 const messageStore = useMessageStore()
 const pageSize = 20
 
-const msgTypes = Object.freeze([
-  { value: '', label: '全部' },
-  { value: 'business', label: '业务' },
-  { value: 1, label: '订单' },
-  { value: 2, label: '审核' },
-  { value: 3, label: '账单' },
-  { value: 4, label: '公告' },
+const msgTypes = computed(() => [
+  { value: '', label: t('content.messages.all') },
+  { value: 'business', label: t('content.messages.business') },
+  { value: 1, label: t('content.messages.order') },
+  { value: 2, label: t('content.messages.audit') },
+  { value: 3, label: t('content.messages.bill') },
+  { value: 4, label: t('content.messages.announcement') },
 ])
 
-const typeMeta = Object.freeze({
-  1: { label: '订单消息', icon: 'order', tone: 'order' },
-  2: { label: '审核消息', icon: 'check', tone: 'audit' },
-  3: { label: '账单消息', icon: 'invoice', tone: 'bill' },
-  4: { label: '系统公告', icon: 'announcement', tone: 'system' },
-})
+const typeMeta = computed(() => ({
+  1: { label: t('content.messages.orderType'), icon: 'order', tone: 'order' },
+  2: { label: t('content.messages.auditType'), icon: 'check', tone: 'audit' },
+  3: { label: t('content.messages.billType'), icon: 'invoice', tone: 'bill' },
+  4: { label: t('content.messages.announcementType'), icon: 'announcement', tone: 'system' },
+}))
 
 const currentType = ref('')
 const messageList = ref([])
@@ -162,7 +162,7 @@ const messageTabs = computed(() => {
     3: Number(counts.bill || 0),
     4: Number(counts.announcement || 0),
   }
-  return msgTypes.map(item => ({ ...item, count: countMap[item.value] || 0 }))
+  return msgTypes.value.map(item => ({ ...item, count: countMap[item.value] || 0 }))
 })
 
 onShow(() => refreshPage())
@@ -256,6 +256,7 @@ async function requestPage(targetPage) {
   }
 }
 
+/** 按原筛选和分页读取消息，保留消息正文与业务事实。 */
 async function loadMessages(append = false) {
   if (loading.value || loadingMore.value) return
   const state = append ? loadingMore : loading
@@ -272,7 +273,7 @@ async function loadMessages(append = false) {
     if (append) pageNum.value = Math.max(1, pageNum.value - 1)
     loadMoreError.value = Boolean(append)
     console.error('[MessageCenter] 加载消息失败:', error)
-    uni.showToast({ title: '消息加载失败，请稍后重试', icon: 'none' })
+    uni.showToast({ title: t('content.messages.loadFailed'), icon: 'none' })
   } finally {
     state.value = false
   }
@@ -312,14 +313,21 @@ function loadMore() {
   loadMessages(true)
 }
 
+/** 仅格式化相对时间的显示单位，不参与 UTC 解析或消息排序。 */
+function relativeTimeLabel(unit, count) {
+  return t('content.messages.time.' + unit, { count })
+}
+
+/** 按原消息类型返回图标与样式，仅翻译类型标签。 */
 function getTypeMeta(type) {
-  return typeMeta[type] || { label: '消息通知', icon: 'bell', tone: 'default' }
+  return typeMeta.value[type] || { label: t('content.messages.notification'), icon: 'bell', tone: 'default' }
 }
 
 function goToNotificationSettings() {
   navigator.navigateTo(routes.account.notificationSettings())
 }
 
+/** 用户点击时沿用原已读写入和业务导航，只本地化失败反馈。 */
 async function goToDetail(item) {
   if (!item.isRead) {
     try {
@@ -329,7 +337,7 @@ async function goToDetail(item) {
       messageStore.reduceUnread(messageStore.getMessageTypeKey(item.type), 1)
     } catch (error) {
       console.error('[MessageCenter] 标记已读失败:', error)
-      uni.showToast({ title: '操作失败，请重试', icon: 'none' })
+      uni.showToast({ title: t('content.messages.operationFailed'), icon: 'none' })
       return
     }
   }
@@ -345,6 +353,7 @@ async function goToDetail(item) {
   navigator.navigateTo(routes.content.messageDetail(item.messageId))
 }
 
+/** 用户主动点击后沿用原批量已读流程与计数处理。 */
 async function handleMarkAllRead() {
   if (markingAll.value || unreadCount.value <= 0) return
   markingAll.value = true
@@ -353,10 +362,10 @@ async function handleMarkAllRead() {
     unreadCount.value = 0
     messageStore.markAllRead()
     messageList.value.forEach(item => { item.isRead = true })
-    uni.showToast({ title: '已全部标记已读', icon: 'success' })
+    uni.showToast({ title: t('content.messages.markedAll'), icon: 'success' })
   } catch (error) {
     console.error('[MessageCenter] 全部已读失败:', error)
-    uni.showToast({ title: '操作失败，请重试', icon: 'none' })
+    uni.showToast({ title: t('content.messages.operationFailed'), icon: 'none' })
   } finally {
     markingAll.value = false
   }

@@ -5,8 +5,8 @@
     <view class="drawer-panel" :style="panelStyle">
       <view class="drawer-header">
         <view>
-          <text class="drawer-title">筛选与排序</text>
-          <text class="drawer-subtitle">按分类、库存和价格快速找货</text>
+          <text class="drawer-title">{{ t('commerce.filters.title') }}</text>
+          <text class="drawer-subtitle">{{ t('commerce.filters.hint') }}</text>
         </view>
         <view class="close-button" hover-class="button--pressed" @click="$emit('close')">
           <AppIcon name="close" :size="18" />
@@ -21,14 +21,14 @@
       >
         <view class="filter-section category-section">
           <view class="section-heading">
-            <text class="section-title">商品分类</text>
-            <text class="section-hint">支持选择任意层级</text>
+            <text class="section-title">{{ t('commerce.filters.category') }}</text>
+            <text class="section-hint">{{ t('commerce.filters.anyLevel') }}</text>
           </view>
 
           <scroll-view class="category-breadcrumb-scroll" scroll-x :show-scrollbar="false">
             <view class="category-breadcrumb">
               <view class="breadcrumb-item" :class="{ 'is-current': draftCategoryPath.length === 0 }" @click="goToRoot">
-                <text>全部分类</text>
+                <text>{{ t('commerce.filters.allCategories') }}</text>
               </view>
               <template v-for="(category, index) in draftCategoryPath" :key="String(category.id)">
                 <AppIcon class="breadcrumb-arrow" name="chevron-right" :size="12" />
@@ -48,7 +48,7 @@
               <AppIcon name="category" :size="18" />
             </view>
             <view class="selected-category-copy">
-              <text class="selected-category-label">当前将筛选</text>
+              <text class="selected-category-label">{{ t('commerce.filters.current') }}</text>
               <text class="selected-category-name">{{ selectedCategoryLabel }}</text>
             </view>
             <AppIcon class="selected-check" name="check" :size="17" />
@@ -56,7 +56,7 @@
 
           <view class="category-level-heading">
             <text>{{ currentLevelTitle }}</text>
-            <text v-if="currentCategoryOptions.length">{{ currentCategoryOptions.length }} 项</text>
+            <text v-if="currentCategoryOptions.length">{{ t('commerce.filters.count', { count: currentCategoryOptions.length }) }}</text>
           </view>
 
           <view v-if="currentCategoryOptions.length" class="category-options">
@@ -71,9 +71,9 @@
               <view class="category-option-copy">
                 <text class="category-option-name">{{ category.name }}</text>
                 <text v-if="category.children?.length" class="category-option-meta">
-                  {{ category.children.length }} 个下级分类
+                  {{ t('commerce.filters.childCount', { count: category.children.length }) }}
                 </text>
-                <text v-else class="category-option-meta">末级分类</text>
+                <text v-else class="category-option-meta">{{ t('commerce.filters.leaf') }}</text>
               </view>
               <AppIcon
                 :name="category.children?.length ? 'chevron-right' : (isCategorySelected(category) ? 'check' : 'category')"
@@ -83,14 +83,14 @@
           </view>
 
           <view v-else class="category-empty">
-            <text>该分类暂无下级分类，可直接应用当前分类。</text>
+            <text>{{ t('commerce.filters.noChildren') }}</text>
           </view>
         </view>
 
         <view class="filter-section">
           <view class="section-heading">
-            <text class="section-title">库存状态</text>
-            <text class="section-hint">快速定位可采购商品</text>
+            <text class="section-title">{{ t('commerce.filters.stock') }}</text>
+            <text class="section-hint">{{ t('commerce.filters.stockHint') }}</text>
           </view>
           <view class="choice-grid choice-grid--stock">
             <view
@@ -109,8 +109,8 @@
 
         <view class="filter-section">
           <view class="section-heading">
-            <text class="section-title">商品排序</text>
-            <text class="section-hint">由后端排序，分页结果更准确</text>
+            <text class="section-title">{{ t('commerce.filters.sort') }}</text>
+            <text class="section-hint">{{ t('commerce.filters.sortHint') }}</text>
           </view>
           <view class="choice-grid">
             <view
@@ -135,10 +135,10 @@
 
       <view class="drawer-footer">
         <view class="reset-button" hover-class="button--pressed" @click="resetDraft">
-          <text>重置</text>
+          <text>{{ t('commerce.filters.reset') }}</text>
         </view>
         <view class="apply-button" hover-class="button--pressed" @click="applyFilters">
-          <text>应用筛选</text>
+          <text>{{ t('commerce.filters.apply') }}</text>
           <AppIcon name="check" :size="17" />
         </view>
       </view>
@@ -147,6 +147,8 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/commerce/i18n/register.js'
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
 
@@ -160,20 +162,20 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'apply'])
 
-const stockOptions = Object.freeze([
-  { value: '', label: '全部库存', description: '包含有货与缺货商品' },
-  { value: 'inStock', label: '仅看有货', description: '库存大于 0' },
-  { value: 'lowStock', label: '库存紧张', description: '优先安排采购' },
-  { value: 'outOfStock', label: '暂时缺货', description: '库存等于 0' },
+const stockOptions = computed(() => [
+  { value: '', label: t('commerce.filters.allStock'), description: t('commerce.filters.allStockHint') },
+  { value: 'inStock', label: t('commerce.filters.inStock'), description: t('commerce.filters.inStockHint') },
+  { value: 'lowStock', label: t('commerce.filters.lowStock'), description: t('commerce.filters.lowStockHint') },
+  { value: 'outOfStock', label: t('commerce.filters.outOfStock'), description: t('commerce.filters.outOfStockHint') },
 ])
 
-const sortOptions = Object.freeze([
-  { value: 'default', label: '综合排序', description: '按平台默认顺序' },
-  { value: 'latest', label: '最新上架', description: '优先展示新上架商品' },
-  { value: 'priceAsc', label: '价格从低到高', description: '优先展示低价商品' },
-  { value: 'priceDesc', label: '价格从高到低', description: '优先展示高价商品' },
-  { value: 'stockDesc', label: '库存从高到低', description: '优先展示库存充足商品' },
-  { value: 'stockAsc', label: '库存从低到高', description: '优先查看紧缺商品' },
+const sortOptions = computed(() => [
+  { value: 'default', label: t('commerce.filters.default'), description: t('commerce.filters.defaultHint') },
+  { value: 'latest', label: t('commerce.filters.latest'), description: t('commerce.filters.latestHint') },
+  { value: 'priceAsc', label: t('commerce.filters.priceAsc'), description: t('commerce.filters.priceAscHint') },
+  { value: 'priceDesc', label: t('commerce.filters.priceDesc'), description: t('commerce.filters.priceDescHint') },
+  { value: 'stockDesc', label: t('commerce.filters.stockDesc'), description: t('commerce.filters.stockDescHint') },
+  { value: 'stockAsc', label: t('commerce.filters.stockAsc'), description: t('commerce.filters.stockAscHint') },
 ])
 
 const draftCategoryPath = ref([])
@@ -183,7 +185,7 @@ const draftSortKey = ref('default')
 
 const selectedCategoryLabel = computed(() => draftCategoryPath.value.map(item => item.name).join(' / '))
 const currentParent = computed(() => categoryLevel.value > 0 ? draftCategoryPath.value[categoryLevel.value - 1] : null)
-const currentLevelTitle = computed(() => currentParent.value ? `${currentParent.value.name}的下级分类` : '选择一级分类')
+const currentLevelTitle = computed(() => currentParent.value ? t('commerce.filters.childrenOf', { name: currentParent.value.name }) : t('commerce.filters.root'))
 const currentCategoryOptions = computed(() => {
   if (categoryLevel.value === 0) return props.categoryTree
   return Array.isArray(currentParent.value?.children) ? currentParent.value.children : []

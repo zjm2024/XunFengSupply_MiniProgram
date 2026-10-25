@@ -109,17 +109,19 @@ function handleTap(event) {
   font-size: var(--font-size-caption, 12px);
   line-height: 18px;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .item-value {
-  max-width: 42%;
-  overflow: hidden;
+  max-width: 45%;
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--text-tertiary, #969AA3);
   font-size: var(--font-size-base, 14px);
-  line-height: 22px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 20px;
+  text-align: right;
 }
 
 .item-arrow { color: var(--icon-muted, #969AA3) !important; }
@@ -129,5 +131,11 @@ function handleTap(event) {
 @media screen and (min-width: 600px) {
   .app-list-item { min-height: 60px; padding-right: 18px; padding-left: 18px; }
   .app-list-item::after { right: 18px; left: 54px; }
+}
+
+@media screen and (max-width: 370px) {
+  .app-list-item { align-items: flex-start; }
+  .item-icon, .item-arrow { margin-top: 2px; }
+  .item-value { max-width: 42%; padding-top: 2px; }
 }
 </style>

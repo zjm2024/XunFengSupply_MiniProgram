@@ -2,7 +2,7 @@
   <AppPageShell>
     <template #header>
       <view class="records-header">
-        <AppHeader title="充值记录" :show-back="true" />
+        <AppHeader :title="t('account.titles.rechargeRecords')" :show-back="true" />
         <view class="filter-panel">
           <StatusTabBar :items="tabs" :model-value="activeTab" :max-width="700" @change="changeTab" />
         </view>
@@ -23,14 +23,15 @@
           <view class="content-wrap">
             <view class="record-summary">
               <view>
-                <text class="summary-label">当前筛选</text>
+                <text class="summary-label">{{ t('account.rechargeRecords.filter') }}</text>
                 <text class="summary-title">{{ activeTabLabel }}</text>
               </view>
-              <text class="summary-count">{{ totalCount }} 条记录</text>
+              <text class="summary-count">{{ t('account.rechargeRecords.count', { count: totalCount }) }}</text>
             </view>
 
             <AppPageState
               :state="pageState"
+              :description="pageState === PageStatus.ERROR ? loadError : t('account.rechargeRecords.emptyHint')"
               icon-type="default"
               @retry="reload"
               @action="reload"
@@ -47,12 +48,12 @@
                       <text class="status-tag" :class="`status-${record.status}`">{{ statusText(record.status) }}</text>
                     </view>
                     <view class="amount-row">
-                      <text class="amount-label">充值金额</text>
-                      <text class="amount-value"><text>¥</text>{{ formatMoney(record.amount) }}</text>
+                      <text class="amount-label">{{ t('account.rechargeRecords.amount') }}</text>
+                      <AmountText class="amount-value" :text="'¥' + (formatMoney(record.amount))" />
                     </view>
-                    <view class="detail-row"><text>充值单号</text><text>{{ record.rechargeNo || '-' }}</text></view>
-                    <view class="detail-row"><text>收款账户</text><text>{{ record.accountId ? `账户 ${record.accountId}` : '-' }}</text></view>
-                    <view v-if="record.transactionId" class="detail-row"><text>交易流水</text><text>{{ record.transactionId }}</text></view>
+                    <view class="detail-row"><text>{{ t('account.rechargeRecords.number') }}</text><text>{{ record.rechargeNo || '-' }}</text></view>
+                    <view class="detail-row"><text>{{ t('account.rechargeRecords.account') }}</text><text>{{ record.accountId ? t('account.rechargeRecords.accountRef', { id: record.accountId }) : '-' }}</text></view>
+                    <view v-if="record.transactionId" class="detail-row"><text>{{ t('account.rechargeRecords.transaction') }}</text><text>{{ record.transactionId }}</text></view>
                     <view v-if="isConfirming(record)" class="recovery-note">
                       <AppIcon name="refresh" :size="14" />
                       <text>支付结果确认中{{ record.nextQueryAt ? `，下次查询：${formatDateTime(record.nextQueryAt, 'MM-DD HH:mm')}` : '' }}</text>
@@ -61,7 +62,7 @@
                       <AppIcon name="info" :size="14" />
                       <text>{{ record.failureMessage }}</text>
                     </view>
-                    <view v-if="record.completedAt" class="detail-row"><text>完成时间</text><text>{{ formatDateTime(record.completedAt) }}</text></view>
+                    <view v-if="record.completedAt" class="detail-row"><text>{{ t('account.rechargeRecords.completedAt') }}</text><text>{{ formatDateTime(record.completedAt) }}</text></view>
                   </view>
                 </view>
               </template>
@@ -80,6 +81,9 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/account/i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -95,7 +99,7 @@ import { formatDateTime } from '../../../../shared/utils/format.js'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
 const tabs = Object.freeze([
-  { key: 'all', label: '全部', value: 'all', status: undefined },
+  { key: 'all', /** 筛选通用名称随语言刷新，状态码保持不变。 */ get label() { return t('account.rechargeRecords.all') }, value: 'all', status: undefined },
   { key: 'audit', label: '待审核', value: 'audit', status: 6 },
   { key: 'processing', label: '处理中', value: 'processing', status: 1 },
   { key: 'success', label: '已到账', value: 'success', status: 2 },
@@ -111,8 +115,10 @@ const loadingMore = ref(false)
 const loadMoreError = ref(false)
 const isRefreshing = ref(false)
 const pageState = ref(PageStatus.LOADING)
-const loadError = ref('')
-const activeTabLabel = computed(() => tabs.find(tab => tab.key === activeTab.value)?.label || '全部')
+const loadFailure = ref(null)
+const loadError = computed(() => loadFailure.value?.message
+  || (loadFailure.value?.messageKey ? t(loadFailure.value.messageKey) : ''))
+const activeTabLabel = computed(() => tabs.find(tab => tab.key === activeTab.value)?.label || t('account.rechargeRecords.all'))
 const loadMoreStatus = computed(() => {
   if (loadMoreError.value) return 'error'
   if (loadingMore.value) return 'loading'
@@ -160,9 +166,10 @@ async function loadMore() {
   await fetchPage(true)
 }
 
+/** 按原渠道状态和分页读取充值记录，保留错误对象。 */
 async function fetchPage(append) {
   if (append) loadingMore.value = true
-  loadError.value = ''
+  loadFailure.value = null
   try {
     const tab = tabs.find(item => item.key === activeTab.value)
     const result = await getRechargeList({ pageNum: pageNum.value, pageSize, status: tab?.status })
@@ -176,7 +183,7 @@ async function fetchPage(append) {
       pageNum.value = Math.max(1, pageNum.value - 1)
       loadMoreError.value = true
     }
-    loadError.value = error?.message || '充值记录读取失败，请稍后重试'
+    loadFailure.value = error?.message ? error : { messageKey: 'account.rechargeRecords.loadFailed' }
     if (!records.value.length) pageState.value = PageStatus.ERROR
     else uni.showToast({ title: loadError.value, icon: 'none' })
   } finally {
@@ -198,8 +205,9 @@ function isConfirming(record) {
     && String(record?.payMethod || '').toLowerCase() === 'wechat'
 }
 
+/** 仅翻译已存在的充值渠道显示名，未知渠道使用通用标题。 */
 function payMethodText(method) {
-  return ({ offline: '对公充值', wechat: '微信充值', alipay: '支付宝充值' })[String(method || '').toLowerCase()] || '账户充值'
+  return ({ offline: t('account.rechargeRecords.offline'), wechat: t('account.rechargeRecords.wechat'), alipay: t('account.rechargeRecords.alipay') })[String(method || '').toLowerCase()] || t('account.rechargeRecords.fallback')
 }
 
 function methodIcon(method) {
@@ -232,7 +240,6 @@ function methodIcon(method) {
 .amount-row { display: flex; align-items: flex-end; justify-content: space-between; margin: 16px 0 10px; padding-bottom: 13px; border-bottom: 1px solid #EFF0F2; }
 .amount-label { color: #777C85; font-size: 11px; }
 .amount-value { color: #1D2127; font-size: 23px; font-weight: 750; font-variant-numeric: tabular-nums; }
-.amount-value > text { margin-right: 3px; font-size: 13px; }
 .detail-row { display: flex; justify-content: space-between; gap: 14px; padding: 5px 0; color: #858A93; font-size: 10px; }
 .detail-row > text:last-child { min-width: 0; overflow: hidden; color: #555B64; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 .recovery-note { display: flex; align-items: flex-start; gap: 5px; margin-top: 7px; padding: 8px; border-radius: 9px; color: #8A6A21; background: #FFF8E9; font-size: 10px; line-height: 15px; }
@@ -242,4 +249,8 @@ function methodIcon(method) {
   .record-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
   .record-card { padding: 18px; }
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.amount-row { min-width: 0; gap: 12px; }
+.amount-label { flex: none; }
 </style>

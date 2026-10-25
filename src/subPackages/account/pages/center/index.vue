@@ -1,7 +1,7 @@
 ﻿﻿﻿﻿﻿<template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="经销商中心" :show-back="true" :show-message="true" @message="goToMessages" />
+      <AppHeader :title="t('account.center.title')" :show-back="true" :show-message="true" @message="goToMessages" />
     </template>
 
     <template #content>
@@ -15,7 +15,7 @@
                   <text class="dealer-name">{{ dealerName }}</text>
                   <text class="account-role">{{ accountType }}</text>
                 </view>
-                <text class="dealer-meta">客户编号 {{ dealerCode }} · {{ dealerLevel }}</text>
+                <text class="dealer-meta">{{ t('account.center.code', { code: dealerCode }) }} · {{ dealerLevel }}</text>
               </view>
               <view class="profile-entry" hover-class="pressed" @tap="goToProfile">
                 <AppIcon name="chevron-right" :size="18" color="#727983" />
@@ -24,30 +24,30 @@
 
             <view v-if="!userStore.isAccountNormal || finance.credit.isFrozen" class="risk-notice">
               <AppIcon name="alert-circle" :size="17" color="#9B2C25" />
-              <text>{{ !userStore.isAccountNormal ? '当前账号已冻结，仅可查看允许访问的业务数据' : '主体授信已冻结，暂不可提交采购订单' }}</text>
+              <text>{{ !userStore.isAccountNormal ? t('account.center.abnormal') : t('account.center.frozen') }}</text>
             </view>
 
             <view class="finance-summary">
               <view class="finance-primary">
-                <text class="metric-label">主体可用授信</text>
-                <text class="metric-value"><text>¥</text>{{ formatMoney(finance.credit.availableAmount) }}</text>
+                <text class="metric-label">{{ t('account.center.availableCredit') }}</text>
+                <AmountText class="metric-value" :text="'¥' + (formatMoney(finance.credit.availableAmount))" />
                 <view class="credit-line">
                   <view class="progress-track"><view class="progress-value" :style="{ width: `${creditUsage}%` }" /></view>
-                  <text>已占用 {{ creditUsage.toFixed(0) }}%</text>
+                  <text>{{ t('account.center.used', { percent: creditUsage.toFixed(0) }) }}</text>
                 </view>
               </view>
               <view class="finance-secondary">
                 <view>
-                  <text>主体可用余额</text>
-                  <text>¥{{ formatMoney(finance.subjectAvailableBalance) }}</text>
+                  <text>{{ t('account.center.balance') }}</text>
+                  <AmountText :text="'¥' + (formatMoney(finance.subjectAvailableBalance))" />
                 </view>
                 <view>
-                  <text>当前账户可用</text>
-                  <text>¥{{ formatMoney(finance.currentAccount?.availableBalance) }}</text>
+                  <text>{{ t('account.center.accountBalance') }}</text>
+                  <AmountText :text="'¥' + (formatMoney(finance.currentAccount?.availableBalance))" />
                 </view>
                 <view>
-                  <text>当前账户冻结</text>
-                  <text>¥{{ formatMoney(finance.currentAccount?.frozenBalance) }}</text>
+                  <text>{{ t('account.center.accountFrozen') }}</text>
+                  <AmountText :text="'¥' + (formatMoney(finance.currentAccount?.frozenBalance))" />
                 </view>
               </view>
             </view>
@@ -56,15 +56,15 @@
           <view class="business-section">
             <view class="section-head">
               <view>
-                <text class="section-title">经营工作台</text>
-                <text class="section-desc">采购、库存与履约服务</text>
+                <text class="section-title">{{ t('account.center.workbench') }}</text>
+                <text class="section-desc">{{ t('account.center.workbenchHint') }}</text>
               </view>
               <text class="section-kicker">BUSINESS</text>
             </view>
             <view class="business-grid">
               <view
                 v-for="item in businessEntries"
-                :key="item.label"
+                :key="item.action.name"
                 class="business-card"
                 :class="item.tone"
                 hover-class="business-card--pressed"
@@ -81,7 +81,7 @@
             </view>
           </view>
 
-          <view v-for="group in serviceGroups" :key="group.title" class="service-section">
+          <view v-for="group in serviceGroups" :key="group.items[0].action.name" class="service-section">
             <view class="section-head compact">
               <view>
                 <text class="section-title">{{ group.title }}</text>
@@ -91,7 +91,7 @@
             <view class="service-panel">
               <view
                 v-for="item in group.items"
-                :key="item.label"
+                :key="item.action.name"
                 class="service-row"
                 hover-class="service-row--pressed"
                 @tap="item.action"
@@ -108,9 +108,9 @@
 
           <button class="logout-btn" @tap="handleLogout">
             <AppIcon name="logout" :size="18" color="#6C727C" />
-            <text>退出当前账号</text>
+            <text>{{ t('account.center.logout') }}</text>
           </button>
-          <text class="footer-note">薰风经销商采购平台 · 账户数据以后端财务系统为准</text>
+          <text class="footer-note">{{ t('account.center.footer') }}</text>
         </view>
       </AppContent>
     </template>
@@ -118,6 +118,9 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '../../i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useUserStore } from '@/shared/session/userStore.js'
@@ -129,14 +132,15 @@ import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import { getDealerInventoryOverview } from '@/subPackages/account/api/inventory.js'
+import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 
 const userStore = useUserStore()
 const finance = ref(userStore.financeContext)
 const inventoryOverview = ref(null)
 const dealerName = computed(() => userStore.displayName)
 const dealerCode = computed(() => userStore.dealerId || userStore.userId || '-')
-const dealerLevel = computed(() => userStore.creditLevel || '主体授信')
-const accountType = computed(() => userStore.isMainAccount ? '主账号' : '子账号')
+const dealerLevel = computed(() => userStore.creditLevel || t('account.center.creditFallback'))
+const accountType = computed(() => userStore.isMainAccount ? t('account.center.main') : t('account.center.sub'))
 const avatarText = computed(() => String(dealerName.value || '经').trim().slice(0, 1))
 const creditUsage = computed(() => {
   const total = Number(finance.value.credit?.totalAmount || 0)
@@ -193,33 +197,33 @@ function goToAbout() { navigator.navigateTo(routes.content.about()) }
 
 const businessEntries = computed(() => [
   ...(userStore.hasPermission('ORDER_VIEW') ? [{
-    label: '订单中心',
-    value: '采购全流程',
-    help: '审核、付款与履约进度',
+    label: t('account.center.orders'),
+    value: t('account.center.purchaseFlow'),
+    help: t('account.center.ordersHint'),
     icon: 'order',
     tone: 'orders',
     action: goToOrders,
   }] : []),
   ...(userStore.hasPermission('INVENTORY_VIEW') ? [{
-    label: '我的库存',
-    value: `${formatQuantity(inventoryOverview.value?.availableQuantity)} 件可用`,
-    help: `${formatQuantity(inventoryOverview.value?.skuCount)} 个 SKU · 查看库存明细`,
+    label: t('account.center.inventory'),
+    value: t('account.center.available', { count: formatQuantity(inventoryOverview.value?.availableQuantity) }),
+    help: t('account.center.sku', { count: formatQuantity(inventoryOverview.value?.skuCount) }),
     icon: 'inventory',
     tone: 'inventory',
     action: goToInventory,
   }] : []),
   {
-    label: '售后服务',
-    value: '进度可追踪',
-    help: '退款、退货与处理记录',
+    label: t('account.center.afterSales'),
+    value: t('account.center.trackable'),
+    help: t('account.center.afterSalesHint'),
     icon: 'after-sales',
     tone: 'service',
     action: goToAfterSales,
   },
   {
-    label: '发票中心',
-    value: '企业开票',
-    help: '抬头、订单与电子归档',
+    label: t('account.center.invoice'),
+    value: t('account.center.companyInvoice'),
+    help: t('account.center.invoiceHint'),
     icon: 'invoice',
     tone: 'invoice',
     action: goToInvoice,
@@ -228,41 +232,39 @@ const businessEntries = computed(() => [
 
 const serviceGroups = computed(() => [
   {
-    title: '资金与对账',
-    description: '账户资金、充值及月度账单',
+    title: t('account.center.finance'),
+    description: t('account.center.financeHint'),
     items: userStore.hasPermission('BALANCE_VIEW') ? [
-      { label: '充值中心', help: '账户充值与历史记录', icon: 'wallet', action: goToRecharge },
-      { label: '对账账单', help: '主体月度账单与结算', icon: 'receipt', action: goToBill },
-      { label: '资金流水', help: '账户收支变动明细', icon: 'history', action: goToFundFlow },
-      { label: '授信流水', help: '订单占用、释放与还款明细', icon: 'history', action: goToCreditFlow },
+      { label: t('account.center.recharge'), help: t('account.center.rechargeHint'), icon: 'wallet', action: goToRecharge },
+      { label: t('account.center.bill'), help: t('account.center.billHint'), icon: 'receipt', action: goToBill },
+      { label: t('account.center.fundFlow'), help: t('account.center.fundFlowHint'), icon: 'history', action: goToFundFlow },
+      { label: t('account.center.creditFlow'), help: t('account.center.creditFlowHint'), icon: 'history', action: goToCreditFlow },
     ] : [],
   },
   {
-    title: '账号与服务',
-    description: '配送资料、权限与平台支持',
+    title: t('account.center.accountServices'),
+    description: t('account.center.accountServicesHint'),
     items: [
-      { label: '收货地址', help: '维护常用配送地址', icon: 'map-pin', action: goToAddress },
-      { label: '优惠券', help: '查看可用采购权益', icon: 'voucher', action: goToVoucher },
-      ...(userStore.isMainAccount ? [{ label: '子账号管理', help: '权限与账号状态', icon: 'users', action: goToSubAccount }] : []),
-      { label: '安全设置', help: '密码与登录安全', icon: 'shield', action: goToSecurity },
-      { label: '消息中心', help: '业务通知与提醒', icon: 'message', action: goToMessages },
-      { label: '语言设置', help: '切换页面语言', icon: 'globe', action: goToLanguage },
-      { label: '帮助中心', help: '采购与售后使用帮助', icon: 'help', action: goToHelp },
-      { label: '关于薰风', help: '平台与版本信息', icon: 'info', action: goToAbout },
+      { label: t('account.center.address'), help: t('account.center.addressHint'), icon: 'map-pin', action: goToAddress },
+      { label: t('account.center.voucher'), help: t('account.center.voucherHint'), icon: 'voucher', action: goToVoucher },
+      ...(userStore.isMainAccount ? [{ label: t('account.center.subAccount'), help: t('account.center.subAccountHint'), icon: 'users', action: goToSubAccount }] : []),
+      { label: t('account.center.security'), help: t('account.center.securityHint'), icon: 'shield', action: goToSecurity },
+      { label: t('account.center.messages'), help: t('account.center.messagesHint'), icon: 'message', action: goToMessages },
+      { label: t('account.center.language'), help: t('account.center.languageHint'), icon: 'globe', action: goToLanguage },
+      { label: t('account.center.help'), help: t('account.center.helpHint'), icon: 'help', action: goToHelp },
+      { label: t('account.center.about'), help: t('account.center.aboutHint'), icon: 'info', action: goToAbout },
     ],
   },
 ].filter(group => group.items.length))
 
-function handleLogout() {
-  uni.showModal({
-    title: '确认退出',
-    content: '退出后需要重新登录，是否继续？',
-    confirmText: '退出',
-    success: (result) => {
-      if (!result.confirm) return
-      userStore.logout().then(() => navigator.reLaunch(routes.auth.login()))
-    },
-  })
+async function handleLogout() {
+  if (!await openAppDialog({
+    title: t('account.center.logoutTitle'),
+    description: t('account.center.logoutContent'),
+    confirmText: t('account.center.logoutConfirm'),
+    cancelText: t('common.cancel'),
+  })) return
+  userStore.logout().then(() => navigator.reLaunch(routes.auth.login()))
 }
 </script>
 
@@ -283,14 +285,13 @@ function handleLogout() {
 .metric-label, .metric-value { display: block; }
 .metric-label { color: #777E88; font-size: 11px; }
 .metric-value { margin-top: 6px; color: #171A20; font-size: 27px; font-weight: 760; font-variant-numeric: tabular-nums; letter-spacing: -.5px; }
-.metric-value > text { margin-right: 3px; font-size: 14px; font-weight: 650; }
 .credit-line { display: flex; align-items: center; gap: 10px; margin-top: 13px; color: #8C9199; font-size: 9px; }
 .progress-track { flex: 1; max-width: 180px; height: 5px; overflow: hidden; border-radius: 999px; background: #E5E7EA; }
 .progress-value { height: 100%; border-radius: inherit; background: #D7192D; transition: width .25s ease; }
 .finance-secondary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); overflow: hidden; border-radius: 14px; background: rgba(255,255,255,.36); gap: 1px; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
 .finance-secondary > view { min-width: 0; padding: 11px 9px; background: rgba(255,255,255,.48); }
 .finance-secondary text { display: block; color: #8B9098; font-size: 9px; }
-.finance-secondary text + text { margin-top: 5px; overflow: hidden; color: #282D34; font-size: 12px; font-weight: 690; font-variant-numeric: tabular-nums; text-overflow: ellipsis; white-space: nowrap; }
+.finance-secondary .amount-text { margin-top: 5px; color: #282D34; font-size: 12px; font-weight: 690; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .business-section, .service-section { margin-top: 24px; }
 .section-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin: 0 2px 11px; }
 .section-title, .section-desc { display: block; }
@@ -330,4 +331,7 @@ function handleLogout() {
   .service-row:nth-child(odd) { border-right: 1px solid #EEF0F2; }
   .service-row:nth-last-child(-n+2) { border-bottom: 0; }
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.finance-primary, .finance-secondary > view { min-width: 0; }
 </style>

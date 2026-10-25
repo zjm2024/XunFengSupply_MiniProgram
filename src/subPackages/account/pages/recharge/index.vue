@@ -1,7 +1,7 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="充值中心" :show-back="true" />
+      <AppHeader :title="t('account.titles.recharge')" :show-back="true" />
     </template>
 
     <template #content>
@@ -12,25 +12,25 @@
               <view class="balance-card">
                 <view class="balance-head">
                   <view>
-                    <text class="eyebrow">当前账户可用余额</text>
-                    <text class="balance-value"><text class="currency">¥</text>{{ formatMoney(finance.currentAccount?.availableBalance) }}</text>
+                    <text class="eyebrow">{{ t('account.recharge.availableBalance') }}</text>
+                    <AmountText class="balance-value" :text="'¥' + (formatMoney(finance.currentAccount?.availableBalance))" />
                   </view>
                   <view class="wallet-mark"><AppIcon name="wallet" :size="24" color="#D7192D" /></view>
                 </view>
                 <view class="balance-meta">
                   <view>
-                    <text class="meta-label">当前账户冻结</text>
-                    <text class="meta-value">¥{{ formatMoney(finance.currentAccount?.frozenBalance) }}</text>
+                    <text class="meta-label">{{ t('account.recharge.frozenBalance') }}</text>
+                    <AmountText class="meta-value" :text="'¥' + (formatMoney(finance.currentAccount?.frozenBalance))" />
                   </view>
                   <view>
-                    <text class="meta-label">经销商主体可用</text>
-                    <text class="meta-value">¥{{ formatMoney(finance.subjectAvailableBalance) }}</text>
+                    <text class="meta-label">{{ t('account.recharge.dealerAvailable') }}</text>
+                    <AmountText class="meta-value" :text="'¥' + (formatMoney(finance.subjectAvailableBalance))" />
                   </view>
                 </view>
                 <view class="card-entry" hover-class="card-entry--pressed" @tap="goToFundFlow">
                   <view class="card-entry-copy">
-                    <text class="card-entry-title">资金流水</text>
-                    <text class="card-entry-desc">查看充值、支付和退款明细</text>
+                    <text class="card-entry-title">{{ t('account.recharge.fundFlow') }}</text>
+                    <text class="card-entry-desc">{{ t('account.recharge.fundFlowHint') }}</text>
                   </view>
                   <AppIcon name="chevron-right" :size="16" color="#8A9098" />
                 </view>
@@ -39,8 +39,8 @@
               <view class="credit-card">
                 <view class="section-head">
                   <view>
-                    <text class="section-title">主体授信</text>
-                    <text class="section-desc">授信属于经销商主体，不等同于账户余额</text>
+                    <text class="section-title">{{ t('account.recharge.credit') }}</text>
+                    <text class="section-desc">{{ t('account.recharge.creditHint') }}</text>
                   </view>
                   <text class="credit-status" :class="{ frozen: finance.credit.isFrozen }">
                     {{ finance.credit.isFrozen ? '授信冻结' : '状态正常' }}
@@ -48,22 +48,22 @@
                 </view>
                 <view class="credit-main">
                   <view>
-                    <text class="metric-label">剩余可用授信</text>
-                    <text class="credit-value">¥{{ formatMoney(finance.credit.availableAmount) }}</text>
+                    <text class="metric-label">{{ t('account.recharge.availableCredit') }}</text>
+                    <AmountText class="credit-value" :text="'¥' + (formatMoney(finance.credit.availableAmount))" />
                   </view>
-                  <text class="credit-total">总额 ¥{{ formatMoney(finance.credit.totalAmount) }}</text>
+                  <AmountText class="credit-total" :text="t('account.recharge.totalAmount', { amount: formatMoney(finance.credit.totalAmount) })" />
                 </view>
                 <view class="progress-track">
                   <view class="progress-value" :style="{ width: `${creditUsage}%` }" />
                 </view>
                 <view class="credit-foot">
-                  <text>已用 ¥{{ formatMoney(finance.credit.usedAmount) }}</text>
-                  <text>冻结 ¥{{ formatMoney(finance.credit.frozenAmount) }}</text>
+                  <AmountText :text="t('account.recharge.usedAmount', { amount: formatMoney(finance.credit.usedAmount) })" />
+                  <AmountText :text="t('account.recharge.frozenAmount', { amount: formatMoney(finance.credit.frozenAmount) })" />
                 </view>
                 <view class="card-entry" hover-class="card-entry--pressed" @tap="goToCreditFlow">
                   <view class="card-entry-copy">
-                    <text class="card-entry-title">授信流水</text>
-                    <text class="card-entry-desc">查看额度占用、释放和还款明细</text>
+                    <text class="card-entry-title">{{ t('account.recharge.creditFlow') }}</text>
+                    <text class="card-entry-desc">{{ t('account.recharge.creditFlowHint') }}</text>
                   </view>
                   <AppIcon name="chevron-right" :size="16" color="#8A9098" />
                 </view>
@@ -74,8 +74,8 @@
               <view class="service-card">
                 <view class="section-head">
                   <view>
-                    <text class="section-title">充值服务</text>
-                    <text class="section-desc">选择支付渠道在线发起；余额以服务端最终确认结果为准</text>
+                    <text class="section-title">{{ t('account.recharge.service') }}</text>
+                    <text class="section-desc">{{ t('account.recharge.serviceHint') }}</text>
                   </view>
                 </view>
 
@@ -92,7 +92,7 @@
                     <view class="channel-copy">
                       <view class="channel-title-row">
                         <text class="channel-title">{{ channel.title }}</text>
-                        <text class="channel-tag" :class="{ muted: channel.disabled }">{{ channel.disabled ? '即将接入' : '在线发起' }}</text>
+                        <text class="channel-tag" :class="{ muted: channel.disabled }">{{ channel.disabled ? t('account.recharge.coming') : t('account.recharge.online') }}</text>
                       </view>
                       <text class="channel-desc">{{ channel.description }}</text>
                     </view>
@@ -100,14 +100,14 @@
                   </view>
                 </view>
                 <view class="recharge-form">
-                  <text class="form-label">充值金额</text>
+                  <text class="form-label">{{ t('account.recharge.amount') }}</text>
                   <view class="amount-input-wrap">
                     <text class="amount-prefix">¥</text>
                     <input
                       v-model="rechargeAmount"
                       class="amount-input"
                       type="digit"
-                      placeholder="请输入金额，最多两位小数"
+                      :placeholder="t('account.recharge.amountPlaceholder')"
                       placeholder-class="amount-placeholder"
                       :disabled="submitting"
                       @input="handleAmountChanged"
@@ -125,7 +125,7 @@
                   </view>
                 </view>
                 <view class="coming-row">
-                  <view class="coming-item"><AppIcon name="bank" :size="18" /><text>银行收银台</text><text>后续接入</text></view>
+                  <view class="coming-item"><AppIcon name="bank" :size="18" /><text>{{ t('account.recharge.bank') }}</text><text>{{ t('account.recharge.bankLater') }}</text></view>
                 </view>
 
                 <button class="finance-btn" :disabled="submitting" @tap="startRecharge">
@@ -135,8 +135,8 @@
                 <text class="service-note">{{ paymentSupportHint }}</text>
                 <view class="card-entry service-entry" hover-class="card-entry--pressed" @tap="goToRecords">
                   <view class="card-entry-copy">
-                    <text class="card-entry-title">充值记录</text>
-                    <text class="card-entry-desc">查看待确认、到账和失败状态</text>
+                    <text class="card-entry-title">{{ t('account.recharge.records') }}</text>
+                    <text class="card-entry-desc">{{ t('account.recharge.recordsHint') }}</text>
                   </view>
                   <AppIcon name="chevron-right" :size="16" color="#8A9098" />
                 </view>
@@ -151,6 +151,9 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/account/i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -161,14 +164,15 @@ import { createAppRecharge, getDealerFinanceContext } from '@/shared/api/dealerF
 import { useUserStore } from '@/shared/session/userStore.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 
 const userStore = useUserStore()
 const finance = ref(userStore.financeContext)
 const quickAmounts = Object.freeze([100, 500, 1000, 2000])
 const paymentChannels = Object.freeze([
-  { key: 'wechat', title: '微信支付', icon: 'wechat-pay', color: '#1AAD19', provider: 'wxpay', description: '调用微信客户端付款，平台回调或主动查单后确认到账。' },
-  { key: 'alipay', title: '支付宝', icon: 'alipay', color: '#1677FF', provider: 'alipay', description: '调用支付宝客户端付款，平台回调或主动查单后确认到账。' },
-  { key: 'abc_cashier', title: '银行收银台', icon: 'bank', color: '#8A9098', provider: null, disabled: true, description: '预留农业银行等银行收银台渠道，后续接入。' },
+  { key: 'wechat', /** 渠道名称按当前语言显示。 */ get title() { return t('account.recharge.wechat') }, icon: 'wechat-pay', color: '#1AAD19', provider: 'wxpay', /** 渠道说明按当前语言显示。 */ get description() { return t('account.recharge.wechatHint') } },
+  { key: 'alipay', /** 渠道名称按当前语言显示。 */ get title() { return t('account.recharge.alipay') }, icon: 'alipay', color: '#1677FF', provider: 'alipay', /** 渠道说明按当前语言显示。 */ get description() { return t('account.recharge.alipayHint') } },
+  { key: 'abc_cashier', /** 渠道名称按当前语言显示。 */ get title() { return t('account.recharge.bank') }, icon: 'bank', color: '#8A9098', provider: null, disabled: true, /** 渠道说明按当前语言显示。 */ get description() { return t('account.recharge.bankHint') } },
 ])
 const rechargeAmount = ref('')
 const submitting = ref(false)
@@ -187,13 +191,13 @@ const creditUsage = computed(() => {
 
 const selectedPaymentChannel = computed(() => paymentChannels.find(item => item.key === selectedChannel.value) || paymentChannels[0])
 const rechargeButtonText = computed(() => submitting.value
-  ? `正在调起${selectedPaymentChannel.value.title}…`
-  : `${selectedPaymentChannel.value.title}充值`)
+  ? t('account.recharge.starting', { channel: selectedPaymentChannel.value.title })
+  : t('account.recharge.start', { channel: selectedPaymentChannel.value.title }))
 const paymentSupportHint = computed(() => {
   if (availableProviders.value && !availableProviders.value[selectedChannel.value]) {
-    return `当前安装包未配置${selectedPaymentChannel.value.title}，请使用已配置支付能力的正式安装包。`
+    return t('account.recharge.unsupportedHint', { channel: selectedPaymentChannel.value.title })
   }
-  return '平台不会在充值完成前提前增加账户余额，请以充值记录状态为准。'
+  return t('account.recharge.balanceHint')
 })
 
 onShow(() => {
@@ -302,12 +306,12 @@ function parseWeChatPayOrderInfo(clientPayload) {
     try {
       payload = JSON.parse(payload)
     } catch (_) {
-      throw new Error('微信支付参数格式异常，请重新发起充值')
+      throw new Error(t('account.recharge.wechatFormat'))
     }
   }
   const requiredKeys = ['appid', 'partnerid', 'prepayid', 'package', 'noncestr', 'timestamp', 'sign']
   if (!payload || typeof payload !== 'object' || requiredKeys.some(key => !payload[key])) {
-    throw new Error('微信支付参数不完整，请重新发起充值')
+    throw new Error(t('account.recharge.wechatMissing'))
   }
   return payload
 }
@@ -325,12 +329,12 @@ async function startRecharge() {
   const channel = selectedPaymentChannel.value
   if (channel.disabled) return
   if (availableProviders.value?.[channel.key] !== true) {
-    uni.showModal({ title: `暂不可调起${channel.title}`, content: `请使用已配置${channel.title}支付模块的正式 App 安装包。`, showCancel: false })
+    await openAppDialog({ title: t('account.recharge.unavailableTitle', { channel: channel.title }), description: t('account.recharge.unavailableContent', { channel: channel.title }), showCancel: false, confirmText: t('common.confirm') })
     return
   }
   const amount = rechargeAmount.value.trim()
   if (!/^\d+(?:\.\d{1,2})?$/.test(amount) || Number(amount) <= 0) {
-    uni.showToast({ title: '请输入最多两位小数的正数金额', icon: 'none' })
+    uni.showToast({ title: t('account.recharge.amountInvalid'), icon: 'none' })
     return
   }
 
@@ -344,31 +348,31 @@ async function startRecharge() {
     })
     if ([3, 4].includes(response.status)) {
       clearPendingRequest()
-      throw new Error(response.failureMessage || `${channel.title}充值单创建失败，请稍后重试`)
+      throw new Error(response.failureMessage || t('account.recharge.createFailed', { channel: channel.title }))
     }
     if (response.status === 2) {
       // 服务端已经确认到账；本地幂等键只服务于当前一次支付，不能复用到下一次同金额充值。
       clearPendingRequest()
-      await showPaymentResultPending('该充值已确认到账，请以账户余额和充值记录为准。')
+      await showPaymentResultPending(t('account.recharge.creditedHint'))
       return
     }
     if (!response.clientPayload) {
-      await showPaymentResultPending('充值单已受理，支付结果正在由平台确认。请稍后在充值记录中查看最终状态。')
+      await showPaymentResultPending(t('account.recharge.acceptedHint'))
       return
     }
 
     const orderInfo = channel.key === 'wechat'
       ? parseWeChatPayOrderInfo(response.clientPayload)
       : response.clientPayload
-    if (typeof orderInfo !== 'string' && channel.key === 'alipay') throw new Error('支付宝支付参数格式异常，请重新发起充值')
+    if (typeof orderInfo !== 'string' && channel.key === 'alipay') throw new Error(t('account.recharge.alipayFormat'))
     await requestPayment(channel.key, orderInfo)
-    await showPaymentResultPending(`已向${channel.title}提交支付请求。到账以服务端回调或主动查单确认后的充值记录为准。`)
+    await showPaymentResultPending(t('account.recharge.requested', { channel: channel.title }))
   } catch (error) {
     const message = String(error?.errMsg || error?.message || '')
     if (/cancel/i.test(message)) {
-      uni.showToast({ title: `已取消${channel.title}，可在有效期内再次发起`, icon: 'none' })
+      uni.showToast({ title: t('account.recharge.cancelled', { channel: channel.title }), icon: 'none' })
     } else {
-      uni.showToast({ title: message || `${channel.title}暂时无法发起，请稍后重试`, icon: 'none' })
+      uni.showToast({ title: message || t('account.recharge.startFailed', { channel: channel.title }), icon: 'none' })
     }
   } finally {
     submitting.value = false
@@ -379,14 +383,12 @@ async function startRecharge() {
 /** 在客户端调起结束后统一说明服务端确认语义，并引导查看可靠状态。 */
 function showPaymentResultPending(content) {
   return new Promise(resolve => {
-    uni.showModal({
-      title: '支付结果确认中',
-      content,
-      confirmText: '查看记录',
-      cancelText: '留在当前页',
-      success: result => { if (result.confirm) goToRecords(); resolve() },
-      fail: () => resolve(),
-    })
+    openAppDialog({
+      title: t('account.recharge.pendingTitle'),
+      description: content,
+      confirmText: t('account.recharge.viewRecords'),
+      cancelText: t('account.recharge.stay'),
+    }).then(result => { if (result) goToRecords(); resolve() })
   })
 }
 
@@ -479,4 +481,11 @@ function goToCreditFlow() { navigator.navigateTo(routes.account.creditFlow()) }
   .coming-row, .finance-btn, .service-note { grid-column: auto; }
   .coming-row { margin-top: 10px; }
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.balance-head > view:first-child, .balance-meta > view, .credit-main > view { min-width: 0; }
+.balance-head > view:first-child, .credit-main > view { flex: 1; }
+.wallet-mark { flex: none; }
+.credit-foot { min-width: 0; flex-wrap: wrap; gap: 6px 12px; }
+.credit-foot .amount-text { font-size: inherit; }
 </style>

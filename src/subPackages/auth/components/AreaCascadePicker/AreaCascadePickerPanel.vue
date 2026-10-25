@@ -2,9 +2,9 @@
   <view v-if="shouldRender" class="area-picker-overlay" :class="{ closing: isClosing }" @tap="closePicker">
     <view class="picker-panel" @tap.stop>
       <view class="picker-header">
-        <button class="header-action cancel" @tap="closePicker">取消</button>
-        <text class="picker-title">选择所在地区</text>
-        <button class="header-action confirm" :disabled="!canConfirm" @tap="confirmSelection">确定</button>
+        <button class="header-action cancel" @tap="closePicker">{{ t('common.cancel') }}</button>
+        <text class="picker-title">{{ t('common.region.title') }}</text>
+        <button class="header-action confirm" :disabled="!canConfirm" @tap="confirmSelection">{{ t('common.confirm') }}</button>
       </view>
 
       <view class="level-tabs">
@@ -20,13 +20,13 @@
       </view>
 
       <view v-if="loadError" class="load-error">
-        <text>{{ loadError }}</text>
-        <button class="retry-button" @tap="retryCurrentLevel">重新加载</button>
+        <text>{{ loadErrorMessage }}</text>
+        <button class="retry-button" @tap="retryCurrentLevel">{{ t('common.ui.reload') }}</button>
       </view>
 
       <view v-else-if="loading" class="loading-state">
         <view class="loading-spinner"></view>
-        <text>地区加载中...</text>
+        <text>{{ t('common.region.loading') }}</text>
       </view>
 
       <scroll-view v-else scroll-y class="option-list" :show-scrollbar="false">
@@ -40,13 +40,14 @@
           <text>{{ item.name }}</text>
           <AppIcon v-if="selectedCode === item.code" name="check" :size="20" color="#D7192D" />
         </view>
-        <view v-if="activeOptions.length === 0" class="empty-state">暂无可选地区</view>
+        <view v-if="activeOptions.length === 0" class="empty-state">{{ t('common.region.empty') }}</view>
       </scroll-view>
     </view>
   </view>
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import { getAreaChildren, ROOT_AREA_CODE } from '../../../../shared/api/area.js'
@@ -72,7 +73,8 @@ const emit = defineEmits(['update:visible', 'update:modelValue', 'confirm'])
 
 const activeLevel = ref(0)
 const loading = ref(false)
-const loadError = ref('')
+const loadError = ref(null)
+const loadErrorMessage = computed(() => loadError.value?.message || t('common.region.loadFailed'))
 const requestVersion = ref(0)
 const isClosing = ref(false)
 let closeTimer = null
@@ -80,9 +82,9 @@ const draft = reactive({ ...EMPTY_VALUE })
 const options = reactive({ provinces: [], cities: [], districts: [] })
 
 const tabs = computed(() => [
-  { key: 'province', label: draft.province || '请选择省' },
-  { key: 'city', label: draft.city || '请选择市' },
-  { key: 'district', label: draft.district || '请选择区县' },
+  { key: 'province', label: draft.province || t('common.region.province') },
+  { key: 'city', label: draft.city || t('common.region.city') },
+  { key: 'district', label: draft.district || t('common.region.district') },
 ])
 const activeOptions = computed(() => [options.provinces, options.cities, options.districts][activeLevel.value])
 const selectedCode = computed(() => [draft.provinceCode, draft.cityCode, draft.districtCode][activeLevel.value])
@@ -136,7 +138,7 @@ async function initializePicker() {
 async function loadOptions(level, parentCode) {
   const version = ++requestVersion.value
   loading.value = true
-  loadError.value = ''
+  loadError.value = null
   try {
     const list = await getAreaChildren(parentCode)
     if (version !== requestVersion.value) return
@@ -145,7 +147,7 @@ async function loadOptions(level, parentCode) {
     if (level === 2) options.districts = list
   } catch (error) {
     if (version !== requestVersion.value) return
-    loadError.value = error?.message || '地区加载失败，请稍后重试'
+    loadError.value = error || {}
   } finally {
     if (version === requestVersion.value) loading.value = false
   }
@@ -155,7 +157,7 @@ async function loadOptions(level, parentCode) {
 function cancelLoading() {
   requestVersion.value += 1
   loading.value = false
-  loadError.value = ''
+  loadError.value = null
 }
 
 /** 关闭抽屉且不提交本次临时选择。 */
@@ -176,7 +178,7 @@ function canOpenLevel(level) {
 function switchLevel(level) {
   if (!canOpenLevel(level)) return
   activeLevel.value = level
-  loadError.value = ''
+  loadError.value = null
 }
 
 /** 选择当前层级的一项行政区并加载下级数据。 */

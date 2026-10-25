@@ -1,7 +1,7 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader :title="editingId ? '编辑收货地址' : '新增收货地址'" :show-back="true" />
+      <AppHeader :title="editingId ? t('account.titles.editAddress') : t('account.titles.newAddress')" :show-back="true" />
     </template>
 
     <template #content>
@@ -10,29 +10,29 @@
           <view class="intro-card">
             <view class="intro-icon"><AppIcon name="location" :size="21" /></view>
             <view>
-              <text class="intro-title">配送信息</text>
-              <text class="intro-desc">请填写真实有效的信息，用于物流配送和订单地址快照</text>
+              <text class="intro-title">{{ t('account.addressForm.intro') }}</text>
+              <text class="intro-desc">{{ t('account.addressForm.introHint') }}</text>
             </view>
           </view>
 
           <view v-if="loading" class="loading-card">
-            <text>正在读取地址…</text>
+            <text>{{ t('account.addressForm.loading') }}</text>
           </view>
 
           <view v-else class="form-card">
             <view class="field-grid">
               <label class="field-item">
-                <text class="field-label">收货人</text>
-                <input v-model="form.name" class="field-input" maxlength="30" placeholder="请输入姓名" @input="clearError" />
+                <text class="field-label">{{ t('account.addressForm.name') }}</text>
+                <input v-model="form.name" class="field-input" maxlength="30" :placeholder="t('account.addressForm.namePlaceholder')" @input="clearError" />
               </label>
               <label class="field-item">
-                <text class="field-label">联系电话</text>
-                <input v-model="form.phone" class="field-input" type="text" maxlength="20" placeholder="请输入手机号或座机" @input="clearError" />
+                <text class="field-label">{{ t('account.addressForm.phone') }}</text>
+                <input v-model="form.phone" class="field-input" type="text" maxlength="20" :placeholder="t('account.addressForm.phonePlaceholder')" @input="clearError" />
               </label>
             </view>
 
             <view class="field-item">
-              <text class="field-label">所在地区</text>
+              <text class="field-label">{{ t('account.addressForm.region') }}</text>
               <AreaCascadePicker
                 v-model="regionValue"
                 :error="Boolean(formError && !hasRegion)"
@@ -41,21 +41,21 @@
             </view>
 
             <label class="field-item">
-              <text class="field-label">详细地址</text>
+              <text class="field-label">{{ t('account.addressForm.detail') }}</text>
               <textarea
                 v-model="form.detail"
                 class="detail-input"
                 maxlength="120"
-                placeholder="街道、门牌号、楼栋、房间号等"
+                :placeholder="t('account.addressForm.detailPlaceholder')"
                 @input="clearError"
               />
-              <text class="field-help">建议精确到门牌号，避免影响配送</text>
+              <text class="field-help">{{ t('account.addressForm.detailHint') }}</text>
             </label>
 
             <view class="default-row">
               <view class="default-copy">
-                <text class="default-title">设为默认地址</text>
-                <text class="default-desc">确认订单时优先带入该地址</text>
+                <text class="default-title">{{ t('account.addressForm.default') }}</text>
+                <text class="default-desc">{{ t('account.addressForm.defaultHint') }}</text>
               </view>
               <switch :checked="form.isDefault" color="#D7192D" @change="form.isDefault = $event.detail.value" />
             </view>
@@ -80,7 +80,7 @@
     <template #footer>
       <FixedActionBar>
         <button class="save-btn" :disabled="saving || loading" @tap="saveAddress">
-          {{ saving ? '保存中…' : '保存地址' }}
+          {{ saving ? t('account.addressForm.saving') : t('account.addressForm.save') }}
         </button>
       </FixedActionBar>
     </template>
@@ -88,7 +88,10 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/account/i18n/register.js'
 import { computed, reactive, ref } from 'vue'
+import { AppError, ErrorKind } from '@/shared/api/appError.js'
 import { onLoad } from '@dcloudio/uni-app'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
@@ -104,7 +107,8 @@ import AreaCascadePickerPanel from '../../../auth/components/AreaCascadePicker/A
 const editingId = ref(0)
 const loading = ref(false)
 const saving = ref(false)
-const formError = ref('')
+const formFailure = ref(null)
+const formError = computed(() => formFailure.value?.message || '')
 const regionPickerVisible = ref(false)
 
 const emptyForm = () => ({
@@ -132,6 +136,7 @@ onLoad(async (options = {}) => {
   await initializeForm()
 })
 
+/** 按原地址 ID 初始化草稿，保留可重新取词的读取错误。 */
 async function initializeForm() {
   loading.value = true
   try {
@@ -141,7 +146,7 @@ async function initializeForm() {
       return
     }
     const current = addresses.find(item => Number(item.id) === editingId.value)
-    if (!current) throw new Error('该收货地址不存在或已删除')
+    if (!current) throw localFormError('missing')
     Object.assign(form, emptyForm(), current)
     regionValue.value = {
       provinceCode: current.provinceCode || '',
@@ -152,34 +157,42 @@ async function initializeForm() {
       district: current.district || '',
     }
   } catch (error) {
-    formError.value = error?.message || '地址读取失败，请返回重试'
+    formFailure.value = error?.message ? error : localFormError('loadFailed')
   } finally {
     loading.value = false
   }
 }
 
+/** 用户编辑时清理表单错误，不重置草稿。 */
 function clearError() {
-  if (formError.value) formError.value = ''
+  if (formError.value) formFailure.value = null
 }
 
+/** 创建可随语言重新取词的本地错误，保留后端原始错误。 */
+function localFormError(key) {
+  return new AppError('', ErrorKind.UNKNOWN, { messageKey: 'account.addressForm.' + key })
+}
+
+/** 校验地址草稿，不改变地区代码和用户输入。 */
 function validateForm() {
-  if (!form.name.trim()) return '请输入收货人姓名'
-  if (!form.phone.trim()) return '请输入联系电话'
-  if (!/^[0-9+()\-\s]{6,20}$/.test(form.phone.trim())) return '请输入正确的联系电话'
-  if (!hasRegion.value) return '请选择所在地区'
-  if (!form.detail.trim()) return '请输入详细地址'
+  if (!form.name.trim()) return localFormError('nameRequired')
+  if (!form.phone.trim()) return localFormError('phoneRequired')
+  if (!/^[0-9+()\-\s]{6,20}$/.test(form.phone.trim())) return localFormError('phoneInvalid')
+  if (!hasRegion.value) return localFormError('regionRequired')
+  if (!form.detail.trim()) return localFormError('detailRequired')
   return ''
 }
 
+/** 按原地址契约保存一次草稿并完整处理结果。 */
 async function saveAddress() {
   const validationMessage = validateForm()
   if (validationMessage) {
-    formError.value = validationMessage
-    uni.showToast({ title: validationMessage, icon: 'none' })
+    formFailure.value = validationMessage
+    uni.showToast({ title: validationMessage.message, icon: 'none' })
     return
   }
 
-  formError.value = ''
+  formFailure.value = null
   saving.value = true
   try {
     uni.hideKeyboard?.()
@@ -210,14 +223,14 @@ async function saveAddress() {
       id: savedId,
       ...payload,
     })
-    uni.showToast({ title: editingId.value ? '地址已更新' : '地址已新增', icon: 'success' })
+    uni.showToast({ title: editingId.value ? t('account.addressForm.updated') : t('account.addressForm.created'), icon: 'success' })
     if (openerChannel && pages.length > 1) {
       await navigator.back()
     } else {
       await navigator.redirectTo(routes.account.address())
     }
   } catch (error) {
-    formError.value = error?.message || '地址保存失败，请检查后重试'
+    formFailure.value = error?.message ? error : localFormError('saveFailed')
     uni.showToast({ title: formError.value, icon: 'none' })
   } finally {
     saving.value = false

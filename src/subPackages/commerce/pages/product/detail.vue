@@ -2,7 +2,7 @@
   <AppPageShell>
     <template #header>
       <app-header
-        title="商品详情"
+        :title="t('commerce.titles.productDetail')"
         :show-back="true"
         :show-cart="true"
         :cart-count="cartStore.cartBadgeCount"
@@ -14,9 +14,9 @@
       <AppContent padding="0" :no-max-width="true">
         <app-page-state
           :state="pageState"
-          title="商品加载失败"
+          :title="t('commerce.product.loadFailedTitle')"
           :description="errorMessage"
-          action-text="重新加载"
+          :action-text="t('commerce.product.reload')"
           icon-type="product"
           @retry="loadProduct"
         >
@@ -46,19 +46,16 @@
               <view class="info-card">
                 <text class="product-name">{{ product.name }}</text>
                 <text class="product-code">
-                  货号：{{ product.code || '-' }}
+                  {{ t('commerce.product.article', { code: product.code || '-' }) }}
                   <template v-if="product.erpSku">　ERP：{{ product.erpSku }}</template>
                 </text>
                 <view class="price-row">
-                  <text class="price-symbol">¥</text>
-                  <text class="price">{{ formatMoney(selectedSkuPrice) }}</text>
-                  <text v-if="selectedSkuListPrice > 0 && selectedSkuListPrice !== selectedSkuPrice" class="list-price">
-                    ¥{{ formatMoney(selectedSkuListPrice) }}
-                  </text>
+                  <AmountText class="price" :text="'¥' + (formatMoney(selectedSkuPrice))" />
+                  <AmountText v-if="selectedSkuListPrice > 0 && selectedSkuListPrice !== selectedSkuPrice" class="list-price" :text="' ¥' + (formatMoney(selectedSkuListPrice))" />
                   <text class="price-unit">/ {{ product.unit }}</text>
                 </view>
                 <view class="facts">
-                  <text>{{ selectedMinOrderQty }} {{ product.unit }}起订</text>
+                  <text>{{ t('commerce.product.minimum', { count: selectedMinOrderQty, unit: product.unit }) }}</text>
                   <text class="fact-dot">·</text>
                   <status-tag :type="stockStatus.type" :text="stockStatus.text" />
                   <template v-if="product.categoryName">
@@ -72,9 +69,9 @@
                 <view class="promotion-heading">
                   <view class="promotion-title-row">
                     <AppIcon name="gift" :size="19" color="#D7192D" />
-                    <text class="promotion-title">促销活动</text>
+                    <text class="promotion-title">{{ t('commerce.product.promotions') }}</text>
                   </view>
-                  <text class="promotion-count">{{ product.promotions.length }} 个活动</text>
+                  <text class="promotion-count">{{ t('commerce.product.promotionsCount', { count: product.promotions.length }) }}</text>
                 </view>
                 <view
                   v-for="promotion in product.promotions"
@@ -83,7 +80,7 @@
                 >
                   <view class="promotion-item-heading">
                     <text class="promotion-name">{{ promotion.name }}</text>
-                    <text v-if="promotion.isStackable" class="promotion-stackable">可叠加</text>
+                    <text v-if="promotion.isStackable" class="promotion-stackable">{{ t('commerce.product.stackable') }}</text>
                   </view>
                   <view v-for="rule in promotion.rules" :key="rule.ruleId" class="promotion-rule">
                     <view class="promotion-rule-line">
@@ -95,7 +92,7 @@
                         <AppProductImage class="promotion-gift-image" :src="gift.image" :stock="gift.availableStock" />
                         <view class="promotion-gift-copy">
                           <text class="promotion-gift-name">{{ gift.productName }}</text>
-                          <text class="promotion-gift-spec">{{ gift.specDesc || gift.skuCode }} · 赠 {{ gift.quantity }} 件</text>
+                          <text class="promotion-gift-spec">{{ gift.specDesc || gift.skuCode }} · {{ t('commerce.product.giftCount', { count: gift.quantity }) }}</text>
                         </view>
                         <text
                           class="promotion-gift-stock"
@@ -104,13 +101,13 @@
                       </view>
                     </view>
                   </view>
-                  <text class="promotion-time">有效期至 {{ formatDate(promotion.endTime, 'YYYY.MM.DD') }}</text>
+                  <text class="promotion-time">{{ t('commerce.product.expires', { date: formatDate(promotion.endTime, 'YYYY.MM.DD') }) }}</text>
                 </view>
-                <text class="promotion-notice">实际赠品与优惠以下单确认页实时计算结果为准</text>
+                <text class="promotion-notice">{{ t('commerce.product.promotionHint') }}</text>
               </view>
 
               <view v-if="sizeRecommendationHtml" class="size-recommendation-card">
-                <view class="section-title">尺码推荐</view>
+                <view class="section-title">{{ t('commerce.product.sizeRecommendation') }}</view>
                 <rich-text class="size-recommendation-rich-text" :nodes="sizeRecommendationHtml" />
               </view>
 
@@ -120,26 +117,26 @@
                 @click="goToBatchPurchase"
               >
                 <view class="batch-entry-copy">
-                  <text class="batch-entry-title">批量采购</text>
-                  <text class="batch-entry-desc">按颜色和尺码一次填写多个 SKU 数量</text>
+                  <text class="batch-entry-title">{{ t('commerce.product.batch') }}</text>
+                  <text class="batch-entry-desc">{{ t('commerce.product.batchHint') }}</text>
                 </view>
                 <text class="batch-entry-arrow">›</text>
               </view>
 
               <view class="single-purchase-entry" :class="{ disabled: !hasPurchasableSku }" @click="openPurchaseSheet">
                 <view>
-                  <text class="section-title">单规格采购</text>
+                  <text class="section-title">{{ t('commerce.product.single') }}</text>
                   <text class="section-desc">{{ selectedSkuSummary }}</text>
                 </view>
                 <view class="entry-action">
-                  <text>{{ hasPurchasableSku ? '选择规格' : '暂无库存' }}</text>
+                  <text>{{ hasPurchasableSku ? t('commerce.product.select') : '暂无库存' }}</text>
                   <AppIcon name="chevron-right" :size="16" />
                 </view>
               </view>
 
               <!-- 商品参数 -->
               <view class="section-card">
-                <text class="section-title">商品参数</text>
+                <text class="section-title">{{ t('commerce.product.parameters') }}</text>
                 <view class="params-list">
                   <view v-for="row in productParams" :key="row.label" class="param-row">
                     <text class="param-label">{{ row.label }}</text>
@@ -152,12 +149,12 @@
               <view class="detail-description">
                 <view class="detail-description-heading">
                   <view class="heading-line"></view>
-                  <text class="detail-description-title">详情介绍</text>
+                  <text class="detail-description-title">{{ t('commerce.product.description') }}</text>
                   <view class="heading-line"></view>
                 </view>
                 <rich-text v-if="detailHtml" class="detail-rich-text" :nodes="detailHtml" />
                 <view v-else class="detail-empty">
-                  <text>暂无商品详情图片或说明</text>
+                  <text>{{ t('commerce.product.emptyDescription') }}</text>
                 </view>
               </view>
             </view>
@@ -186,28 +183,30 @@
             <AppIcon name="cart" :size="26" />
             <text v-if="cartStore.cartBadgeCount" class="cart-badge">{{ cartStore.cartBadgeDisplay }}</text>
           </view>
-          <text>购物车</text>
+          <text>{{ t('commerce.product.cart') }}</text>
         </button>
         <button
           class="action-btn secondary button-center"
           :disabled="!hasPurchasableSku || submitting"
           @click="handleAddToCart"
         >
-          {{ submitting ? '加入中…' : '加入购物车' }}
+          {{ submitting ? t('commerce.product.adding') : t('commerce.product.add') }}
         </button>
         <button
           class="action-btn primary button-center"
           :disabled="!hasPurchasableSku || submitting"
           @click="goToBatchPurchase"
-        >
-          批量采购
-        </button>
+        >{{ t('commerce.product.batch') }}</button>
       </fixed-action-bar>
     </template>
   </AppPageShell>
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/commerce/i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
+import { AppError, ErrorKind } from '@/shared/api/appError.js'
 import { computed, ref } from 'vue'
 import { onBackPress, onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import { getGoodsDetail } from '../../api/productApi.js'
@@ -233,7 +232,8 @@ const currentImage = ref(0)
 const imageViewerVisible = ref(false)
 const imageViewerStartIndex = ref(0)
 const pageState = ref(PageStatus.LOADING)
-const errorMessage = ref('网络异常，请稍后重试')
+const pageFailure = ref(localError('commerce.product.network'))
+const errorMessage = computed(() => pageFailure.value?.message || '')
 const submitting = ref(false)
 const selectedSkuId = ref(null)
 const purchaseSheetVisible = ref(false)
@@ -293,9 +293,9 @@ const detailImageStock = computed(() => {
   return undefined
 })
 const selectedSkuSummary = computed(() => {
-  if (!hasPurchasableSku.value) return '当前商品暂无可采购规格'
-  if (!selectedSku.value) return '选择规格和采购数量'
-  return `已选 ${selectedSku.value.specName || selectedSku.value.skuCode || '默认规格'}，${selectedMinOrderQty.value} ${product.value?.unit || '件'}起订`
+  if (!hasPurchasableSku.value) return t('commerce.product.noPurchasable')
+  if (!selectedSku.value) return t('commerce.product.chooseQuantity')
+  return t('commerce.product.selectedSummary', { name: selectedSku.value.specName || selectedSku.value.skuCode || t('commerce.product.defaultVariant'), count: selectedMinOrderQty.value, unit: product.value?.unit || '件' })
 })
 
 // 商品介绍和尺码推荐表分开清洗，避免推荐表被合并到普通介绍中。
@@ -319,11 +319,11 @@ const stockStatus = computed(() => {
 })
 
 const productParams = computed(() => product.value ? [
-  { label: '商品编码', value: product.value.code || '-' },
+  { label: t('commerce.product.code'), value: product.value.code || '-' },
   { label: 'ERP SKU', value: product.value.erpSku || '-' },
-  { label: '商品分类', value: product.value.categoryName || '-' },
-  { label: '计量单位', value: product.value.unit },
-  { label: '可选规格', value: `${product.value.skus.length} 种` },
+  { label: t('commerce.product.category'), value: product.value.categoryName || '-' },
+  { label: t('commerce.product.unit'), value: product.value.unit },
+  { label: t('commerce.product.variants'), value: t('commerce.product.variantCount', { count: product.value.skus.length }) },
 ] : [])
 
 // ==================== 行为 ====================
@@ -355,16 +355,17 @@ onUnload(async () => {
   await flush()
 })
 
+/** 按原商品 ID 读取资料及初始 SKU，仅本地化页面错误。 */
 async function loadProduct() {
   if (!routeProductId()) {
     pageState.value = PageStatus.ERROR
-    errorMessage.value = '缺少商品 ID，请返回商品目录重新选择'
+    pageFailure.value = localError('commerce.product.missingId')
     return
   }
   pageState.value = PageStatus.LOADING
   try {
     const result = await getGoodsDetail(routeProductId())
-    if (!result) throw new Error('商品不存在或已下架')
+    if (!result) throw localError('commerce.product.missing')
     product.value = result
     currentImage.value = 0
     // 默认选中首个可用 SKU
@@ -373,7 +374,7 @@ async function loadProduct() {
     selectedSkuId.value = initialSku?.skuId ?? null
     pageState.value = PageStatus.CONTENT
   } catch (error) {
-    errorMessage.value = error?.message || '商品加载失败，请稍后重试'
+    pageFailure.value = error?.message ? error : localError('commerce.product.loadFailed')
     pageState.value = PageStatus.ERROR
   }
 }
@@ -382,14 +383,15 @@ function formatMoney(value) {
   return Number(value || 0).toFixed(2)
 }
 
+/** 仅翻译既有促销规则类型名称，保留原规则代码。 */
 function promotionRuleBadge(ruleType) {
   const labels = {
-    AMOUNT_REDUCTION: '满减',
-    AMOUNT_GIFT: '满赠',
-    QUANTITY_GIFT: '满赠',
-    RATE_DISCOUNT: '折扣',
+    AMOUNT_REDUCTION: t('commerce.product.amountReduction'),
+    AMOUNT_GIFT: t('commerce.product.amountGift'),
+    QUANTITY_GIFT: t('commerce.product.amountGift'),
+    RATE_DISCOUNT: t('commerce.product.discount'),
   }
-  return labels[ruleType] || '促销'
+  return labels[ruleType] || t('commerce.product.promotion')
 }
 
 function giftStockText(gift) {
@@ -409,6 +411,7 @@ function previewImage(index) {
   imageViewerVisible.value = true
 }
 
+/** 沿用原 SKU 数量与加购结果，只本地化反馈。 */
 async function submitAddToCart({ sku, quantity } = {}) {
   if (!sku?.canPurchase || submitting.value) return null
   submitting.value = true
@@ -416,11 +419,11 @@ async function submitAddToCart({ sku, quantity } = {}) {
     await addSkuToCart({ skuId: sku.skuId, quantity })
     selectedSkuId.value = sku.skuId
     purchaseSheetVisible.value = false
-    if (typeof uni !== 'undefined') uni.showToast({ title: '已加入购物车', icon: 'success' })
+    if (typeof uni !== 'undefined') uni.showToast({ title: t('commerce.product.added'), icon: 'success' })
     return true
   } catch (error) {
     if (typeof uni !== 'undefined') {
-      uni.showToast({ title: error?.message || '加入购物车失败', icon: 'none' })
+      uni.showToast({ title: error?.message || t('commerce.product.addFailed'), icon: 'none' })
     }
     return false
   } finally {
@@ -432,17 +435,19 @@ function handleAddToCart() {
   openPurchaseSheet()
 }
 
+/** 保留原可采购判断并显示规格选择面板。 */
 function openPurchaseSheet() {
   if (!hasPurchasableSku.value) {
-    if (typeof uni !== 'undefined') uni.showToast({ title: '当前商品暂无库存', icon: 'none' })
+    if (typeof uni !== 'undefined') uni.showToast({ title: t('commerce.product.stockUnavailable'), icon: 'none' })
     return
   }
   purchaseSheetVisible.value = true
 }
 
+/** 保留原可采购判断与批量采购路由。 */
 async function goToBatchPurchase() {
   if (!hasPurchasableSku.value) {
-    uni.showToast({ title: '当前商品暂无可采购规格', icon: 'none' })
+    uni.showToast({ title: t('commerce.product.noPurchasable'), icon: 'none' })
     return
   }
   purchaseSheetVisible.value = false
@@ -452,6 +457,11 @@ async function goToBatchPurchase() {
 async function goToCart() {
   await navigator.navigateTo(routes.commerce.cart())
 }
+/** 创建可重新取词的本地提示，不附加后端错误码。 */
+function localError(messageKey) {
+  return new AppError('', ErrorKind.UNKNOWN, { messageKey })
+}
+
 </script>
 
 <style lang="scss" scoped>
@@ -777,11 +787,14 @@ async function goToCart() {
   color: #FFFFFF;
   background: var(--color-brand);
   font-size: 9px;
-  line-height: 16px;
+  line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
   text-align: center;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .action-btn {
@@ -841,4 +854,9 @@ async function goToCart() {
   .image-swiper { height: auto; max-height: none; aspect-ratio: 1 / 1; }
   .detail-main { gap: 14px; padding-top: 0; }
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.price-row { min-width: 0; }
+.price-row .amount-text { max-width: 100%; }
+.price-unit { flex: none; }
 </style>

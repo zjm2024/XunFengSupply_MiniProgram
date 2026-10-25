@@ -2,7 +2,7 @@
   <AppPageShell>
     <template #header>
       <view class="flow-header">
-        <AppHeader title="授信流水" :show-back="true" />
+        <AppHeader :title="t('account.titles.credit')" :show-back="true" />
         <view class="filter-panel">
           <StatusTabBar :items="filters" :model-value="currentType" :max-width="700" @change="changeFilter" />
         </view>
@@ -22,9 +22,9 @@
         <view class="credit-flow-page">
           <AppPageState
             :state="pageState"
-            title="暂无授信流水"
-            :description="loadError || '订单使用授信后，相关额度变动会显示在这里'"
-            :action-text="pageState === PageStatus.ERROR ? '重新加载' : ''"
+            :title="t('account.creditFlow.empty')"
+            :description="loadError || t('account.creditFlow.emptyHint')"
+            :action-text="pageState === PageStatus.ERROR ? t('account.creditFlow.reload') : ''"
             icon-type="default"
             compact
             @retry="resetAndLoad"
@@ -41,12 +41,12 @@
                       <text class="flow-title">{{ usageTitle(item.usageType) }}</text>
                       <text v-if="item.businessNo" class="flow-no">{{ item.businessNo }}</text>
                     </view>
-                    <text class="flow-amount" :class="amountClass(item)">{{ formatChange(item) }}</text>
+                    <AmountText class="flow-amount" :class="amountClass(item)" :text="(formatChange(item))" />
                   </view>
                   <view class="flow-meta">
                     <text>{{ formatDateTime(item.createdAt) }}</text>
-                    <text>已用 ¥{{ formatMoney(item.afterUsedAmount) }}</text>
-                    <text>暂占 ¥{{ formatMoney(item.afterReservedAmount) }}</text>
+                    <AmountText :text="t('account.creditFlow.usedAmount', { amount: formatMoney(item.afterUsedAmount) })" />
+                    <AmountText :text="t('account.creditFlow.reservedAmount', { amount: formatMoney(item.afterReservedAmount) })" />
                   </view>
                 </view>
               </view>
@@ -60,6 +60,9 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/account/i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -74,18 +77,20 @@ import { getCreditUsageList } from '../../api/settlement.js'
 import { formatDateTime } from '../../../../shared/utils/format.js'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
-const filters = Object.freeze([
-  { label: '全部', value: '' },
-  { label: '订单占用', value: 1 },
-  { label: '额度释放', value: 2 },
-  { label: '还款', value: 3 },
+const filters = computed(() => [
+  { label: t('account.creditFlow.all'), value: '' },
+  { label: t('account.creditFlow.orderReservation'), value: 1 },
+  { label: t('account.creditFlow.release'), value: 2 },
+  { label: t('account.creditFlow.repaymentFilter'), value: 3 },
   { label: '已结算', value: 4 },
 ])
-const usageMap = Object.freeze({ 1: '订单占用', 2: '额度释放', 3: '授信还款', 4: '授信结算' })
+const usageMap = computed(() => ({ 1: t('account.creditFlow.orderReservation'), 2: t('account.creditFlow.release'), 3: t('account.creditFlow.repayment'), 4: t('account.creditFlow.settlement') }))
 const flows = ref([])
 const currentType = ref('')
 const pageState = ref(PageStatus.LOADING)
-const loadError = ref('')
+const loadFailure = ref(null)
+const loadError = computed(() => loadFailure.value?.message
+  || (loadFailure.value?.messageKey ? t(loadFailure.value.messageKey) : ''))
 const pageNum = ref(1)
 const pageSize = 20
 const totalCount = ref(0)
@@ -102,11 +107,12 @@ const loadMoreStatus = computed(() => {
 
 onLoad(resetAndLoad)
 
+/** 按原分页读取授信流水，不监听语言重发请求。 */
 async function resetAndLoad() {
   pageNum.value = 1
   flows.value = []
   pageState.value = PageStatus.LOADING
-  loadError.value = ''
+  loadFailure.value = null
   loadMoreError.value = false
   await fetchPage(false)
 }
@@ -125,6 +131,7 @@ function handleRefresherRestore() {
   if (!loadingMore.value && pageState.value !== PageStatus.LOADING) isRefreshing.value = false
 }
 
+/** 保留授信使用类型和分页，只本地化错误。 */
 async function fetchPage(append) {
   try {
     const result = await getCreditUsageList({
@@ -139,7 +146,7 @@ async function fetchPage(append) {
   } catch (error) {
     if (append) pageNum.value = Math.max(1, pageNum.value - 1)
     loadMoreError.value = Boolean(append)
-    loadError.value = error?.message || '授信流水加载失败，请稍后重试'
+    loadFailure.value = error?.message ? error : { messageKey: 'account.creditFlow.loadFailed' }
     pageState.value = flows.value.length ? PageStatus.CONTENT : PageStatus.ERROR
   }
 }
@@ -157,7 +164,8 @@ function changeFilter(value) {
   resetAndLoad()
 }
 
-function usageTitle(type) { return usageMap[type] || '授信变动' }
+/** 仅翻译既有授信流水类型的显示名称。 */
+function usageTitle(type) { return usageMap.value[type] || t('account.creditFlow.change') }
 function signedValue(item) {
   if (item.usageType === 1 || item.usageType === 4) return -Math.abs(item.changedAmount)
   return Math.abs(item.changedAmount)
@@ -189,4 +197,9 @@ function formatMoney(value) {
 .flow-amount.negative { color: #B42318; }
 .flow-meta { display: flex; flex-wrap: wrap; gap: 5px 14px; margin-top: 13px; color: #858A93; font-size: 11px; }
 .list-end { padding: 10px 0 2px; color: #9A9DA4; font-size: 11px; text-align: center; }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.flow-title-wrap { flex: 1; }
+.flow-amount { min-width: 0; flex: 0 1 auto; max-width: 65%; }
+.flow-meta .amount-text { font-size: inherit; }
 </style>

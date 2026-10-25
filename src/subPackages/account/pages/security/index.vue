@@ -1,7 +1,7 @@
 ﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <AppPageShell>
     <template #header>
-      <app-header title="安全设置" :show-back="true" />
+      <app-header :title="t('account.titles.security')" :show-back="true" />
     </template>
 
     <template #content>
@@ -18,15 +18,15 @@
 
           <!-- 安全设置项 -->
           <view class="settings-group">
-            <text class="group-title">账户安全</text>
+            <text class="group-title">{{ t('account.security.account') }}</text>
 
             <!-- 修改密码 -->
             <view class="setting-item" @click="changePassword">
               <view class="item-left">
                 <text class="item-icon">🔒</text>
                 <view class="item-info">
-                  <text class="item-name">登录密码</text>
-                  <text class="item-desc">定期修改密码可以提高账户安全性</text>
+                  <text class="item-name">{{ t('account.security.password') }}</text>
+                  <text class="item-desc">{{ t('account.security.passwordHint') }}</text>
                 </view>
               </view>
               <text class="item-arrow">›</text>
@@ -37,8 +37,8 @@
               <view class="item-left">
                 <text class="item-icon">💳</text>
                 <view class="item-info">
-                  <text class="item-name">支付密码</text>
-                  <text class="item-desc">用于确认付款和资金操作</text>
+                  <text class="item-name">{{ t('account.security.payPassword') }}</text>
+                  <text class="item-desc">{{ t('account.security.payPasswordHint') }}</text>
                 </view>
               </view>
               <text class="item-arrow">›</text>
@@ -49,11 +49,11 @@
               <view class="item-left">
                 <text class="item-icon">📱</text>
                 <view class="item-info">
-                  <text class="item-name">手机号码</text>
-                  <text class="item-desc">已绑定：138****8888</text>
+                  <text class="item-name">{{ t('account.security.phone') }}</text>
+                  <text class="item-desc">{{ t('account.security.boundPhone', { phone: '138****8888' }) }}</text>
                 </view>
               </view>
-              <button class="item-btn" @click="changePhone">更换</button>
+              <button class="item-btn" @click="changePhone">{{ t('account.security.change') }}</button>
             </view>
 
             <!-- 邮箱绑定 -->
@@ -61,17 +61,17 @@
               <view class="item-left">
                 <text class="item-icon">📧</text>
                 <view class="item-info">
-                  <text class="item-name">邮箱地址</text>
-                  <text class="item-desc">未绑定</text>
+                  <text class="item-name">{{ t('account.security.email') }}</text>
+                  <text class="item-desc">{{ t('account.security.unbound') }}</text>
                 </view>
               </view>
-              <button class="item-btn bind" @click="bindEmail">绑定</button>
+              <button class="item-btn bind" @click="bindEmail">{{ t('account.security.bind') }}</button>
             </view>
           </view>
 
           <!-- 登录设备管理 -->
           <view class="settings-group">
-            <text class="group-title">登录设备</text>
+            <text class="group-title">{{ t('account.security.devices') }}</text>
 
             <view v-for="device in devices" :key="device.id" class="device-item">
               <view class="device-main">
@@ -82,24 +82,24 @@
                 </view>
               </view>
               <view v-if="device.isCurrent" class="current-tag">
-                <text>当前设备</text>
+                <text>{{ t('account.security.currentDevice') }}</text>
               </view>
               <button
                 v-else
                 class="remove-btn"
                 @click="removeDevice(device)"
-              >移除</button>
+              >{{ t('account.security.remove') }}</button>
             </view>
           </view>
 
           <!-- 其他安全选项 -->
           <view class="settings-group">
-            <text class="group-title">其他设置</text>
+            <text class="group-title">{{ t('account.security.other') }}</text>
 
             <view class="setting-item switch-item">
               <view class="item-left">
                 <text class="item-icon">🔔</text>
-                <text class="item-name">登录通知</text>
+                <text class="item-name">{{ t('account.security.loginNotify') }}</text>
               </view>
               <switch :checked="loginNotify" @change="loginNotify = $event.detail.value" color="#D7192D" />
             </view>
@@ -107,14 +107,14 @@
             <view class="setting-item switch-item">
               <view class="item-left">
                 <text class="item-icon">⏱️</text>
-                <text class="item-name">自动退出</text>
+                <text class="item-name">{{ t('account.security.autoLogout') }}</text>
               </view>
               <switch :checked="autoLogout" @change="autoLogout = $event.detail.value" color="#D7192D" />
             </view>
           </view>
 
           <!-- 退出登录按钮 -->
-          <button class="logout-btn" @click="handleLogout">退出登录</button>
+          <button class="logout-btn" @click="handleLogout">{{ t('account.security.logout') }}</button>
 
           <view class="bottom-spacer"></view>
         </view>
@@ -124,10 +124,13 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/account/i18n/register.js'
 import { ref, computed } from 'vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 
 const loginNotify = ref(true)
 const autoLogout = ref(false)
@@ -142,58 +145,60 @@ const securityLevel = computed(() => {
 })
 
 const securityTitle = computed(() => {
-  const titles = { high: '账户安全', medium: '安全建议', low: '存在风险' }
+  const titles = { high: t('account.security.account'), medium: t('account.security.suggestion'), low: t('account.security.risk') }
   return titles[securityLevel.value]
 })
 
 const securityDesc = computed(() => {
   const descs = {
-    high: '您的账户安全设置完善，请继续保持良好的安全习惯。',
-    medium: '建议您完善安全设置，以提高账户安全性。',
-    low: '您的账户存在安全隐患，建议立即进行安全检查。'
+    high: t('account.security.highDesc'),
+    medium: t('account.security.mediumDesc'),
+    low: t('account.security.lowDesc')
   }
   return descs[securityLevel.value]
 })
 
+/** 显示原有修改登录密码的占位反馈。 */
 function changePassword() {
-  uni.showToast({ title: '跳转至修改密码', icon: 'none' })
+  uni.showToast({ title: t('account.security.passwordPlaceholder'), icon: 'none' })
 }
 
+/** 显示原有修改支付密码的占位反馈。 */
 function changePayPassword() {
-  uni.showToast({ title: '跳转至修改支付密码', icon: 'none' })
+  uni.showToast({ title: t('account.security.payPasswordPlaceholder'), icon: 'none' })
 }
 
+/** 显示原有更换手机号码的占位反馈。 */
 function changePhone() {
-  uni.showToast({ title: '跳转至更换手机号', icon: 'none' })
+  uni.showToast({ title: t('account.security.phonePlaceholder'), icon: 'none' })
 }
 
+/** 显示原有绑定邮箱的占位反馈。 */
 function bindEmail() {
-  uni.showToast({ title: '跳转至绑定邮箱', icon: 'none' })
+  uni.showToast({ title: t('account.security.emailPlaceholder'), icon: 'none' })
 }
 
-function removeDevice(device) {
-  uni.showModal({
-    title: '确认移除',
-    content: `确定要移除 ${device.name} 的登录状态吗？`,
-    success: (res) => {
-      if (res.confirm) {
-        devices.value = devices.value.filter(d => d.id !== device.id)
-        uni.showToast({ title: '已移除', icon: 'success' })
-      }
-    }
-  })
+/** 确认后移除当前页面的设备记录，不改变设备标识。 */
+async function removeDevice(device) {
+  if (!await openAppDialog({
+    confirmText: t('common.confirm'),
+    cancelText: t('common.cancel'),
+    title: t('account.security.removeConfirm'),
+    description: t('account.security.removeContent', { name: device.name }),
+  })) return
+  devices.value = devices.value.filter(d => d.id !== device.id)
+  uni.showToast({ title: t('account.security.removed'), icon: 'success' })
 }
 
-function handleLogout() {
-  uni.showModal({
-    title: '确认退出',
-    content: '确定要退出当前账户吗？',
-    success: (res) => {
-      if (res.confirm) {
-        uni.showToast({ title: '已退出登录', icon: 'success' })
-      }
-    }
-  })
+/** 保留原有退出占位流程，仅本地化确认与反馈。 */
+async function handleLogout() {
+  if (!await openAppDialog({
+    confirmText: t('common.confirm'),
+    cancelText: t('common.cancel'),
+    title: t('account.security.logoutConfirm'),
+    description: t('account.security.logoutContent'),
+  })) return
+  uni.showToast({ title: t('account.security.loggedOut'), icon: 'success' })
 }
 </script>
 

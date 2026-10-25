@@ -1,38 +1,40 @@
 <template>
   <view class="page">
-    <app-header :show-back="true" title="产品手册详情" @back="goBack" />
+    <app-header :show-back="true" :title="t('content.titles.manualDetail')" @back="goBack" />
     <scroll-view class="page-scroll" scroll-y>
-      <view v-if="loading" class="state-box"><text>正在加载手册...</text></view>
+      <view v-if="loading" class="state-box"><text>{{ t('content.manual.loading') }}</text></view>
       <view v-else-if="errorText" class="state-box" @click="loadDetail">
         <text class="state-title">{{ errorText }}</text>
-        <text>点击重试</text>
+        <text>{{ t('content.manual.retry') }}</text>
       </view>
       <view v-else class="content">
         <AppProductImage class="cover" :src="detail.coverUrl" mode="aspectFit" :fallback-icon-size="42" />
-        <text class="manual-title">{{ detail.title || '未命名手册' }}</text>
-        <text class="manual-meta">{{ detail.date ? `更新于 ${detail.date}` : '暂无发布日期' }}</text>
+        <text class="manual-title">{{ detail.title || t('content.manual.untitled') }}</text>
+        <text class="manual-meta">{{ detail.date ? t('content.manual.updated', { date: detail.date }) : t('content.manual.noDate') }}</text>
 
-        <view v-if="contentLoading" class="article-body-state" aria-label="正文图片加载中">
+        <view v-if="contentLoading" class="article-body-state" :aria-label="t('content.manual.bodyLoadingLabel')">
           <view class="article-body-spinner" />
-          <text>正文图片加载中...</text>
+          <text>{{ t('content.manual.bodyLoading') }}</text>
         </view>
         <view v-else class="article-body">
           <rich-text v-if="detail.content" :nodes="detail.content" />
-          <text v-else class="empty-content">暂无正文，请打开附件查看</text>
+          <text v-else class="empty-content">{{ t('content.manual.emptyContent') }}</text>
         </view>
 
         <button v-if="detail.fileUrl" class="download-button" @tap="openFile">
           <AppIcon name="download" :size="17" />
-          <text>打开 PDF 手册</text>
+          <text>{{ t('content.manual.openPdf') }}</text>
         </button>
-        <text v-else class="empty-content">当前手册暂无可下载附件</text>
+        <text v-else class="empty-content">{{ t('content.manual.emptyAttachment') }}</text>
       </view>
     </scroll-view>
   </view>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/content/i18n/register.js'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
@@ -47,7 +49,9 @@ const imagePlaceholder = '/static/images/image-placeholder.svg'
 const manualId = ref('')
 const loading = ref(true)
 const contentLoading = ref(false)
-const errorText = ref('')
+const loadFailure = ref(null)
+const errorText = computed(() => loadFailure.value?.message
+  || (loadFailure.value?.messageKey ? t(loadFailure.value.messageKey) : ''))
 const detail = ref({})
 
 onLoad((options = {}) => {
@@ -55,24 +59,25 @@ onLoad((options = {}) => {
   loadDetail()
 })
 
+/** 读取原手册与正文资源，仅本地化页面错误。 */
 async function loadDetail() {
   if (!manualId.value) {
-    errorText.value = '缺少手册编号'
+    loadFailure.value = { messageKey: 'content.manual.missingId' }
     loading.value = false
     return
   }
 
   loading.value = true
-  errorText.value = ''
+  loadFailure.value = null
   try {
     const result = await getManualDetail(manualId.value)
     // APP 端先等待正文图片缓存，避免 rich-text 首次渲染错误占位图。
     detail.value = result ? { ...result, content: '' } : result
     if (result) void cacheDetailResources(result)
-    if (!detail.value) errorText.value = '手册不存在或已下架'
+    if (!detail.value) loadFailure.value = { messageKey: 'content.manual.missing' }
   } catch (error) {
     console.error('[ManualDetail] 手册详情加载失败:', error)
-    errorText.value = error?.message || '加载失败'
+    loadFailure.value = error?.message ? error : { messageKey: 'content.manual.loadFailed' }
   } finally {
     loading.value = false
   }
@@ -94,15 +99,16 @@ async function cacheDetailResources(result) {
   }
 }
 
+/** 检查原手册附件和编号后沿用原 PDF 导航。 */
 async function openFile() {
   const url = detail.value?.fileUrl
   const id = detail.value?.id || manualId.value
   if (!url) {
-    uni.showToast({ title: '当前手册没有 PDF 附件', icon: 'none' })
+    uni.showToast({ title: t('content.manual.noPdf'), icon: 'none' })
     return
   }
   if (!id) {
-    uni.showToast({ title: '缺少手册编号', icon: 'none' })
+    uni.showToast({ title: t('content.manual.missingId'), icon: 'none' })
     return
   }
 
@@ -110,7 +116,7 @@ async function openFile() {
   const navigated = await navigator.navigateTo(target)
   if (!navigated) {
     console.warn('[ManualDetail] PDF 预览页导航失败:', { id, target })
-    uni.showToast({ title: 'PDF 预览页打开失败', icon: 'none' })
+    uni.showToast({ title: t('content.manual.openFailed'), icon: 'none' })
   }
 }
 

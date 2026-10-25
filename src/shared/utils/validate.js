@@ -20,11 +20,13 @@ export function isPhoneValid(phone) {
 /**
  * 校验手机号并返回错误信息
  * @param {string} phone
+ * @param {Function} [formatMessage] - 可选显示格式化，不改变校验条件或默认中文。
  * @returns {string|null} 错误信息，null表示通过
  */
-export function validatePhone(phone) {
-  if (!phone) return '请输入手机号码'
-  if (!isPhoneValid(phone)) return '请输入正确的11位手机号码'
+export function validatePhone(phone, formatMessage) {
+  const message = (key, fallback) => formatMessage ? formatMessage(key, fallback) : fallback
+  if (!phone) return message('phoneRequired', '请输入手机号码')
+  if (!isPhoneValid(phone)) return message('phoneInvalid', '请输入正确的11位手机号码')
   return null
 }
 
@@ -56,64 +58,74 @@ export function validateCode(code) {
 /**
  * 校验签约资质表单
  * @param {Object} formData - 表单数据
+ * @param {Function} [formatMessage] - 可选提示描述工厂；未传入时保留原中文结果。
  * @returns {Object} { valid, errors, firstError }
  */
-export function validateSignForm(formData) {
+export function validateSignForm(formData, formatMessage) {
+  const message = (key, fallback) => formatMessage ? formatMessage(key, fallback) : fallback
   const errors = {}
 
   // 企业信息
   if (!formData.companyName || !formData.companyName.trim()) {
-    errors.companyName = '请输入公司名称'
+    errors.companyName = message('companyRequired', '请输入公司名称')
   } else if (formData.companyName.trim().length > 120) {
-    errors.companyName = '公司名称不能超过120个字符'
+    errors.companyName = message('companyLimit', '公司名称不能超过120个字符')
   }
 
   if (!formData.contactName || !formData.contactName.trim()) {
-    errors.contactName = '请输入联系人姓名'
+    errors.contactName = message('contactRequired', '请输入联系人姓名')
   } else if (formData.contactName.trim().length > 50) {
-    errors.contactName = '联系人姓名不能超过50个字符'
+    errors.contactName = message('contactLimit', '联系人姓名不能超过50个字符')
   }
 
-  const phoneError = validatePhone(formData.mobile)
+  const phoneError = validatePhone(formData.mobile, formatMessage)
   if (phoneError) {
     errors.mobile = phoneError
   }
 
+  const password = String(formData.password || '')
+  if (!/^(?=.*[A-Za-z])(?=.*\d)[\s\S]{8,64}$/.test(password)) {
+    errors.password = message('passwordInvalid', '请设置8–64位、同时包含字母和数字的密码')
+  }
+  if (!formData.confirmPassword || formData.confirmPassword !== password) {
+    errors.confirmPassword = message('passwordMismatch', '两次输入的密码不一致')
+  }
+
   if (!formData.landlinePhone || !formData.landlinePhone.trim()) {
-    errors.landlinePhone = '请输入固定电话'
+    errors.landlinePhone = message('landlineRequired', '请输入固定电话')
   } else if (!/^[0-9+()\-\s]{5,20}$/.test(formData.landlinePhone.trim())) {
-    errors.landlinePhone = '请输入正确的固定电话'
+    errors.landlinePhone = message('landlineInvalid', '请输入正确的固定电话')
   }
 
   if (formData.taxNo && formData.taxNo.trim().length > 32) {
-    errors.taxNo = '税号不能超过32个字符'
+    errors.taxNo = message('taxLimit', '税号不能超过32个字符')
   }
 
   if (formData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-    errors.email = '请输入正确的邮箱地址'
+    errors.email = message('emailInvalid', '请输入正确的邮箱地址')
   }
 
   if (!formData.provinceCode || !formData.cityCode || !formData.districtCode ||
       !formData.province || !formData.city || !formData.district) {
-    errors.region = '请选择完整的省、市、区/县'
+    errors.region = message('regionRequired', '请选择完整的省、市、区/县')
   }
 
   if (!formData.addressDetail || !formData.addressDetail.trim()) {
-    errors.addressDetail = '请输入详细地址'
+    errors.addressDetail = message('addressRequired', '请输入详细地址')
   } else if (formData.addressDetail.trim().length > 200) {
-    errors.addressDetail = '详细地址不能超过200个字符'
+    errors.addressDetail = message('addressLimit', '详细地址不能超过200个字符')
   }
 
   if (formData.registeredAddress && formData.registeredAddress.trim().length > 200) {
-    errors.registeredAddress = '工商注册地址不能超过200个字符'
+    errors.registeredAddress = message('registeredLimit', '工商注册地址不能超过200个字符')
   }
 
   if (!formData.licenseUrl) {
-    errors.licenseUrl = '请上传营业执照照片'
+    errors.licenseUrl = message('licenseRequired', '请上传营业执照照片')
   }
 
   if (!formData.agreed) {
-    errors.agreed = '请阅读并同意经销商签约协议'
+    errors.agreed = message('agreementRequired', '请阅读并同意经销商签约协议')
   }
 
   const valid = Object.keys(errors).length === 0

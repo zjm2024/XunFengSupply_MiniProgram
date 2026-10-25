@@ -1,7 +1,7 @@
 <template>
   <AppPageShell>
     <template #header>
-      <app-header title="产品手册" :show-back="true" />
+      <app-header :title="t('content.titles.manual')" :show-back="true" />
     </template>
 
     <template #content>
@@ -30,7 +30,7 @@
             :state="pageStatus.status.value"
             :has-stale-content="pageStatus.hasStaleContent.value"
             icon-type="product"
-            action-text="重新加载"
+            :action-text="t('content.manual.reload')"
             :fullscreen="false"
             @retry="handleRetry"
           >
@@ -45,8 +45,8 @@
                 <AppProductImage class="manual-cover" :src="item.coverUrl" mode="aspectFit" lazy-load :fallback-icon-size="28" />
                 <view class="manual-copy">
                   <text class="manual-title">{{ item.title }}</text>
-                  <text class="manual-meta">{{ item.date ? `更新于 ${item.date}` : '暂无发布日期' }}</text>
-                  <text v-if="item.fileUrl" class="manual-file-hint">支持在线预览</text>
+                  <text class="manual-meta">{{ item.date ? t('content.manual.updated', { date: item.date }) : t('content.manual.noDate') }}</text>
+                  <text v-if="item.fileUrl" class="manual-file-hint">{{ t('content.manual.online') }}</text>
                 </view>
                 <AppIcon name="chevron-right" :size="18" class="manual-arrow" />
               </view>
@@ -73,6 +73,8 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/content/i18n/register.js'
 import { computed, onMounted, ref } from 'vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
@@ -94,7 +96,7 @@ const selectedCategoryId = ref(ROOT_CATEGORY_ID)
 const isRefreshing = ref(false)
 
 const categories = computed(() => [
-  { id: ROOT_CATEGORY_ID, title: '全部手册' },
+  { id: ROOT_CATEGORY_ID, title: t('content.manual.all') },
   ...categoryTree.value,
 ])
 

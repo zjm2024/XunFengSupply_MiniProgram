@@ -14,19 +14,19 @@
     <!-- 加载中 -->
     <view v-if="status === 'loading'" class="load-more-loading">
       <view class="loading-spinner" />
-      <text class="loading-text">正在加载...</text>
+      <text class="loading-text">{{ t('common.ui.loadingMore') }}</text>
     </view>
 
     <!-- 没有更多了 -->
     <view v-else-if="status === 'no-more'" class="load-more-nomore">
       <view class="nomore-line" />
-      <text class="nomore-text">— 已经到底了 —</text>
+      <text class="nomore-text">{{ t('common.ui.noMore') }}</text>
       <view class="nomore-line" />
     </view>
 
     <!-- 加载失败，可重试 -->
     <view v-else-if="status === 'error'" class="load-more-error" @tap="handleRetry">
-      <text class="error-text">加载失败，点击重试</text>
+      <text class="error-text">{{ t('common.ui.loadMoreFailed') }}</text>
       <text class="retry-icon">↻</text>
     </view>
 
@@ -35,6 +35,7 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
 defineProps({
   /** 加载更多状态: idle | loading | error | no-more */
   status: {

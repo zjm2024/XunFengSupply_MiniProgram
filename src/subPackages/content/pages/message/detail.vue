@@ -1,7 +1,7 @@
 <template>
   <AppPageShell class="message-detail-shell">
     <template #header>
-      <AppHeader title="消息详情" :show-back="true" />
+      <AppHeader :title="t('content.titles.messageDetail')" :show-back="true" />
     </template>
 
     <template #content>
@@ -9,12 +9,12 @@
         <view class="message-detail-page">
           <view v-if="loading" class="detail-state">
             <view class="detail-spinner" />
-            <text>消息加载中...</text>
+            <text>{{ t('content.messages.loading') }}</text>
           </view>
 
           <view v-else-if="errorText" class="detail-state detail-state--error" @tap="loadDetail">
             <text>{{ errorText }}</text>
-            <text class="detail-retry">点击重试</text>
+            <text class="detail-retry">{{ t('content.messages.retry') }}</text>
           </view>
 
           <view v-else-if="detail" class="message-detail-card">
@@ -30,10 +30,10 @@
             </view>
 
             <text class="detail-title">{{ detail.title }}</text>
-            <text class="detail-time">{{ formatDateTime(detail.createdAt) || '时间未知' }}</text>
+            <text class="detail-time">{{ formatDateTime(detail.createdAt) || t('content.messages.unknownTime') }}</text>
 
             <view class="detail-divider" />
-            <text class="detail-content">{{ detail.content || '暂无详细内容' }}</text>
+            <text class="detail-content">{{ detail.content || t('content.messages.emptyContent') }}</text>
 
             <view v-if="relatedAction" class="related-entry" hover-class="related-entry--pressed" @tap="openRelatedBusiness">
               <view class="related-entry-icon">
@@ -41,7 +41,7 @@
               </view>
               <view class="related-entry-copy">
                 <text class="related-entry-title">{{ relatedAction.title }}</text>
-                <text class="related-entry-desc">查看这条通知关联的业务记录</text>
+                <text class="related-entry-desc">{{ t('content.messages.relatedHint') }}</text>
               </view>
               <AppIcon name="chevron-right" :size="17" color="#9AA1AA" />
             </view>
@@ -58,6 +58,8 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/content/i18n/register.js'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getMessageList, markAsRead } from '../../api/message.js'
@@ -74,22 +76,24 @@ const messageStore = useMessageStore()
 const messageId = ref('')
 const detail = ref(null)
 const loading = ref(false)
-const errorText = ref('')
+const loadFailure = ref(null)
+const errorText = computed(() => loadFailure.value?.message
+  || (loadFailure.value?.messageKey ? t(loadFailure.value.messageKey) : ''))
 
-const typeMeta = Object.freeze({
-  1: { label: '订单消息', icon: 'order', tone: 'order' },
-  2: { label: '审核消息', icon: 'check', tone: 'audit' },
-  3: { label: '账单消息', icon: 'invoice', tone: 'bill' },
-  4: { label: '系统公告', icon: 'announcement', tone: 'system' },
-})
+const typeMeta = computed(() => ({
+  1: { label: t('content.messages.orderType'), icon: 'order', tone: 'order' },
+  2: { label: t('content.messages.auditType'), icon: 'check', tone: 'audit' },
+  3: { label: t('content.messages.billType'), icon: 'invoice', tone: 'bill' },
+  4: { label: t('content.messages.announcementType'), icon: 'announcement', tone: 'system' },
+}))
 
 const relatedAction = computed(() => {
   if (!detail.value?.relatedId) return null
   if (detail.value.relatedKind === 'bill' || detail.value.type === 3) {
-    return { title: '查看账单详情', icon: 'invoice', kind: 'bill' }
+    return { title: t('content.messages.viewBill'), icon: 'invoice', kind: 'bill' }
   }
   if (detail.value.relatedKind === 'order' || detail.value.type === 1) {
-    return { title: '查看订单详情', icon: 'order', kind: 'order' }
+    return { title: t('content.messages.viewOrder'), icon: 'order', kind: 'order' }
   }
   return null
 })
@@ -127,14 +131,15 @@ function normalizeMessage(item) {
   }
 }
 
+/** 读取原消息和关联记录，保留错误对象以响应语言变化。 */
 async function loadDetail() {
   if (!messageId.value || loading.value) {
-    if (!messageId.value) errorText.value = '消息参数无效'
+    if (!messageId.value) loadFailure.value = { messageKey: 'content.messages.invalid' }
     return
   }
 
   loading.value = true
-  errorText.value = ''
+  loadFailure.value = null
   try {
     const cached = messageStore.messageList.find(item => String(item.messageId) === messageId.value)
     if (cached) {
@@ -146,14 +151,14 @@ async function loadDetail() {
     }
 
     if (!detail.value) {
-      errorText.value = '消息不存在或已被清理'
+      loadFailure.value = { messageKey: 'content.messages.missing' }
       return
     }
 
     await markDetailAsRead()
   } catch (error) {
     console.error('[MessageDetail] 加载消息失败:', error)
-    errorText.value = error?.message || '消息加载失败，请稍后重试'
+    loadFailure.value = error?.message ? error : { messageKey: 'content.messages.loadFailed' }
   } finally {
     loading.value = false
   }
@@ -168,8 +173,9 @@ async function markDetailAsRead() {
   if (cached) cached.isRead = true
 }
 
+/** 仅翻译消息类型标签，不生成或改写消息正文。 */
 function getTypeMeta(type) {
-  return typeMeta[type] || { label: '消息通知', icon: 'bell', tone: 'default' }
+  return typeMeta.value[type] || { label: t('content.messages.notification'), icon: 'bell', tone: 'default' }
 }
 
 function openRelatedBusiness() {

@@ -129,11 +129,12 @@ export function formatDateTime(dateTime, fmt = 'YYYY-MM-DD HH:mm:ss') {
 }
 
 /**
- * 格式化为相对时间（如：3分钟前、昨天）
+ * 格式化为相对时间，保留 UTC 解析与分界，仅允许调用方格式化显示标签。
  * @param {string|Date|number} dateTime - UTC 时间字符串或时间戳
+ * @param {Function|null} formatLabel - 可选显示回调；不提供时保持原中文输出
  * @returns {string}
  */
-export function formatRelativeTime(dateTime) {
+export function formatRelativeTime(dateTime, formatLabel = null) {
   if (!dateTime) return ''
 
   const timestamp = parseUtcToLocal(dateTime).getTime()
@@ -142,16 +143,16 @@ export function formatRelativeTime(dateTime) {
   const now = Date.now()
   const diff = now - timestamp
 
-  if (diff < 0) return '刚刚'
+  if (diff < 0) return formatLabel?.('justNow') ?? '刚刚'
 
   const minute = 60 * 1000
   const hour = 60 * minute
   const day = 24 * hour
 
-  if (diff < minute) return '刚刚'
-  if (diff < hour) return `${Math.floor(diff / minute)}分钟前`
-  if (diff < day) return `${Math.floor(diff / hour)}小时前`
-  if (diff < 7 * day) return `${Math.floor(diff / day)}天前`
+  if (diff < minute) return formatLabel?.('justNow') ?? '刚刚'
+  if (diff < hour) return formatLabel?.('minute', Math.floor(diff / minute)) ?? `${Math.floor(diff / minute)}分钟前`
+  if (diff < day) return formatLabel?.('hour', Math.floor(diff / hour)) ?? `${Math.floor(diff / hour)}小时前`
+  if (diff < 7 * day) return formatLabel?.('day', Math.floor(diff / day)) ?? `${Math.floor(diff / day)}天前`
 
   return formatDateTime(dateTime, 'YYYY-MM-DD')
 }
@@ -167,13 +168,14 @@ export function formatMonth(year, month) {
 }
 
 /**
- * 解析 "YYYY-MM" 格式字符串为 "YYYY年MM月"
+ * 解析账期供显示；可选回调只格式化标签，不改变原始账期。
  * @param {string} value - 月份字符串，如 "2026-01"
+ * @param {Function|null} formatLabel - 可选显示回调，不提供时保留原中文输出
  * @returns {string}
  */
-export function formatMonthDisplay(value) {
+export function formatMonthDisplay(value, formatLabel = null) {
   const [year, month] = String(value || '').split('-')
-  return year && month ? `${year}年${month}月` : '-'
+  return year && month ? (formatLabel?.(year, month) ?? `${year}年${month}月`) : '-'
 }
 
 // ==================== 数字格式化 ====================

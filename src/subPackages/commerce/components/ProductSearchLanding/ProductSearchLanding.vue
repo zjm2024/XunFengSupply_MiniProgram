@@ -2,7 +2,7 @@
   <view class="search-landing">
     <view v-if="history.length" class="search-section">
       <view class="section-header">
-        <text class="section-title">最近搜索</text>
+        <text class="section-title">{{ t('commerce.search.recent') }}</text>
         <view class="clear-history" hover-class="entry--pressed" @click="$emit('clear-history')">
           <AppIcon name="trash" :size="20" :stroke-width="1.8" />
         </view>
@@ -23,7 +23,7 @@
 
     <view class="search-section recommendation-section">
       <view class="section-header">
-        <text class="section-title">搜索推荐</text>
+        <text class="section-title">{{ t('commerce.search.recommended') }}</text>
       </view>
 
       <view class="recommendation-grid">
@@ -43,6 +43,8 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/commerce/i18n/register.js'
 import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
 
 defineProps({

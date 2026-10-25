@@ -1,7 +1,7 @@
 ﻿<template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="确认订单" :show-back="true" />
+      <AppHeader :title="t('commerce.titles.checkout')" :show-back="true" />
     </template>
 
     <template #content>
@@ -17,13 +17,13 @@
           <view class="checkout-page">
             <view v-if="hasPriceChanged" class="price-notice">
               <AppIcon name="info" :size="17" color="#B76500" />
-              <text>商品价格已按最新经销商价格重新核算，请确认后提交。</text>
+              <text>{{ t('commerce.checkout.priceChanged') }}</text>
             </view>
 
             <view v-if="previewError" class="preview-notice">
               <AppIcon name="alert" :size="17" color="#B42318" />
               <text>{{ previewError }}</text>
-              <button class="notice-action button-center" @click="refreshPreview()">重新核价</button>
+              <button class="notice-action button-center" @click="refreshPreview()">{{ t('commerce.checkout.reprice') }}</button>
             </view>
 
             <view class="checkout-grid">
@@ -34,10 +34,10 @@
                       <AppIcon name="location" :size="20" />
                     </view>
                     <view class="heading-copy">
-                      <text class="section-title">收货信息</text>
-                      <text class="section-subtitle">物流配送必须选择有效收货地址</text>
+                      <text class="section-title">{{ t('commerce.checkout.receiver') }}</text>
+                      <text class="section-subtitle">{{ t('commerce.checkout.receiverHint') }}</text>
                     </view>
-                    <text v-if="selectedAddress?.isDefault" class="section-badge">默认</text>
+                    <text v-if="selectedAddress?.isDefault" class="section-badge">{{ t('commerce.checkout.default') }}</text>
                   </view>
 
                   <button class="address-entry" :class="{ empty: !hasAddress }" @click="goToAddress()">
@@ -50,7 +50,7 @@
                         <text class="contact-address">{{ receiverAddress }}</text>
                       </view>
                       <view class="address-action">
-                        <text>更换</text>
+                        <text>{{ t('commerce.checkout.change') }}</text>
                         <AppIcon name="chevron-right" :size="17" color="#90939A" />
                       </view>
                     </template>
@@ -59,8 +59,8 @@
                         <AppIcon name="plus" :size="18" color="#D7192D" />
                       </view>
                       <view class="empty-address-copy">
-                        <text class="empty-address-title">请新增收货地址</text>
-                        <text class="empty-address-desc">保存后将自动用于本次订单</text>
+                        <text class="empty-address-title">{{ t('commerce.checkout.addAddress') }}</text>
+                        <text class="empty-address-desc">{{ t('commerce.checkout.addressHint') }}</text>
                       </view>
                       <AppIcon name="chevron-right" :size="18" color="#D7192D" />
                     </template>
@@ -73,12 +73,12 @@
                       <AppIcon name="order" :size="20" />
                     </view>
                     <view class="heading-copy">
-                      <text class="section-title">商品清单</text>
-                      <text class="section-subtitle">{{ checkoutGroups.length }} 个商品 · {{ displayItems.length }} 个 SKU · 共 {{ totalQuantity }} 件</text>
+                      <text class="section-title">{{ t('commerce.checkout.products') }}</text>
+                      <text class="section-subtitle">{{ t('commerce.checkout.listCount', { products: checkoutGroups.length, skus: displayItems.length, quantity: totalQuantity }) }}</text>
                     </view>
                     <view class="verified-label">
                       <AppIcon name="shield-check" :size="14" />
-                      <text>服务端核价</text>
+                      <text>{{ t('commerce.checkout.details') }}</text>
                     </view>
                   </view>
 
@@ -87,9 +87,9 @@
                       <button class="checkout-spu-header" @tap="toggleCheckoutGroup(group.key)">
                         <view class="checkout-spu-copy">
                           <text class="checkout-spu-name">{{ group.name }}</text>
-                          <text class="checkout-spu-meta">{{ group.skuCount }} 个 SKU · {{ group.totalQuantity }} 件</text>
+                          <text class="checkout-spu-meta">{{ t('commerce.checkout.groupCount', { count: group.skuCount, quantity: group.totalQuantity }) }}</text>
                         </view>
-                        <text class="checkout-spu-total">¥{{ formatMoney(group.totalAmount) }}</text>
+                        <AmountText class="checkout-spu-total" :text="'¥' + (formatMoney(group.totalAmount))" />
                         <AppIcon
                           name="chevron-right"
                           :size="17"
@@ -113,25 +113,23 @@
                           />
                           <view class="product-info">
                             <view class="product-name-line">
-                              <text class="product-name">{{ item.skuName || '默认规格' }}</text>
-                              <text v-if="item.isGift" class="gift-tag">赠品</text>
+                              <text class="product-name">{{ item.skuName || t('commerce.checkout.defaultVariant') }}</text>
+                              <text v-if="item.isGift" class="gift-tag">{{ t('commerce.checkout.gift') }}</text>
                             </view>
                             <text class="product-spec">SKU：{{ item.code || item.skuId }}</text>
                             <view class="product-meta">
-                              <text>¥{{ formatMoney(item.salePrice) }} / {{ item.unit }}</text>
-                              <text v-if="item.strategyDiscount > 0" class="strategy-discount">策略优惠 ¥{{ formatMoney(item.strategyDiscount) }}</text>
-                              <text v-if="item.promotionDiscount > 0" class="promotion-discount">活动优惠 ¥{{ formatMoney(item.promotionDiscount) }}</text>
+                              <AmountText :text="'¥' + (formatMoney(item.salePrice)) + ' / ' + (item.unit)" />
+                              <AmountText v-if="item.strategyDiscount > 0" class="strategy-discount" :text="t('commerce.checkout.strategyAmount', { amount: formatMoney(item.strategyDiscount) })" />
+                              <AmountText v-if="item.promotionDiscount > 0" class="promotion-discount" :text="t('commerce.checkout.promotionAmount', { amount: formatMoney(item.promotionDiscount) })" />
                               <text>× {{ item.quantity }}</text>
                             </view>
                             <text v-if="item.stockInsufficient" class="stock-risk">
-                              可用库存 {{ item.availableStock }}，当前需要 {{ item.quantity }}
+                              {{ t('commerce.checkout.requiredStock', { stock: item.availableStock, quantity: item.quantity }) }}
                             </text>
                           </view>
                           <view class="product-amount">
-                            <text>¥{{ formatMoney(item.totalAmount) }}</text>
-                            <text v-if="item.listPrice > item.salePrice" class="list-price">
-                              ¥{{ formatMoney(item.listPrice * item.quantity) }}
-                            </text>
+                            <AmountText :text="'¥' + (formatMoney(item.totalAmount))" />
+                            <AmountText v-if="item.listPrice > item.salePrice" class="list-price" :text="' ¥' + (formatMoney(item.listPrice * item.quantity))" />
                           </view>
                         </view>
                       </view>
@@ -144,7 +142,7 @@
                   </view>
                   <view v-if="requiresGiftOmissionConfirmation" class="gift-stock-warning">
                     <AppIcon name="gift" :size="16" color="#D7192D" />
-                    <text>{{ giftStockWarningText }}。正价商品仍可下单，提交前可确认放弃这些赠品。</text>
+                    <text>{{ t('commerce.checkout.giftWarning', { message: giftStockWarningText }) }}</text>
                   </view>
                 </view>
               </view>
@@ -152,26 +150,26 @@
               <view class="checkout-side">
                 <view class="section-card options-card">
                   <view class="compact-heading">
-                    <text class="section-title">配送方式</text>
-                    <text v-if="previewing" class="refreshing-text">正在核价…</text>
+                    <text class="section-title">{{ t('commerce.checkout.delivery') }}</text>
+                    <text v-if="previewing" class="refreshing-text">{{ t('commerce.checkout.repricing') }}</text>
                   </view>
                   <view class="delivery-fixed">
                     <view class="choice-icon active-icon">
                       <AppIcon name="truck" :size="19" />
                     </view>
                     <view class="choice-copy">
-                      <text class="choice-title">物流配送</text>
-                      <text class="choice-desc">由商城统一安排承运与发货</text>
+                      <text class="choice-title">{{ t('commerce.checkout.logistics') }}</text>
+                      <text class="choice-desc">{{ t('commerce.checkout.logisticsHint') }}</text>
                     </view>
-                    <text class="fixed-label">默认</text>
+                    <text class="fixed-label">{{ t('commerce.checkout.default') }}</text>
                   </view>
                   <view v-if="expressCompanyOptions.length" class="carrier-selector">
                     <view class="carrier-selector-copy">
-                      <text class="choice-title">承运商</text>
-                      <text class="choice-desc">选择后将按对应运费规则重新核价</text>
+                      <text class="choice-title">{{ t('commerce.checkout.carrier') }}</text>
+                      <text class="choice-desc">{{ t('commerce.checkout.carrierHint') }}</text>
                     </view>
                     <view class="carrier-picker-value" @tap="expressPickerVisible = true">
-                      <text>{{ selectedExpressCompany?.name || '请选择' }}</text>
+                      <text>{{ selectedExpressCompany?.name || t('commerce.checkout.select') }}</text>
                       <AppIcon name="chevron-right" :size="16" color="#90939A" />
                     </view>
                   </view>
@@ -185,16 +183,16 @@
                   <view class="setting-row">
                     <view class="setting-label">
                       <AppIcon name="invoice" :size="18" />
-                      <text>发票</text>
+                      <text>{{ t('commerce.checkout.invoice') }}</text>
                     </view>
-                    <text class="setting-value">订单完成后申请</text>
+                    <text class="setting-value">{{ t('commerce.checkout.invoiceHint') }}</text>
                   </view>
 
                   <view class="remark-block">
                     <view class="remark-heading">
                       <view class="setting-label">
                         <AppIcon name="edit" :size="18" />
-                        <text>订单备注</text>
+                        <text>{{ t('commerce.checkout.remark') }}</text>
                       </view>
                       <text class="remark-count">{{ customerRemark.length }}/200</text>
                     </view>
@@ -202,7 +200,7 @@
                       v-model="customerRemark"
                       class="remark-input"
                       maxlength="200"
-                      placeholder="可填写交期、包装或收货要求"
+                      :placeholder="t('commerce.checkout.remarkPlaceholder')"
                       placeholder-class="remark-placeholder"
                       :disabled="submitting"
                     />
@@ -211,33 +209,32 @@
 
                 <view class="section-card summary-card">
                   <view class="compact-heading">
-                    <text class="section-title">订单汇总</text>
-                    <text class="verified-text">价格以提交时服务端结果为准</text>
+                    <text class="section-title">{{ t('commerce.checkout.summary') }}</text>
+                    <text class="verified-text">{{ t('commerce.checkout.verify') }}</text>
                   </view>
 
                   <view class="amount-list">
                     <view class="amount-row">
-                      <text>商品金额</text>
-                      <text>¥{{ formatMoney(goodsAmount) }}</text>
+                      <text>{{ t('commerce.checkout.goodsAmount') }}</text>
+                      <AmountText :text="'¥' + (formatMoney(goodsAmount))" />
                     </view>
                     <view v-if="discountAmount > 0" class="amount-row discount">
-                      <text>优惠金额</text>
-                      <text>-¥{{ formatMoney(discountAmount) }}</text>
+                      <text>{{ t('commerce.checkout.discount') }}</text>
+                      <AmountText :text="'-¥' + (formatMoney(discountAmount))" />
                     </view>
                     <view class="amount-row">
-                      <text>配送费用</text>
-                      <text>{{ freightAmount > 0 ? ('¥' + formatMoney(freightAmount)) : '免运费' }}</text>
+                      <text>{{ t('commerce.checkout.freight') }}</text>
+                      <AmountText :text="(freightAmount > 0 ? ('¥' + formatMoney(freightAmount)) : t('commerce.checkout.freeShipping'))" />
                     </view>
                   </view>
 
                   <view class="payable-row">
                     <view>
-                      <text class="payable-label">应付金额</text>
-                      <text class="payable-quantity">共 {{ totalQuantity }} 件</text>
+                      <text class="payable-label">{{ t('commerce.checkout.payable') }}</text>
+                      <text class="payable-quantity">{{ t('commerce.checkout.totalQuantity', { count: totalQuantity }) }}</text>
                     </view>
                     <view class="payable-price">
-                      <text class="currency">¥</text>
-                      <text>{{ formatMoney(payableAmount) }}</text>
+                      <AmountText class="payable-amount" :text="'¥' + (formatMoney(payableAmount))" />
                     </view>
                   </view>
 
@@ -245,13 +242,13 @@
                     <view class="agreement-check" :class="{ checked: agreed }">
                       <AppIcon v-if="agreed" name="check" :size="14" color="#FFFFFF" />
                     </view>
-                    <text>我已阅读并同意《经销商交易协议》</text>
+                    <text>{{ t('commerce.checkout.agreement') }}</text>
                   </view>
                   <text v-if="submitDisabledReason" class="submit-hint">{{ submitDisabledReason }}</text>
 
                   <view class="secure-tip">
                     <AppIcon name="shield-check" :size="15" color="#168A52" />
-                    <text>库存与价格将在提交前再次校验，重复点击不会重复创建订单。</text>
+                    <text>{{ t('commerce.checkout.progressHint') }}</text>
                   </view>
                 </view>
               </view>
@@ -265,11 +262,10 @@
       <FixedActionBar v-if="pageState === PageStatus.CONTENT">
         <view class="checkout-footer">
           <view class="footer-summary">
-            <text class="footer-count">共 {{ totalQuantity }} 件</text>
+            <text class="footer-count">{{ t('commerce.checkout.totalQuantity', { count: totalQuantity }) }}</text>
             <view class="footer-price">
-              <text class="footer-label">应付</text>
-              <text class="footer-currency">¥</text>
-              <text class="footer-amount">{{ formatMoney(payableAmount) }}</text>
+              <text class="footer-label">{{ t('commerce.checkout.due') }}</text>
+              <AmountText class="footer-amount" :text="'¥' + (formatMoney(payableAmount))" />
             </view>
           </view>
           <button
@@ -287,10 +283,10 @@
 
   <ConfirmPopup
     v-model="confirmModalVisible"
-    title="确认提交订单？"
+    :title="t('commerce.checkout.confirmTitle')"
     :description="confirmDescription"
     :preview-text="confirmPreviewText"
-    confirm-text="确认提交"
+    :confirm-text="t('commerce.checkout.confirm')"
     :confirm-disabled="submitting"
     :close-on-overlay="!submitting"
     @confirm="confirmSubmit"
@@ -304,6 +300,10 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/commerce/i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
+import { AppError, ErrorKind } from '@/shared/api/appError.js'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { createOrder, generateClientRequestId, getExpressCompanies, previewOrder } from '../../api/checkoutApi.js'
@@ -319,6 +319,7 @@ import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import ConfirmPopup from '@/shared/ui/ConfirmPopup/ConfirmPopup.vue'
+import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 import ExpressCompanyPicker from '../../components/ExpressCompanyPicker/ExpressCompanyPicker.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
@@ -329,17 +330,20 @@ const userStore = useUserStore()
 const { cartStore, loadCart, flush } = useCart()
 
 const pageState = ref(PageStatus.LOADING)
-const errorMessage = ref('')
+const pageFailure = ref(null)
+const errorMessage = computed(() => pageFailure.value?.message || '')
 const checkoutItems = ref([])
 const previewData = ref(null)
 const previewing = ref(false)
-const previewError = ref('')
+const previewFailure = ref(null)
+const previewError = computed(() => previewFailure.value?.message || '')
 const deliveryType = ref(DELIVERY_TYPE.DELIVERY)
 const selectedAddress = ref(null)
 const expressCompanies = ref([])
 const expressCompanyCode = ref('')
 const expressPickerVisible = ref(false)
-const carrierError = ref('')
+const carrierFailure = ref(null)
+const carrierError = computed(() => carrierFailure.value?.message || '')
 const customerRemark = ref('')
 const agreed = ref(false)
 const confirmModalVisible = ref(false)
@@ -394,8 +398,8 @@ const payableAmount = computed(() => number(
 const stockAvailable = computed(() => previewData.value?.stockAvailable !== false)
 const insufficientSkus = computed(() => previewData.value?.insufficientSkus || [])
 const stockWarningText = computed(() => insufficientSkus.value.length
-  ? '以下规格库存不足：' + insufficientSkus.value.join('、')
-  : '部分商品库存不足，请返回购物车调整数量后重试。',
+  ? t('commerce.checkout.insufficientSkus', { skus: insufficientSkus.value.join('、') })
+  : t('commerce.checkout.stockFallback'),
 )
 const giftStockAvailable = computed(() => previewData.value?.giftStockAvailable !== false)
 const insufficientGiftSkus = computed(() => previewData.value?.insufficientGiftSkus || [])
@@ -403,20 +407,20 @@ const requiresGiftOmissionConfirmation = computed(() => (
   previewData.value?.requiresGiftOmissionConfirmation === true || !giftStockAvailable.value
 ))
 const giftStockWarningText = computed(() => insufficientGiftSkus.value.length
-  ? '以下促销赠品库存不足：' + insufficientGiftSkus.value.join('、')
-  : '部分促销赠品当前库存不足',
+  ? t('commerce.checkout.insufficientGifts', { skus: insufficientGiftSkus.value.join('、') })
+  : t('commerce.checkout.giftStockFallback'),
 )
 const hasPriceChanged = computed(() =>
   Boolean(previewData.value) && Math.abs(localAmount.value - goodsAmount.value) >= 0.01,
 )
 
 const submitDisabledReason = computed(() => {
-  if (!userStore.canOrder) return '当前账号状态暂不允许提交订单'
-  if (!hasAddress.value) return '请先新增并选择收货地址'
-  if (deliveryType.value === DELIVERY_TYPE.DELIVERY && !expressCompanyCode.value) return carrierError.value || '请选择承运商'
-  if (!stockAvailable.value) return '存在库存不足商品，请调整后重新结算'
-  if (!agreed.value) return '请阅读并同意经销商交易协议'
-  if (previewError.value) return '订单核价失败，请重新核价'
+  if (!userStore.canOrder) return t('commerce.checkout.accountBlocked')
+  if (!hasAddress.value) return t('commerce.checkout.addressRequired')
+  if (deliveryType.value === DELIVERY_TYPE.DELIVERY && !expressCompanyCode.value) return carrierError.value || t('commerce.checkout.carrierRequired')
+  if (!stockAvailable.value) return t('commerce.checkout.stockBlocked')
+  if (!agreed.value) return t('commerce.checkout.agreementRequired')
+  if (previewError.value) return t('commerce.checkout.quoteRetry')
   return ''
 })
 const canSubmit = computed(() =>
@@ -432,28 +436,28 @@ const canSubmit = computed(() =>
   && !submitting.value,
 )
 const submitButtonText = computed(() => {
-  if (submitting.value) return '提交中…'
-  if (previewing.value) return '核价中…'
-  return '提交订单'
+  if (submitting.value) return t('commerce.checkout.submitting')
+  if (previewing.value) return t('commerce.checkout.quoting')
+  return t('commerce.checkout.submit')
 })
 
 const stateTitle = computed(() => {
-  if (pageState.value === PageStatus.EMPTY) return '暂无可结算商品'
-  if (pageState.value === PageStatus.ERROR) return '结算信息加载失败'
+  if (pageState.value === PageStatus.EMPTY) return t('commerce.checkout.empty')
+  if (pageState.value === PageStatus.ERROR) return t('commerce.checkout.loadFailedTitle')
   return ''
 })
 const stateDescription = computed(() => {
-  if (pageState.value === PageStatus.EMPTY) return '请返回购物车选择需要采购的商品'
-  return errorMessage.value || '网络异常，请稍后重试'
+  if (pageState.value === PageStatus.EMPTY) return t('commerce.checkout.emptyHint')
+  return errorMessage.value || t('commerce.checkout.network')
 })
 const stateActionText = computed(() =>
-  pageState.value === PageStatus.EMPTY ? '返回购物车' : '重新加载',
+  pageState.value === PageStatus.EMPTY ? t('commerce.checkout.backCart') : t('commerce.checkout.reload'),
 )
 const confirmDescription = computed(() => {
-  const giftText = omitUnavailableGifts.value ? '；库存不足赠品将不随单赠送' : ''
-  return '本单共 ' + totalQuantity.value + ' 件，提交后请在收银台选择支付方式完成结算' + giftText + '。'
+  const giftText = omitUnavailableGifts.value ? t('commerce.checkout.omitSuffix') : ''
+  return t('commerce.checkout.confirmDescription', { count: totalQuantity.value, giftText })
 })
-const confirmPreviewText = computed(() => '应付金额 ¥' + formatMoney(payableAmount.value))
+const confirmPreviewText = computed(() => t('commerce.checkout.confirmAmount', { amount: formatMoney(payableAmount.value) }))
 
 onLoad(() => {
   loadCheckoutData()
@@ -566,14 +570,15 @@ function normalizeExpressCompany(source = {}) {
   }
 }
 
+/** 沿用原承运商规范化和默认选择，只保留可重新取词的读取错误。 */
 async function loadExpressCompanies() {
-  carrierError.value = ''
+  carrierFailure.value = null
   try {
     const raw = await getExpressCompanies()
     expressCompanies.value = (Array.isArray(raw) ? raw : []).map(normalizeExpressCompany).filter(item => item.code)
     if (!expressCompanies.value.length) {
       expressCompanyCode.value = ''
-      carrierError.value = '暂无可用承运商，请联系管理员完成快递公司同步。'
+      carrierFailure.value = localError('commerce.checkout.carrierEmpty')
       return
     }
     if (!expressCompanies.value.some(item => item.code === expressCompanyCode.value)) {
@@ -582,7 +587,7 @@ async function loadExpressCompanies() {
   } catch (error) {
     expressCompanies.value = []
     expressCompanyCode.value = ''
-    carrierError.value = error?.message || '承运商加载失败，请稍后重试。'
+    carrierFailure.value = error?.message ? error : localError('commerce.checkout.carrierFailed')
   }
 }
 
@@ -590,10 +595,11 @@ async function handleExpressCompanyConfirm() {
   await refreshPreview()
 }
 
+/** 沿用原购物车、地址、承运商和预览流程，不因语言变化重载。 */
 async function loadCheckoutData() {
   pageState.value = PageStatus.LOADING
-  errorMessage.value = ''
-  previewError.value = ''
+  pageFailure.value = null
+  previewFailure.value = null
   previewData.value = null
   clientRequestId.value = ''
 
@@ -607,28 +613,29 @@ async function loadCheckoutData() {
       return
     }
     if (cartStore.summary.isOverLimit) {
-      throw new Error('单次采购金额不能超过 10 万元，请返回购物车分批结算')
+      throw localError('commerce.checkout.overLimit')
     }
 
     checkoutItems.value = selected.map(item => ({ ...item }))
     await loadDefaultAddress()
     await loadExpressCompanies()
-    if (deliveryType.value === DELIVERY_TYPE.DELIVERY && !expressCompanyCode.value) throw new Error(carrierError.value)
+    if (deliveryType.value === DELIVERY_TYPE.DELIVERY && !expressCompanyCode.value) throw copyDisplayError(carrierFailure.value, 'commerce.checkout.loadFailed')
     const result = await refreshPreview({ silent: true })
-    if (!result) throw new Error(previewError.value || '订单核价失败')
+    if (!result) throw copyDisplayError(previewFailure.value, 'commerce.checkout.quoteFailed')
     pageState.value = PageStatus.CONTENT
   } catch (error) {
-    errorMessage.value = error?.message || '结算信息加载失败，请稍后重试'
+    pageFailure.value = error?.message ? error : localError('commerce.checkout.loadFailed')
     pageState.value = PageStatus.ERROR
   }
 }
 
+/** 沿用原预览参数、序列保护和旧预览回退，只本地化错误。 */
 async function refreshPreview({ silent = false } = {}) {
   if (checkoutItems.value.length === 0 || previewing.value) return null
   const requestId = ++previewSequence
   const previousPreview = previewData.value
   previewing.value = true
-  previewError.value = ''
+  previewFailure.value = null
 
   try {
     const raw = await previewOrder({
@@ -639,14 +646,14 @@ async function refreshPreview({ silent = false } = {}) {
     })
     if (requestId !== previewSequence) return null
     const normalized = normalizePreview(raw)
-    if (normalized.items.length === 0) throw new Error('服务端未返回可结算商品')
+    if (normalized.items.length === 0) throw localError('commerce.checkout.quoteEmpty')
     previewData.value = normalized
     omitUnavailableGifts.value = false
     return normalized
   } catch (error) {
     if (requestId === previewSequence) {
       previewData.value = previousPreview
-      previewError.value = error?.message || '订单核价失败，请稍后重试'
+      previewFailure.value = error?.message ? error : localError('commerce.checkout.quoteFailedRetry')
       if (!silent) uni.showToast({ title: previewError.value, icon: 'none' })
     }
     return null
@@ -688,6 +695,7 @@ async function prepareSubmit() {
   confirmModalVisible.value = true
 }
 
+/** 保留原下单参数、幂等、赠品确认和购物车清理顺序。 */
 async function confirmSubmit() {
   if (submitting.value || !canSubmit.value) return
   confirmModalVisible.value = false
@@ -713,7 +721,7 @@ async function confirmSubmit() {
       OmitUnavailableGifts: omitUnavailableGifts.value,
     })
     const orderId = valueOf(response, 'orderId', 'OrderId')
-    if (!orderId) throw new Error('订单创建成功但未返回订单编号')
+    if (!orderId) throw localError('commerce.checkout.missingCreatedId')
 
     const responseOrders = valueOf(response, 'orders', 'Orders', [])
     createdOrders = (Array.isArray(responseOrders) && responseOrders.length ? responseOrders : [response])
@@ -733,37 +741,34 @@ async function confirmSubmit() {
     navigator.redirectTo(routes.order.pay(orderId))
   } catch (error) {
     if (createdOrders.length) {
-      uni.showToast({ title: '订单已创建，支付未完成，请到订单中心继续处理', icon: 'none', duration: 2600 })
+      uni.showToast({ title: t('commerce.checkout.createdUnpaid'), icon: 'none', duration: 2600 })
       setTimeout(() => navigator.redirectTo(routes.order.list({ status: 20 })), 900)
       return
     }
     if (error?.errorCode === 'ORDER_GIFT_STOCK_INSUFFICIENT' && !omitUnavailableGifts.value) {
       submitting.value = false
-      const confirmed = await confirmGiftOmission(error?.message || '促销赠品库存不足')
+      const confirmed = await confirmGiftOmission(error?.message || t('commerce.checkout.giftInsufficient'))
       if (confirmed) {
         omitUnavailableGifts.value = true
         await confirmSubmit()
       }
       return
     }
-    uni.showToast({ title: error?.message || '订单提交失败，请重试', icon: 'none' })
+    uni.showToast({ title: error?.message || t('commerce.checkout.submitFailed'), icon: 'none' })
   } finally {
     submitting.value = false
   }
 }
 
+/** 显示赠品放弃确认，只有用户确认才沿用原下单分支。 */
 function confirmGiftOmission(message) {
-  return new Promise(resolve => {
-    uni.showModal({
-      title: '赠品库存不足',
-      content: `${message}。是否放弃库存不足的赠品并继续下单？`,
-      confirmText: '放弃赠品',
-      cancelText: '暂不下单',
-      confirmColor: '#D7192D',
-      success: result => resolve(Boolean(result.confirm)),
-      fail: () => resolve(false),
+  return openAppDialog({
+      title: t('commerce.checkout.giftTitle'),
+      description: t('commerce.checkout.omitQuestion', { message }),
+      confirmText: t('commerce.checkout.omitGift'),
+      cancelText: t('commerce.checkout.doNotOrder'),
+      danger: true,
     })
-  })
 }
 
 function handleStateAction() {
@@ -773,6 +778,18 @@ function handleStateAction() {
   }
   loadCheckoutData()
 }
+/** 创建可重新取词的本地提示，不附加后端错误码。 */
+function localError(messageKey) {
+  return new AppError('', ErrorKind.UNKNOWN, { messageKey })
+}
+
+/** 保留原包装错误只含显示消息的语义，不复制后端 errorCode。 */
+function copyDisplayError(source, fallbackKey) {
+  return new AppError(source?.message || t(fallbackKey), ErrorKind.UNKNOWN, {
+    messageKey: source?.messageKey || (!source?.message ? fallbackKey : undefined),
+  })
+}
+
 </script>
 
 <style lang="scss" scoped>
@@ -1062,7 +1079,7 @@ function handleStateAction() {
   display: grid;
   width: 100%;
   min-height: 62px;
-  grid-template-columns: minmax(0, 1fr) auto 28px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, .7fr) 28px;
   align-items: center;
   gap: 10px;
   margin: 0;
@@ -1126,7 +1143,7 @@ function handleStateAction() {
 
 .product-row {
   display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) auto;
+  grid-template-columns: 72px minmax(0, 1fr) minmax(0, .65fr);
   gap: 12px;
   align-items: center;
   padding: 12px;
@@ -1581,7 +1598,7 @@ function handleStateAction() {
   }
 
   .product-row {
-    grid-template-columns: 84px minmax(0, 1fr) auto;
+    grid-template-columns: 84px minmax(0, 1fr) minmax(0, .65fr);
   }
 
   .product-image {
@@ -1636,4 +1653,12 @@ function handleStateAction() {
     flex-basis: 124px;
   }
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.summary-card, .amount-row, .product-amount, .payable-price, .footer-summary, .footer-price { min-width: 0; }
+.payable-price { max-width: 65%; }
+.payable-amount { font-size: inherit; }
+.payable-row, .amount-row { gap: 10px; }
+.amount-row > text, .footer-label { flex: none; }
+.product-meta .amount-text { font-size: inherit; }
 </style>

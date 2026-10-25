@@ -6,7 +6,7 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="申请售后" :show-back="true" />
+      <AppHeader :title="t('order.titles.apply')" :show-back="true" />
     </template>
     <template #content>
       <AppContent>
@@ -15,7 +15,7 @@
           <view class="select-order-section" v-if="!selectedOrder" @click="goSelectOrder">
             <view class="select-trigger">
               <AppIcon name="plus" :size="24" color="#999" />
-              <text class="hint">选择要售后的订单商品</text>
+              <text class="hint">{{ t('order.afterSale.selectGoods') }}</text>
               <AppIcon name="chevron-right" :size="16" color="#CCC" />
             </view>
           </view>
@@ -31,14 +31,14 @@
             <AppProductImage class="goods-image" :src="item.imageUrl" mode="aspectFill" />
             <view class="goods-info">
               <text class="goods-name">{{ item.productName }}</text>
-              <text class="sku-name">{{ item.skuName }} · 可申请 {{ item.availableQuantity }} 件</text>
+               <text class="sku-name">{{ item.skuName }} · {{ t('order.afterSale.availableQuantity', { count: item.availableQuantity }) }}</text>
             </view>
-            <view class="select-mark">{{ selectedGoods?.orderItemId === item.orderItemId ? '已选择' : '选择' }}</view>
+            <view class="select-mark">{{ selectedGoods?.orderItemId === item.orderItemId ? t('order.afterSale.selected') : t('order.afterSale.select') }}</view>
           </view>
 
           <!-- 售后类型选择 -->
           <view class="type-section">
-            <text class="section-label"><text class="required">*</text> 售后类型</text>
+            <text class="section-label"><text class="required">*</text> {{ t('order.afterSale.type') }}</text>
             <view class="type-options">
               <view 
                 class="type-option" 
@@ -57,24 +57,23 @@
           <!-- 申请数量与预计退款金额 -->
           <view class="amount-section" v-if="selectedGoods">
             <view class="quantity-row">
-              <text class="section-label">申请数量</text>
+              <text class="section-label">{{ t('order.afterSale.quantity') }}</text>
               <input class="quantity-input" type="number" :value="form.quantity" @input="setQuantity($event.detail.value)" />
             </view>
-            <text class="section-label">退款金额</text>
+            <text class="section-label">{{ t('order.afterSale.refundAmount') }}</text>
             <view class="amount-display">
-              <text class="amount-symbol">¥</text>
-              <text class="amount-value">{{ estimatedRefundAmount.toFixed(2) }}</text>
+              <AmountText class="amount-value" :text="'¥' + (estimatedRefundAmount.toFixed(2))" />
             </view>
-            <text class="amount-tip">最终退款金额以审核结果为准</text>
+            <text class="amount-tip">{{ t('order.afterSale.refundNote') }}</text>
           </view>
 
           <!-- 售后原因 -->
           <view class="reason-section">
-            <text class="section-label"><text class="required">*</text> 售后原因</text>
+            <text class="section-label"><text class="required">*</text> {{ t('order.afterSale.reason') }}</text>
             <input 
               class="reason-input" 
               v-model="form.reason"
-              placeholder="请详细描述问题原因"
+              :placeholder="t('order.afterSale.reasonPlaceholder')"
               maxlength="100"
             />
           </view>
@@ -91,7 +90,7 @@
           :disabled="submitting || !canSubmit"
           @click="handleSubmit"
         >
-          {{ submitting ? '提交中...' : '提交售后申请' }}
+          {{ submitting ? t('order.afterSale.submitting') : t('order.afterSale.submit') }}
         </button>
       </FixedActionBar>
     </template>
@@ -99,6 +98,9 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/order/i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { reactive, ref, computed } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { applyAfterSale, getAfterSaleableItems } from '../../api/afterSaleApi.js'
@@ -112,10 +114,10 @@ import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 
 // 售后类型选项
-const afterSaleTypes = [
-  { value: 1, label: '仅退款', icon: '¥', desc: '无需退回商品，审核后退款' },
-  { value: 2, label: '退货退款', icon: '↩', desc: '退回商品，验收后退款' },
-]
+const afterSaleTypes = computed(() => [
+  { value: 1, label: t('order.afterSale.onlyRefund'), icon: '¥', desc: t('order.afterSale.onlyRefundDescription') },
+  { value: 2, label: t('order.afterSale.returnRefund'), icon: '↩', desc: t('order.afterSale.returnRefundDescription') },
+])
 
 const orderId = ref('')
 const selectedOrder = ref(null)
@@ -155,11 +157,11 @@ async function loadAfterSaleableItems(currentOrderId) {
     afterSaleItems.value = await getAfterSaleableItems(currentOrderId)
     selectedOrder.value = { orderId: Number(currentOrderId) }
     selectGoods(afterSaleItems.value[0] || null)
-    if (!afterSaleItems.value.length) uni.showToast({ title: '该订单暂无可申请售后的商品', icon: 'none' })
+    if (!afterSaleItems.value.length) uni.showToast({ title: t('order.afterSale.noProducts'), icon: 'none' })
   } catch (error) {
     afterSaleItems.value = []
     selectedGoods.value = null
-    uni.showToast({ title: error?.message || '售后商品加载失败', icon: 'none' })
+    uni.showToast({ title: error?.message || t('order.afterSale.loadFailed'), icon: 'none' })
   }
 }
 
@@ -193,7 +195,7 @@ function goSelectOrder() {
 /** 提交售后申请并跳转至售后记录页。 */
 async function handleSubmit() {
   if (!canSubmit.value) {
-    uni.showToast({ title: '请完善必填信息', icon: 'none' })
+    uni.showToast({ title: t('order.afterSale.required'), icon: 'none' })
     return
   }
   submitting.value = true
@@ -216,10 +218,10 @@ async function handleSubmit() {
       clientRequestId: clientRequestId.value,
       items: [{ orderItemId: selectedGoods.value.orderItemId, quantity: form.quantity }],
     })
-    uni.showToast({ title: '售后申请已提交', icon: 'success' })
+    uni.showToast({ title: t('order.afterSale.submitted'), icon: 'success' })
     setTimeout(() => navigator.redirectTo(routes.order.afterSaleList()), 500)
   } catch (error) {
-    uni.showToast({ title: error?.message || '售后申请提交失败', icon: 'none' })
+    uni.showToast({ title: error?.message || t('order.afterSale.submitFailed'), icon: 'none' })
   } finally {
     submitting.value = false
   }
@@ -465,4 +467,7 @@ async function handleSubmit() {
 .type-section, .amount-section, .reason-section { padding: 16px; }
 .type-section .section-label, .amount-section .section-label, .reason-section .section-label { margin-bottom: 12px; font-size: 14px; }
 .submit-btn { background: var(--color-brand, #D7192D); }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.amount-display { min-width: 0; }
 </style>

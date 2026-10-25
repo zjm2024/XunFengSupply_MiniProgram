@@ -1,18 +1,18 @@
 ﻿﻿<template>
   <view class="page">
-    <app-header :show-back="true" :title="'新闻详情'" @back="goBack" />
+    <app-header :show-back="true" :title="t('content.titles.newsDetail')" @back="goBack" />
     <scroll-view class="page-scroll" scroll-y>
       <view class="content">
-        <view v-if="loading" class="article-state">加载中...</view>
+        <view v-if="loading" class="article-state">{{ t('content.news.loading') }}</view>
         <view v-else-if="errorText" class="article-state article-state--error" @click="loadDetail">
-          {{ errorText }}，点击重试
+          {{ errorText }} · {{ t('content.news.retry') }}
         </view>
         <view v-else-if="detail">
-          <text class="article-category">{{ detail.categoryTitle || detail.type || '品牌资讯' }}</text>
-          <text class="article-title">{{ detail.title || '未命名资讯' }}</text>
+          <text class="article-category">{{ detail.categoryTitle || detail.type || t('content.news.categoryFallback') }}</text>
+          <text class="article-title">{{ detail.title || t('content.news.untitled') }}</text>
           <view class="article-meta">
-            <text>{{ detail.date || detail.publishedAt || '最新发布' }}</text>
-            <text v-if="detail.id">编号 {{ detail.id }}</text>
+            <text>{{ detail.date || detail.publishedAt || t('content.news.latest') }}</text>
+            <text v-if="detail.id">{{ t('content.news.reference', { id: detail.id }) }}</text>
           </view>
           <AppProductImage
             class="article-cover"
@@ -23,17 +23,17 @@
           <text v-if="detail.summary || detail.desc" class="article-summary">
             {{ detail.summary || detail.desc }}
           </text>
-          <view v-if="articleContentLoading" class="article-body-state" aria-label="正文图片加载中">
+          <view v-if="articleContentLoading" class="article-body-state" :aria-label="t('content.news.bodyLoadingLabel')">
             <view class="article-body-spinner" />
-            <text>正文图片加载中...</text>
+            <text>{{ t('content.news.bodyLoading') }}</text>
           </view>
           <view v-else class="article-body">
             <rich-text :nodes="articleNodes" />
           </view>
           <view v-if="detail.articleUrl" class="article-source" @click="copySourceUrl">
-            <text class="source-label">原文链接</text>
+            <text class="source-label">{{ t('content.news.source') }}</text>
             <text class="source-url">{{ detail.articleUrl }}</text>
-            <text class="source-action">复制</text>
+            <text class="source-action">{{ t('content.news.copy') }}</text>
           </view>
         </view>
       </view>
@@ -42,6 +42,8 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/content/i18n/register.js'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -55,7 +57,9 @@ const imagePlaceholder = '/static/images/image-placeholder.svg'
 const articleId = ref('')
 const loading = ref(false)
 const articleContentLoading = ref(false)
-const errorText = ref('')
+const loadFailure = ref(null)
+const errorText = computed(() => loadFailure.value?.message
+  || (loadFailure.value?.messageKey ? t(loadFailure.value.messageKey) : ''))
 const detail = ref(null)
 const articleNodes = computed(() => {
   const content = detail.value?.content
@@ -68,24 +72,25 @@ onLoad((options) => {
   loadDetail()
 })
 
+/** 按原文章 ID 读取内容，保留本地错误键和远端原始消息。 */
 async function loadDetail() {
   if (!articleId.value || loading.value) {
-    if (!articleId.value) errorText.value = '新闻参数无效'
+    if (!articleId.value) loadFailure.value = { messageKey: 'content.news.invalid' }
     return
   }
 
   loading.value = true
-  errorText.value = ''
+  loadFailure.value = null
   try {
     const result = await getNewsDetail(articleId.value)
     // 先展示文章元信息；正文图片全部缓存完成后再交给 rich-text 渲染，
     // 避免 APP 端首次渲染远程地址或错误占位图。
     detail.value = result ? { ...result, content: '' } : result
     if (result) void cacheNewsResources(result)
-    if (!detail.value) errorText.value = '新闻不存在或已下线'
+    if (!detail.value) loadFailure.value = { messageKey: 'content.news.missing' }
   } catch (error) {
     console.error('[NewsDetail] 加载公告详情失败:', error)
-    errorText.value = error?.message || '加载失败'
+    loadFailure.value = error?.message ? error : { messageKey: 'content.news.loadFailed' }
   } finally {
     loading.value = false
   }
@@ -117,7 +122,7 @@ function copySourceUrl() {
   if (!detail.value?.articleUrl) return
   uni.setClipboardData({
     data: detail.value.articleUrl,
-    success: () => uni.showToast({ title: '链接已复制', icon: 'none' }),
+    success: () => uni.showToast({ title: t('content.news.copied'), icon: 'none' }),
   })
 }
 </script>

@@ -1,23 +1,24 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="产品手册预览" :show-back="true" @back="goBack" />
+      <AppHeader :title="t('content.titles.manualPreview')" :show-back="true" @back="goBack" />
     </template>
     <template #content>
       <view class="pdf-page">
         <view v-if="loading" class="state-box">
-          <text class="state-title">正在准备 PDF 预览...</text>
-          <text>首次打开会按页面分片加载</text>
+          <text class="state-title">{{ t('content.manual.preparingPdf') }}</text>
+          <text>{{ t('content.manual.pdfHint') }}</text>
         </view>
         <view v-else-if="errorText" class="state-box" @click="loadDetail">
           <text class="state-title">{{ errorText }}</text>
-          <text>点击重试</text>
+          <text>{{ t('content.manual.retry') }}</text>
         </view>
         <web-view
           v-else-if="viewerUrl"
+          ref="viewerComponent"
           class="pdf-viewer"
           :src="viewerUrl"
-          @load="scheduleNativePdfLayout"
+          @load="handleViewerLoad"
         />
       </view>
     </template>
@@ -25,7 +26,9 @@
 </template>
 
 <script setup>
-import { nextTick, ref, watch } from 'vue'
+import { getLocale, t } from '@/shared/i18n/index.js'
+import '@/subPackages/content/i18n/register.js'
+import { computed, nextTick, ref, watch } from 'vue'
 import { onLoad, onReady, onUnload } from '@dcloudio/uni-app'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -35,8 +38,13 @@ import { getManualDetail } from '../../api/manual.js'
 
 const manualId = ref('')
 const loading = ref(true)
-const errorText = ref('')
+const loadFailure = ref(null)
+const errorText = computed(() => loadFailure.value?.message
+  || (loadFailure.value?.messageKey ? t(loadFailure.value.messageKey) : ''))
 const viewerUrl = ref('')
+const viewerComponent = ref(null)
+const viewerMessageKeys = ['title', 'back', 'preparing', 'failed', 'previewFailed', 'rangeRequired',
+  'rangeInvalid', 'rangeLength', 'lazyPage', 'pageFailed', 'relayout', 'missingUrl', 'checkingRange', 'pages']
 
 const { layout, safeArea } = useResponsive()
 
@@ -66,28 +74,29 @@ onReady(() => {
   scheduleNativePdfLayout()
 })
 
+/** 读取原 PDF 附件地址，保留原生布局与加载流程。 */
 async function loadDetail() {
   if (!manualId.value) {
-    errorText.value = '缺少手册编号'
+    loadFailure.value = { messageKey: 'content.manual.missingId' }
     loading.value = false
     return
   }
 
   loading.value = true
-  errorText.value = ''
+  loadFailure.value = null
   viewerUrl.value = ''
   resetNativePdfWebview()
   try {
     const detail = await getManualDetail(manualId.value)
     if (!detail?.fileUrl) {
-      errorText.value = '当前手册没有 PDF 附件'
+      loadFailure.value = { messageKey: 'content.manual.noPdf' }
       return
     }
 
-    viewerUrl.value = `/subPackages/content/static/pdf-viewer/index.html?embedded=1&url=${encodeURIComponent(detail.fileUrl)}`
+    viewerUrl.value = `/subPackages/content/static/pdf-viewer/index.html?embedded=1&url=${encodeURIComponent(detail.fileUrl)}&ui=${encodeURIComponent(JSON.stringify(viewerLanguagePayload()))}`
   } catch (error) {
     console.error('[ManualPdfPreview] 加载 PDF 地址失败:', error)
-    errorText.value = error?.message || 'PDF 预览准备失败'
+    loadFailure.value = error?.message ? error : { messageKey: 'content.manual.pdfFailed' }
   } finally {
     loading.value = false
     scheduleNativePdfLayout()
@@ -96,6 +105,42 @@ async function loadDetail() {
 
 function goBack() { navigator.back() }
 
+/** 从 content JSON 取出独立阅读器文案，不向 HTML 传递会话或修改附件签名地址。 */
+function viewerLanguagePayload() {
+  return { type: 'pdf-viewer-locale', locale: getLocale(),
+    messages: Object.fromEntries(viewerMessageKeys.map(key => [key, t('content.pdfViewer.' + key)])) }
+}
+
+/** 阅读器加载完成后同步语言和原生位置，已加载文档不重建。 */
+function handleViewerLoad() {
+  syncViewerLanguage()
+  scheduleNativePdfLayout()
+}
+
+/** 只更新已有阅读器显示文字，保留 PDF、页码、滚动位置和 Range 请求。 */
+function syncViewerLanguage() {
+  if (!viewerUrl.value) return
+  const payload = viewerLanguagePayload()
+  // #ifdef APP-PLUS
+  try {
+    nativePdfWebview?.evalJS?.('window.setPdfViewerLocale?.(' + JSON.stringify(payload) + ')')
+  } catch (error) {
+    console.warn('[ManualPdfPreview] 同步阅读器语言失败:', error)
+  }
+  // #endif
+  // #ifdef H5
+  const element = viewerComponent.value?.$el
+  const iframe = element?.tagName === 'IFRAME' ? element : element?.querySelector?.('iframe')
+  if (iframe?.contentWindow && typeof window !== 'undefined') {
+    iframe.contentWindow.postMessage(payload, window.location.origin)
+  }
+  // #endif
+}
+
+watch(getLocale, syncViewerLanguage)
+
+/** 等待本页 PDF 子窗体创建后同步显示资源并校准布局。 */
+/** 等待本页 PDF 子窗体创建后同步显示资源并校准布局。 */
 function scheduleNativePdfLayout() {
   // #ifdef APP-PLUS
   if (!viewerUrl.value) return
@@ -106,6 +151,7 @@ function scheduleNativePdfLayout() {
     const webview = findNativePdfWebview()
     if (webview) {
       nativePdfWebview = webview
+      syncViewerLanguage()
       applyNativePdfLayout()
       return
     }

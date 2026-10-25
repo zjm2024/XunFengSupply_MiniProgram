@@ -71,19 +71,19 @@ export function isError(status) {
 /** 各状态的默认展示文案 */
 export const DEFAULT_MESSAGES = {
   [PageStatus.EMPTY]: {
-    title: '暂无数据',
-    description: '当前没有相关内容',
-    actionText: '重新加载',
+    titleKey: 'common.ui.emptyTitle',
+    descriptionKey: 'common.ui.emptyDescription',
+    actionTextKey: 'common.ui.reload',
   },
   [PageStatus.ERROR]: {
-    title: '加载失败',
-    description: '网络异常，请检查后重试',
-    actionText: '点击重试',
+    titleKey: 'common.ui.errorTitle',
+    descriptionKey: 'common.ui.errorDescription',
+    actionTextKey: 'common.ui.retryAction',
   },
   [PageStatus.OFFLINE]: {
-    title: '网络不可用',
-    description: '请检查网络连接后重试',
-    actionText: '重试',
+    titleKey: 'common.ui.offlineTitle',
+    descriptionKey: 'common.ui.offlineDescription',
+    actionTextKey: 'common.retry',
   },
 }
 

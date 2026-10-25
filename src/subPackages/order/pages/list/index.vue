@@ -3,17 +3,17 @@
     <template #header>
       <view class="order-header">
         <AppHeader
-          :title="selectMode === 'afterSale' ? '选择售后订单' : '订单中心'"
+          :title="selectMode === 'afterSale' ? t('order.list.selectTitle') : t('order.list.title')"
           :show-back="true"
           :searchable="true"
           :search-value="keywordInput"
-          :search-placeholder="selectMode === 'afterSale' ? '搜索可售后订单号' : '搜索订单号'"
+          :search-placeholder="selectMode === 'afterSale' ? t('order.list.searchAfterSale') : t('order.list.search')"
           @update:search-value="keywordInput = $event"
           @search="applySearch"
           @clear-search="clearSearch"
         />
         <view class="filter-panel">
-        <StatusTabBar :items="allTabs" :model-value="currentTab" :max-width="700" :item-width="72" @change="switchStatus" />
+        <StatusTabBar :items="displayTabs" :model-value="currentTab" :max-width="700" :item-width="72" @change="switchStatus" />
         </view>
       </view>
     </template>
@@ -33,6 +33,13 @@
           @touchstart="handleStatusTouchStart"
           @touchend="handleStatusTouchEnd"
         >
+          <AppNetworkBanner
+            :visible="localeRefreshError"
+            type="refresh-fail"
+            :message="loadErrorMessage"
+            :action-text="t('common.retry')"
+            @action="orderRead.localeChanged()"
+          />
           <view v-if="loading && orderList.length === 0" class="skeleton-grid">
             <view v-for="i in 4" :key="i" class="skeleton-card">
               <view class="skeleton-line short" />
@@ -44,9 +51,9 @@
           <AppPageState
             v-else-if="loadError && orderList.length === 0"
             state="error"
-            title="订单加载失败"
-            :description="loadError"
-            action-text="重新加载"
+            :title="t('order.list.loadFailed')"
+            :description="loadErrorMessage"
+            :action-text="t('common.ui.reload')"
             compact
             @retry="resetAndLoad"
           />
@@ -63,10 +70,10 @@
               <view class="card-header">
                 <view class="order-identify">
                   <view class="order-no-line">
-                    <text class="order-no"><text class="order-no-label">订单号</text>{{ order.orderNo }}</text>
+                    <text class="order-no"><text class="order-no-label">{{ t('order.list.orderNo') }}</text>{{ order.orderNo }}</text>
                     <text v-if="order.orderSource === 'ERP_MANUAL'" class="manual-order-tag">线下订单</text>
                     <text v-if="order.splitOrderCount > 1" class="split-order-tag">
-                      {{ order.parentOrderId ? '拆分子单' : `拆分订单 · ${order.splitOrderCount}单` }}
+                      {{ order.parentOrderId ? t('order.list.splitChild') : t('order.list.splitSummary', { count: order.splitOrderCount }) }}
                     </text>
                   </view>
                   <text class="order-time">{{ formatDateTime(order.createdAt || order.createdTime) }}</text>
@@ -79,23 +86,23 @@
               <view class="goods-preview">
                 <AppProductImage class="goods-img" :src="order.firstItemImageUrl || ''" mode="aspectFill" />
                 <view class="goods-info">
-                  <text class="product-name">{{ order.firstItemProductName || '采购订单商品' }}</text>
-                  <text class="product-detail">{{ order.itemCount || 0 }} 种商品 · 共 {{ order.totalQuantity || 0 }} 件</text>
+                  <text class="product-name">{{ order.firstItemProductName || t('order.list.productFallback') }}</text>
+                  <text class="product-detail">{{ t('order.list.productsSummary', { kinds: order.itemCount || 0, quantity: order.totalQuantity || 0 }) }}</text>
                   <text class="order-stage">{{ getOrderCustomerDisplay(order).description }}</text>
                 </view>
               </view>
 
               <view class="card-footer">
                 <view class="amount-area">
-                  <text>订单应付</text>
-                  <text><text>¥</text>{{ formatMoney(order.payableAmount) }}</text>
+                  <text>{{ t('order.list.payable') }}</text>
+                  <AmountText :text="'¥' + (formatMoney(order.payableAmount))" />
                 </view>
                 <view class="action-row">
                   <button
                     v-if="getOrderActions(order).length > 2"
                     class="more-action"
                     @tap.stop="toggleActions(order.orderId)"
-                  >{{ isActionsExpanded(order.orderId) ? '收起' : '更多' }}<text class="more-action-icon">⌄</text></button>
+                  >{{ isActionsExpanded(order.orderId) ? t('order.list.collapse') : t('order.list.more') }}<text class="more-action-icon">⌄</text></button>
                   <view class="action-list">
                     <button
                       v-for="action in getVisibleActions(order)"
@@ -104,7 +111,7 @@
                       :class="action.type"
                       @tap.stop="handleAction(action.key, order)"
                     >{{ action.label }}</button>
-                    <button v-if="selectMode === 'afterSale'" class="action-btn primary" @tap.stop="goToDetail(order.orderId)">选择订单</button>
+                    <button v-if="selectMode === 'afterSale'" class="action-btn primary" @tap.stop="goToDetail(order.orderId)">{{ t('order.list.select') }}</button>
                   </view>
                 </view>
               </view>
@@ -116,15 +123,15 @@
           <AppPageState
             v-else
             state="empty"
-            :title="keyword ? '未找到匹配订单' : '当前分类暂无订单'"
-            :description="keyword ? '换一个订单号关键词试试' : '新采购订单会显示在这里'"
+            :title="keyword ? t('order.list.emptyMatch') : t('order.list.emptyTab')"
+            :description="keyword ? t('order.list.emptySearchHint') : t('order.list.emptyHint')"
             compact
           >
             <template #illustration>
               <AppSvgIllustration name="no-order" size="lg" />
             </template>
             <template v-if="keyword" #actions>
-              <button class="empty-action" @tap="clearSearch">清除搜索</button>
+              <button class="empty-action" @tap="clearSearch">{{ t('common.search.clear') }}</button>
             </template>
           </AppPageState>
 
@@ -135,8 +142,13 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref } from 'vue'
-import { onLoad, onShow } from '@dcloudio/uni-app'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
+import { computed, reactive, ref, watch } from 'vue'
+import { locale, t } from '@/shared/i18n/index.js'
+import { createLocaleReadCoordinator } from '@/shared/composables/localeReadCoordinator.js'
+import { openAppDialog } from '@/shared/composables/useAppDialog.js'
+import '../../i18n/register.js'
+import { onHide, onLoad, onShow, onUnload } from '@dcloudio/uni-app'
 import {
   ORDER_STATUS,
   ERP_REVIEW_STATUS,
@@ -157,6 +169,7 @@ import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustratio
 import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
 import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
+import AppNetworkBanner from '@/shared/ui/AppNetworkBanner/AppNetworkBanner.vue'
 import { formatDateTime } from '../../../../shared/utils/format.js'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
@@ -169,6 +182,8 @@ const allTabs = Object.freeze([
   { value: ORDER_STATUS.COMPLETED, label: '交易完成', orderStatus: ORDER_STATUS.COMPLETED, erpReviewStatus: null, excludePendingErpReview: false },
   { value: ORDER_STATUS.CANCELLED, label: '已取消', orderStatus: ORDER_STATUS.CANCELLED, erpReviewStatus: null, excludePendingErpReview: false },
 ])
+const displayTabs = computed(() => allTabs.map(tab => tab.value === null
+  ? { ...tab, label: t('order.list.all') } : tab))
 const currentTab = ref(null)
 const selectedTab = computed(() => allTabs.find(tab => tab.value === currentTab.value) || allTabs[0])
 const currentStatus = computed(() => selectedTab.value.orderStatus)
@@ -179,6 +194,9 @@ const loading = ref(false)
 const isRefreshing = ref(false)
 const hasMore = ref(true)
 const loadError = ref('')
+const localeRefreshError = ref(false)
+const loadErrorMessage = computed(() => loadError.value?.key
+  ? t(loadError.value.key) : (loadError.value?.message || loadError.value || ''))
 const totalCount = ref(0)
 const loadMoreError = ref(false)
 const keywordInput = ref('')
@@ -194,6 +212,16 @@ const loadMoreStatus = computed(() => {
   if (!hasMore.value) return 'no-more'
   return 'idle'
 })
+const orderRead = createLocaleReadCoordinator({
+  read: readOrderListSnapshot,
+  apply: applyOrderListSnapshot,
+  onError: showOrderListReadError,
+  onBusy: setOrderListBusy,
+})
+watch(locale, () => orderRead.localeChanged(), { flush: 'sync' })
+onHide(() => orderRead.deactivate())
+onUnload(() => orderRead.dispose())
+
 onLoad(options => {
   if (options.status !== undefined && options.status !== '') {
     const requestedStatus = Number(options.status)
@@ -204,7 +232,7 @@ onLoad(options => {
 })
 
 onShow(() => {
-  resetAndLoad()
+  orderRead.activate()
 })
 
 function switchStatus(status) {
@@ -275,31 +303,63 @@ function handleRefresherRestore() {
   if (!loading.value) isRefreshing.value = false
 }
 
+/** 只读查询入口；显式刷新合并旧查询，不包装任何订单写操作。 */
 async function loadOrderList() {
-  if (loading.value || !hasMore.value) return
-  loading.value = true
-  loadError.value = ''
-  if (page.current > 1) loadMoreError.value = false
-  try {
-    const result = await getOrderList({
-      orderStatus: currentStatus.value,
-      erpReviewStatus: currentErpReviewStatus.value,
-      excludePendingErpReview: currentExcludePendingErpReview.value,
-      keyword: keyword.value || null,
-      pageNum: page.current,
-      pageSize: page.pageSize,
-    })
-    const items = result.items || []
-    orderList.value = page.current === 1 ? items : [...orderList.value, ...items]
-    totalCount.value = Number(result.totalCount || orderList.value.length)
-    hasMore.value = orderList.value.length < totalCount.value
-    loadMoreError.value = false
-  } catch (error) {
-    loadError.value = error?.message || '请检查网络后重试'
-    if (page.current > 1) page.current--
-    if (page.current > 1 || orderList.value.length) loadMoreError.value = true
-  } finally {
-    loading.value = false
+  if (!hasMore.value) return
+  return orderRead.refresh()
+}
+
+/** 切换语种时按当前已加载窗口重取，不清关键词/状态筛选或追加旧语种页。 */
+async function readOrderListSnapshot(context) {
+  const refreshWindow = context.localeChanged
+  const firstPage = refreshWindow || context.reason === 'show' ? 1 : page.current
+  const lastPage = refreshWindow
+    ? Math.max(1, Math.ceil(orderList.value.length / page.pageSize)) : firstPage
+  const query = {
+    orderStatus: currentStatus.value,
+    erpReviewStatus: currentErpReviewStatus.value,
+    excludePendingErpReview: currentExcludePendingErpReview.value,
+    keyword: keyword.value || null,
+    pageSize: page.pageSize,
+  }
+  const results = []
+  for (let pageNum = firstPage; pageNum <= lastPage; pageNum++) {
+    if (!context.isCurrent()) break
+    results.push(await getOrderList({ ...query, pageNum }))
+  }
+  return { results, firstPage, lastPage, refreshWindow }
+}
+
+/** 应用当前语种/查询代际的服务端结果，金额及状态投影不重新计算。 */
+function applyOrderListSnapshot({ results, firstPage, lastPage, refreshWindow }) {
+  const items = results.flatMap(result => result.items || [])
+  const result = results[results.length - 1] || {}
+  orderList.value = refreshWindow || firstPage === 1 ? items : [...orderList.value, ...items]
+  page.current = lastPage
+  totalCount.value = Number(result.totalCount || orderList.value.length)
+  hasMore.value = orderList.value.length < totalCount.value
+  loadMoreError.value = false
+  localeRefreshError.value = false
+}
+
+/** 仅展示当前读请求错误；语种窗口刷新失败保留旧列表与分页事实。 */
+function showOrderListReadError(error, context) {
+  loadError.value = error?.message ? error : { key: 'order.list.networkFailed' }
+  if (context.localeChanged) {
+    localeRefreshError.value = orderList.value.length > 0
+    return
+  }
+  if (page.current > 1) page.current--
+  if (page.current > 1 || orderList.value.length) loadMoreError.value = true
+}
+
+/** loading 覆盖整个合并读流程，防止旧读完成时提前允许加载下一页。 */
+function setOrderListBusy(value) {
+  loading.value = value
+  if (value) {
+    loadError.value = ''
+    localeRefreshError.value = false
+    if (page.current > 1) loadMoreError.value = false
   }
 }
 
@@ -337,7 +397,7 @@ function getOrderActions(order) {
   if (Number(order?.itemCount || 0) > 0) {
     actions.push({
       key: 'reorder',
-      label: reorderingOrderId.value === order.orderId ? '加入中…' : '再来一单',
+      label: reorderingOrderId.value === order.orderId ? t('order.list.reordering') : t('order.list.reorder'),
       type: reorderingOrderId.value === order.orderId ? 'disabled' : 'default',
     })
   }
@@ -370,15 +430,15 @@ async function reorderOrder(order) {
     const detail = await getOrderDetail(order.orderId)
     const items = buildReorderCartItems(detail?.items)
     if (!items.length) {
-      uni.showToast({ title: '该订单暂无可再次购买的商品', icon: 'none' })
+      uni.showToast({ title: t('order.list.noReorderProducts'), icon: 'none' })
       return
     }
 
     await batchAddToCart({ items, clientRequestId: generateClientRequestId() })
-    uni.showToast({ title: '已加入购物车', icon: 'success' })
+    uni.showToast({ title: t('order.list.addedToCart'), icon: 'success' })
     setTimeout(() => navigator.navigateTo(routes.commerce.cart()), 350)
   } catch (error) {
-    uni.showToast({ title: error?.message || '商品状态已变化，请稍后重试', icon: 'none' })
+    uni.showToast({ title: error?.message || t('order.list.productChanged'), icon: 'none' })
   } finally {
     reorderingOrderId.value = null
   }
@@ -395,20 +455,19 @@ async function handleAction(key, order) {
       navigator.navigateTo(routes.order.detail(order.orderId))
       break
     case 'confirmReceipt':
-      uni.showModal({
-        title: '确认收货',
-        content: '确认已收到商品后，订单将完成。',
-        success: async (result) => {
-          if (!result.confirm) return
-          try {
-            await confirmReceipt({ orderId: order.orderId, clientRequestId: generateClientRequestId() })
-            uni.showToast({ title: '已确认收货', icon: 'success' })
-            await resetAndLoad()
-          } catch (error) {
-            uni.showToast({ title: error?.message || '操作失败', icon: 'none' })
-          }
-        },
-      })
+      if (!await openAppDialog({
+        confirmText: t('common.confirm'),
+        cancelText: t('common.cancel'),
+        title: t('order.list.receiptTitle'),
+        description: t('order.list.receiptContent'),
+      })) return
+      try {
+        await confirmReceipt({ orderId: order.orderId, clientRequestId: generateClientRequestId() })
+        uni.showToast({ title: t('order.list.receiptSuccess'), icon: 'success' })
+        await resetAndLoad()
+      } catch (error) {
+        uni.showToast({ title: error?.message || t('common.errors.operation'), icon: 'none' })
+      }
       break
     case 'afterSale':
       navigator.navigateTo(routes.order.afterSaleApply(order.orderId))
@@ -448,8 +507,8 @@ async function handleAction(key, order) {
 .amount-area { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .amount-area > text { display: block; }
 .amount-area > text:first-child { color: #979CA4; font-size: 9px; }
-.amount-area > text:last-child { margin-top: 3px; color: #D7192D; font-size: 17px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.amount-area > text:last-child > text { display: inline; margin-right: 2px; color: inherit; font-size: 12px; font-weight: 700; line-height: 1; vertical-align: baseline; }
+.amount-area > .amount-text { margin-top: 3px; color: #D7192D; font-size: 17px; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
 .action-row { display: flex;  align-items: center; gap: 10px; margin-top: 12px; }
 .action-list { display: flex; flex: 1; flex-wrap: wrap; justify-content: flex-end; gap: 7px; }
 .more-action { flex: 0 0 auto; height: 32px; margin: 0; padding: 0; border: 0; color: #737A84; background: transparent; font-size: 11px; line-height: 32px; }
@@ -483,4 +542,8 @@ async function handleAction(key, order) {
   .order-page { max-width: 820px; }
   .order-grid { gap: 14px; }
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.amount-area { min-width: 0; }
+.amount-area > text { flex: none; }
 </style>

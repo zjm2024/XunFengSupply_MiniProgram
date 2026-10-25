@@ -38,7 +38,7 @@
 
       <view class="profile-metrics">
         <view v-for="item in metricEntries" :key="item.key" class="profile-metric" @tap="item.action && item.action()">
-          <text class="metric-value">{{ item.value }}<text v-if="item.unit" class="metric-unit">{{ item.unit }}</text></text>
+          <AmountText v-if="item.key === 'credit' || item.key === 'balance'" class="metric-value" :text="item.value" /><text v-else class="metric-value">{{ item.value }}<text v-if="item.unit" class="metric-unit">{{ item.unit }}</text></text>
           <text class="metric-label">{{ item.label }}</text>
         </view>
       </view>
@@ -109,6 +109,8 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, reactive, ref, watch } from 'vue'
 import { ORDER_STATUS } from '@/app/config/constant.js'
 import { navigator } from '@/app/navigation/navigator.js'
@@ -134,49 +136,49 @@ const dashboardLoading = ref(false)
 const dashboardInitialized = ref(false)
 const functionsExpanded = ref(true)
 
-const accountCopy = Object.freeze({
+const accountCopy = computed(() => ({
   loading: {
-    title: '正在加载个人中心',
-    description: '正在同步账户与经营数据',
+    title: t('main.accountPanel.loadingTitle'),
+    description: t('main.accountPanel.loadingDescription'),
   },
   fallback: {
-    displayName: '经销商',
-    dealerLevel: '认证经销商',
-    accountIdentity: '客户编号待同步',
+    displayName: t('main.accountPanel.dealer'),
+    dealerLevel: t('main.accountPanel.dealerLevel'),
+    accountIdentity: t('main.accountPanel.pendingCode'),
   },
-  roles: { main: '主账号', sub: '子账号' },
+  roles: { main: t('main.accountPanel.main'), sub: t('main.accountPanel.sub') },
   notice: {
-    abnormal: '当前账号状态异常，部分采购能力已暂停',
-    frozen: '主体授信已冻结，暂不可提交采购订单',
+    abnormal: t('main.accountPanel.abnormal'),
+    frozen: t('main.accountPanel.frozen'),
   },
   metrics: {
-    credit: '可用授信',
-    balance: '主体余额',
-    inventory: '可用库存',
-    score: '信誉分',
-    inventoryUnit: '件',
-    scoreUnit: '分',
+    credit: t('main.accountPanel.credit'),
+    balance: t('main.accountPanel.balance'),
+    inventory: t('main.accountPanel.inventory'),
+    score: t('main.accountPanel.score'),
+    inventoryUnit: t('main.accountPanel.items'),
+    scoreUnit: t('main.accountPanel.points'),
   },
-  sections: { orders: '我的订单', functions: '我的功能', service: '服务中心' },
-  actions: { allOrders: '全部订单', expand: '展开', collapse: '收起' },
+  sections: { orders: t('main.accountPanel.orders'), functions: t('main.accountPanel.functions'), service: t('main.accountPanel.service') },
+  actions: { allOrders: t('main.accountPanel.allOrders'), expand: t('main.accountPanel.expand'), collapse: t('main.accountPanel.collapse') },
   services: {
-    afterSales: '售后服务',
-    afterSalesDescription: '申请与进度查询',
-    afterSalesProcessing: count => `${count} 条处理中`,
-    help: '帮助中心',
-    helpDescription: '采购与售后帮助',
-    invoice: '发票中心',
-    invoiceDescription: '企业抬头与开票记录',
+    afterSales: t('main.accountPanel.afterSales'),
+    afterSalesDescription: t('main.accountPanel.afterSalesDescription'),
+    afterSalesProcessing: count => t('main.accountPanel.processing', { count }),
+    help: t('main.accountPanel.help'),
+    helpDescription: t('main.accountPanel.helpDescription'),
+    invoice: t('main.accountPanel.invoice'),
+    invoiceDescription: t('main.accountPanel.invoiceDescription'),
   },
-})
+}))
 
-const displayName = computed(() => userStore.displayName || userStore.realName || userStore.username || accountCopy.fallback.displayName)
-const dealerLevel = computed(() => userStore.creditLevel || accountCopy.fallback.dealerLevel)
+const displayName = computed(() => userStore.displayName || userStore.realName || userStore.username || accountCopy.value.fallback.displayName)
+const dealerLevel = computed(() => userStore.creditLevel || accountCopy.value.fallback.dealerLevel)
 const accountIdentity = computed(() => {
-  return dealerCode.value ? `客户编号 ${dealerCode.value}` : accountCopy.fallback.accountIdentity
+  return dealerCode.value ? t('main.accountPanel.identity', { code: dealerCode.value }) : accountCopy.value.fallback.accountIdentity
 })
 const accountNoticeText = computed(() => (
-  !userStore.isAccountNormal ? accountCopy.notice.abnormal : accountCopy.notice.frozen
+  !userStore.isAccountNormal ? accountCopy.value.notice.abnormal : accountCopy.value.notice.frozen
 ))
 const pendingAfterSaleCount = computed(() => (
   Number(afterSaleCounts.pendingReview || 0)
@@ -186,21 +188,21 @@ const pendingAfterSaleCount = computed(() => (
 ))
 const showInitialLoading = computed(() => props.active && dashboardLoading.value && !dashboardInitialized.value)
 const metricEntries = computed(() => [
-  { key: 'credit', value: formatCompactMoney(finance.value?.credit?.availableAmount), label: accountCopy.metrics.credit, action: goToRecharge },
-  { key: 'balance', value: formatCompactMoney(finance.value?.subjectAvailableBalance), label: accountCopy.metrics.balance, action: goToFundFlow },
-  { key: 'inventory', value: formatQuantity(inventoryOverview.value?.availableQuantity), unit: accountCopy.metrics.inventoryUnit, label: accountCopy.metrics.inventory, action: goToInventory },
-  { key: 'score', value: String(userStore.creditScore || 0), unit: accountCopy.metrics.scoreUnit, label: accountCopy.metrics.score },
+  { key: 'credit', value: formatCompactMoney(finance.value?.credit?.availableAmount), label: accountCopy.value.metrics.credit, action: goToRecharge },
+  { key: 'balance', value: formatCompactMoney(finance.value?.subjectAvailableBalance), label: accountCopy.value.metrics.balance, action: goToFundFlow },
+  { key: 'inventory', value: formatQuantity(inventoryOverview.value?.availableQuantity), unit: accountCopy.value.metrics.inventoryUnit, label: accountCopy.value.metrics.inventory, action: goToInventory },
+  { key: 'score', value: String(userStore.creditScore || 0), unit: accountCopy.value.metrics.scoreUnit, label: accountCopy.value.metrics.score },
 ])
 const serviceEntries = computed(() => [
   {
     key: 'after-sales',
-    label: accountCopy.services.afterSales,
-    description: pendingAfterSaleCount.value ? accountCopy.services.afterSalesProcessing(pendingAfterSaleCount.value) : accountCopy.services.afterSalesDescription,
+    label: accountCopy.value.services.afterSales,
+    description: pendingAfterSaleCount.value ? accountCopy.value.services.afterSalesProcessing(pendingAfterSaleCount.value) : accountCopy.value.services.afterSalesDescription,
     icon: 'profile-after-sales',
     action: goToAfterSales,
   },
-  { key: 'help', label: accountCopy.services.help, description: accountCopy.services.helpDescription, icon: 'profile-help', action: goToHelp },
-  { key: 'invoice', label: accountCopy.services.invoice, description: accountCopy.services.invoiceDescription, icon: 'profile-invoice', action: goToInvoice },
+  { key: 'help', label: accountCopy.value.services.help, description: accountCopy.value.services.helpDescription, icon: 'profile-help', action: goToHelp },
+  { key: 'invoice', label: accountCopy.value.services.invoice, description: accountCopy.value.services.invoiceDescription, icon: 'profile-invoice', action: goToInvoice },
 ])
 
 watch(() => props.active, active => {
@@ -271,23 +273,23 @@ function goToMessages() { return navigator.navigateTo(routes.content.messages())
 function goToHelp() { return navigator.navigateTo(routes.content.help()) }
 
 const orderShortcuts = computed(() => [
-  { key: 'all', label: '全部', count: orderCounts.allCount, icon: 'profile-orders', action: () => goToOrders() },
+  { key: 'all', label: t('main.accountPanel.all'), count: orderCounts.allCount, icon: 'profile-orders', action: () => goToOrders() },
   { key: 'pending-payment', label: '待付款', count: orderCounts.pendingPaymentCount, icon: 'order-pending-payment', action: () => goToOrders(ORDER_STATUS.PENDING_PAYMENT) },
   { key: 'processing', label: '履约中', count: orderCounts.processingCount, icon: 'order-shipped', action: () => goToOrders(ORDER_STATUS.PROCESSING) },
   { key: 'completed', label: '已完成', count: orderCounts.completedCount, icon: 'order-signed', action: () => goToOrders(ORDER_STATUS.COMPLETED) },
 ])
 
 const functionEntries = computed(() => [
-  ...(userStore.hasPermission('INVENTORY_VIEW') ? [{ key: 'inventory', label: '库存管理', icon: 'profile-inventory', tone: 'primary', action: goToInventory }] : []),
+  ...(userStore.hasPermission('INVENTORY_VIEW') ? [{ key: 'inventory', label: t('main.accountPanel.inventoryManagement'), icon: 'profile-inventory', tone: 'primary', action: goToInventory }] : []),
   ...(userStore.hasPermission('BALANCE_VIEW') ? [
-    { key: 'recharge', label: '充值中心', icon: 'profile-recharge', tone: 'primary', action: goToRecharge },
-    { key: 'bill', label: '对账账单', icon: 'profile-bill', action: goToBill },
-    { key: 'fund-flow', label: '资金流水', icon: 'profile-fund-flow', action: goToFundFlow },
-    { key: 'credit-flow', label: '授信流水', icon: 'profile-credit-flow', action: goToCreditFlow },
+    { key: 'recharge', label: t('main.accountPanel.recharge'), icon: 'profile-recharge', tone: 'primary', action: goToRecharge },
+    { key: 'bill', label: t('main.accountPanel.bill'), icon: 'profile-bill', action: goToBill },
+    { key: 'fund-flow', label: t('main.accountPanel.fundFlow'), icon: 'profile-fund-flow', action: goToFundFlow },
+    { key: 'credit-flow', label: t('main.accountPanel.creditFlow'), icon: 'profile-credit-flow', action: goToCreditFlow },
   ] : []),
-  { key: 'address', label: '收货地址', icon: 'profile-address', action: goToAddress },
+  { key: 'address', label: t('main.accountPanel.address'), icon: 'profile-address', action: goToAddress },
   // { key: 'voucher', label: '优惠券', icon: 'profile-voucher', action: goToVoucher },
-  ...(userStore.isMainAccount ? [{ key: 'sub-account', label: '子账号', icon: 'profile-sub-account', action: goToSubAccount }] : []),
+  ...(userStore.isMainAccount ? [{ key: 'sub-account', label: t('main.accountPanel.sub'), icon: 'profile-sub-account', action: goToSubAccount }] : []),
 ])
 
 </script>
@@ -305,7 +307,7 @@ const functionEntries = computed(() => [
 .account-notice { position: relative; z-index: 1; display: flex; align-items: flex-start; gap: 7px; margin-top: 12px; padding: 9px 10px; border: 1px solid rgba(201,91,82,.16); border-radius: 11px; color: #873B35; background: rgba(255,255,255,.62); font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); }
 .profile-metrics { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); margin-top: 19px; }
 .profile-metric { position: relative; min-width: 0; padding: 5px 3px; text-align: center; }.profile-metric:not(:last-child)::after { content: ''; position: absolute; top: 9px; right: 0; width: 1px; height: 28px; background: rgba(87,108,130,.13); }
-.metric-value, .metric-label { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.metric-value { color: var(--type-title-color, #1B1C20); font-size: var(--type-label-size, 15px); font-weight: 760; font-variant-numeric: tabular-nums; }.metric-unit { margin-left: 2px; font-size: var(--type-micro-size, 11px); font-weight: 620; }.metric-label { margin-top: 5px; color: var(--type-secondary-color, #62666F); font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); }
+.metric-value, .metric-label { display: block; min-width: 0; white-space: nowrap; }.metric-label { overflow: hidden; text-overflow: ellipsis; }.metric-value { color: var(--type-title-color, #1B1C20); font-size: var(--type-label-size, 15px); font-weight: 760; font-variant-numeric: tabular-nums; }.metric-unit { margin-left: 2px; font-size: var(--type-micro-size, 11px); font-weight: 620; }.metric-label { margin-top: 5px; color: var(--type-secondary-color, #62666F); font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); }
 .core-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }.order-card, .service-card, .function-card, .account-service-card { border-radius: 18px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .order-card, .service-card { padding: 16px; }.card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }.card-heading.static { pointer-events: none; }.card-title, .card-subtitle { display: block; }.card-title { color: var(--type-title-color, #1B1C20); font-size: var(--type-card-title-size, 16px); line-height: var(--type-card-title-line-height, 24px); font-weight: 740; }.card-subtitle { margin-top: 4px; color: var(--type-muted-color, #969AA3); font-size: var(--type-micro-size, 11px); }.heading-link, .collapse-button { display: flex; align-items: center; gap: 2px; color: var(--type-secondary-color, #62666F); font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); }
 .order-card .card-title, .function-card .card-title, .order-card .heading-link, .function-card .collapse-button { color: #111216; }
@@ -325,4 +327,7 @@ const functionEntries = computed(() => [
 @media screen and (max-width: 374px) {
   .tab-page { padding-right: 11px; padding-left: 11px; }.profile-hero { margin-right: -11px; margin-left: -11px; padding: 10px 14px 20px; }.profile-main { grid-template-columns: 58px minmax(0,1fr); }.avatar-wrap { width: 58px; height: 58px; }.profile-name { font-size: 18px; }.metric-value { font-size: 13px; }.order-card, .service-card, .function-card, .account-service-card { padding: 14px; }.function-grid { row-gap: 18px; }.function-icon { width: 36px; height: 32px; }
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.profile-metric > .amount-text { margin-left: auto; margin-right: auto; }
 </style>

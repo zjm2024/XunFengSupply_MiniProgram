@@ -11,7 +11,7 @@
         <image class="brand-logo" src="/static/images/logo-v.png" mode="aspectFit" />
       </view>
       <view class="brand-title-row">
-        <text class="brand-title">首页</text>
+        <text class="brand-title">{{ t('main.nav.home') }}</text>
         <view class="brand-dot"></view>
       </view>
     </view>
@@ -25,22 +25,22 @@
       v-if="activeTab === 'home'"
       class="home-search-box"
       hover-class="home-search-box--pressed"
-      aria-label="搜索商品"
+      :aria-label="t('main.search.label')"
       @click="$emit('search')"
     >
       <AppIcon class="home-search-icon" name="search" :size="16" :stroke-width="1.8" />
-      <text class="home-search-placeholder">商品名称 / SKU / 69码</text>
+      <text class="home-search-placeholder">{{ t('main.search.placeholder') }}</text>
     </view>
 
     <view
       v-else-if="activeTab === 'category'"
       class="category-search"
       hover-class="glass-btn--pressed"
-      aria-label="搜索商品"
+      :aria-label="t('main.search.label')"
       @click="$emit('search')"
     >
       <AppIcon name="search" :size="20" :stroke-width="1.8" />
-      <text class="category-search-text">商品名称 / SKU / 69码</text>
+      <text class="category-search-text">{{ t('main.search.placeholder') }}</text>
     </view>
 
     <view v-else-if="activeTab === 'account'" class="header-actions">
@@ -48,7 +48,7 @@
         class="header-action glass-btn"
         hover-class="glass-btn--pressed"
         hover-stay-time="80"
-        aria-label="设置"
+        :aria-label="t('main.nav.settings')"
         @click="$emit('settings')"
       >
         <AppIcon name="settings" :size="21" :stroke-width="1.8" />
@@ -57,11 +57,11 @@
         class="header-action glass-btn"
         hover-class="glass-btn--pressed"
         hover-stay-time="80"
-        aria-label="消息中心"
+        :aria-label="t('main.nav.messages')"
         @click="$emit('messages')"
       >
-        <AppIcon name="bell" :size="21" :stroke-width="1.8" />
-        <view v-if="hasUnread" class="unread-dot" />
+        <view class="message-icon-anchor"><AppIcon name="bell" :size="21" :stroke-width="1.8" />
+        <view v-if="hasUnread" class="unread-dot" /></view>
       </view>
     </view>
   </view>
@@ -70,6 +70,7 @@
 <script setup>
 import { computed } from 'vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import { t } from '@/shared/i18n/index.js'
 
 const props = defineProps({
   activeTab: { type: String, default: 'home' },
@@ -80,13 +81,13 @@ const props = defineProps({
 defineEmits(['messages', 'settings', 'search'])
 
 const tabTitles = Object.freeze({
-  category: '分类',
-  news: '资讯',
-  cart: '购物车',
-  account: '个人中心',
+  category: 'main.nav.category',
+  news: 'main.nav.news',
+  cart: 'main.nav.cart',
+  account: 'main.nav.accountTitle',
 })
 
-const currentTitle = computed(() => tabTitles[props.activeTab] || '')
+const currentTitle = computed(() => tabTitles[props.activeTab] ? t(tabTitles[props.activeTab]) : '')
 </script>
 
 <style lang="scss" scoped>
@@ -257,13 +258,14 @@ const currentTitle = computed(() => tabTitles[props.activeTab] || '')
 
 .unread-dot {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 10px;
-  height: 10px;
+  top: 50%;
+  right: -5px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
   background: var(--color-brand, #d7192d);
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .8);
+  transform: translateY(-50%);
 }
 
 @media screen and (min-width: 768px) {
@@ -384,4 +386,7 @@ const currentTitle = computed(() => tabTitles[props.activeTab] || '')
     gap: 6px;
   }
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.message-icon-anchor { position: relative; display: flex; width: 21px; height: 21px; align-items: center; justify-content: center; }
 </style>

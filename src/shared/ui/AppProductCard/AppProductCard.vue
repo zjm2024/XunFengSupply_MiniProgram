@@ -20,7 +20,7 @@
       <text v-if="showCode && product.code" class="app-product-card__code">{{ product.code }}</text>
 
       <view class="app-product-card__price-row">
-        <text class="app-product-card__price">¥{{ formattedPrice }}</text>
+        <AmountText class="app-product-card__price" :text="'¥' + (formattedPrice)" />
         <text v-if="variant !== 'compact' && unitText" class="app-product-card__unit">/{{ unitText }}</text>
       </view>
 
@@ -36,6 +36,7 @@
 </template>
 
 <script setup>
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed } from 'vue'
 import AppProductImage from '../AppProductImage/AppProductImage.vue'
 
@@ -356,4 +357,8 @@ const stockText = computed(() => {
   }
 
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.app-product-card__price-row { min-width: 0; flex-wrap: nowrap; }
+.app-product-card__unit { flex: none; }
 </style>

@@ -1,22 +1,22 @@
 <template>
   <view class="tab-page">
-    <view v-if="loading && !cartStore.loaded" class="state-box"><view class="loading-dot"></view><text>正在同步购物车...</text></view>
+    <view v-if="loading && !cartStore.loaded" class="state-box"><view class="loading-dot"></view><text>{{ t('main.cart.loading') }}</text></view>
 
     <view v-else-if="!cartStore.isEmpty">
       <view class="summary-grid">
-        <view class="summary-card summary-card--primary"><text class="summary-label">已选金额</text><text class="summary-value summary-value--amount">{{ cartStore.formattedTotalAmount }}</text><text class="summary-hint">以服务端实时价格为准</text></view>
-        <view class="summary-card"><text class="summary-label">商品种类</text><text class="summary-value">{{ cartStore.summary.productCount }}</text><text class="summary-hint">种商品</text></view>
-        <view class="summary-card"><text class="summary-label">采购数量</text><text class="summary-value">{{ cartStore.summary.totalQuantity }}</text><text class="summary-hint">件商品</text></view>
+        <view class="summary-card summary-card--primary"><text class="summary-label">{{ t('main.cart.amount') }}</text><AmountText class="summary-value summary-value--amount" :text="(cartStore.formattedTotalAmount)" /><text class="summary-hint">{{ t('main.cart.amountHint') }}</text></view>
+        <view class="summary-card"><text class="summary-label">{{ t('main.cart.productTypes') }}</text><text class="summary-value">{{ cartStore.summary.productCount }}</text><text class="summary-hint">{{ t('main.cart.typesUnit') }}</text></view>
+        <view class="summary-card"><text class="summary-label">{{ t('main.cart.quantity') }}</text><text class="summary-value">{{ cartStore.summary.totalQuantity }}</text><text class="summary-hint">{{ t('main.cart.quantityUnit') }}</text></view>
       </view>
       
-      <view class="cart-action" @click="openCart"><view><text class="action-title">进入购物车</text><text class="action-subtitle">调整数量、勾选商品并提交订单</text></view><view class="action-arrow"><AppIcon name="arrow-right" :size="20" /></view></view>
+      <view class="cart-action" @click="openCart"><view><text class="action-title">{{ t('main.cart.open') }}</text><text class="action-subtitle">{{ t('main.cart.openHint') }}</text></view><view class="action-arrow"><AppIcon name="arrow-right" :size="20" /></view></view>
       
       <view class="cart-preview">
-        <view class="section-heading"><view><text class="section-title">已选货品</text><text class="section-subtitle">展示最近 {{ previewItems.length }} 项</text></view><text class="item-count">共 {{ cartStore.cartBadgeCount }} 件</text></view>
+        <view class="section-heading"><view><text class="section-title">{{ t('main.cart.selected') }}</text><text class="section-subtitle">{{ t('main.cart.recent', { count: previewItems.length }) }}</text></view><text class="item-count">{{ t('main.cart.total', { count: cartStore.cartBadgeCount }) }}</text></view>
         <view class="cart-list">
           <view v-for="item in previewItems" :key="item.cartItemId" class="cart-item" @click="openProduct(item)">
             <view class="item-image-wrap"><AppProductImage class="item-image" :src="item.image" :stock="item.stock" /></view>
-            <view class="item-copy"><text class="item-name">{{ item.name || `商品 ${item.productId}` }}</text><text v-if="item.skuName" class="item-spec">{{ item.skuName }}</text><view class="item-price-row"><text class="item-price">¥{{ formatPrice(item.price) }}</text><text class="item-quantity">× {{ item.quantity }}</text></view></view>
+            <view class="item-copy"><text class="item-name">{{ item.name || t('main.cart.product', { id: item.productId }) }}</text><text v-if="item.skuName" class="item-spec">{{ item.skuName }}</text><view class="item-price-row"><AmountText class="item-price" :text="'¥' + (formatPrice(item.price))" /><text class="item-quantity">× {{ item.quantity }}</text></view></view>
             <AppIcon class="item-arrow" name="chevron-right" :size="17" />
           </view>
         </view>
@@ -29,14 +29,16 @@
       <view class="empty-illustration">
         <AppSvgIllustration :svg="emptyCartSvg" size="lg" />
       </view>
-      <text class="empty-title">购物车还是空的</text>
-      <text class="empty-text">前往商品分类，选择需要采购的体育用品。</text>
-      <view class="primary-button" @click="openProductList"><text>去选购商品</text><AppIcon name="arrow-right" :size="17" /></view>
+      <text class="empty-title">{{ t('main.cart.empty') }}</text>
+      <text class="empty-text">{{ t('main.cart.emptyHint') }}</text>
+      <view class="primary-button" @click="openProductList"><text>{{ t('main.cart.shop') }}</text><AppIcon name="arrow-right" :size="17" /></view>
     </view>
   </view>
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, watch } from 'vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
@@ -117,4 +119,8 @@ async function openProductList() { await navigator.navigateTo(routes.commerce.pr
   .summary-value--amount { font-size: 25px; }
   .cart-list { grid-template-columns: repeat(2, minmax(0,1fr)); }
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.summary-card, .summary-grid > view, .item-price-row { min-width: 0; }
+.item-quantity { flex: none; }
 </style>

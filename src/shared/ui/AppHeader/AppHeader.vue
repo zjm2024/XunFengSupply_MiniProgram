@@ -69,7 +69,7 @@
           :value="searchValue"
           type="text"
           confirm-type="search"
-          :placeholder="searchPlaceholder"
+          :placeholder="searchPlaceholder ?? t('common.search.label')"
           placeholder-class="nav-search-placeholder"
           @input="handleSearchInput"
           @confirm="handleSearch"
@@ -78,7 +78,7 @@
           v-if="searchValue"
           class="nav-search-clear"
           hover-class="header-button--pressed"
-          aria-label="清除搜索"
+          :aria-label="t('common.search.clear')"
           @tap="handleSearchClear"
         >
           <AppIcon name="close" :size="14" />
@@ -94,12 +94,12 @@
       <view class="nav-right" :style="rightAreaStyle">
         <!-- 消息入口 -->
         <view v-if="showMessage" class="icon-btn" hover-class="header-button--pressed" :hover-start-time="0" :hover-stay-time="80" @tap="handleMessage">
-          <AppIcon name="bell" :size="21" />
-          <view v-if="unreadCount > 0" class="unread-dot" />
+          <view class="message-icon-anchor"><AppIcon name="bell" :size="21" />
+          <view v-if="unreadCount > 0" class="unread-dot" /></view>
         </view>
         <!-- 供应商入口 -->
         <view v-if="showSupplier" class="icon-btn supplier-btn" hover-class="header-button--pressed" :hover-start-time="0" :hover-stay-time="80" @tap="handleSupplier">
-          <text class="supplier-text">供应商</text>
+          <text class="supplier-text">{{ t('common.ui.supplier') }}</text>
         </view>
         <!-- 语言切换 -->
         <view v-if="showLanguage" class="icon-btn lang-btn" hover-class="header-button--pressed" :hover-start-time="0" :hover-stay-time="80" @tap="handleLanguage">
@@ -127,6 +127,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, watch } from 'vue'
+import { t } from '@/shared/i18n/index.js'
 import { useResponsive } from '../../composables/useResponsive.js'
 import { navigator } from '../../../app/navigation/navigator.js'
 import AppBackButton from '../AppBackButton/AppBackButton.vue'
@@ -150,7 +151,7 @@ const props = defineProps({
   },
   searchPlaceholder: {
     type: String,
-    default: '搜索',
+    default: null,
   },
   /** 是否显示返回按钮 */
   showBack: {
@@ -555,13 +556,14 @@ onUnmounted(() => {
 
 .unread-dot {
   position: absolute;
-  top: -1px;
-  right: -2px;
-  width: 14px;
-  height: 14px;
-  background: #d7192d;
+  top: 50%;
+  right: -5px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  border: 2px solid #f7f8fa;
+  background: var(--color-brand, #d7192d);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .8);
+  transform: translateY(-50%);
 }
 
 // ==================== 供应商入口 ====================
@@ -590,13 +592,14 @@ onUnmounted(() => {
   position: absolute;
   top: 0;
   right: 0;
-  display: grid;
+  display: flex;
   min-width: 18px;
   max-width: 32px;
   height: 18px;
   padding: 0 4px;
   box-sizing: border-box;
-  place-items: center;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
   border: 1.5px solid #f7f8fa;
   border-radius: 9px;
@@ -669,4 +672,7 @@ onUnmounted(() => {
     padding-left: var(--header-side-padding);
   }
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.message-icon-anchor { position: relative; display: flex; width: 21px; height: 21px; align-items: center; justify-content: center; }
 </style>

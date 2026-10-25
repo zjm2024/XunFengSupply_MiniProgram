@@ -133,7 +133,7 @@ function getPoint(touch) {
 .status-tab-label { line-height: 18px; }
 
 .status-tab-count {
-  display: inline-flex;
+  display: flex;
   min-width: 16px;
   height: 16px;
   align-items: center;
@@ -146,7 +146,7 @@ function getPoint(touch) {
   box-sizing: border-box;
   font-size: 10px;
   font-weight: 700;
-  line-height: 16px;
+  line-height: 1;
 }
 
 .status-tab-count.active { color: #FFF; background: rgba(255, 255, 255, .22); }

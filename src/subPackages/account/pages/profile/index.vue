@@ -1,29 +1,32 @@
 ﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<template>
   <view class="page">
-    <app-header :show-back="true" :title="'账户资料'" @back="goBack" />
+    <app-header :show-back="true" :title="t('account.titles.profile')" @back="goBack" />
     <scroll-view class="page-scroll" scroll-y>
       <view class="content">
         <view class="form-card">
-          <view class="data-row"><text class="row-label">经销商名称</text><text class="row-value">华东体育用品经销商</text></view>
-          <view class="data-row"><text class="row-label">客户编号</text><text class="row-value">XF-310082</text></view>
-          <view class="data-row"><text class="row-label">客户等级</text><text class="row-value">B 类客户</text></view>
-          <view class="data-row"><text class="row-label">账号状态</text><status-tag-new type="success" text="正常" /></view>
-          <view class="data-row"><text class="row-label">联系人</text><text class="row-value">张先生</text></view>
-          <view class="data-row"><text class="row-label">联系电话</text><text class="row-value">138 **** 5678</text></view>
+          <view class="data-row"><text class="row-label">{{ t('account.profile.dealerName') }}</text><text class="row-value">华东体育用品经销商</text></view>
+          <view class="data-row"><text class="row-label">{{ t('account.profile.customerId') }}</text><text class="row-value">XF-310082</text></view>
+          <view class="data-row"><text class="row-label">{{ t('account.profile.grade') }}</text><text class="row-value">B 类客户</text></view>
+          <view class="data-row"><text class="row-label">{{ t('account.profile.status') }}</text><status-tag-new type="success" text="正常" /></view>
+          <view class="data-row"><text class="row-label">{{ t('account.profile.contact') }}</text><text class="row-value">张先生</text></view>
+          <view class="data-row"><text class="row-label">{{ t('account.profile.phone') }}</text><text class="row-value">138 **** 5678</text></view>
         </view>
-        <button class="save-btn" @click="save">保存修改</button>
+        <button class="save-btn" @click="save">{{ t('account.profile.save') }}</button>
       </view>
     </scroll-view>
   </view>
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/account/i18n/register.js'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import statusTagNew from '@/shared/ui/StatusTag/StatusTag.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 
 function goBack() { navigator.back() }
-function save() { uni.showToast({ title: '资料已更新', icon: 'success' }) }
+/** 保留资料页占位保存动作，仅按当前语言显示反馈。 */
+function save() { uni.showToast({ title: t('account.profile.saved'), icon: 'success' }) }
 </script>
 
 <style lang="scss" scoped>

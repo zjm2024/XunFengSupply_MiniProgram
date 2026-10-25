@@ -10,6 +10,7 @@
  * - 调用方（调度器、页面）不得构造 PascalCase DTO
  */
 import { dispatch } from '../../../shared/api/dispatchClient.js'
+import { AppError, ErrorKind } from '@/shared/api/appError.js'
 
 // ==================== JSDoc 类型定义 ====================
 
@@ -169,7 +170,7 @@ export function getCartList() {
 export function addToCart(params = {}) {
   const skuId = Number(params.skuId)
   const quantity = Math.max(1, Number(params.quantity) || 1)
-  if (!skuId) return Promise.reject(new Error('缺少有效的 SKU ID'))
+  if (!skuId) return Promise.reject(new AppError('', ErrorKind.UNKNOWN, { messageKey: 'common.cart.skuRequired' }))
   return dispatch('MallOrder', 'Mini.CartController', 'AddToCart', {
     SkuId: skuId,
     Quantity: quantity,
@@ -191,8 +192,8 @@ export function batchAddToCart(params = {}) {
     }))
     .filter(item => item.SkuId > 0 && item.Quantity > 0)
 
-  if (items.length === 0) return Promise.reject(new Error('请选择需要采购的商品规格'))
-  if (items.length > 50) return Promise.reject(new Error('单次批量采购最多选择 50 个规格'))
+  if (items.length === 0) return Promise.reject(new AppError('', ErrorKind.UNKNOWN, { messageKey: 'common.cart.itemsRequired' }))
+  if (items.length > 50) return Promise.reject(new AppError('', ErrorKind.UNKNOWN, { messageKey: 'common.cart.batchLimit' }))
 
   return dispatch('MallOrder', 'Mini.CartController', 'BatchAddToCart', {
     Items: items,
@@ -209,7 +210,7 @@ export function batchAddToCart(params = {}) {
  */
 export function batchUpdateQuantity(items = []) {
   if (!Array.isArray(items) || items.length === 0) {
-    return Promise.reject(new Error('批量修改数量需要至少一条变更'))
+    return Promise.reject(new AppError('', ErrorKind.UNKNOWN, { messageKey: 'common.cart.changesRequired' }))
   }
   const payload = items.map(item => ({
     CartItemId: Number(item.cartItemId),
@@ -227,7 +228,7 @@ export function removeItems(cartItemIds = []) {
   const ids = (Array.isArray(cartItemIds) ? cartItemIds : [cartItemIds])
     .map(Number)
     .filter(Boolean)
-  if (ids.length === 0) return Promise.reject(new Error('请选择需要删除的商品'))
+  if (ids.length === 0) return Promise.reject(new AppError('', ErrorKind.UNKNOWN, { messageKey: 'common.cart.deleteRequired' }))
   return dispatch('MallOrder', 'Mini.CartController', 'RemoveItems', { CartItemIds: ids })
 }
 
@@ -240,7 +241,7 @@ export function selectItems(params = {}) {
   const ids = (Array.isArray(params.cartItemIds) ? params.cartItemIds : params.cartItemIds ? [params.cartItemIds] : [])
     .map(Number)
     .filter(Boolean)
-  if (ids.length === 0) return Promise.reject(new Error('请选择需要变更状态的商品'))
+  if (ids.length === 0) return Promise.reject(new AppError('', ErrorKind.UNKNOWN, { messageKey: 'common.cart.selectionRequired' }))
   return dispatch('MallOrder', 'Mini.CartController', 'SelectItems', {
     CartItemIds: ids,
     Selected: params.selected !== false,

@@ -2,7 +2,7 @@
   <AppPageShell>
     <template #header>
       <view class="flow-header">
-        <AppHeader title="资金流水" :show-back="true" />
+        <AppHeader :title="t('account.titles.funds')" :show-back="true" />
         <view class="filter-panel">
           <StatusTabBar :items="filters" :model-value="currentType" :max-width="700" @change="changeFilter" />
         </view>
@@ -22,9 +22,9 @@
         <view class="flow-page">
           <AppPageState
             :state="pageState"
-            title="暂无资金流水"
-            :description="loadError || '充值、支付、退款及账户调整记录会显示在这里'"
-            :action-text="pageState === PageStatus.ERROR ? '重新加载' : ''"
+            :title="t('account.fundFlow.empty')"
+            :description="loadError || t('account.fundFlow.emptyHint')"
+            :action-text="pageState === PageStatus.ERROR ? t('account.fundFlow.reload') : ''"
             icon-type="default"
             compact
             @retry="resetAndLoad"
@@ -39,18 +39,18 @@
                   <view class="flow-main">
                     <view class="flow-heading">
                       <text class="flow-title">{{ businessTitle(item.businessType) }}</text>
-                      <text class="flow-amount" :class="amountClass(item)">{{ formatChange(item) }}</text>
+                      <AmountText class="flow-amount" :class="amountClass(item)" :text="(formatChange(item))" />
                     </view>
                     <text class="flow-desc">{{ item.remark || businessDescription(item.businessType) }}</text>
                     <view class="flow-meta">
                       <text>{{ formatDateTime(item.createdAt) }}</text>
-                      <text v-if="item.businessNo">业务单号 {{ item.businessNo }}</text>
+                      <text v-if="item.businessNo">{{ t('account.fundFlow.businessNo', { number: item.businessNo }) }}</text>
                     </view>
                   </view>
                   <view class="balance-line">
-                    <text>账户 {{ item.accountId }}</text>
-                    <text>变动后余额 ¥{{ formatMoney(item.balanceAfter) }}</text>
-                    <text v-if="item.frozenAfter">冻结 ¥{{ formatMoney(item.frozenAfter) }}</text>
+                    <text>{{ t('account.fundFlow.account', { id: item.accountId }) }}</text>
+                    <AmountText :text="t('account.fundFlow.afterBalance', { amount: formatMoney(item.balanceAfter) })" />
+                    <AmountText v-if="item.frozenAfter" :text="t('account.fundFlow.frozenBalance', { amount: formatMoney(item.frozenAfter) })" />
                   </view>
                 </view>
 
@@ -65,6 +65,9 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/account/i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -79,23 +82,25 @@ import { getFundFlowList } from '../../api/settlement.js'
 import { formatDateTime } from '../../../../shared/utils/format.js'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
-const filters = Object.freeze([
-  { label: '全部', value: '' },
-  { label: '支付', value: 'payment' },
-  { label: '充值', value: 'recharge' },
-  { label: '退款', value: 'refund' },
-  { label: '调拨', value: 'transfer' },
+const filters = computed(() => [
+  { label: t('account.fundFlow.all'), value: '' },
+  { label: t('account.fundFlow.payments'), value: 'payment' },
+  { label: t('account.fundFlow.topups'), value: 'recharge' },
+  { label: t('account.fundFlow.refunds'), value: 'refund' },
+  { label: t('account.fundFlow.transfers'), value: 'transfer' },
 ])
-const titleMap = Object.freeze({
-  order_payment: '订单支付', payment: '订单支付', recharge: '充值入账', refund: '退款入账',
-  rebate: '返利入账', transfer_in: '余额转入', transfer_out: '余额转出',
-  freeze: '余额冻结', unfreeze: '余额解冻', adjustment: '账户调整', bill_repayment: '对账还款',
-})
+const titleMap = computed(() => ({
+  order_payment: t('account.fundFlow.orderPayment'), payment: t('account.fundFlow.orderPayment'), recharge: t('account.fundFlow.recharge'), refund: t('account.fundFlow.refund'),
+  rebate: t('account.fundFlow.rebate'), transfer_in: t('account.fundFlow.transferIn'), transfer_out: t('account.fundFlow.transferOut'),
+  freeze: t('account.fundFlow.freeze'), unfreeze: t('account.fundFlow.unfreeze'), adjustment: t('account.fundFlow.adjustment'), bill_repayment: t('account.fundFlow.repayment'),
+}))
 
 const flows = ref([])
 const currentType = ref('')
 const pageState = ref(PageStatus.LOADING)
-const loadError = ref('')
+const loadFailure = ref(null)
+const loadError = computed(() => loadFailure.value?.message
+  || (loadFailure.value?.messageKey ? t(loadFailure.value.messageKey) : ''))
 const pageNum = ref(1)
 const pageSize = 20
 const totalCount = ref(0)
@@ -112,11 +117,12 @@ const loadMoreStatus = computed(() => {
 
 onLoad(resetAndLoad)
 
+/** 重置原分页并读取资金流水，语言切换不调用本方法。 */
 async function resetAndLoad() {
   pageNum.value = 1
   flows.value = []
   pageState.value = PageStatus.LOADING
-  loadError.value = ''
+  loadFailure.value = null
   loadMoreError.value = false
   await fetchPage(false)
 }
@@ -137,6 +143,7 @@ function handleRefresherRestore() {
   if (!loadingMore.value && pageState.value !== PageStatus.LOADING) isRefreshing.value = false
 }
 
+/** 沿用原资金类型与页码，只本地化错误显示。 */
 async function fetchPage(append) {
   try {
     const result = await getFundFlowList({
@@ -152,7 +159,7 @@ async function fetchPage(append) {
   } catch (error) {
     if (append) pageNum.value = Math.max(1, pageNum.value - 1)
     loadMoreError.value = Boolean(append)
-    loadError.value = error?.message || '资金流水加载失败，请稍后重试'
+    loadFailure.value = error?.message ? error : { messageKey: 'account.fundFlow.loadFailed' }
     pageState.value = flows.value.length ? PageStatus.CONTENT : PageStatus.ERROR
   }
 }
@@ -170,11 +177,13 @@ function changeFilter(value) {
   resetAndLoad()
 }
 
-function businessTitle(type) { return titleMap[type] || '资金变动' }
+/** 翻译既有资金业务类型标签，未知类型使用通用标题。 */
+function businessTitle(type) { return titleMap.value[type] || t('account.fundFlow.change') }
+/** 按原业务类型显示余额变动说明，不改变金额符号。 */
 function businessDescription(type) {
-  if (type === 'freeze') return '部分余额已冻结，不可用于支付'
-  if (type === 'unfreeze') return '冻结余额已恢复为可用余额'
-  return '账户资金发生变动'
+  if (type === 'freeze') return t('account.fundFlow.freezeHint')
+  if (type === 'unfreeze') return t('account.fundFlow.unfreezeHint')
+  return t('account.fundFlow.changeHint')
 }
 function signedValue(item) { return item.balanceDelta || (item.businessType === 'unfreeze' ? -item.frozenDelta : item.frozenDelta) }
 function amountClass(item) { return signedValue(item) > 0 ? 'positive' : signedValue(item) < 0 ? 'negative' : 'neutral' }
@@ -208,4 +217,9 @@ function formatMoney(value) {
 .load-more { width: 100%; height: 42px; margin: 3px 0 0; border: 0; border-radius: 12px; color: #555A63; background: #F2F3F5; font-size: 13px; line-height: 42px; }
 .list-end { padding: 10px 0 2px; color: #9A9DA4; font-size: 11px; text-align: center; }
 @media screen and (min-width: 760px) { .flow-list { gap: 14px; } }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.flow-title { min-width: 0; flex: 1; }
+.flow-amount { min-width: 0; flex: 0 1 auto; max-width: 65%; }
+.balance-line .amount-text { font-size: inherit; }
 </style>

@@ -1,8 +1,8 @@
 <template>
   <view class="startup-loading">
     <AppInitializing
-      :title="title"
-      :description="tip"
+      :title="title ?? t('main.startup.title')"
+      :description="tip ?? t('main.startup.tip')"
       :fill="true"
       :show-brand="true"
     />
@@ -11,15 +11,16 @@
 
 <script setup>
 import AppInitializing from '@/shared/ui/AppInitializing/AppInitializing.vue'
+import { t } from '@/shared/i18n/index.js'
 
 defineProps({
   title: {
     type: String,
-    default: '正在加载采购工作台',
+    default: null,
   },
   tip: {
     type: String,
-    default: '正在同步账户与采购数据',
+    default: null,
   },
 })
 </script>

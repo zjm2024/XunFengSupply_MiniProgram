@@ -1,7 +1,7 @@
 ﻿﻿<template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="子账户管理" :show-back="true" />
+      <AppHeader :title="t('account.titles.subAccounts')" :show-back="true" />
     </template>
 
     <template #content>
@@ -24,18 +24,18 @@
           <AppPageState
             v-else-if="!loading && accountList.length === 0"
             state="empty"
-            title="暂无子账户"
-            description="您可以添加子账户来分配不同权限"
+            :title="t('account.subAccounts.empty')"
+            :description="t('account.subAccounts.emptyHint')"
           />
 
           <template v-else>
             <!-- 账户统计 -->
             <view class="stats-card">
-              <text class="stats-title">账户概览</text>
+              <text class="stats-title">{{ t('account.subAccounts.overview') }}</text>
               <view class="stats-grid">
                 <view class="stat-item">
                   <text class="stat-value">{{ totalCount }}</text>
-                  <text class="stat-label">总账户数</text>
+                  <text class="stat-label">{{ t('account.subAccounts.total') }}</text>
                 </view>
                 <view class="stat-item">
                   <text class="stat-value">{{ activeCount }}</text>
@@ -50,7 +50,7 @@
 
             <!-- 子账户列表 -->
             <view class="section-card">
-              <text class="section-title">子账户列表</text>
+              <text class="section-title">{{ t('account.subAccounts.list') }}</text>
 
               <view v-for="item in accountList" :key="item.id" class="account-item">
                 <view class="account-main">
@@ -70,15 +70,15 @@
 
                   <view class="account-details">
                     <view class="detail-row">
-                      <text class="detail-label">账号</text>
+                      <text class="detail-label">{{ t('account.subAccounts.username') }}</text>
                       <text class="detail-value">{{ item.username }}</text>
                     </view>
                     <view v-if="item.phone" class="detail-row">
-                      <text class="detail-label">手机</text>
+                      <text class="detail-label">{{ t('account.subAccounts.phone') }}</text>
                       <text class="detail-value">{{ item.phone }}</text>
                     </view>
                     <view class="detail-row">
-                      <text class="detail-label">权限</text>
+                      <text class="detail-label">{{ t('account.subAccounts.permissions') }}</text>
                       <view class="permission-tags">
                         <text
                           v-for="perm in item.permissions"
@@ -88,35 +88,35 @@
                       </view>
                     </view>
                     <view class="detail-row">
-                      <text class="detail-label">余额</text>
-                      <text class="detail-value">可用 ¥{{ formatMoney(item.availableBalance) }} · 冻结 ¥{{ formatMoney(item.frozenBalance) }}</text>
+                      <text class="detail-label">{{ t('account.subAccounts.balance') }}</text>
+                      <view class="detail-value balance-values"><AmountText :text="t('account.subAccounts.availableAmount', { amount: formatMoney(item.availableBalance) })" /><AmountText :text="t('account.subAccounts.frozenAmount', { amount: formatMoney(item.frozenBalance) })" /></view>
                     </view>
                     <view class="detail-row">
-                      <text class="detail-label">创建时间</text>
+                      <text class="detail-label">{{ t('account.subAccounts.createdAt') }}</text>
                       <text class="detail-value">{{ item.createdAt }}</text>
                     </view>
                   </view>
                 </view>
 
                 <view class="account-actions">
-                  <button class="action-btn" :disabled="isReadOnly" @click="editAccount(item)">编辑</button>
-                  <button class="action-btn" :disabled="isReadOnly" @click="adjustBalance(item, 'allocate')">分配</button>
-                  <button class="action-btn" :disabled="isReadOnly" @click="adjustBalance(item, 'reclaim')">收回</button>
+                  <button class="action-btn" :disabled="isReadOnly" @click="editAccount(item)">{{ t('account.subAccounts.edit') }}</button>
+                  <button class="action-btn" :disabled="isReadOnly" @click="adjustBalance(item, 'allocate')">{{ t('account.subAccounts.allocate') }}</button>
+                  <button class="action-btn" :disabled="isReadOnly" @click="adjustBalance(item, 'reclaim')">{{ t('account.subAccounts.reclaim') }}</button>
                   <button class="action-btn" :disabled="isReadOnly" @click="changeFrozen(item, item.frozenBalance <= 0)">
-                    {{ item.frozenBalance > 0 ? '解冻余额' : '冻结余额' }}
+                    {{ item.frozenBalance > 0 ? t('account.subAccounts.unfreeze') : t('account.subAccounts.freeze') }}
                   </button>
                   <button
                     v-if="item.status === 'active'"
                     class="action-btn warning"
                     :disabled="isReadOnly"
                     @click="toggleStatus(item)"
-                  >停用</button>
+                  >{{ t('account.subAccounts.disable') }}</button>
                   <button
                     v-else
                     class="action-btn success"
                     :disabled="isReadOnly"
                     @click="toggleStatus(item)"
-                  >启用</button>
+                  >{{ t('account.subAccounts.enable') }}</button>
                 </view>
               </view>
             </view>
@@ -124,10 +124,10 @@
           </template>
 
           <!-- 新增按钮 -->
-          <text v-if="isReadOnly" class="readonly-hint">主账户已冻结：可查看子账户、余额与权限，但不可修改。</text>
+          <text v-if="isReadOnly" class="readonly-hint">{{ t('account.subAccounts.readonly') }}</text>
           <button class="add-btn" :disabled="isReadOnly" @click="addAccount">
             <text class="add-icon">+</text>
-            <text>新增子账户</text>
+            <text>{{ t('account.subAccounts.add') }}</text>
           </button>
 
           <view class="bottom-spacer"></view>
@@ -138,6 +138,9 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/account/i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -151,6 +154,7 @@ import { routes } from '@/app/config/routes.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { useUserStore } from '@/shared/session/userStore.js'
 import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
+import { openAppDialog, openAppPrompt } from '@/shared/composables/useAppDialog.js'
 import {
   changeDealerFrozenBalance,
   getDealerFinanceContext,
@@ -219,7 +223,7 @@ async function loadSubAccounts({ reset = true } = {}) {
       loadMoreError.value = true
     }
     console.error('[SubAccount] 加载子账号列表失败:', err)
-    if (reset) uni.showToast({ title: '加载失败，请重试', icon: 'none' })
+    if (reset) uni.showToast({ title: t('account.subAccounts.loadFailed'), icon: 'none' })
   } finally {
     if (reset) loading.value = false
     else loadingMore.value = false
@@ -250,49 +254,51 @@ function formatMoney(value) {
   return Number(value || 0).toFixed(2)
 }
 
+/** 仅翻译已知权限的显示名称，未知权限码原样返回。 */
 function permissionLabel(code) {
   return {
-    ORDER_VIEW: '查看订单',
-    ORDER_CREATE: '下单',
-    BALANCE_VIEW: '余额对账',
-    INVENTORY_VIEW: '查看库存',
-    SUB_ACCOUNT_MANAGE: '管理子账户',
-    COMBINATION_PAY_PARTICIPATE: '参与组合支付',
+    ORDER_VIEW: t('account.permissions.viewOrders'),
+    ORDER_CREATE: t('account.permissions.createOrders'),
+    BALANCE_VIEW: t('account.permissions.balance'),
+    INVENTORY_VIEW: t('account.permissions.viewInventory'),
+    SUB_ACCOUNT_MANAGE: t('account.permissions.manageAccounts'),
+    COMBINATION_PAY_PARTICIPATE: t('account.permissions.combinedPayment'),
   }[code] || code
 }
 
-function promptAmount(title, placeholder, action) {
-  uni.showModal({
+/** 用户确认有效金额后执行一次原资金操作。 */
+async function promptAmount(title, placeholder, action) {
+  const result = await openAppPrompt({
+    confirmText: t('common.confirm'),
+    cancelText: t('common.cancel'),
     title,
-    editable: true,
-    placeholderText: placeholder,
-    success: async res => {
-      if (!res.confirm) return
-      const amount = Number(res.content)
-      if (!Number.isFinite(amount) || amount <= 0) {
-        uni.showToast({ title: '请输入大于 0 的金额', icon: 'none' })
-        return
-      }
-      try {
-        await action(amount)
-        uni.showToast({ title: '操作成功', icon: 'success' })
-        await loadSubAccounts()
-      } catch (error) {
-        uni.showToast({ title: error?.message || '操作失败', icon: 'none' })
-      }
-    },
+    placeholder,
   })
+  if (!result.confirmed) return
+  const amount = Number(result.content)
+  if (!Number.isFinite(amount) || amount <= 0) {
+    uni.showToast({ title: t('account.subAccounts.positiveAmount'), icon: 'none' })
+    return
+  }
+  try {
+    await action(amount)
+    uni.showToast({ title: t('account.subAccounts.success'), icon: 'success' })
+    await loadSubAccounts()
+  } catch (error) {
+    uni.showToast({ title: error?.message || t('account.subAccounts.failed'), icon: 'none' })
+  }
 }
 
+/** 按原主子账户方向分配或收回余额。 */
 function adjustBalance(account, direction) {
   const mainId = finance.value.accounts.find(item => item.isMaster)?.accountCustomerId
   if (!mainId) {
-    uni.showToast({ title: '未找到主账户余额', icon: 'none' })
+    uni.showToast({ title: t('account.subAccounts.missingMain'), icon: 'none' })
     return
   }
-  promptAmount(
-    direction === 'allocate' ? '从主账户分配余额' : '收回到主账户',
-    '请输入金额',
+  return promptAmount(
+    direction === 'allocate' ? t('account.subAccounts.allocateTitle') : t('account.subAccounts.reclaimTitle'),
+    t('account.subAccounts.amountPlaceholder'),
     amount => transferDealerBalance({
       fromAccountCustomerId: direction === 'allocate' ? mainId : account.customerId,
       toAccountCustomerId: direction === 'allocate' ? account.customerId : mainId,
@@ -302,10 +308,11 @@ function adjustBalance(account, direction) {
   )
 }
 
+/** 保留冻结方向、金额和原客户端请求标识。 */
 function changeFrozen(account, freeze) {
-  promptAmount(
-    freeze ? '冻结账户余额' : '解冻账户余额',
-    freeze ? '不能超过可用余额' : '不能超过冻结余额',
+  return promptAmount(
+    freeze ? t('account.subAccounts.freezeTitle') : t('account.subAccounts.unfreezeTitle'),
+    freeze ? t('account.subAccounts.availableLimit') : t('account.subAccounts.frozenLimit'),
     amount => changeDealerFrozenBalance({
       accountCustomerId: account.customerId,
       amount,
@@ -343,26 +350,21 @@ function editAccount(account) {
  */
 async function toggleStatus(account) {
   if (isReadOnly.value) return
-  const action = account.status === 'active' ? '停用' : '启用'
-  uni.showModal({
-    title: `确认${action}`,
-    content: `确定要${action} ${account.name || account.username} 的账户吗？`,
-    success: async (res) => {
-      if (res.confirm) {
-        try {
-          await toggleSubAccountStatus({
-            subAccountId: account.id,
-            active: account.status !== 'active',
-          })
-          uni.showToast({ title: `已${action}`, icon: 'success' })
-          await loadSubAccounts()
-        } catch (err) {
-          console.error('[SubAccount] 切换状态失败:', err)
-          uni.showToast({ title: err.message || '操作失败，请重试', icon: 'none' })
-        }
-      }
-    },
-  })
+  const action = account.status === 'active' ? 'disable' : 'enable'
+  if (!await openAppDialog({
+    confirmText: t('common.confirm'),
+    cancelText: t('common.cancel'),
+    title: t('account.subAccounts.confirmAction', { action: t('account.subAccounts.' + action) }),
+    description: t('account.subAccounts.actionContent', { action: t('account.subAccounts.' + action), name: account.name || account.username }),
+  })) return
+  try {
+    await toggleSubAccountStatus({ subAccountId: account.id, active: account.status !== 'active' })
+    uni.showToast({ title: t('account.subAccounts.' + action + 'Success'), icon: 'success' })
+    await loadSubAccounts()
+  } catch (err) {
+    console.error('[SubAccount] 切换状态失败:', err)
+    uni.showToast({ title: err.message || t('account.subAccounts.retryFailed'), icon: 'none' })
+  }
 }
 </script>
 
@@ -485,7 +487,9 @@ async function toggleStatus(account) {
 }
 
 .detail-label {
-  width: 60px;
+  width: 80px;
+  padding-right: 8px;
+  box-sizing: border-box;
   font-size: 13px;
   color: #5E626B;
   flex-shrink: 0;
@@ -512,6 +516,7 @@ async function toggleStatus(account) {
 
 .account-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 10px;
@@ -578,4 +583,9 @@ async function toggleStatus(account) {
 .bottom-spacer {
   height: 24px;
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.account-details, .detail-value { min-width: 0; }
+.balance-values { display: flex; flex: 1; flex-wrap: wrap; gap: 4px 10px; }
+.balance-values .amount-text { font-size: inherit; }
 </style>

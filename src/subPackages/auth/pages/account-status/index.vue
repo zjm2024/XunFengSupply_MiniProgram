@@ -26,17 +26,17 @@
             <text class="tips-item">审核完成后将开放对应账号权限</text>
           </view>
           <view v-else class="frozen-tips">
-            <text class="tips-title">可能的原因：</text>
-            <text class="tips-item">• 多次逾期未付款</text>
-            <text class="tips-item">• 恶意拒收商品</text>
-            <text class="tips-item">• 违反平台交易规则</text>
-            <text class="tips-item">• 资质信息异常</text>
+            <text class="tips-title">{{ t('auth.accountStatus.possibleReasons') }}</text>
+            <text class="tips-item">{{ t('auth.accountStatus.overdue') }}</text>
+            <text class="tips-item">{{ t('auth.accountStatus.refused') }}</text>
+            <text class="tips-item">{{ t('auth.accountStatus.rules') }}</text>
+            <text class="tips-item">{{ t('auth.accountStatus.qualifications') }}</text>
           </view>
 
           <view class="action-buttons">
-            <button v-if="isApplicationPending" class="contact-btn" @click="goToApplication">查看申请进度</button>
-            <button v-else class="contact-btn" @click="contactService">联系客服申诉</button>
-            <button class="back-btn" @click="goBack">返回</button>
+            <button v-if="isApplicationPending" class="contact-btn" @click="goToApplication">{{ t('auth.accountStatus.viewApplication') }}</button>
+            <button v-else class="contact-btn" @click="contactService">{{ t('auth.accountStatus.appeal') }}</button>
+            <button class="back-btn" @click="goBack">{{ t('auth.accountStatus.back') }}</button>
           </view>
         </view>
       </AppContent>
@@ -46,6 +46,8 @@
 
 <script setup>
 import { ref } from 'vue'
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/auth/i18n/register.js'
 import { getBootstrapContext } from '../../../../app/bootstrap/bootstrapApi.js'
 import { onLoad } from '@dcloudio/uni-app'
 import { useUserStore } from '@/shared/session/userStore.js'
@@ -55,6 +57,7 @@ import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppStatusBarSpacer from '../../../../shared/ui/AppStatusBarSpacer/AppStatusBarSpacer.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { APPLY_SIGN, LOGIN } from '@/app/config/routes.js'
+import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 
 const userStore = useUserStore()
 const frozenReason = ref('')
@@ -97,9 +100,10 @@ function goToApplication() {
  */
 // TODO: 接入真实客服电话
 function contactService() {
-  uni.showModal({
-    title: '联系客服',
-    content: '请拨打经销商服务热线',
+  openAppDialog({
+    title: t('auth.accountStatus.contactTitle'),
+    description: t('auth.accountStatus.contactContent'),
+    confirmText: t('common.confirm'),
     showCancel: false
   })
 }
@@ -174,11 +178,20 @@ function goBack() {
   .action-buttons {
     display: flex;
     gap: 24rpx;
+    width: 100%;
+    max-width: 620rpx;
+    flex-wrap: wrap;
+    justify-content: center;
     
     .contact-btn, .back-btn {
-      width: 260rpx;
-      height: 84rpx;
-      line-height: 84rpx;
+      width: auto;
+      flex: 1 1 240rpx;
+      min-height: 84rpx;
+      padding: 12px 16px;
+      line-height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       border-radius: 42rpx;
       font-size: 15px;
       border: none;

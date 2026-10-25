@@ -3,12 +3,12 @@
     <view class="express-picker__mask" @tap="handleCancel" />
     <view class="express-picker__sheet" @tap.stop>
       <view class="express-picker__header">
-        <view class="express-picker__header-action express-picker__header-action--cancel" @tap="handleCancel">取消</view>
+        <view class="express-picker__header-action express-picker__header-action--cancel" @tap="handleCancel">{{ t('commerce.carrier.cancel') }}</view>
         <view class="express-picker__heading">
-          <text class="express-picker__title">选择配送方式</text>
-          <text class="express-picker__subtitle">选择后将按对应运费规则重新核价</text>
+          <text class="express-picker__title">{{ t('commerce.carrier.title') }}</text>
+          <text class="express-picker__subtitle">{{ t('commerce.carrier.hint') }}</text>
         </view>
-        <view class="express-picker__header-action express-picker__header-action--confirm" @tap="handleConfirm">确定</view>
+        <view class="express-picker__header-action express-picker__header-action--confirm" @tap="handleConfirm">{{ t('commerce.carrier.confirm') }}</view>
       </view>
 
       <scroll-view class="express-picker__list" scroll-y>
@@ -30,7 +30,7 @@
             <AppIcon v-if="draftCode === item.code" name="check" :size="14" color="#FFFFFF" />
           </view>
         </view>
-        <view v-if="!options.length" class="express-picker__empty">暂无可用配送方式</view>
+        <view v-if="!options.length" class="express-picker__empty">{{ t('commerce.carrier.empty') }}</view>
       </scroll-view>
 
       <view class="express-picker__safe-area" />
@@ -39,6 +39,8 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/commerce/i18n/register.js'
 import { ref, watch } from 'vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 
@@ -114,7 +116,9 @@ function handleConfirm() {
 }
 
 .express-picker__header-action {
-  width: 48px;
+  min-width: 60px;
+  flex-shrink: 0;
+  white-space: nowrap;
   color: #667085;
   font-size: 14px;
   text-align: center;

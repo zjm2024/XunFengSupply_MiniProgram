@@ -86,13 +86,7 @@ export async function getAvailableHeight(options = {}) {
  * @param {string} lang
  * @returns {'zh-CN' | 'en-US'}
  */
-export function normalizeLanguage(lang) {
-  const lower = (lang || '').toLowerCase()
-  if (lower.startsWith('zh') || lower === 'cn' || lower === 'chinese') {
-    return 'zh-CN'
-  }
-  return 'en-US'
-}
+export { normalizeLocale as normalizeLanguage } from '../i18n/index.js'
 
 // ==================== 校验工具 ====================
 

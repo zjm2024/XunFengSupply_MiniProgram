@@ -1,14 +1,14 @@
 <template>
   <AppPageShell>
-    <template #header><AppHeader title="库存详情" :show-back="true" /></template>
+    <template #header><AppHeader :title="t('account.titles.inventoryDetail')" :show-back="true" /></template>
     <template #content>
       <AppContent padding="16px var(--page-padding-x, 16px) 34px">
         <view class="detail-page">
           <AppPageState
             :state="pageState"
-            title="未找到库存"
-            :description="pageState === PageStatus.ERROR ? loadError : '该商品规格暂无经销商库存记录'"
-            action-text="重新加载"
+            :title="t('account.inventory.detailEmpty')"
+            :description="pageState === PageStatus.ERROR ? loadError : t('account.inventory.detailEmptyHint')"
+            :action-text="t('account.inventory.reload')"
             @retry="loadDetail"
             @action="loadDetail"
           >
@@ -19,50 +19,50 @@
                   <text class="product-name">{{ detail.productName }}</text>
                   <text class="sku-name">{{ detail.skuName || `SKU ${detail.skuId}` }}</text>
                   <view class="specs">
-                    <text v-if="detail.colorName">颜色 {{ detail.colorName }}</text>
-                    <text v-if="detail.sizeName">尺码 {{ detail.sizeName }}</text>
+                    <text v-if="detail.colorName">{{ t('account.inventory.color', { value: detail.colorName }) }}</text>
+                    <text v-if="detail.sizeName">{{ t('account.inventory.size', { value: detail.sizeName }) }}</text>
                     <text v-if="detail.skuCode">{{ detail.skuCode }}</text>
                   </view>
-                  <text class="updated">最近入库 {{ formatDateTime(detail.lastInboundAt) }}</text>
+                  <text class="updated">{{ t('account.inventory.lastInbound', { date: formatDateTime(detail.lastInboundAt) }) }}</text>
                 </view>
               </view>
 
               <view class="quantity-card">
-                <view class="primary"><text>当前可用</text><text>{{ formatQty(detail.availableQuantity) }} <text class="unit">{{ detail.unit }}</text></text></view>
-                <view><text>在手库存</text><text>{{ formatQty(detail.onHandQuantity) }}</text></view>
-                <view><text>已锁定</text><text>{{ formatQty(detail.reservedQuantity) }}</text></view>
-                <view><text>不可用</text><text>{{ formatQty(detail.unavailableQuantity) }}</text></view>
+                <view class="primary"><text>{{ t('account.inventory.currentAvailable') }}</text><text>{{ formatQty(detail.availableQuantity) }} <text class="unit">{{ detail.unit }}</text></text></view>
+                <view><text>{{ t('account.inventory.onHandStock') }}</text><text>{{ formatQty(detail.onHandQuantity) }}</text></view>
+                <view><text>{{ t('account.inventory.reserved') }}</text><text>{{ formatQty(detail.reservedQuantity) }}</text></view>
+                <view><text>{{ t('account.inventory.unavailable') }}</text><text>{{ formatQty(detail.unavailableQuantity) }}</text></view>
               </view>
 
               <view class="section-grid">
                 <view class="section-card">
                   <view class="section-head">
-                    <view><text class="section-title">仓位库存</text><text class="section-desc">按经销商自有仓库拆分</text></view>
-                    <text class="section-count">{{ detail.warehouses.length }} 个</text>
+                    <view><text class="section-title">{{ t('account.inventory.warehouses') }}</text><text class="section-desc">{{ t('account.inventory.warehouseHint') }}</text></view>
+                    <text class="section-count">{{ t('account.inventory.warehouseTotal', { count: detail.warehouses.length }) }}</text>
                   </view>
                   <view class="warehouse-list">
                     <view v-for="warehouse in detail.warehouses" :key="warehouse.warehouseId" class="warehouse-row">
                       <view class="warehouse-mark"><AppIcon name="box" :size="18" /></view>
                       <view class="warehouse-copy">
                         <text>{{ warehouse.warehouseName }}</text>
-                        <text>{{ warehouse.warehouseCode }} · 最近入库 {{ formatDate(warehouse.lastInboundAt) }}</text>
+                        <text>{{ warehouse.warehouseCode }} · {{ t('account.inventory.lastInbound', { date: formatDate(warehouse.lastInboundAt) }) }}</text>
                       </view>
-                      <view class="warehouse-qty"><text>{{ formatQty(warehouse.availableQuantity) }}</text><text>可用</text></view>
+                      <view class="warehouse-qty"><text>{{ formatQty(warehouse.availableQuantity) }}</text><text>{{ t('account.inventory.available') }}</text></view>
                     </view>
                   </view>
                 </view>
 
                 <view class="section-card">
                   <view class="section-head">
-                    <view><text class="section-title">库存流水</text><text class="section-desc">数量变化与来源单据</text></view>
-                    <text class="section-count">最近 {{ detail.recentTransactions.length }} 条</text>
+                    <view><text class="section-title">{{ t('account.inventory.transactions') }}</text><text class="section-desc">{{ t('account.inventory.transactionHint') }}</text></view>
+                    <text class="section-count">{{ t('account.inventory.recentTotal', { count: detail.recentTransactions.length }) }}</text>
                   </view>
                   <view v-if="detail.recentTransactions.length" class="transaction-list">
                     <view v-for="item in detail.recentTransactions" :key="item.transactionId" class="transaction-row" :class="{ link: canOpenOrder(item) }" @tap="openSource(item)">
                       <view class="transaction-mark"><AppIcon :name="item.quantityDelta >= 0 ? 'arrow-down' : 'arrow-up'" :size="17" /></view>
                       <view class="transaction-copy">
                         <text>{{ businessTypeText(item.businessType) }}</text>
-                        <text>{{ item.sourceNo || item.remark || '库存业务调整' }} · {{ formatDateTime(item.occurredAt) }}</text>
+                        <text>{{ item.sourceNo || item.remark || t('account.inventory.adjustmentFallback') }} · {{ formatDateTime(item.occurredAt) }}</text>
                       </view>
                       <view class="delta" :class="{ negative: item.quantityDelta < 0 }">{{ item.quantityDelta > 0 ? '+' : '' }}{{ formatQty(item.quantityDelta) }}</view>
                       <AppIcon v-if="canOpenOrder(item)" name="chevron-right" :size="14" color="#A4A8AF" />
@@ -70,11 +70,11 @@
                   </view>
                   <view v-else class="empty-ledger">
                     <AppSvgIllustration class="ledger-empty-illustration" name="no-revenue" size="sm" />
-                    <text>暂无库存流水</text>
+                    <text>{{ t('account.inventory.emptyLedger') }}</text>
                   </view>
                 </view>
               </view>
-              <view class="data-note"><AppIcon name="info" :size="15" /><text>可用库存 = 在手库存 − 已锁定 − 不可用；采购订单以确认收货为入库节点。</text></view>
+              <view class="data-note"><AppIcon name="info" :size="15" /><text>{{ t('account.inventory.dataNote') }}</text></view>
             </template>
           </AppPageState>
         </view>
@@ -84,7 +84,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/account/i18n/register.js'
+import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -104,26 +106,29 @@ const userStore = useUserStore()
 const skuId = ref(0)
 const detail = ref(null)
 const pageState = ref(PageStatus.LOADING)
-const loadError = ref('')
+const loadFailure = ref(null)
+const loadError = computed(() => loadFailure.value?.message
+  || (loadFailure.value?.messageKey ? t(loadFailure.value.messageKey) : ''))
 
 onLoad((options = {}) => {
   skuId.value = Number(options.skuId || 0)
   loadDetail()
 })
 
+/** 读取原 SKU 库存，保留错误对象或本地错误键。 */
 async function loadDetail() {
   if (!skuId.value) {
-    loadError.value = '缺少商品规格参数'
+    loadFailure.value = { messageKey: 'account.inventory.missingSku' }
     pageState.value = PageStatus.ERROR
     return
   }
   pageState.value = PageStatus.LOADING
-  loadError.value = ''
+  loadFailure.value = null
   try {
     detail.value = await getDealerInventoryDetail(skuId.value)
     pageState.value = detail.value ? PageStatus.CONTENT : PageStatus.EMPTY
   } catch (error) {
-    loadError.value = error?.message || '库存详情读取失败，请稍后重试'
+    loadFailure.value = error?.message ? error : { messageKey: 'account.inventory.detailLoadFailed' }
     pageState.value = PageStatus.ERROR
   }
 }
@@ -134,11 +139,12 @@ function canOpenOrder(item) {
 function openSource(item) {
   if (canOpenOrder(item)) navigator.navigateTo(routes.order.detail(item.sourceId))
 }
+/** 仅翻译既有库存流水类型名称，不改类型代码。 */
 function businessTypeText(type) {
   return ({
-    PURCHASE_RECEIPT: '采购入库', SALE_OUT: '销售出库', RETURN_OUT: '退货出库',
-    TRANSFER: '库存调拨', COUNT_ADJUST: '盘点调整',
-  })[type] || '库存变动'
+    PURCHASE_RECEIPT: t('account.inventory.purchaseReceipt'), SALE_OUT: t('account.inventory.saleOut'), RETURN_OUT: t('account.inventory.returnOut'),
+    TRANSFER: t('account.inventory.transfer'), COUNT_ADJUST: t('account.inventory.countAdjust'),
+  })[type] || t('account.inventory.change')
 }
 function formatQty(value) { return Number(value || 0).toLocaleString('zh-CN') }
 </script>

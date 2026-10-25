@@ -59,6 +59,7 @@ function toMiB(bytes) {
 
 // ==================== 扫描目录 ====================
 
+/** 按实际文件字节扫描目录，统一相对路径以确定主分包归属。 */
 function scanDir(dir) {
   const stats = {
     totalSize: 0,
@@ -85,7 +86,7 @@ function scanDir(dir) {
       const ext = path.extname(entry.name).toLowerCase()
       const fileInfo = {
         path: fullPath,
-        relativePath: path.relative(ROOT, fullPath),
+        relativePath: path.relative(ROOT, fullPath).replace(/\\/g, '/'),
         size: stat.size,
         ext
       }
@@ -157,31 +158,31 @@ function checkBuildArtifactIntegrity() {
 
 // ==================== 检查 2: 主包分析 ====================
 
-function analyzeMainPackage(stats) {
-  console.log('\n=== 主包分析 ===\n')
+/** 读取构建产物实际注册的分包，避免固定目录白名单遗漏文件。 */
+function readSubpackageDefinitions() {
+  const app = JSON.parse(fs.readFileSync(path.join(ROOT, 'app.json'), 'utf8'))
+  return (app.subPackages || app.subpackages || []).map(item => ({
+    key: String(item.root || '').replace(/\\/g, '/').replace(/^\/+|\/+$/g, ''),
+    name: item.name || String(item.root || '').split('/').pop(),
+  })).filter(item => item.key)
+}
 
-  const appPages = stats.dirs['pages']
-  const appCode = stats.files.filter(f =>
-    f.relativePath.startsWith('app/') ||
-    f.relativePath.startsWith('shared/')
-  )
-  const staticFiles = stats.dirs['static']
-
+/** 将所有扫描文件划入真实分包或主包；common、app.js 和未知主包目录均计入。 */
+function calculatePackageSizes(files, definitions) {
+  const results = definitions.map(item => ({ ...item, size: 0 }))
   let mainSize = 0
-  // 主包包含: app, shared, static, main.js, pages
-  if (appPages) mainSize += appPages.totalSize
-  if (staticFiles) mainSize += staticFiles.totalSize
-
-  // app 和 shared 目录
-  for (const f of stats.files) {
-    if (f.relativePath.startsWith('app/') ||
-        f.relativePath.startsWith('shared/') ||
-        f.relativePath === 'main.js' ||
-        f.relativePath === 'app.json' ||
-        f.relativePath === 'app.wxss') {
-      mainSize += f.size
-    }
+  for (const file of files) {
+    const relativePath = file.relativePath.replace(/\\/g, '/')
+    const subpackage = results.find(item => relativePath.startsWith(item.key + '/'))
+    if (subpackage) subpackage.size += file.size
+    else mainSize += file.size
   }
+  return { mainSize, results, totalSubSize: results.reduce((sum, item) => sum + item.size, 0) }
+}
+
+/** 对完整主包体积执行原限制检查。 */
+function analyzeMainPackage(mainSize) {
+  console.log('\n=== 主包分析 ===\n')
 
   info(`主包大小: ${formatSize(mainSize)} (${toMiB(mainSize)} MiB)`)
 
@@ -196,35 +197,17 @@ function analyzeMainPackage(stats) {
 
 // ==================== 检查 3: 分包分析 ====================
 
-function analyzeSubpackages(stats) {
+/** 按 app.json 中的真实分包体积检查限制并输出结果。 */
+function analyzeSubpackages({ totalSubSize, results }) {
   console.log('\n=== 分包分析 ===\n')
-
-  const subpackages = [
-    { key: 'subPackages/auth', name: 'auth' },
-    { key: 'subPackages/commerce', name: 'commerce' },
-    { key: 'subPackages/order', name: 'order' },
-    { key: 'subPackages/account', name: 'account' },
-    { key: 'subPackages/content', name: 'content' }
-  ]
-
-  let totalSubSize = 0
-  const results = []
-  // scanDir 按目录层级保存 dirs；分包实际位于顶层 subPackages 下，不能从根 dirs 直接取 subPackages/auth。
-  const subpackageDirs = stats.dirs.subPackages?.dirs || {}
-
-  for (const sp of subpackages) {
-    const dir = subpackageDirs[sp.name]
-    if (!dir) {
+  for (const sp of results) {
+    if (!sp.size) {
       warn(`分包目录不存在: ${sp.key}`)
       continue
     }
-    totalSubSize += dir.totalSize
-    results.push({ ...sp, size: dir.totalSize })
-
-    info(`${sp.name}: ${formatSize(dir.totalSize)} (${toMiB(dir.totalSize)} MiB)`)
-
-    if (dir.totalSize > LIMITS.SUBPACKAGE_MAX) {
-      error(`分包 ${sp.name} 大小 ${toMiB(dir.totalSize)} MiB 超过限制 ${toMiB(LIMITS.SUBPACKAGE_MAX)} MiB`)
+    info(`${sp.name}: ${formatSize(sp.size)} (${toMiB(sp.size)} MiB)`)
+    if (sp.size > LIMITS.SUBPACKAGE_MAX) {
+      error(`分包 ${sp.name} 大小 ${toMiB(sp.size)} MiB 超过限制 ${toMiB(LIMITS.SUBPACKAGE_MAX)} MiB`)
     }
   }
 
@@ -315,7 +298,8 @@ function checkDuplicateFiles(stats) {
 
 // ==================== 检查 8: 主包业务占位检查 ====================
 
-function checkMainPackageBusinessContent(stats) {
+/** 只在主包内检查大体积的业务占位资源。 */
+function checkMainPackageBusinessContent(stats, definitions) {
   console.log('\n=== 主包业务内容检查 ===\n')
 
   const suspiciousPatterns = [
@@ -331,6 +315,7 @@ function checkMainPackageBusinessContent(stats) {
   const suspiciousFiles = []
 
   for (const f of stats.files) {
+    if (definitions.some(item => f.relativePath.startsWith(item.key + '/'))) continue
     if (f.size > LIMITS.MAIN_IMAGE_MAX) {
       for (const pattern of suspiciousPatterns) {
         if (pattern.test(f.relativePath)) {
@@ -352,6 +337,7 @@ function checkMainPackageBusinessContent(stats) {
 
 // ==================== main ====================
 
+/** 扫描真实构建产物，校验体积分区完整性后运行各项检查。 */
 function main() {
   console.log('='.repeat(60))
   console.log('微信小程序包体分析脚本')
@@ -369,13 +355,16 @@ function main() {
   info(`构建产物总大小: ${formatSize(stats.totalSize)} (${toMiB(stats.totalSize)} MiB)`)
   info(`文件总数: ${stats.files.length}`)
 
-  const mainSize = analyzeMainPackage(stats)
-  const { totalSubSize, results: subResults } = analyzeSubpackages(stats)
+  const definitions = readSubpackageDefinitions()
+  const sizes = calculatePackageSizes(stats.files, definitions)
+  const mainSize = analyzeMainPackage(sizes.mainSize)
+  const { totalSubSize, results: subResults } = analyzeSubpackages(sizes)
+  if (mainSize + totalSubSize !== stats.totalSize) error('主包与分包合计不等于扫描总量')
   analyzeTotalSize(mainSize, totalSubSize)
   analyzeLargestFiles(stats)
   checkLargeFiles(stats)
   checkDuplicateFiles(stats)
-  checkMainPackageBusinessContent(stats)
+  checkMainPackageBusinessContent(stats, definitions)
 
   // 最终汇总
   console.log('\n' + '='.repeat(60))
@@ -392,4 +381,6 @@ function main() {
   process.exit(errorCount > 0 ? 1 : 0)
 }
 
-main()
+if (require.main === module) main()
+
+module.exports = { calculatePackageSizes }

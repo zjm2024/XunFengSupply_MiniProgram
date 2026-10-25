@@ -2,7 +2,7 @@
   <AppPageShell>
     <template #header>
       <app-header
-        title="批量采购"
+        :title="t('commerce.titles.bulk')"
         :show-back="true"
         :show-cart="true"
         :cart-count="cartStore.cartBadgeCount"
@@ -14,9 +14,9 @@
       <AppContent>
         <app-page-state
           :state="pageState"
-          title="商品加载失败"
+          :title="t('commerce.variants.loadFailedTitle')"
           :description="errorMessage"
-          action-text="重新加载"
+          :action-text="t('commerce.variants.reload')"
           icon-type="product"
           @retry="loadProduct"
         >
@@ -25,9 +25,9 @@
               <AppProductImage class="product-image" :src="product.image" :stock="product.stock" />
               <view class="product-info">
                 <text class="product-name">{{ product.name }}</text>
-                <text class="product-code">货号：{{ product.code || '-' }}</text>
+                <text class="product-code">{{ t('commerce.variants.article', { code: product.code || '-' }) }}</text>
                 <view class="price-row">
-                  <text class="price">{{ priceText }}</text>
+                  <AmountText class="price" :text="(priceText)" />
                   <text class="unit">/ {{ product.unit }}</text>
                 </view>
               </view>
@@ -35,18 +35,18 @@
 
             <view class="batch-toolbar">
               <view>
-                <text class="card-title">按规格批量填数</text>
-                <text class="card-desc">一键填数将覆盖所有可采购 SKU 的数量</text>
+                <text class="card-title">{{ t('commerce.variants.fillTitle') }}</text>
+                <text class="card-desc">{{ t('commerce.variants.fillHint') }}</text>
               </view>
               <view class="batch-fill-row">
                 <input
                   v-model="batchFillNumber"
                   type="number"
                   class="batch-fill-input"
-                  placeholder="输入数量"
+                  :placeholder="t('commerce.variants.quantityPlaceholder')"
                 />
-                <button class="batch-fill-btn button-center" @click="applyBatchFill">一键填数</button>
-                <button class="clear-btn button-center" :disabled="selectedLines.length === 0" @click="clearAll">一键清空</button>
+                <button class="batch-fill-btn button-center" @click="applyBatchFill">{{ t('commerce.variants.fill') }}</button>
+                <button class="clear-btn button-center" :disabled="selectedLines.length === 0" @click="clearAll">{{ t('commerce.variants.clear') }}</button>
               </view>
             </view>
 
@@ -57,15 +57,15 @@
                   <view class="group-heading-text">
                   <text class="group-title">{{ group.name }}</text>
                   <text class="group-desc">
-                    {{ group.items.length }} 个尺码规格<text v-if="group.selectedCount"> · 已选 {{ group.selectedCount }} 款 / {{ group.selectedQuantity }} {{ product.unit }}</text>
+                    {{ t('commerce.variants.sizeCount', { count: group.items.length }) }}<text v-if="group.selectedCount">{{ t('commerce.variants.groupSelected', { count: group.selectedCount, quantity: group.selectedQuantity, unit: product.unit }) }}</text>
                   </text>
                   </view>
                 </view>
                 <view class="group-actions">
-                  <button class="copy-btn button-center" @tap.stop="copyGroup(group)">整行复制</button>
+                  <button class="copy-btn button-center" @tap.stop="copyGroup(group)">{{ t('commerce.variants.copy') }}</button>
                   <button
                     class="collapse-btn button-center"
-                    :aria-label="isGroupCollapsed(group.key) ? '展开尺码' : '收起尺码'"
+                    :aria-label="isGroupCollapsed(group.key) ? t('commerce.variants.expand') : t('commerce.variants.collapse')"
                     @tap.stop="toggleGroup(group.key)"
                   >
                     <AppIcon
@@ -87,15 +87,15 @@
                 >
                   <view class="sku-copy">
                     <view class="sku-title-row">
-                      <text class="sku-size">{{ sku.sizeName || sku.specName || '默认尺码' }}</text>
+                      <text class="sku-size">{{ sku.sizeName || sku.specName || t('commerce.variants.defaultSize') }}</text>
                       <text class="sku-stock" :class="{ empty: !sku.canPurchase }">
                         {{ sku.canPurchase ? formatStock(sku.stock) : '缺货' }}
                       </text>
                     </view>
                     <text class="sku-code">SKU：{{ sku.skuCode || '-' }}</text>
                     <view class="sku-price-row">
-                      <text class="sku-price">¥{{ formatMoney(sku.price) }}</text>
-                      <text class="sku-moq">{{ sku.minOrderQty }} {{ product.unit }}起订</text>
+                      <AmountText class="sku-price" :text="'¥' + (formatMoney(sku.price))" />
+                      <text class="sku-moq">{{ t('commerce.variants.minimum', { count: sku.minOrderQty, unit: product.unit }) }}</text>
                     </view>
                   </view>
                   <quantity-stepper
@@ -123,11 +123,11 @@
       <fixed-action-bar v-if="pageState === PageStatus.CONTENT">
         <view class="footer-inner">
           <view class="footer-summary">
-            <text class="footer-label">已选 {{ selectedLines.length }} 款，共 {{ totalQuantity }} {{ product?.unit || '件' }}</text>
-            <text class="footer-amount">¥{{ formatMoney(totalAmount) }}</text>
+            <text class="footer-label">{{ t('commerce.variants.selected', { count: selectedLines.length, quantity: totalQuantity, unit: product?.unit || '件' }) }}</text>
+            <AmountText class="footer-amount" :text="'¥' + (formatMoney(totalAmount))" />
           </view>
           <button class="add-btn button-center" :disabled="!canSubmit || submitting" @click="submit">
-            {{ submitting ? '提交中…' : '加入购物车' }}
+            {{ submitting ? t('commerce.variants.submitting') : t('commerce.variants.add') }}
           </button>
         </view>
       </fixed-action-bar>
@@ -136,6 +136,10 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/commerce/i18n/register.js'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
+import { AppError, ErrorKind } from '@/shared/api/appError.js'
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getGoodsDetail } from '../../api/productApi.js'
@@ -159,7 +163,8 @@ const batchRequestId = ref('')
 const batchFillNumber = ref('')
 const collapsedGroupKeys = ref({})
 const pageState = ref(PageStatus.LOADING)
-const errorMessage = ref('网络异常，请稍后重试')
+const pageFailure = ref(localError('commerce.variants.network'))
+const errorMessage = computed(() => pageFailure.value?.message || '')
 const { cartStore, submitting, loadCart, batchAddSkuToCart } = useCart()
 
 const skuGroups = computed(() => {
@@ -169,7 +174,7 @@ const skuGroups = computed(() => {
     if (!groups.has(key)) {
       groups.set(key, {
         key,
-        name: sku.colorName || '默认颜色',
+        name: sku.colorName || t('commerce.variants.defaultColor'),
         items: [],
         image: '',
       })
@@ -206,7 +211,7 @@ const priceText = computed(() => {
     .filter(sku => sku.canPurchase)
     .map(sku => Number(sku.price || 0))
     .filter(price => Number.isFinite(price) && price >= 0)
-  if (!prices.length) return '暂无报价'
+  if (!prices.length) return t('commerce.variants.noQuote')
   const min = Math.min(...prices)
   const max = Math.max(...prices)
   return min === max
@@ -215,16 +220,16 @@ const priceText = computed(() => {
 })
 
 const validationMessage = computed(() => {
-  if (selectedLines.value.length > 50) return '单次最多选择 50 个 SKU，请分批加入购物车'
+  if (selectedLines.value.length > 50) return t('commerce.variants.tooMany')
   const invalid = selectedLines.value.find(({ sku, quantity }) => (
     !sku.canPurchase
     || quantity < Number(sku.minOrderQty || 1)
     || quantity > Number(sku.stock || 0)
   ))
   if (!invalid) return ''
-  if (!invalid.sku.canPurchase) return `${invalid.sku.specName || invalid.sku.skuCode} 暂不可购买`
-  if (invalid.quantity < invalid.sku.minOrderQty) return `${invalid.sku.specName || invalid.sku.skuCode} 不得低于 ${invalid.sku.minOrderQty} 件起订量`
-  return `${invalid.sku.specName || invalid.sku.skuCode} 超过当前可用库存`
+  if (!invalid.sku.canPurchase) return t('commerce.variants.unavailable', { name: invalid.sku.specName || invalid.sku.skuCode })
+  if (invalid.quantity < invalid.sku.minOrderQty) return t('commerce.variants.belowMinimum', { name: invalid.sku.specName || invalid.sku.skuCode, count: invalid.sku.minOrderQty })
+  return t('commerce.variants.aboveStock', { name: invalid.sku.specName || invalid.sku.skuCode })
 })
 
 const canSubmit = computed(() => selectedLines.value.length > 0 && !validationMessage.value)
@@ -236,23 +241,24 @@ onLoad(options => {
 
 onShow(() => loadCart({ silent: true }).catch(() => {}))
 
+/** 读取原商品并沿用原数量初始化，只本地化错误。 */
 async function loadProduct() {
   if (!productId.value) {
     pageState.value = PageStatus.ERROR
-    errorMessage.value = '缺少商品 ID，请返回商品目录重新选择'
+    pageFailure.value = localError('commerce.variants.missingId')
     return
   }
   pageState.value = PageStatus.LOADING
   try {
     const result = await getGoodsDetail(productId.value)
-    if (!result) throw new Error('商品不存在或已下架')
+    if (!result) throw localError('commerce.variants.missing')
     product.value = result
     quantities.value = Object.fromEntries((result.skus || []).map(sku => [sku.skuId, 0]))
     collapsedGroupKeys.value = Object.fromEntries(skuGroups.value.map((group, index) => [group.key, index > 0]))
     batchRequestId.value = ''
     pageState.value = PageStatus.CONTENT
   } catch (error) {
-    errorMessage.value = error?.message || '商品加载失败，请稍后重试'
+    pageFailure.value = error?.message ? error : localError('commerce.variants.loadFailed')
     pageState.value = PageStatus.ERROR
   }
 }
@@ -297,7 +303,7 @@ function clearAll() {
 function applyBatchFill() {
   const raw = Number(batchFillNumber.value)
   if (!Number.isFinite(raw) || raw <= 0) {
-    uni.showToast({ title: '请输入有效的数量', icon: 'none' })
+    uni.showToast({ title: t('commerce.variants.quantityInvalid'), icon: 'none' })
     return
   }
   const target = Math.floor(raw)
@@ -318,16 +324,17 @@ function applyBatchFill() {
   quantities.value = next
   batchRequestId.value = ''
   if (filledCount > 0) {
-    uni.showToast({ title: `已填入 ${filledCount} 个规格`, icon: 'success' })
+    uni.showToast({ title: t('commerce.variants.filled', { count: filledCount }), icon: 'success' })
   } else {
-    uni.showToast({ title: '没有可填入的规格', icon: 'none' })
+    uni.showToast({ title: t('commerce.variants.nothingToFill'), icon: 'none' })
   }
 }
 
+/** 沿用原颜色组数量复制规则，只本地化不可采购提示。 */
 function copyGroup(group) {
   const available = group.items.filter(sku => sku.canPurchase)
   if (!available.length) {
-    uni.showToast({ title: '该颜色暂无可采购规格', icon: 'none' })
+    uni.showToast({ title: t('commerce.variants.noColorSku'), icon: 'none' })
     return
   }
   const sourceLine = available.find(sku => Number(quantities.value[sku.skuId]) > 0)
@@ -345,6 +352,7 @@ function createBatchRequestId() {
   return `cart-batch-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
 }
 
+/** 沿用原批量 SKU、数量与客户端请求标识，只本地化反馈。 */
 async function submit() {
   if (!canSubmit.value) return
   if (!batchRequestId.value) batchRequestId.value = createBatchRequestId()
@@ -354,17 +362,22 @@ async function submit() {
       batchRequestId.value,
     )
     if (success) {
-      uni.showToast({ title: '已加入购物车', icon: 'success' })
+      uni.showToast({ title: t('commerce.variants.added'), icon: 'success' })
       setTimeout(goToCart, 500)
     }
   } catch (error) {
-    uni.showToast({ title: error?.message || '批量加购失败，请重试', icon: 'none' })
+    uni.showToast({ title: error?.message || t('commerce.variants.addFailed'), icon: 'none' })
   }
 }
 
 async function goToCart() {
   await navigator.navigateTo(routes.commerce.cart())
 }
+/** 创建可重新取词的本地提示，不附加后端错误码。 */
+function localError(messageKey) {
+  return new AppError('', ErrorKind.UNKNOWN, { messageKey })
+}
+
 </script>
 
 <style lang="scss" scoped>
@@ -428,4 +441,11 @@ async function goToCart() {
   .product-image { width: 112px; height: 112px; }
   .sku-row { min-height: 104px; padding: 16px 20px; }
 }
+
+/* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.product-info, .price-row, .sku-copy, .sku-price-row, .footer-summary { min-width: 0; }
+.price-row { display: flex; align-items: baseline; }
+.unit { flex: none; }
+.sku-row { min-width: 0; }
+.sku-copy { flex: 1; }
 </style>

@@ -38,6 +38,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { t } from '@/shared/i18n/index.js'
 import AppIcon from '../../../shared/ui/AppIcon/AppIcon.vue'
 
 /**
@@ -91,11 +92,11 @@ const displayTitle = computed(() => {
   if (props.title) return props.title
   switch (props.mode) {
     case 'offline':
-      return '网络连接失败'
+      return t('main.startup.offlineTitle')
     case 'force-update':
-      return '发现新版本'
+      return t('main.startup.newVersion')
     default:
-      return '加载失败'
+      return t('main.startup.errorTitle')
   }
 })
 
@@ -103,11 +104,11 @@ const displayDesc = computed(() => {
   if (props.desc) return props.desc
   switch (props.mode) {
     case 'offline':
-      return '请检查您的网络设置后重试'
+      return t('main.startup.offlineDescription')
     case 'force-update':
-      return '当前版本过低，请更新后继续使用'
+      return t('main.startup.updateRequired')
     default:
-      return '遇到了一个问题，请稍后再试'
+      return t('main.startup.errorDescription')
   }
 })
 </script>

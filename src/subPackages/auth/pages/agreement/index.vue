@@ -5,7 +5,7 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader :title="pageTitle" :show-back="true" />
+      <AppHeader :title="t(pageTitle)" :show-back="true" />
     </template>
     <template #content>
       <AppContent>
@@ -20,6 +20,8 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/auth/i18n/register.js'
 import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
@@ -27,7 +29,7 @@ import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 
 const content = ref('')
-const pageTitle = ref('用户协议')
+const pageTitle = ref('auth.titles.userAgreement')
 
 onLoad((options) => {
   const type = options?.type || 'user'
@@ -35,15 +37,15 @@ onLoad((options) => {
   // 根据类型加载不同协议内容
   switch (type) {
     case 'user':
-      pageTitle.value = '用户协议'
+      pageTitle.value = 'auth.titles.userAgreement'
       content.value = getUserAgreementContent()
       break
     case 'privacy':
-      pageTitle.value = '隐私政策'
+      pageTitle.value = 'auth.titles.privacy'
       content.value = getPrivacyContent()
       break
     case 'sign':
-      pageTitle.value = '经销商合作协议'
+      pageTitle.value = 'auth.titles.signAgreement'
       content.value = getSignAgreementContent()
       break
     default:

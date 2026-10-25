@@ -1,6 +1,6 @@
 <template>
   <view class="tab-page">
-    <view v-if="loading" class="state-box"><view class="loading-dot"></view><text>正在加载最新资讯...</text></view>
+    <view v-if="loading" class="state-box"><view class="loading-dot"></view><text>{{ t('main.news.loading') }}</text></view>
 
     <view v-else-if="newsItems.length" class="news-grid">
       <view v-for="item in newsItems" :key="item.id" class="large-news-card" hover-class="card--pressed" @click="openNews(item)">
@@ -12,14 +12,14 @@
             lazy-load
             :fallback-icon-size="42"
           />
-          <text class="large-card-badge">{{ item.categoryTitle || item.type || '品牌资讯' }}</text>
+          <text class="large-card-badge">{{ item.categoryTitle || item.type || t('main.news.brand') }}</text>
         </view>
         <view class="large-card-body">
           <text class="large-card-title">{{ item.title }}</text>
           <text v-if="item.summary || item.desc" class="large-card-summary">{{ item.summary || item.desc }}</text>
           <view class="large-card-meta">
-            <text>{{ item.date || item.publishedAt || '最新发布' }}</text>
-            <text>阅读全文 →</text>
+            <text>{{ item.date || item.publishedAt || t('main.news.latest') }}</text>
+            <text>{{ t('main.news.read') }}</text>
           </view>
         </view>
       </view>
@@ -29,14 +29,15 @@
       <view class="state-illustration">
         <AppSvgIllustration :svg="noNotificationSvg" size="lg" />
       </view>
-      <text class="state-title">暂无最新资讯</text><text>品牌动态发布后将在这里展示</text>
+      <text class="state-title">{{ t('main.news.empty') }}</text><text>{{ t('main.news.emptyHint') }}</text>
     </view>
 
-    <view class="full-page-link" @click="openNewsList"><text>查看更多资讯</text><AppIcon name="arrow-right" :size="17" /></view>
+    <view class="full-page-link" @click="openNewsList"><text>{{ t('main.news.more') }}</text><AppIcon name="arrow-right" :size="17" /></view>
   </view>
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
 import { ref, watch } from 'vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'

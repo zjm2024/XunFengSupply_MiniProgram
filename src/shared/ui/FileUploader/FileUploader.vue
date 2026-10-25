@@ -35,7 +35,7 @@
         @click="chooseImage"
       >
         <view class="upload-icon">+</view>
-        <text class="btn-text">{{ uploading ? '上传中' : '上传图片' }}</text>
+        <text class="btn-text">{{ uploading ? t('common.upload.uploading') : t('common.upload.image') }}</text>
       </view>
     </view>
 
@@ -46,6 +46,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import { t } from '../../i18n/index.js'
 import { uploadFile as uploadFileApi } from '../../api/uploadClient.js'
 import AppImage from '../AppImage/AppImage.vue'
 
@@ -79,7 +80,7 @@ function chooseImage() {
     sourceType: ['album', 'camera'],
     success: async (res) => {
       uploading.value = true
-      uni.showLoading({ title: '上传中...', mask: true })
+      uni.showLoading({ title: t('common.upload.loading'), mask: true })
       try {
         for (const filePath of res.tempFilePaths) {
           await uploadSingleFile(filePath)
@@ -100,13 +101,13 @@ async function uploadSingleFile(filePath) {
     const res = await uploadFileApi(filePath, { scene: props.scene })
     const url = res?.url
     if (!url) {
-      throw new Error('上传响应缺少 URL')
+      throw new Error(t('common.upload.missingUrl'))
     }
 
     fileList.value = [...fileList.value, url]
   } catch (e) {
     console.error('[FileUploader] 上传失败:', e)
-    const message = e?.message || e?.msg || '上传失败'
+    const message = e?.message || e?.msg || t('common.upload.failed')
     uni.showToast({ title: message, icon: 'none' })
   }
 }
@@ -196,6 +197,11 @@ function removeFile(index) {
       }
 
       .btn-text {
+        max-width: 100%;
+        padding: 0 4px;
+        box-sizing: border-box;
+        text-align: center;
+        line-height: 16px;
         font-size: 11px;
         color: var(--text-secondary, #62666F);
         margin-top: 8rpx;

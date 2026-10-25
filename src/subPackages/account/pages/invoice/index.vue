@@ -1,7 +1,7 @@
 ﻿﻿﻿﻿﻿<template>
   <AppPageShell>
     <template #header>
-      <AppHeader title="发票中心" :show-back="true" />
+      <AppHeader :title="t('account.titles.invoice')" :show-back="true" />
     </template>
 
     <template #content>
@@ -10,19 +10,19 @@
           <view class="invoice-hero">
             <view class="hero-top">
               <view class="hero-icon"><AppIcon name="invoice" :size="27" color="#D7192D" /></view>
-              <text class="readiness-tag">服务准备中</text>
+              <text class="readiness-tag">{{ t('account.invoice.preparing') }}</text>
             </view>
-            <text class="hero-kicker">BUSINESS INVOICE</text>
-            <text class="hero-title">企业采购开票，一处管理</text>
-            <text class="hero-desc">后续可按已完成采购订单申请电子发票，并统一维护企业抬头与归档记录。</text>
+            <text class="hero-kicker">{{ t('account.invoice.kicker') }}</text>
+            <text class="hero-title">{{ t('account.invoice.hero') }}</text>
+            <text class="hero-desc">{{ t('account.invoice.heroHint') }}</text>
             <view class="hero-actions">
-              <button class="hero-button primary" @tap="viewCompletedOrders">查看已完成订单</button>
-              <button class="hero-button ghost" @tap="showPreparing">了解开票说明</button>
+              <button class="hero-button primary" @tap="viewCompletedOrders">{{ t('account.invoice.viewCompleted') }}</button>
+              <button class="hero-button ghost" @tap="showPreparing">{{ t('account.invoice.instructions') }}</button>
             </view>
           </view>
 
           <view class="capability-grid">
-            <view v-for="item in capabilities" :key="item.title" class="capability-card">
+            <view v-for="item in capabilities" :key="item.icon" class="capability-card">
               <view class="capability-icon"><AppIcon :name="item.icon" :size="20" /></view>
               <text class="capability-title">{{ item.title }}</text>
               <text class="capability-desc">{{ item.description }}</text>
@@ -32,39 +32,39 @@
           <view class="workspace-card">
             <view class="workspace-head">
               <view>
-                <text class="section-title">开票工作台</text>
-                <text class="section-desc">抬头与历史记录将在服务开放后同步展示</text>
+                <text class="section-title">{{ t('account.invoice.workspace') }}</text>
+                <text class="section-desc">{{ t('account.invoice.workspaceHint') }}</text>
               </view>
-              <text class="workspace-state">即将开放</text>
+              <text class="workspace-state">{{ t('account.invoice.coming') }}</text>
             </view>
 
             <view class="segment-control">
-              <view class="segment-item" :class="{ active: activeTab === 'title' }" @tap="activeTab = 'title'">发票抬头</view>
-              <view class="segment-item" :class="{ active: activeTab === 'record' }" @tap="activeTab = 'record'">开票记录</view>
+              <view class="segment-item" :class="{ active: activeTab === 'title' }" @tap="activeTab = 'title'">{{ t('account.invoice.titles') }}</view>
+              <view class="segment-item" :class="{ active: activeTab === 'record' }" @tap="activeTab = 'record'">{{ t('account.invoice.records') }}</view>
             </view>
 
             <view v-if="activeTab === 'title'" class="empty-panel">
               <AppSvgIllustration class="inline-empty-illustration" name="no-revenue" size="sm" />
-              <text class="empty-title">企业抬头功能准备中</text>
-              <text class="empty-desc">开放后可维护企业名称、税号、开户行和收票信息，并设置默认开票抬头。</text>
-              <button class="disabled-action" @tap="showPreparing">新增发票抬头</button>
+              <text class="empty-title">{{ t('account.invoice.titlePreparing') }}</text>
+              <text class="empty-desc">{{ t('account.invoice.titleHint') }}</text>
+              <button class="disabled-action" @tap="showPreparing">{{ t('account.invoice.addTitle') }}</button>
             </view>
 
             <view v-else class="empty-panel">
               <AppSvgIllustration class="inline-empty-illustration" name="no-revenue" size="sm" />
-              <text class="empty-title">暂无可展示的开票记录</text>
-              <text class="empty-desc">发票服务开放后，申请进度、发票号码和电子文件会统一保存在这里。</text>
-              <button class="disabled-action" @tap="viewCompletedOrders">查看可关联订单</button>
+              <text class="empty-title">{{ t('account.invoice.emptyRecords') }}</text>
+              <text class="empty-desc">{{ t('account.invoice.recordsHint') }}</text>
+              <button class="disabled-action" @tap="viewCompletedOrders">{{ t('account.invoice.viewRelated') }}</button>
             </view>
           </view>
 
           <view class="guide-card">
             <view class="section-heading">
-              <text class="section-title">预计开票流程</text>
-              <text class="section-desc">所有开票金额以订单实际结算金额为准</text>
+              <text class="section-title">{{ t('account.invoice.expectedProcess') }}</text>
+              <text class="section-desc">{{ t('account.invoice.amountHint') }}</text>
             </view>
             <view class="guide-steps">
-              <view v-for="(step, index) in guideSteps" :key="step.title" class="guide-step">
+              <view v-for="(step, index) in guideSteps" :key="index" class="guide-step">
                 <view class="step-number">{{ String(index + 1).padStart(2, '0') }}</view>
                 <view class="step-copy"><text>{{ step.title }}</text><text>{{ step.description }}</text></view>
                 <AppIcon v-if="index < guideSteps.length - 1" class="step-arrow" name="chevron-right" :size="16" color="#B1B5BB" />
@@ -74,7 +74,7 @@
 
           <view class="notice-card">
             <AppIcon name="info" :size="18" color="#626A74" />
-            <text>当前后端发票服务尚未开放，因此本页不提供不可用的模拟新增、删除或下载操作；接口上线后可直接在此工作台接入。</text>
+            <text>{{ t('account.invoice.contactHint') }}</text>
           </view>
         </view>
       </AppContent>
@@ -83,7 +83,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/account/i18n/register.js'
+import { computed, ref } from 'vue'
 import { ORDER_STATUS } from '@/app/config/constant.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
@@ -92,30 +94,32 @@ import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
+import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 
 const activeTab = ref('title')
-const capabilities = [
-  { icon: 'dealer', title: '企业抬头', description: '统一维护企业税务与收票资料' },
-  { icon: 'order', title: '订单关联', description: '按已完成采购订单申请开票' },
-  { icon: 'download', title: '电子归档', description: '集中下载并留存电子发票' },
-]
-const guideSteps = [
-  { title: '选择订单', description: '选择已完成且符合开票条件的采购订单' },
-  { title: '确认抬头', description: '核对企业名称、税号与接收信息' },
-  { title: '提交申请', description: '按实际结算金额生成开票申请' },
-  { title: '电子归档', description: '开票完成后下载并保存电子文件' },
-]
+const capabilities = computed(() => [
+  { icon: 'dealer', title: t('account.invoice.companyTitle'), description: t('account.invoice.companyTitleHint') },
+  { icon: 'order', title: t('account.invoice.linkOrders'), description: t('account.invoice.linkOrdersHint') },
+  { icon: 'download', title: t('account.invoice.archive'), description: t('account.invoice.archiveHint') },
+])
+const guideSteps = computed(() => [
+  { title: t('account.invoice.selectOrder'), description: t('account.invoice.selectOrderHint') },
+  { title: t('account.invoice.confirmTitle'), description: t('account.invoice.confirmTitleHint') },
+  { title: t('account.invoice.submit'), description: t('account.invoice.submitHint') },
+  { title: t('account.invoice.archive'), description: t('account.invoice.archiveStepHint') },
+])
 
 function viewCompletedOrders() {
   navigator.navigateTo(routes.order.list({ status: ORDER_STATUS.COMPLETED }))
 }
 
+/** 保留服务准备中的原提示及按钮，不新增开票写入。 */
 function showPreparing() {
-  uni.showModal({
-    title: '发票服务准备中',
-    content: '当前系统正在完善企业抬头、订单关联与电子发票归档能力，开放后将在本页面提供完整操作。',
+  openAppDialog({
+    title: t('account.invoice.modalTitle'),
+    description: t('account.invoice.modalContent'),
     showCancel: false,
-    confirmText: '我知道了',
+    confirmText: t('account.invoice.gotIt'),
   })
 }
 </script>

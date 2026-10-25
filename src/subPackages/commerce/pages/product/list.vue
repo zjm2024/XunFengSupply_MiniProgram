@@ -10,7 +10,7 @@
       :keyword-committed="keywordCommitted"
       :show-cart="!searchMode"
       :show-tools="showCatalogTools"
-      :category-label="activeCategoryPath.length ? activeCategoryPath[activeCategoryPath.length - 1].name : '分类'"
+      :category-label="activeCategoryPath.length ? activeCategoryPath[activeCategoryPath.length - 1].name : t('commerce.titles.category')"
       :category-active="activeCategoryPath.length > 0"
       :stock-filter-label="activeStockFilterLabel"
       @back="goBack"
@@ -26,7 +26,7 @@
 
     <!-- 可滚动区域：商品列表 -->
     <view class="product-content">
-      <view v-if="isRefreshing" class="product-refresher-indicator" aria-label="刷新中">
+      <view v-if="isRefreshing" class="product-refresher-indicator" :aria-label="t('commerce.catalog.refreshing')">
         <AppIcon name="refresh" :size="20" color="#737A84" />
       </view>
       <scroll-view
@@ -58,7 +58,7 @@
       <!-- 加载状态 -->
       <view v-if="loading && products.length === 0" class="loading-state">
         <view class="loading-spinner"></view>
-        <text class="loading-text">加载中...</text>
+        <text class="loading-text">{{ t('commerce.catalog.loading') }}</text>
       </view>
 
       <!-- 空状态 -->
@@ -66,9 +66,9 @@
         <view class="empty-illustration">
           <AppSvgIllustration :svg="noSearchResultSvg" size="lg" />
         </view>
-        <text class="empty-text">{{ searchMode ? '未找到相关商品' : '暂无商品' }}</text>
+        <text class="empty-text">{{ searchMode ? t('commerce.catalog.notFound') : t('commerce.catalog.empty') }}</text>
         <text class="empty-subtext">
-          {{ searchMode ? `没有找到“${keyword}”，请更换关键词后重试` : '请尝试其他分类或搜索关键词' }}
+          {{ searchMode ? t('commerce.catalog.notFoundHint', { keyword }) : t('commerce.catalog.emptyHint') }}
         </text>
       </view>
 
@@ -100,7 +100,7 @@
       @click="scrollToTop"
     >
       <AppIcon name="chevron-up" :size="19" :stroke-width="2.2" />
-      <text class="back-to-top-label">顶部</text>
+      <text class="back-to-top-label">{{ t('commerce.catalog.top') }}</text>
     </view>
 
     <ProductFilterDrawer
@@ -116,6 +116,8 @@
 </template>
 
 <script setup>
+import { t } from '@/shared/i18n/index.js'
+import '@/subPackages/commerce/i18n/register.js'
 import { ref, computed, watch, onMounted } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useCart } from '@/shared/composables/useCart.js'
@@ -133,18 +135,18 @@ import noSearchResultSvg from '../../../../shared/assets/illustrations/no-search
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
 const SORT_QUERY = Object.freeze({
-  default: { field: '', order: '', label: '综合排序' },
-  latest: { field: 'createdAt', order: 'desc', label: '最新上架' },
-  priceAsc: { field: 'price', order: 'asc', label: '价格从低到高' },
-  priceDesc: { field: 'price', order: 'desc', label: '价格从高到低' },
-  stockDesc: { field: 'stock', order: 'desc', label: '库存从高到低' },
-  stockAsc: { field: 'stock', order: 'asc', label: '库存从低到高' },
+  default: { field: '', order: '', /** 仅翻译排序显示名。 */ get label() { return t('commerce.catalog.default') } },
+  latest: { field: 'createdAt', order: 'desc', /** 仅翻译排序显示名。 */ get label() { return t('commerce.catalog.latest') } },
+  priceAsc: { field: 'price', order: 'asc', /** 仅翻译排序显示名。 */ get label() { return t('commerce.catalog.priceAsc') } },
+  priceDesc: { field: 'price', order: 'desc', /** 仅翻译排序显示名。 */ get label() { return t('commerce.catalog.priceDesc') } },
+  stockDesc: { field: 'stock', order: 'desc', /** 仅翻译排序显示名。 */ get label() { return t('commerce.catalog.stockDesc') } },
+  stockAsc: { field: 'stock', order: 'asc', /** 仅翻译排序显示名。 */ get label() { return t('commerce.catalog.stockAsc') } },
 })
 
 const STOCK_FILTER_LABELS = Object.freeze({
-  inStock: '仅看有货',
-  lowStock: '库存紧张',
-  outOfStock: '暂时缺货',
+  /** 仅翻译筛选显示名。 */ get inStock() { return t('commerce.catalog.inStock') },
+  /** 仅翻译筛选显示名。 */ get lowStock() { return t('commerce.catalog.lowStock') },
+  /** 仅翻译筛选显示名。 */ get outOfStock() { return t('commerce.catalog.outOfStock') },
 })
 
 const SEARCH_HISTORY_KEY = 'commerce.product.search.history'
@@ -312,7 +314,7 @@ async function loadProducts(isLoadMore = false) {
       loadMoreError.value = true
     }
     uni.showToast({
-      title: '加载失败，请重试',
+      title: t('commerce.catalog.loadFailed'),
       icon: 'none'
     })
   } finally {

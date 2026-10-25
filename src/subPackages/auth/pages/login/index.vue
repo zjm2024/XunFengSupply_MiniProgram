@@ -19,19 +19,19 @@
 
             <view class="login-card">
               <view class="card-heading">
-                <text class="card-title">经销商下单系统</text>
-                <text class="card-caption">请使用已审核通过的经销商账号登录</text>
+                <text class="card-title">{{ t('auth.login.title') }}</text>
+                <text class="card-caption">{{ t('auth.login.caption') }}</text>
               </view>
 
               <view class="form-field">
-                <text class="field-label">登录账号</text>
+                <text class="field-label">{{ t('auth.login.account') }}</text>
                 <view class="field-control" :class="{ focused: focusedField === 'account' }">
                   <AppIcon name="user" :size="20" color="#5E626B" />
                   <input
                     v-model="account"
                     class="field-input"
                     type="text"
-                    placeholder="请输入登录账号"
+                    :placeholder="t('auth.login.accountPlaceholder')"
                     maxlength="50"
                     confirm-type="next"
                     :placeholder-style="placeholderStyle"
@@ -42,14 +42,14 @@
               </view>
 
               <view class="form-field">
-                <text class="field-label">登录密码</text>
+                <text class="field-label">{{ t('auth.login.password') }}</text>
                 <view class="field-control" :class="{ focused: focusedField === 'password' }">
                   <AppIcon name="lock" :size="20" color="#5E626B" />
                   <input
                     v-model="password"
                     class="field-input"
                     :type="showPassword ? 'text' : 'password'"
-                    placeholder="请输入登录密码"
+                    :placeholder="t('auth.login.passwordPlaceholder')"
                     maxlength="64"
                     confirm-type="done"
                     :placeholder-style="placeholderStyle"
@@ -59,7 +59,7 @@
                   />
                    <view
                      class="icon-action password-toggle"
-                     :aria-label="showPassword ? '隐藏密码' : '显示密码'"
+                     :aria-label="showPassword ? t('auth.login.hidePassword') : t('auth.login.showPassword')"
                      @click.stop="togglePassword"
                    >
                      <AppIcon
@@ -81,15 +81,15 @@
                    :size="20"
                    :color="captchaVerified ? '#027A48' : '#B54708'"
                  />
-                 <text class="captcha-entry__title">安全验证</text>
+                 <text class="captcha-entry__title">{{ t('auth.login.verification') }}</text>
                  <text class="captcha-entry__status">
-                   {{ captchaVerified ? '已完成' : '待完成' }}
+                   {{ captchaVerified ? t('auth.login.verified') : t('auth.login.unverified') }}
                  </text>
                </view>
 
               <view v-if="formError" class="form-error" role="alert">
                 <AppIcon name="alert-circle" :size="18" color="#B42318" />
-                <text>{{ formError }}</text>
+                <text>{{ formErrorText }}</text>
               </view>
 
               <view class="agreement-row" @click="agreeProtocol = !agreeProtocol">
@@ -97,10 +97,10 @@
                   <AppIcon v-if="agreeProtocol" name="check" :size="14" color="#FFFFFF" :stroke-width="2.5" />
                 </view>
                 <text class="agreement-text">
-                  我已阅读并同意
-                  <text class="agreement-link" @click.stop="openAgreement('user')">《用户协议》</text>
-                  和
-                  <text class="agreement-link" @click.stop="openAgreement('privacy')">《隐私政策》</text>
+                  {{ t('auth.login.agreementLead') }}
+                  <text class="agreement-link" @click.stop="openAgreement('user')">{{ t('auth.login.userAgreement') }}</text>
+                  {{ t('auth.login.agreementAnd') }}
+                  <text class="agreement-link" @click.stop="openAgreement('privacy')">{{ t('auth.login.privacy') }}</text>
                 </text>
               </view>
 
@@ -113,13 +113,13 @@
               </button>
 
               <view class="apply-entry">
-                <text class="apply-copy">还没有经销商账号？</text>
-                <text class="apply-link" @click="goToApplySign">立即申请</text>
+                <text class="apply-copy">{{ t('auth.login.noAccount') }}</text>
+                <text class="apply-link" @click="goToApplySign">{{ t('auth.login.apply') }}</text>
               </view>
             </view>
           </view>
 
-          <text class="security-note">账号信息加密传输 · 请勿向他人透露密码</text>
+          <text class="security-note">{{ t('auth.login.securityNote') }}</text>
          </view>
        </AppContent>
 
@@ -131,12 +131,12 @@
          <view class="captcha-modal" @click.stop>
            <view class="captcha-modal__header">
              <view class="captcha-modal__heading">
-               <text class="captcha-modal__title">安全验证</text>
+               <text class="captcha-modal__title">{{ t('auth.login.verification') }}</text>
              </view>
              <view
                class="captcha-modal__close"
                hover-class="captcha-modal__close--pressed"
-               aria-label="关闭安全验证"
+               :aria-label="t('auth.login.closeVerification')"
                @click="closeCaptchaModal"
              >
                <AppIcon name="close" :size="24" color="#5E626B" />
@@ -148,7 +148,7 @@
              :loading="captchaLoading"
              :verifying="captchaVerifying"
              :verified="captchaVerified"
-             :error-text="captchaError"
+             :error-text="captchaErrorText"
              @refresh="refreshCaptcha"
              @verify="verifyCaptcha"
            />
@@ -161,6 +161,9 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { t } from '@/shared/i18n/index.js'
+import { AppError, ErrorKind } from '@/shared/api/appError.js'
+import '../../i18n/register.js'
 import { onBackPress, onLoad } from '@dcloudio/uni-app'
 import { getLoginCaptcha, login, verifyLoginCaptcha } from '../../api/auth.js'
 import { useUserStore } from '@/shared/session/userStore.js'
@@ -186,9 +189,11 @@ const agreeProtocol = ref(false)
 const logging = ref(false)
 const focusedField = ref('')
 const formError = ref('')
+const formErrorText = computed(() => displayError(formError.value))
 const redirectTarget = ref(null)
 
 onLoad((options) => {
+  if (options?.account) account.value = String(options.account).slice(0, 50)
   if (options?.redirect) {
     redirectTarget.value = sanitizeRedirect(options.redirect)
   }
@@ -201,8 +206,17 @@ const captchaVerified = ref(false)
 const captchaChallenge = ref(null)
 const captchaToken = ref('')
 const captchaError = ref('')
+const captchaErrorText = computed(() => displayError(captchaError.value))
+
+/** 本地校验保存 key，远端拒绝保留原错误对象；切换语言不清输入或重提登录。 */
+function displayError(value) {
+  if (value?.key) return t(value.key)
+  if (value?.message) return value.message
+  return typeof value === 'string' ? value : ''
+}
 const captchaUsername = ref('')
 const showCaptchaModal = ref(false)
+const loginAfterVerification = ref(false)
 
 const placeholderStyle = 'color: #989BA3; font-size: 14px;'
 
@@ -212,8 +226,8 @@ const canLogin = computed(() => {
 })
 
 const loginButtonText = computed(() => {
-  if (logging.value) return '正在登录…'
-  return '登录'
+  if (logging.value) return t('auth.login.signingIn')
+  return t('auth.login.signIn')
 })
 
 watch(account, (value) => {
@@ -244,6 +258,7 @@ function togglePassword() {
 }
 
 function closeCaptchaModal() {
+  loginAfterVerification.value = false
   // 关闭只影响弹框显示，不清空服务端挑战、验证结果或安全校验要求。
   showCaptchaModal.value = false
 }
@@ -260,7 +275,7 @@ function resetCaptchaVerification() {
 async function openCaptchaModal() {
   const username = account.value.trim()
   if (!username) {
-    formError.value = '请先输入登录账号'
+    formError.value = { key: 'auth.login.accountRequired' }
     return
   }
 
@@ -276,7 +291,7 @@ async function refreshCaptcha(options = {}) {
   const preserveError = Boolean(options?.preserveError)
   const username = account.value.trim()
   if (!username) {
-    formError.value = '请先输入登录账号'
+    formError.value = { key: 'auth.login.accountRequired' }
     return
   }
   if (captchaLoading.value || captchaVerifying.value) return
@@ -289,14 +304,14 @@ async function refreshCaptcha(options = {}) {
   try {
     const result = await getLoginCaptcha(username)
     if (!result?.captchaId || !result?.backgroundImageBase64 || !result?.pieceImageBase64) {
-      throw new Error('滑块验证码数据不完整')
+      throw new AppError('', ErrorKind.UNKNOWN, { messageKey: 'auth.login.captchaIncomplete' })
     }
     if (account.value.trim() !== username) return
     captchaChallenge.value = result
     captchaUsername.value = username
   } catch (error) {
     console.error('[Login] 验证码加载失败:', error)
-    captchaError.value = error?.message || '验证码加载失败，请点击刷新重试'
+    captchaError.value = error?.message ? error : { key: 'auth.login.captchaLoadFailed' }
   } finally {
     captchaLoading.value = false
   }
@@ -307,7 +322,7 @@ function enableCaptcha() {
   captchaUsername.value = account.value.trim()
   resetCaptchaVerification()
   // 登录结果提示统一为一句，不暴露账号是否存在，也不重复展示失败次数。
-  formError.value = '账号或密码错误，请检查后重试'
+  formError.value = { key: 'auth.login.credentialsError' }
 
   // 本次登录失败只提示错误；即使此前存在残留状态，也强制保持弹框关闭。
   // 用户下一次主动点击登录时才由 handleLogin 打开验证弹框。
@@ -325,23 +340,26 @@ async function verifyCaptcha(offsetX) {
   captchaError.value = ''
 
   let shouldRefresh = false
+  let shouldLogin = false
   try {
     const result = await verifyLoginCaptcha(username, captchaId, offsetX)
     if (!result?.verificationToken) {
-      throw new Error('滑块验证结果无效')
+      throw new AppError('', ErrorKind.UNKNOWN, { messageKey: 'auth.login.captchaResultInvalid' })
     }
-    if (account.value.trim() !== username) return
+    if (account.value.trim() !== username || captchaChallenge.value?.captchaId !== captchaId || !showCaptchaModal.value) return
     captchaToken.value = result.verificationToken
     captchaVerified.value = true
     formError.value = ''
     // 验证成功后自动关闭弹框，无需手动点击关闭
     showCaptchaModal.value = false
+    shouldLogin = loginAfterVerification.value
+    loginAfterVerification.value = false
   } catch (error) {
     console.error('[Login] 滑块验证失败:', error)
     const errorCode = error?.errorCode || ''
     captchaError.value = errorCode === 'DEALER_LOGIN_CAPTCHA_EXPIRED'
-      ? '验证码已过期，已为你更换，请重新验证'
-      : '拼图位置不正确，已为你更换，请重试'
+      ? { key: 'auth.login.captchaExpired' }
+      : { key: 'auth.login.captchaMismatch' }
     if ([
       'DEALER_LOGIN_CAPTCHA_INVALID',
       'DEALER_LOGIN_CAPTCHA_EXPIRED',
@@ -353,21 +371,23 @@ async function verifyCaptcha(offsetX) {
   }
 
   if (shouldRefresh) await refreshCaptcha({ preserveError: true })
+  if (shouldLogin) await handleLogin()
 }
 
 async function handleLogin() {
-  if (logging.value) return
+  if (logging.value || captchaVerifying.value) return
 
   const username = account.value.trim()
   if (!username || !password.value) {
-    formError.value = '请输入登录账号和密码'
+    formError.value = { key: 'auth.login.credentialsRequired' }
     return
   }
   if (!agreeProtocol.value) {
-    formError.value = '请先阅读并同意用户协议和隐私政策'
+    formError.value = { key: 'auth.login.agreementRequired' }
     return
   }
   if (captchaRequired.value && (!captchaVerified.value || !captchaToken.value)) {
+    loginAfterVerification.value = true
     await openCaptchaModal()
     return
   }
@@ -381,13 +401,13 @@ async function handleLogin() {
     })
 
     userStore.setLoginData(result)
-    uni.showToast({ title: '登录成功', icon: 'success', duration: 600 })
+    uni.showToast({ title: t('auth.login.success'), icon: 'success', duration: 600 })
     const target = redirectTarget.value || routes.home()
     navigator.reLaunch(target)
   } catch (error) {
     console.error('[Login] 登录失败:', error)
     const errorCode = error?.errorCode || ''
-    const message = error?.message || '登录失败，请稍后重试'
+    const message = error?.message ? error : { key: 'auth.login.failed' }
 
     if (errorCode === 'DEALER_LOGIN_INVALID_CREDENTIALS') {
       enableCaptcha()
@@ -396,8 +416,8 @@ async function handleLogin() {
       captchaUsername.value = username
       resetCaptchaVerification()
       formError.value = errorCode === 'DEALER_LOGIN_CAPTCHA_REQUIRED'
-        ? '请完成安全验证后登录'
-        : '安全验证已失效，请重新验证'
+        ? { key: 'auth.login.verificationRequired' }
+        : { key: 'auth.login.verificationExpired' }
       showCaptchaModal.value = false
       // 本次只提示需要验证，等用户再次点击登录时再弹出。
     } else {

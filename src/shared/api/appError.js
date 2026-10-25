@@ -18,6 +18,8 @@
  *   └── CancelError    (请求被取消)
  */
 
+import { t } from '../i18n/index.js'
+
 // ==================== 错误类型枚举 ====================
 
 /** @enum {string} */
@@ -96,6 +98,16 @@ export class AppError extends Error {
 
     /** @type {Error|undefined} 原始错误 */
     this.cause = options.cause
+
+    // 本地错误延迟取词；服务端公开 message 保持原样，不按错误码猜译。
+    this.messageKey = options.messageKey
+    this.messageParameters = options.messageParameters || {}
+    if (this.messageKey) {
+      Object.defineProperty(this, 'message', {
+        configurable: true,
+        get: () => t(this.messageKey, this.messageParameters),
+      })
+    }
   }
 
   /**
@@ -137,17 +149,11 @@ export class AppError extends Error {
    * @returns {AppError}
    */
   static fromUniFail(err) {
-    const msg = err?.errMsg || '网络连接失败'
-    const isTimeout = msg.includes('timeout')
-    const isCancel = msg.includes('cancel')
-
-    if (isCancel) {
-      return new AppError('请求已取消', ErrorKind.CANCELLED, { cause: err })
-    }
-    if (isTimeout) {
-      return new AppError('请求超时，请稍后重试', ErrorKind.TIMEOUT, { retryable: true, cause: err })
-    }
-    return new AppError('网络连接失败，请检查网络', ErrorKind.NETWORK, { retryable: true, cause: err })
+    const msg = err?.errMsg || ''
+    const key = msg.includes('cancel') ? 'cancelled' : (msg.includes('timeout') ? 'timeout' : 'network')
+    const kind = key === 'cancelled' ? ErrorKind.CANCELLED : (key === 'timeout' ? ErrorKind.TIMEOUT : ErrorKind.NETWORK)
+    return new AppError('', kind, { cause: err, messageKey: 'common.errors.' + key,
+      retryable: key !== 'cancelled' })
   }
 
   /**
@@ -157,68 +163,32 @@ export class AppError extends Error {
    * @returns {AppError}
    */
   static fromHttpStatus(statusCode, data) {
-    const serverMessage = data?.message
+    const serverMessage = typeof data?.message === 'string' ? data.message : ''
     const serverErrorCode = data?.errorCode
-    const traceId = data?.traceId
-
+    const options = {
+      httpStatus: statusCode,
+      code: [400, 404, 409, 422, 429].includes(statusCode) ? (data?.code ?? statusCode) : statusCode,
+      errorCode: serverErrorCode,
+      traceId: data?.traceId,
+      retryable: statusCode >= 500 || statusCode === 429,
+    }
+    let kind = ErrorKind.HTTP
+    let key = 'http'
     switch (statusCode) {
-      case 401:
-        return new AppError(serverMessage || '登录已过期，请重新登录', ErrorKind.AUTH, {
-          httpStatus: statusCode,
-          code: 401,
-          errorCode: serverErrorCode,
-          traceId,
-          retryable: false,
-        })
-      case 403:
-        // 区分冻结和普通权限不足需要根据业务码判断
-        return new AppError(serverMessage || '无权限访问', ErrorKind.PERMISSION, {
-          httpStatus: statusCode,
-          code: 403,
-          errorCode: serverErrorCode,
-          traceId,
-          retryable: false,
-        })
+      case 401: kind = ErrorKind.AUTH; key = 'auth'; break
+      case 403: kind = ErrorKind.PERMISSION; key = 'permission'; break
       case 400:
       case 409:
-      case 422:
-        return new AppError(serverMessage || '请求参数或业务状态不正确', ErrorKind.BUSINESS, {
-          httpStatus: statusCode,
-          code: data?.code ?? statusCode,
-          errorCode: serverErrorCode,
-          traceId,
-          retryable: false,
-        })
-      case 404:
-        return new AppError(serverMessage || '请求的资源不存在', serverErrorCode ? ErrorKind.BUSINESS : ErrorKind.HTTP, {
-          httpStatus: statusCode,
-          code: data?.code ?? 404,
-          errorCode: serverErrorCode,
-          traceId,
-          retryable: false,
-        })
-      case 429:
-        return new AppError(serverMessage || '操作过于频繁，请稍后再试', ErrorKind.HTTP, {
-          httpStatus: statusCode,
-          code: data?.code ?? 429,
-          errorCode: serverErrorCode,
-          traceId,
-          retryable: true,
-        })
-      default:
-        if (statusCode >= 500) {
-          return new AppError('服务器繁忙，请稍后重试', ErrorKind.HTTP, {
-            httpStatus: statusCode,
-            code: statusCode,
-            retryable: true,
-          })
-        }
-        return new AppError(`请求失败(${statusCode})`, ErrorKind.HTTP, {
-          httpStatus: statusCode,
-          code: statusCode,
-          retryable: false,
-        })
+      case 422: kind = ErrorKind.BUSINESS; key = 'validation'; break
+      case 404: kind = serverErrorCode ? ErrorKind.BUSINESS : ErrorKind.HTTP; key = 'notFound'; break
+      case 429: key = 'rateLimited'; break
+      default: if (statusCode >= 500) key = 'server'
     }
+    return new AppError(serverMessage, kind, {
+      ...options,
+      messageKey: serverMessage ? undefined : 'common.errors.' + key,
+      messageParameters: { status: statusCode },
+    })
   }
 
   /**
@@ -228,33 +198,15 @@ export class AppError extends Error {
    */
   static fromBusinessResponse(responseData) {
     const code = responseData?.code
-    const message = responseData?.message || '操作失败'
-    const traceId = responseData?.traceId
-
-    // 认证相关
-    if (code === 401) {
-      return new AppError(message || '登录已过期', ErrorKind.AUTH, {
-        code,
-        traceId,
-        retryable: false,
-      })
-    }
-
-    // 权限/冻结 - 需要进一步区分
-    if (code === 403) {
-      return new AppError(message || '无权限访问', ErrorKind.PERMISSION, {
-        code,
-        traceId,
-        retryable: false,
-      })
-    }
-
-    // 其他业务错误
-    return new AppError(message, ErrorKind.BUSINESS, {
+    const message = typeof responseData?.message === 'string' ? responseData.message : ''
+    const kind = code === 401 ? ErrorKind.AUTH : (code === 403 ? ErrorKind.PERMISSION : ErrorKind.BUSINESS)
+    const key = code === 401 ? 'auth' : (code === 403 ? 'permission' : 'operation')
+    return new AppError(message, kind, {
       code,
       errorCode: responseData?.errorCode,
-      traceId,
+      traceId: responseData?.traceId,
       retryable: false,
+      messageKey: message ? undefined : 'common.errors.' + key,
     })
   }
 }
@@ -272,7 +224,7 @@ export function isAppError(error) {
  * @param {string} [fallback='操作失败']
  * @returns {string}
  */
-export function getErrorMessage(error, fallback = '操作失败') {
+export function getErrorMessage(error, fallback = t('common.errors.operation')) {
   if (isAppError(error)) {
     return error.message
   }
