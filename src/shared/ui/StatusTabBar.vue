@@ -4,7 +4,7 @@
     scroll-x
     :show-scrollbar="false"
     scroll-with-animation
-    :style="{ maxWidth: `${maxWidth}px` }"
+    :style="{ maxWidth: typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth }"
     @touchstart.stop="handleTouchStart"
     @touchend.stop="handleTouchEnd"
   >
@@ -33,7 +33,7 @@ import { computed, ref } from 'vue'
 const props = defineProps({
   items: { type: Array, default: () => [] },
   modelValue: { type: null, default: null },
-  maxWidth: { type: Number, default: 700 },
+  maxWidth: { type: [Number, String], default: 700 },
   itemWidth: { type: Number, default: 88 },
   swipeable: { type: Boolean, default: true },
 })

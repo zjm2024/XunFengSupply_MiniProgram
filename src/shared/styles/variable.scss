@@ -178,6 +178,8 @@ page,
   --header-content-height: #{tokens.$header-content-height};
   --content-reading-width: #{tokens.$content-reading-width};
   --content-max-width: #{tokens.$content-max-width};
+  --page-content-max-width: #{tokens.$page-content-max-width};
+  --page-container-max-width: 100%;
   --page-shell-max-width: 1366px;
 
   /* 动画 */
@@ -201,6 +203,7 @@ page,
   page,
   :root {
     --page-padding-x: #{tokens.$page-padding-tablet};
+    --page-container-max-width: 720px;
   }
 }
 
@@ -208,6 +211,7 @@ page,
   page,
   :root {
     --type-page-title-size: #{tokens.$font-size-h1};
+    --page-container-max-width: #{tokens.$content-max-width};
   }
 }
 

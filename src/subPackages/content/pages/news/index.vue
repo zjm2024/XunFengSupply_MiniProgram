@@ -106,7 +106,7 @@ import { routes } from '@/app/config/routes.js'
 import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
 
 const defaultTabs = Object.freeze([
-  { key: 'all', label: '全部' },
+  { key: 'all', /** 固定的全部分类随语言取词，远端分类名称保留原文。 */ get label() { return t('content.news.all') } },
 ])
 
 const tabs = ref([...defaultTabs])

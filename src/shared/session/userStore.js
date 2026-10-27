@@ -94,6 +94,11 @@ export const useUserStore = defineStore('user', {
   },
 
   actions: {
+    /** 维护当前账号姓名，不触碰主体、登录时间或权限。 */
+    updateOwnProfile({ realName }) {
+      this.realName = String(realName ?? '')
+      storage.set('realName', this.realName)
+    },
     setLoginData(data = {}) {
       const info = data.userInfo || data
       const token = data.token || this.token

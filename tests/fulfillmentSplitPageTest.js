@@ -163,7 +163,7 @@ describe('拆单用户操作与双语响应', () => {
     select(view, 0, 29)
     view.openTransfer(29, 101)
     view.transferQuantity.value = 2
-    view.onlyUnallocated.value = true
+    view.itemFilter.value = 'remaining'
     view.guideExpanded.value = true
     const snapshot = JSON.stringify(view.allocationPlan.value)
     const reads = api.getFulfillmentSplitContext.mock.calls.length
@@ -173,7 +173,7 @@ describe('拆单用户操作与双语响应', () => {
       expect(view.transferMaximum.value).toBe(3)
       expect(view.transferQuantity.value).toBe(2)
       expect(view.activeAddressId.value).toBe(29)
-      expect(view.onlyUnallocated.value).toBe(true)
+      expect(view.itemFilter.value).toBe('remaining')
       expect(view.guideExpanded.value).toBe(true)
       expect(JSON.stringify(view.allocationPlan.value)).toBe(snapshot)
       expect(api.getFulfillmentSplitContext).toHaveBeenCalledTimes(reads)
@@ -268,6 +268,136 @@ function select(view, currentAddressId, targetAddressId, asString = true) {
   view.selectAddress(currentAddressId, { detail: { value: asString ? String(index) : index } })
 }
 
+describe('SPU 折叠与 SKU 查找', () => {
+  it('同名不同 SPU 独立折叠，赠品明细不合并或丢失', async () => {
+    const data = [...items.map(item => ({ ...item, skuId: item.orderItemId + 1000 })), { ...items[0], orderItemId: 105, skuId: 1101, isGift: true, quantity: 2 }]
+    const { view } = await openPage(data)
+    expect(view.productGroups.value).toHaveLength(2)
+    expect(view.productGroups.value.map(product => view.isProductExpanded(product))).toEqual([false, false])
+    expect((await renderPage(view))).not.toContain('<output')
+    view.toggleProduct(view.productGroups.value[0])
+    expect((await renderPage(view)).match(/<output/g)).toHaveLength(4)
+    expect(view.visibleProductGroups.value[0].totalVariantCount).toBe(3)
+    expect(view.allocationPlan.value).toHaveLength(5)
+    expect(view.totalQuantity.value).toBe(12)
+  })
+
+  it('真实 SKU 编码、规格多关键词和全角输入可查找，不拿内部 SKU ID 代替编码', async () => {
+    const data = [
+      { orderItemId: 101, productId: 41, productName: '羽鞋 KH-G826S', skuId: 9001, skuCode: 'RUN-WH-36', skuName: '白色 / 36', quantity: 2 },
+      { orderItemId: 102, productId: 41, productName: '羽鞋 KH-G826S', skuId: 9002, skuCode: 'RUN-BK-36', skuName: '黑色 / 36', quantity: 1 },
+      { orderItemId: 103, productId: 42, productName: '羽鞋 KH-G826S', skuId: 9003, skuCode: 'OTHER-WH-36', skuName: '白色 / 36', quantity: 1 },
+    ]
+    const { view, api } = await openPage(data)
+    const facts = JSON.stringify(view.allocationPlan.value)
+    view.searchQuery.value = 'ＲＵＮ-ＷＨ-３６'
+    expect(view.visibleProductGroups.value.map(product => product.items.map(item => item.orderItemId))).toEqual([[101]])
+    expect(view.isProductExpanded(view.visibleProductGroups.value[0])).toBe(true)
+    expect(await renderPage(view)).toContain('RUN-WH-36')
+    view.searchQuery.value = '羽鞋 白色 36'
+    expect(view.visibleProductGroups.value).toHaveLength(2)
+    expect(view.visibleItemCount.value).toBe(2)
+    view.searchQuery.value = '9001'
+    expect(view.visibleProductGroups.value).toEqual([])
+    expect(await renderPage(view)).toContain('没有找到匹配商品')
+    expect(JSON.stringify(view.allocationPlan.value)).toBe(facts)
+    expect(api.getFulfillmentSplitContext).toHaveBeenCalledTimes(1)
+    expect(api.createFulfillmentSplits).not.toHaveBeenCalled()
+  })
+
+  it('清除搜索恢复普通 SPU 折叠和滚动位置，语言和地址切换保留查询', async () => {
+    const { view, api } = await openPage()
+    view.toggleProduct(view.productGroups.value[0])
+    view.onPageScroll({ detail: { scrollTop: 700 } })
+    view.searchQuery.value = '红色'
+    view.toggleProduct(view.visibleProductGroups.value[0])
+    expect(view.isProductExpanded(view.visibleProductGroups.value[0])).toBe(false)
+    select(view, 0, 29)
+    expect(view.searchQuery.value).toBe('红色')
+    const runtime = await import('../src/shared/i18n/index.js')
+    runtime.setLocale('en-US')
+    try {
+      expect(view.itemFilterOptions.value.map(item => item.label)).toEqual(['All', 'To assign', 'This address'])
+      expect(view.searchQuery.value).toBe('红色')
+      view.onPageScroll({ detail: { scrollTop: 100 } })
+      view.clearSearch(); await vue.nextTick()
+      expect(view.scrollTopCommand.value).toBe(700)
+      expect(view.productGroups.value.map(product => view.isProductExpanded(product))).toEqual([true, false])
+      expect(api.createFulfillmentSplits).not.toHaveBeenCalled()
+      expect(api.getFulfillmentSplitContext).toHaveBeenCalledTimes(1)
+    } finally { runtime.setLocale('zh-CN') }
+  })
+
+  it('待分配和本地址筛选保留刚编辑的行，切换筛选后才移出', async () => {
+    const { view } = await openPage()
+    view.setAddressItemQuantity(11, 101, 0)
+    view.itemFilter.value = 'remaining'
+    expect(view.visibleProductGroups.value[0].items.map(item => item.orderItemId)).toEqual([101])
+    view.setAddressItemQuantity(11, 101, 3)
+    expect(view.visibleProductGroups.value[0].items.map(item => item.orderItemId)).toEqual([101])
+    expect(view.isRetainedItem(items[0])).toBe(true)
+    expect(await renderPage(view)).toContain('数量已更新')
+    view.itemFilter.value = 'address'
+    view.setAddressItemQuantity(11, 101, 0)
+    expect(view.visibleProductGroups.value[0].items.map(item => item.orderItemId)).toContain(101)
+    view.searchQuery.value = '红色'
+    expect(view.visibleProductGroups.value[0].items.map(item => item.orderItemId)).toEqual([102])
+    view.itemFilter.value = 'remaining'
+    expect(view.visibleProductGroups.value[0].items.map(item => item.orderItemId)).toEqual([101])
+    view.setAddressItemQuantity(11, 101, 3)
+    view.searchQuery.value = '蓝色'
+    expect(view.visibleProductGroups.value).toEqual([])
+    expect(view.searchMatchedItemCount.value).toBe(1)
+    view.resetItemFilters()
+    expect(view.searchQuery.value).toBe('蓝色')
+    expect(view.visibleItemCount.value).toBe(1)
+    expect(view.totalQuantity.value).toBe(10)
+  })
+
+  it('搜索和折叠不缩小全单分配、核对和提交范围；批量动作需确认', async () => {
+    const { view, api } = await openPage()
+    select(view, 0, 29)
+    for (const item of items) view.setAddressItemQuantity(11, item.orderItemId, 0)
+    view.setAddressItemQuantity(29, 101, 1)
+    view.activeAddressId.value = 11
+    view.searchQuery.value = '蓝色'
+    expect(view.visibleItemCount.value).toBe(1)
+    const snapshot = JSON.stringify(view.allocationPlan.value)
+    let pending = view.requestAssignAllRemaining(11)
+    expect(uni.showModal.mock.calls[0][0].content).toContain('9')
+    expect(uni.showModal.mock.calls[0][0].content).toContain('隐藏')
+    uni.showModal.mock.calls[0][0].success({ confirm: false }); await pending
+    expect(JSON.stringify(view.allocationPlan.value)).toBe(snapshot)
+    pending = view.requestAssignAllRemaining(11)
+    uni.showModal.mock.calls[1][0].success({ confirm: true }); await pending
+    expect(view.allocatedQuantity.value).toBe(10)
+    expect(Object.fromEntries(view.reviewGroups.value.map(group => [group.addressId, group.quantity]))).toEqual({ 11: 9, 29: 1 })
+    view.openReview(); await view.confirmReview()
+    const request = api.createFulfillmentSplits.mock.calls[0][0]
+    expect(new Set(request.groups.flatMap(group => group.items.map(item => item.orderItemId)))).toEqual(new Set([101, 102, 103, 104]))
+    expect(api.createFulfillmentSplits).toHaveBeenCalledTimes(1)
+  })
+
+  it('大量 SKU 默认只渲染 SPU 标题，精准搜索只渲染匹配规格', async () => {
+    const data = Array.from({ length: 240 }, (_, index) => ({ orderItemId: index + 1, productId: Math.floor(index / 5) + 1, productName: '同名商品', skuId: 1000 + index, skuCode: 'SKU-' + (1000 + index), skuName: '规格 ' + index, quantity: 1 }))
+    const { view, api } = await openPage(data)
+    expect(view.productGroups.value).toHaveLength(48)
+    expect(await renderPage(view)).not.toContain('<output')
+    view.searchQuery.value = 'sku-1123'
+    expect(view.visibleItemCount.value).toBe(1)
+    expect((await renderPage(view)).match(/<output/g)).toHaveLength(1)
+    expect(view.totalQuantity.value).toBe(240)
+    expect(view.allocatedQuantity.value).toBe(240)
+    expect(api.createFulfillmentSplits).not.toHaveBeenCalled()
+  })
+
+  it('缺少或无效 SPU 的旧响应按订单行独立展示，不按同名猜测归组', async () => {
+    const { view } = await openPage([{ orderItemId: 1, productId: '0', productName: '同名', quantity: 1 }, { orderItemId: 2, productName: '同名', quantity: 1 }])
+    expect(view.productGroups.value.map(product => product.key)).toEqual(['line:1', 'line:2'])
+    expect(view.allocationPlan.value).toHaveLength(2)
+  })
+})
+
 describe('拆单页地址及尺码数量回归', () => {
   it('真实模板和 setup 均可编译', () => {
     expect(compileTemplate({ source: descriptor.template.content, filename: relative, id: 'split-compile' }).errors).toEqual([])
@@ -355,6 +485,7 @@ describe('拆单页地址及尺码数量回归', () => {
     const { view } = await openPage()
     expect(view.productGroups.value.map(group => group.items.map(item => item.orderItemId))).toEqual([[101, 102, 103], [104]])
     view.setAddressItemQuantity(11, 101, 1)
+    for (const product of view.productGroups.value) view.toggleProduct(product)
     const html = await renderPage(view)
     for (const item of items) expect(html).toContain(item.skuName)
     expect(html).toContain('10 件')
@@ -541,7 +672,7 @@ describe('拆单页地址及尺码数量回归', () => {
     view.setAddressItemQuantity(11, 104, 0)
     view.setAddressItemQuantity(57, 104, 1)
     view.activeAddressId.value = 11
-    view.onlyUnallocated.value = true
+    view.itemFilter.value = 'remaining'
     view.actionsExpanded.value = true
     expect(view.visibleProductGroups.value.map(group => group.items.map(item => item.orderItemId))).toEqual([[101, 102], [104]])
     expect(view.productGroups.value.map(group => group.items.map(item => item.orderItemId))).toEqual([[101, 102, 103], [104]])
@@ -568,8 +699,9 @@ describe('拆单页地址及尺码数量回归', () => {
     const emptyHtml = await renderPage(view)
     expect(emptyHtml).toContain('所有规格均已分配')
     expect(emptyHtml).toContain('已分配 10/10 件')
-    view.onlyUnallocated.value = false
+    view.itemFilter.value = 'all'
     expect(view.visibleProductGroups.value).toHaveLength(2)
+    for (const product of view.productGroups.value) view.toggleProduct(product)
     expect((await renderPage(view)).match(/<output/g)).toHaveLength(4)
   })
 

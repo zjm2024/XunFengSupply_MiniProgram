@@ -15,7 +15,7 @@
                   <text class="dealer-name">{{ dealerName }}</text>
                   <text class="account-role">{{ accountType }}</text>
                 </view>
-                <text class="dealer-meta">{{ t('account.center.code', { code: dealerCode }) }} · {{ dealerLevel }}</text>
+                <text class="dealer-meta">{{ dealerLevel }}</text>
               </view>
               <view class="profile-entry" hover-class="pressed" @tap="goToProfile">
                 <AppIcon name="chevron-right" :size="18" color="#727983" />
@@ -138,7 +138,6 @@ const userStore = useUserStore()
 const finance = ref(userStore.financeContext)
 const inventoryOverview = ref(null)
 const dealerName = computed(() => userStore.displayName)
-const dealerCode = computed(() => userStore.dealerId || userStore.userId || '-')
 const dealerLevel = computed(() => userStore.creditLevel || t('account.center.creditFallback'))
 const accountType = computed(() => userStore.isMainAccount ? t('account.center.main') : t('account.center.sub'))
 const avatarText = computed(() => String(dealerName.value || '经').trim().slice(0, 1))

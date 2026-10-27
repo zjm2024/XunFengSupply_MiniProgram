@@ -2,9 +2,9 @@
   <view v-if="visible" class="popup-overlay" @click="handleOverlayClick">
     <view class="popup-sheet" :class="{ 'is-show': visible }" @click.stop>
       <!-- 关闭按钮 -->
-      <view class="popup-close" @click="handleClose">
+      <button class="popup-close" :disabled="dismissDisabled" :aria-label="t('common.close')" @click="handleClose">
         <text class="close-text">×</text>
-      </view>
+      </button>
       
       <!-- 内容区域 -->
       <view class="popup-content">
@@ -28,6 +28,7 @@
         <button 
           v-if="showCancel" 
           class="action-btn btn-cancel" 
+          :disabled="dismissDisabled"
           @click="handleCancel"
         >
           {{ cancelText ?? t('common.cancel') }}
@@ -98,6 +99,8 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  // 保存过程中阻止关闭，避免丢失失败反馈或重复开启编辑。
+  dismissDisabled: { type: Boolean, default: false },
   // 点击遮罩是否关闭
   closeOnOverlay: {
     type: Boolean,
@@ -114,12 +117,14 @@ watch(() => props.modelValue, (val) => {
 })
 
 function handleClose() {
+  if (props.dismissDisabled) return
   visible.value = false
   emit('update:modelValue', false)
   emit('close')
 }
 
 function handleCancel() {
+  if (props.dismissDisabled) return
   handleClose()
   emit('cancel')
 }
@@ -189,6 +194,10 @@ function handleOverlayClick() {
   top: 10px;
   width: 44px;
   height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -258,13 +267,19 @@ function handleOverlayClick() {
 .popup-actions {
   display: grid;
   flex: 0 0 auto;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  /* 两个按钮均分；按钮多于两组时按最小视觉宽度自动换行。 */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr));
   gap: 10px;
 }
-.popup-actions.is-single { grid-template-columns: minmax(0, 1fr); }
+.popup-actions.is-single {
+  grid-template-columns: minmax(112px, min(220px, 100%));
+  justify-content: center;
+}
 
 .action-btn {
-  min-width: 0;
+  /* 视觉最小宽度与触控高度分开控制，避免短文字按钮缩成小红块。 */
+  min-width: 112px;
+  width: 100%;
   min-height: var(--control-height, 48px);
   height: auto;
   padding: 12px 10px;
@@ -327,6 +342,16 @@ function handleOverlayClick() {
     padding: 24px;
     transform-origin: center;
     animation-name: xf-popup-dialog-in;
+  }
+
+  .popup-actions {
+    /* 大屏不让操作按钮无限拉宽，按钮组保持紧凑并靠右。 */
+    grid-template-columns: repeat(auto-fit, minmax(112px, 220px));
+    justify-content: end;
+  }
+
+  .popup-actions.is-single {
+    justify-content: center;
   }
 }
 

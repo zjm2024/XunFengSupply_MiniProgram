@@ -186,7 +186,8 @@ function monthDisplayLabel(year, month) {
 }
 
 function formatMoney(value) { const number = Number(value); return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
-function statusText(status) { return ({ 0: '未结清', 1: '已结清', 2: '已关闭' })[status] || '未知状态' }
+/** 仅本地化既有账单枚举的显示名称，保留原状态码及分支。 */
+function statusText(status) { return t(({ 0: 'account.billing.statusLabels.unsettled', 1: 'account.billing.statusLabels.settled', 2: 'account.billing.statusLabels.closed' })[status] || 'account.billing.statusLabels.unknown') }
 function statusType(status) { return ({ 0: 'warning', 1: 'success', 2: 'info' })[status] || 'default' }
 /** 仅翻译财务明细类型的显示名称。 */
 function businessTypeText(type) { return ({ order: t('account.billing.order'), order_charge: t('account.billing.creditOrder'), payment: t('account.billing.payment'), repayment: t('account.billing.repayment'), refund: t('account.billing.refund'), adjustment: t('account.billing.adjustment') })[String(type || '').toLowerCase()] || t('account.billing.entry') }

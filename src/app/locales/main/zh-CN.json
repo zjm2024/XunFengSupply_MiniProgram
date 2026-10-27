@@ -84,7 +84,12 @@
     "fundFlow": "资金流水",
     "creditFlow": "授信流水",
     "address": "收货地址",
-    "subAccount": "子账号"
+    "subAccount": "子账号",
+    "orderFilters": {
+      "pendingPayment": "待付款",
+      "processing": "履约中",
+      "completed": "已完成"
+    }
   },
   "category": {
     "loading": "正在加载商品分类...",

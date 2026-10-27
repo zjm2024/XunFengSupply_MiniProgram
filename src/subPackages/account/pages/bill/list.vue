@@ -16,14 +16,13 @@
       >
         <view class="bill-page">
           <view class="toolbar-card">
-            <view>
+            <view class="toolbar-copy">
               <text class="toolbar-label">{{ t('account.billing.period') }}</text>
-              <text class="toolbar-desc">{{ t('account.billing.periodHint') }}</text>
             </view>
-            <picker mode="date" fields="month" :value="currentMonth" @change="onMonthChange">
+            <picker class="month-picker" mode="date" fields="month" :value="currentMonth" @change="onMonthChange">
               <view class="month-trigger">
                 <AppIcon name="calendar" :size="17" />
-                <text>{{ formatMonthDisplay(currentMonth, monthDisplayLabel) }}</text>
+                <text class="month-value">{{ formatMonthDisplay(currentMonth, monthDisplayLabel) }}</text>
                 <AppIcon name="chevron-down" :size="14" />
               </view>
             </picker>
@@ -33,11 +32,11 @@
             <view class="overview-main">
               <text class="overview-label">{{ t('account.billing.periodTotal') }}</text>
               <AmountText class="overview-amount" :text="'¥' + (formatMoney(overview.totalAmount))" />
-              <text class="overview-period">{{ formatMonthDisplay(currentMonth, monthDisplayLabel) }} · {{ t('account.billing.totalStatements', { count: totalCount }) }}</text>
+              <view class="overview-period"><text>{{ formatMonthDisplay(currentMonth, monthDisplayLabel) }}</text><text>{{ t('account.billing.totalStatements', { count: totalCount }) }}</text></view>
             </view>
             <view class="overview-metrics">
               <view><text>{{ t('account.billing.paidAmount') }}</text><AmountText :text="'¥' + (formatMoney(overview.paidAmount))" /></view>
-              <view><text>{{ t('account.billing.outstandingAmount') }}</text><AmountText class="outstanding" :text="'¥' + (formatMoney(overview.outstandingAmount))" /></view>
+              <view><text>{{ t('account.billing.outstandingAmount') }}</text><AmountText :class="{ outstanding: overview.outstandingAmount > 0 }" :text="'¥' + (formatMoney(overview.outstandingAmount))" /></view>
             </view>
           </view>
 
@@ -64,13 +63,12 @@
                 >
                   <view class="bill-card-head">
                     <view class="bill-identity">
-                      <view class="bill-icon"><AppIcon name="receipt" :size="21" /></view>
-                      <view>
+                      <view class="bill-identity-copy">
                         <text class="bill-period">{{ t('account.billing.periodStatement', { period: formatMonthDisplay(bill.billPeriod, monthDisplayLabel) }) }}</text>
                         <text class="bill-no">{{ bill.billNo || t('account.billing.statementRef', { id: bill.billId }) }}</text>
                       </view>
                     </view>
-                    <StatusTag :type="statusType(bill.status)" :text="statusText(bill.status)" />
+                    <StatusTag class="bill-status" :type="statusType(bill.status)" :text="statusText(bill.status)" />
                   </view>
 
                   <view class="bill-amount-row">
@@ -80,7 +78,7 @@
                     </view>
                     <view class="outstanding-copy">
                       <text>{{ t('account.billing.outstandingAmount') }}</text>
-                      <AmountText :text="'¥' + (formatMoney(bill.outstandingAmount))" />
+                      <AmountText :class="{ outstanding: bill.outstandingAmount > 0 }" :text="'¥' + (formatMoney(bill.outstandingAmount))" />
                     </view>
                   </view>
 
@@ -144,9 +142,9 @@ const loadMoreError = ref(false)
 const overview = reactive({ totalAmount: 0, paidAmount: 0, outstandingAmount: 0 })
 const statusTabs = Object.freeze([
   { key: 'all', /** 筛选通用名称随语言刷新，状态码保持不变。 */ get label() { return t('account.billing.all') } },
-  { key: 'open', label: '未结清', status: 0 },
-  { key: 'settled', label: '已结清', status: 1 },
-  { key: 'closed', label: '已关闭', status: 2 },
+  { key: 'open', /** 筛选标签随语言刷新，原账单状态码不变。 */ get label() { return t('account.billing.filters.open') }, status: 0 },
+  { key: 'settled', /** 筛选标签随语言刷新，原账单状态码不变。 */ get label() { return t('account.billing.filters.settled') }, status: 1 },
+  { key: 'closed', /** 筛选标签随语言刷新，原账单状态码不变。 */ get label() { return t('account.billing.filters.closed') }, status: 2 },
 ])
 const visibleBills = computed(() => {
   const status = statusTabs.find(tab => tab.key === activeStatus.value)?.status
@@ -249,63 +247,57 @@ function monthDisplayLabel(year, month) {
 }
 
 function formatMoney(value) { const number = Number(value); return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
-function statusText(status) { return ({ 0: '未结清', 1: '已结清', 2: '已关闭' })[status] || '未知状态' }
+/** 仅本地化既有账单枚举的显示名称，保留原状态码及分支。 */
+function statusText(status) { return t(({ 0: 'account.billing.statusLabels.unsettled', 1: 'account.billing.statusLabels.settled', 2: 'account.billing.statusLabels.closed' })[status] || 'account.billing.statusLabels.unknown') }
 function statusType(status) { return ({ 0: 'warning', 1: 'success', 2: 'info' })[status] || 'default' }
 </script>
 
 <style lang="scss" scoped>
 .bill-page { width: 100%; max-width: 1100px; margin: 0 auto; }
-.toolbar-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 13px; padding: 14px 15px; border-radius: 15px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-.toolbar-label, .toolbar-desc { display: block; }
-.toolbar-label { color: #22262D; font-size: 14px; font-weight: 680; }
-.toolbar-desc { margin-top: 3px; color: #999DA5; font-size: 10px; }
-.month-trigger { display: flex; height: 38px; align-items: center; gap: 7px; padding: 0 11px; border: 1px solid #DFE2E6; border-radius: 11px; color: #4C525B; background: #F8F9FA; font-size: 12px; }
-.overview-card { overflow: hidden; border-top: 3px solid #D7192D; border-radius: 20px; color: #20242A; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-.overview-main { padding: 21px 19px 17px; }
-.overview-label, .overview-amount, .overview-period { display: block; }
-.overview-label { color: #797F88; font-size: 11px; }
-.overview-amount { margin-top: 7px; font-size: 31px; font-weight: 760; font-variant-numeric: tabular-nums; }
-.overview-period { margin-top: 5px; color: #9A9FA6; font-size: 10px; }
-.overview-metrics { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); border-top: 1px solid #ECEEF1; background: #FAFAFB; }
-.overview-metrics > view { padding: 13px 19px; }
-.overview-metrics > view + view { border-left: 1px solid #ECEEF1; }
-.overview-metrics text { display: block; color: #878D96; font-size: 10px; }
-.overview-metrics .amount-text { margin-top: 4px; color: #282D34; font-size: 14px; font-weight: 650; }
-.overview-metrics .outstanding { color: #D7192D; }
-.filter-tabs { display: flex; gap: 8px; margin: 16px 0 12px; overflow-x: auto; }
-.filter-tab { display: flex; min-width: 66px; height: 36px; align-items: center; justify-content: center; padding: 0 13px; border: 1px solid #E1E3E7; border-radius: 11px; color: #696E77; background: #FFFFFF; box-sizing: border-box; font-size: 12px; }
-.filter-tab.active { border-color: #D7192D; color: #FFFFFF; background: #D7192D; font-weight: 650; }
+.toolbar-card, .overview-card, .bill-card { background: var(--glass-card-background, rgba(255,255,255,.9)); box-shadow: var(--glass-card-shadow, 0 8px 24px rgba(55,65,80,.05)); }
+/* 账期选择保持完整；大字号下整块换行，不挤压年月。 */
+.toolbar-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 12px; margin-bottom: 14px; padding: 14px 16px; border-radius: 16px; }
+.toolbar-copy { flex: 1 1 8em; min-width: 0; font-size: var(--type-body-small-size, 13px); }
+.toolbar-label { display: block; color: #282D34; font-size: var(--type-body-size, 14px); line-height: 1.5; font-weight: 650; }
+.month-picker { flex: 0 0 auto; max-width: 100%; }
+.month-trigger { display: flex; min-height: 44px; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #DFE2E6; border-radius: 10px; color: #30353D; background: #F8F9FA; font-size: var(--type-body-small-size, 13px); line-height: 1.5; box-sizing: border-box; }
+.month-value { flex: 0 0 auto; white-space: nowrap; word-break: keep-all; font-variant-numeric: tabular-nums; }
+.month-trigger :deep(.app-icon) { flex-shrink: 0; }
+.overview-card { overflow: hidden; border-radius: 18px; color: #20242A; }
+.overview-main { min-width: 0; padding: 18px 18px 16px; }
+.overview-label, .overview-period { display: block; color: #62666F; font-size: var(--type-caption-size, 12px); line-height: 1.5; }
+.overview-amount { display: block; margin-top: 7px; font-size: var(--type-bill-total-size, 28px); font-weight: 750; font-variant-numeric: tabular-nums; }
+.overview-period { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; }
+.overview-period > text { display: block; white-space: nowrap; }
+/* 金额区根据文字尺寸减列，让标签完整换行，数值保留统一对齐。 */
+.overview-metrics, .bill-amount-row { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,8em),1fr)); gap: 14px; font-size: var(--type-body-small-size, 13px); }
+.overview-metrics { padding: 14px 18px; border-top: 1px solid #ECEEF1; background: #F8F9FB; }
+.overview-metrics > view, .bill-amount-row > view { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 6px; }
+.overview-metrics > view > text, .amount-label, .outstanding-copy > text { display: block; color: #62666F; font-size: var(--type-caption-size, 12px); line-height: 1.5; overflow-wrap: anywhere; }
+.overview-metrics .amount-text, .outstanding-copy > .amount-text { color: #62666F; font-size: var(--type-label-size, 15px); font-weight: 650; }
+.overview-metrics .outstanding, .outstanding-copy > .outstanding { color: #D7192D; }
+.filter-tabs { min-width: 0; margin: 14px 0 12px; overflow: hidden; }
 .bill-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; }
-.bill-card { padding: 17px; border-radius: 18px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-.bill-card--pressed { opacity: .72; transform: scale(.995); }
-.bill-card-head, .bill-identity, .bill-foot, .bill-foot > view { display: flex; align-items: center; }
-.bill-card-head { justify-content: space-between; gap: 12px; }
-.bill-identity { min-width: 0; gap: 11px; }
-.bill-icon { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border-radius: 13px; color: #40566B; background: #EEF3F5; }
+.bill-card { min-width: 0; overflow: hidden; padding: 16px; border-radius: 16px; }
+.bill-card--pressed { opacity: .72; }
+.bill-card-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 12px; }
+.bill-identity { flex: 1 1 10em; min-width: 0; font-size: var(--type-body-size, 14px); }
+.bill-identity-copy { min-width: 0; }
 .bill-period, .bill-no { display: block; }
-.bill-period { color: #23272E; font-size: 14px; font-weight: 690; }
-.bill-no { margin-top: 4px; overflow: hidden; color: #989CA4; font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
-.bill-amount-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-top: 18px; padding: 15px 0; border-top: 1px solid #F0F1F3; border-bottom: 1px solid #F0F1F3; }
-.amount-label, .bill-amount { display: block; }
-.amount-label { color: #81868F; font-size: 10px; }
-.bill-amount { margin-top: 4px; color: #1F2329; font-size: 22px; font-weight: 750; font-variant-numeric: tabular-nums; }
-.outstanding-copy { text-align: right; }
-.outstanding-copy > text { display: block; color: #92969E; font-size: 10px; }
-.outstanding-copy > .amount-text { margin-top: 5px; color: #A04B42; font-size: 13px; font-weight: 650; }
-.bill-foot { justify-content: space-between; gap: 12px; padding-top: 13px; color: #969AA2; font-size: 10px; }
-.bill-foot > view { gap: 2px; color: #5D636C; font-size: 11px; }
-.filter-empty { display: flex; flex-direction: column; align-items: center; padding: 20px 0 34px; color: #92969E; font-size: 12px; text-align: center; }
+.bill-period { color: #23272E; font-size: var(--type-body-size, 14px); line-height: 1.5; font-weight: 650; overflow-wrap: anywhere; }
+.bill-no { margin-top: 4px; overflow: hidden; color: #757A83; font-size: var(--type-micro-size, 11px); line-height: 1.5; text-overflow: ellipsis; white-space: nowrap; }
+.bill-status { flex: 0 0 auto; margin-top: 2px; }
+.bill-page :deep(.bill-status) { font-size: var(--type-micro-size, 11px); }
+.bill-amount-row { margin-top: 14px; padding: 14px 0; border-top: 1px solid #ECEEF1; border-bottom: 1px solid #ECEEF1; }
+.bill-amount { display: block; color: #1F2329; font-size: var(--type-bill-amount-size, 22px); font-weight: 700; font-variant-numeric: tabular-nums; }
+.bill-foot, .bill-foot > view { display: flex; align-items: center; }
+.bill-foot { flex-wrap: wrap; justify-content: space-between; gap: 10px 12px; padding-top: 12px; color: #757A83; font-size: var(--type-caption-size, 12px); line-height: 1.5; }
+.bill-foot > text { min-width: 0; overflow-wrap: anywhere; }
+.bill-foot > view { flex: 0 0 auto; min-height: 32px; gap: 2px; color: #454B54; }
+.filter-empty { display: flex; flex-direction: column; align-items: center; padding: 20px 0 34px; color: #62666F; font-size: var(--type-caption-size, 12px); text-align: center; }
 .filter-empty-illustration { width: 128px; height: 128px; }
 @media screen and (min-width: 720px) {
-  .overview-card { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(360px,.8fr); }
-  .overview-metrics { border-top: 0; border-left: 1px solid #ECEEF1; }
-  .overview-metrics > view { display: flex; flex-direction: column; justify-content: center; }
   .bill-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
-  .bill-card { padding: 19px; }
+  .bill-card { padding: 18px; }
 }
-
-/* 金额按实际可用宽度缩字，父布局允许收缩。 */
-.overview-main, .overview-metrics > view, .bill-amount-row > view { min-width: 0; }
-.bill-amount-row > view { flex: 1; }
-.outstanding-copy { display: flex; flex-direction: column; align-items: flex-end; }
 </style>

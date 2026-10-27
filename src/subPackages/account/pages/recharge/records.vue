@@ -100,10 +100,10 @@ import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimati
 
 const tabs = Object.freeze([
   { key: 'all', /** 筛选通用名称随语言刷新，状态码保持不变。 */ get label() { return t('account.rechargeRecords.all') }, value: 'all', status: undefined },
-  { key: 'audit', label: '待审核', value: 'audit', status: 6 },
-  { key: 'processing', label: '处理中', value: 'processing', status: 1 },
-  { key: 'success', label: '已到账', value: 'success', status: 2 },
-  { key: 'failed', label: '失败', value: 'failed', status: 3 },
+  { key: 'audit', /** 筛选标签随语言刷新，原充值状态码不变。 */ get label() { return t('account.rechargeRecords.filters.audit') }, value: 'audit', status: 6 },
+  { key: 'processing', /** 筛选标签随语言刷新，原充值状态码不变。 */ get label() { return t('account.rechargeRecords.filters.processing') }, value: 'processing', status: 1 },
+  { key: 'success', /** 筛选标签随语言刷新，原充值状态码不变。 */ get label() { return t('account.rechargeRecords.filters.success') }, value: 'success', status: 2 },
+  { key: 'failed', /** 筛选标签随语言刷新，原充值状态码不变。 */ get label() { return t('account.rechargeRecords.filters.failed') }, value: 'failed', status: 3 },
 ])
 const activeTab = ref('all')
 const records = ref([])

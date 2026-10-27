@@ -34,11 +34,14 @@
     <view v-if="$slots.overlay" class="shell-overlay">
       <slot name="overlay"></slot>
     </view>
+    <!-- UniApp 的 App.vue 无页面视图，统一确认框必须由真实页面承载。 -->
+    <ConfirmHost />
   </view>
 </template>
 
 <script setup>
 import { useResponsive } from '../../composables/useResponsive.js'
+import ConfirmHost from '../ConfirmPopup/ConfirmHost.vue'
 
 const { layout, safeArea } = useResponsive()
 </script>

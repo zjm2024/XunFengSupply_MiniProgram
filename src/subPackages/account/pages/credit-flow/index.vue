@@ -82,7 +82,7 @@ const filters = computed(() => [
   { label: t('account.creditFlow.orderReservation'), value: 1 },
   { label: t('account.creditFlow.release'), value: 2 },
   { label: t('account.creditFlow.repaymentFilter'), value: 3 },
-  { label: '已结算', value: 4 },
+  { label: t('account.creditFlow.settledFilter'), value: 4 },
 ])
 const usageMap = computed(() => ({ 1: t('account.creditFlow.orderReservation'), 2: t('account.creditFlow.release'), 3: t('account.creditFlow.repayment'), 4: t('account.creditFlow.settlement') }))
 const flows = ref([])
@@ -184,7 +184,7 @@ function formatMoney(value) {
 <style lang="scss" scoped>
 .flow-header { background: var(--surface-page, #F4F5F8); }
 .filter-panel { padding: 7px var(--page-padding-x, 16px) 12px; background: var(--surface-page, #F4F5F8); }
-.credit-flow-page { width: 100%; max-width: 820px; margin: 0 auto; }
+.credit-flow-page { width: 100%; max-width: var(--content-max-width, 1120px); margin: 0 auto; }
 .flow-list { display: grid; gap: 10px; }
 .flow-card { padding: 15px 16px; border-radius: 16px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .flow-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
@@ -202,4 +202,7 @@ function formatMoney(value) {
 .flow-title-wrap { flex: 1; }
 .flow-amount { min-width: 0; flex: 0 1 auto; max-width: 65%; }
 .flow-meta .amount-text { font-size: inherit; }
+@media screen and (min-width: 1024px) {
+  .flow-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 </style>

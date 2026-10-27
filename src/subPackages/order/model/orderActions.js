@@ -6,11 +6,11 @@ import '../i18n/register.js'
  * 是否可展示、可执行由服务端 AllowedActions 决定；此处仅负责统一 UI 文案和样式。
  */
 const ACTION_BUTTONS = Object.freeze({
-  pay: { key: 'pay', labelKey: 'order.actions.pay', type: 'primary' },
-  cancel: { key: 'cancel', labelKey: 'order.actions.cancel', type: 'secondary' },
-  viewLogistics: { key: 'viewLogistics', labelKey: 'order.actions.viewLogistics', type: 'secondary' },
-  confirmReceipt: { key: 'confirmReceipt', labelKey: 'order.actions.confirmReceipt', type: 'primary' },
-  afterSale: { key: 'afterSale', labelKey: 'order.actions.afterSale', type: 'secondary' },
+  pay: { key: 'pay', labelKey: 'order.actions.pay', type: 'primary', priority: 0 },
+  cancel: { key: 'cancel', labelKey: 'order.actions.cancel', type: 'secondary', priority: 9 },
+  viewLogistics: { key: 'viewLogistics', labelKey: 'order.actions.viewLogistics', type: 'secondary', priority: 3 },
+  confirmReceipt: { key: 'confirmReceipt', labelKey: 'order.actions.confirmReceipt', type: 'primary', priority: 0 },
+  afterSale: { key: 'afterSale', labelKey: 'order.actions.afterSale', type: 'secondary', priority: 1 },
 })
 
 /**
@@ -23,5 +23,5 @@ export function getOrderActionButtons(actions) {
   return actions
     .map(action => Object.prototype.hasOwnProperty.call(ACTION_BUTTONS, action) ? ACTION_BUTTONS[action] : null)
     .filter(Boolean)
-    .map(action => ({ key: action.key, label: t(action.labelKey), type: action.type }))
+    .map(action => ({ key: action.key, label: t(action.labelKey), type: action.type, priority: action.priority }))
 }

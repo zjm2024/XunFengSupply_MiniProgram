@@ -88,7 +88,7 @@
                     hover-class="channel-card--pressed"
                     @tap="selectPaymentChannel(channel)"
                   >
-                    <view class="channel-icon" :style="{ color: channel.color }"><AppIcon :name="channel.icon" :size="22" :color="channel.color" /></view>
+                    <view class="channel-icon" :style="{ color: channel.color }"><AppIcon :name="channel.icon" :size="26" :color="channel.color" :use-original-color="channel.useOriginalColor" /></view>
                     <view class="channel-copy">
                       <view class="channel-title-row">
                         <text class="channel-title">{{ channel.title }}</text>
@@ -148,6 +148,26 @@
       </AppContent>
     </template>
   </AppPageShell>
+
+  <view v-if="nativeQrVisible" class="native-qr-mask" @tap="closeNativeQr">
+    <view class="native-qr-sheet" @tap.stop>
+      <view class="native-qr-head">
+        <view>
+          <text class="native-qr-title">{{ t('account.recharge.qrTitle') }}</text>
+          <text class="native-qr-number">{{ t('account.recharge.qrNumber', { number: nativeQrNumber }) }}</text>
+        </view>
+        <button class="native-qr-close" aria-label="close" @tap="closeNativeQr">×</button>
+      </view>
+      <text class="native-qr-hint">{{ t('account.recharge.qrHint') }}</text>
+      <view class="native-qr-code">
+        <view v-for="(row, rowIndex) in nativeQrMatrix" :key="rowIndex" class="native-qr-row">
+          <view v-for="(dark, columnIndex) in row" :key="columnIndex" class="native-qr-cell" :class="{ dark }" />
+        </view>
+      </view>
+      <button class="native-qr-copy" @tap="copyNativeQrLink">{{ t('account.recharge.qrCopyLink') }}</button>
+      <button class="native-qr-done" @tap="closeNativeQr">{{ t('account.recharge.qrClose') }}</button>
+    </view>
+  </view>
 </template>
 
 <script setup>
@@ -160,19 +180,21 @@ import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
-import { createAppRecharge, getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
+import { createAppRecharge, createNativeRecharge, getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import { useUserStore } from '@/shared/session/userStore.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { openAppDialog } from '@/shared/composables/useAppDialog.js'
+import { createQrMatrix } from '@/shared/utils/qrMatrix.js'
 
 const userStore = useUserStore()
 const finance = ref(userStore.financeContext)
 const quickAmounts = Object.freeze([100, 500, 1000, 2000])
 const paymentChannels = Object.freeze([
-  { key: 'wechat', /** 渠道名称按当前语言显示。 */ get title() { return t('account.recharge.wechat') }, icon: 'wechat-pay', color: '#1AAD19', provider: 'wxpay', /** 渠道说明按当前语言显示。 */ get description() { return t('account.recharge.wechatHint') } },
-  { key: 'alipay', /** 渠道名称按当前语言显示。 */ get title() { return t('account.recharge.alipay') }, icon: 'alipay', color: '#1677FF', provider: 'alipay', /** 渠道说明按当前语言显示。 */ get description() { return t('account.recharge.alipayHint') } },
-  { key: 'abc_cashier', /** 渠道名称按当前语言显示。 */ get title() { return t('account.recharge.bank') }, icon: 'bank', color: '#8A9098', provider: null, disabled: true, /** 渠道说明按当前语言显示。 */ get description() { return t('account.recharge.bankHint') } },
+  { key: 'wechat', /** 渠道名称按当前语言显示。 */ get title() { return t('account.recharge.wechat') }, icon: 'pay-wechat', color: '#1AAD19', provider: 'wxpay', useOriginalColor: true, /** 渠道说明按当前语言显示。 */ get description() { return t('account.recharge.wechatHint') } },
+  { key: 'wechat_native', /** 渠道名称按当前语言显示。 */ get title() { return t('account.recharge.wechatNative') }, icon: 'pay-wechat', color: '#1AAD19', useOriginalColor: true, native: true, /** 渠道说明按当前语言显示。 */ get description() { return t('account.recharge.wechatNativeHint') } },
+  { key: 'alipay', /** 渠道名称按当前语言显示。 */ get title() { return t('account.recharge.alipay') }, icon: 'pay-alipay', color: '#1677FF', provider: 'alipay', useOriginalColor: true, /** 渠道说明按当前语言显示。 */ get description() { return t('account.recharge.alipayHint') } },
+  { key: 'abc_cashier', /** 渠道名称按当前语言显示。 */ get title() { return t('account.recharge.bank') }, icon: 'bank', color: '#8A9098', provider: null, useOriginalColor: false, disabled: true, /** 渠道说明按当前语言显示。 */ get description() { return t('account.recharge.bankHint') } },
 ])
 const rechargeAmount = ref('')
 const submitting = ref(false)
@@ -182,6 +204,10 @@ const pendingClientRequestId = ref('')
 const pendingRequestAmount = ref('')
 const pendingRequestChannel = ref('wechat')
 const pendingRechargeStorageKey = 'finance:pending-app-recharge'
+const nativeQrVisible = ref(false)
+const nativeQrLink = ref('')
+const nativeQrNumber = ref('')
+const nativeQrMatrix = ref([])
 
 const creditUsage = computed(() => {
   const total = Number(finance.value.credit?.totalAmount || 0)
@@ -194,6 +220,7 @@ const rechargeButtonText = computed(() => submitting.value
   ? t('account.recharge.starting', { channel: selectedPaymentChannel.value.title })
   : t('account.recharge.start', { channel: selectedPaymentChannel.value.title }))
 const paymentSupportHint = computed(() => {
+  if (selectedPaymentChannel.value.native) return t('account.recharge.wechatNativeHint')
   if (availableProviders.value && !availableProviders.value[selectedChannel.value]) {
     return t('account.recharge.unsupportedHint', { channel: selectedPaymentChannel.value.title })
   }
@@ -244,16 +271,16 @@ function restorePendingRequest() {
 /** 检查当前 App 安装包是否编入各支付能力；H5 和未配置包不允许伪装可支付。 */
 function checkPaymentAvailability() {
   if (typeof plus === 'undefined') {
-    availableProviders.value = { wechat: false, alipay: false }
+    availableProviders.value = { wechat: false, wechat_native: true, alipay: false }
     return
   }
   uni.getProvider({
     service: 'payment',
     success: result => {
       const providers = Array.isArray(result.provider) ? result.provider : []
-      availableProviders.value = { wechat: providers.includes('wxpay'), alipay: providers.includes('alipay') }
+      availableProviders.value = { wechat: providers.includes('wxpay'), wechat_native: true, alipay: providers.includes('alipay') }
     },
-    fail: () => { availableProviders.value = { wechat: false, alipay: false } },
+    fail: () => { availableProviders.value = { wechat: false, wechat_native: true, alipay: false } },
   })
 }
 
@@ -328,7 +355,7 @@ async function startRecharge() {
   if (submitting.value) return
   const channel = selectedPaymentChannel.value
   if (channel.disabled) return
-  if (availableProviders.value?.[channel.key] !== true) {
+  if (!channel.native && availableProviders.value?.[channel.key] !== true) {
     await openAppDialog({ title: t('account.recharge.unavailableTitle', { channel: channel.title }), description: t('account.recharge.unavailableContent', { channel: channel.title }), showCancel: false, confirmText: t('common.confirm') })
     return
   }
@@ -340,7 +367,8 @@ async function startRecharge() {
 
   submitting.value = true
   try {
-    const response = await createAppRecharge({
+    const createRecharge = channel.native ? createNativeRecharge : createAppRecharge
+    const response = await createRecharge({
       channel: channel.key,
       amount: Number(amount),
       clientRequestId: ensureClientRequestId(amount, channel.key),
@@ -357,6 +385,10 @@ async function startRecharge() {
       return
     }
     if (!response.clientPayload) {
+      if (channel.native && response.codeUrl) {
+        openNativeQr(response)
+        return
+      }
       await showPaymentResultPending(t('account.recharge.acceptedHint'))
       return
     }
@@ -378,6 +410,29 @@ async function startRecharge() {
     submitting.value = false
     await loadFinance()
   }
+}
+
+/** 展示服务端返回的 Native 支付二维码；关闭弹层不会清除幂等上下文，便于继续查看或重试。 */
+function openNativeQr(response) {
+  nativeQrLink.value = String(response.codeUrl || '')
+  nativeQrNumber.value = String(response.rechargeNo || '')
+  nativeQrMatrix.value = createQrMatrix(nativeQrLink.value)
+  nativeQrVisible.value = nativeQrMatrix.value.length > 0
+}
+
+/** 关闭 Native 支付二维码弹层，不改变充值单的服务端状态。 */
+function closeNativeQr() {
+  nativeQrVisible.value = false
+}
+
+/** 复制 Native 支付链接，方便在无法直接扫码时转发到其他设备。 */
+function copyNativeQrLink() {
+  if (!nativeQrLink.value) return
+  uni.setClipboardData({
+    data: nativeQrLink.value,
+    success: () => uni.showToast({ title: t('account.recharge.qrCopied'), icon: 'none' }),
+    fail: () => uni.showToast({ title: t('account.recharge.qrCopyFailed'), icon: 'none' }),
+  })
 }
 
 /** 在客户端调起结束后统一说明服务端确认语义，并引导查看可靠状态。 */
@@ -463,6 +518,22 @@ function goToCreditFlow() { navigator.navigateTo(routes.account.creditFlow()) }
 .finance-btn::after { border: 0; }
 .service-note { display: block; margin-top: 10px; color: #9499A2; font-size: 10px; line-height: 16px; text-align: center; }
 .service-entry { margin-top: 13px; }
+.native-qr-mask { position: fixed; z-index: 1000; inset: 0; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(20, 25, 34, .55); }
+.native-qr-sheet { width: 360px; max-width: calc(100vw - 32px); box-sizing: border-box; padding: 22px 20px 18px; border-radius: 22px; background: #FFF; box-shadow: 0 18px 50px rgba(20, 25, 34, .24); }
+.native-qr-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.native-qr-title, .native-qr-number { display: block; }
+.native-qr-title { color: #20242A; font-size: 18px; font-weight: 750; line-height: 25px; }
+.native-qr-number { margin-top: 4px; color: #9499A2; font-size: 10px; line-height: 15px; }
+.native-qr-close { width: 32px; height: 32px; margin: -5px -5px 0 0; padding: 0; border: 0; color: #8A9098; background: transparent; font-size: 25px; line-height: 30px; }
+.native-qr-close::after, .native-qr-copy::after, .native-qr-done::after { border: 0; }
+.native-qr-hint { display: block; margin-top: 14px; color: #6F7680; font-size: 12px; line-height: 18px; }
+.native-qr-code { display: flex; width: 240px; max-width: calc(100vw - 72px); height: 240px; max-height: calc(100vw - 72px); flex-direction: column; margin: 18px auto 16px; padding: 12px; box-sizing: border-box; background: #FFF; border: 1px solid #ECEEF1; border-radius: 14px; }
+.native-qr-row { display: flex; min-height: 0; flex: 1; }
+.native-qr-cell { min-width: 0; min-height: 0; flex: 1; background: #FFF; }
+.native-qr-cell.dark { background: #14171C; }
+.native-qr-copy, .native-qr-done { display: block; width: 100%; height: 42px; margin: 0; border-radius: 11px; font-size: 13px; line-height: 42px; }
+.native-qr-copy { color: #D7192D; background: #FFF3F4; }
+.native-qr-done { margin-top: 9px; color: #FFF; background: #D7192D; }
 @media screen and (min-width: 760px) {
   .page-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
   .overview-column { grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); grid-column: 1 / -1; gap: 18px; }

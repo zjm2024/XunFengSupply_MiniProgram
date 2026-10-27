@@ -9,7 +9,7 @@
       <AppHeader :title="t('order.detail.title')" :show-back="true" />
     </template>
     <template #content>
-      <AppContent padding="0">
+      <AppContent :no-max-width="true" padding="10px var(--page-padding-x, 16px) 22px">
         <view class="order-detail-page" :class="{ 'has-logistics': detail?.shipments?.length > 0, 'is-english': locale === 'en-US' }" v-if="detail">
           <view class="detail-columns">
             <view class="detail-main-column">
@@ -21,6 +21,7 @@
             :text="orderDisplay.text"
             :description="orderDisplay.description"
             :journey-visible="orderDisplay.showProgress"
+            :step-labels="progressStepLabels"
           />
 
           <!-- 物流信息 -->
@@ -28,7 +29,7 @@
             <view class="logistics-info">
               <AppIcon name="shipping" :size="20" color="#67C23A" />
               <view class="logistics-text">
-                <text class="logistics-company">{{ detail.shipments[0]?.carrierName || '物流运输中' }}</text>
+                <text class="logistics-company">{{ detail.shipments[0]?.carrierName || t('order.detail.logisticsFallback') }}</text>
                 <text class="tracking-no" v-if="detail.shipments[0]?.trackingNo">{{ t('order.detail.trackingNo') }} {{ detail.shipments[0].trackingNo }}</text>
               </view>
               <AppIcon name="chevron-right" :size="16" color="#CCC" />
@@ -146,7 +147,7 @@
             </view>
             <view v-if="detail.orderSource === 'ERP_MANUAL'" class="info-row">
               <text class="info-label">{{ t('order.detail.source') }}</text>
-              <text class="info-value">线下订单</text>
+              <text class="info-value">{{ t('order.detail.offlineSource') }}</text>
             </view>
             <view class="info-row">
               <text class="info-label">{{ t('order.detail.placedAt') }}</text>
@@ -154,7 +155,7 @@
             </view>
             <view class="info-row">
               <text class="info-label">{{ t('order.detail.paymentMode') }}</text>
-              <text class="info-value">{{ detail.orderSource === 'ERP_MANUAL' ? '账户本金支付' : paymentModeText(detail.paymentMode, detail.paymentStatus, detail.orderStatus) }}</text>
+              <text class="info-value">{{ detail.orderSource === 'ERP_MANUAL' ? t('order.detail.accountPayment') : paymentModeText(detail.paymentMode, detail.paymentStatus, detail.orderStatus) }}</text>
             </view>
             <view class="info-row" v-if="detail.customerRemark">
               <text class="info-label">{{ t('order.detail.shippingRemark') }}</text>
@@ -227,8 +228,6 @@
             </view>
           </view>
 
-          <!-- 底部占位，避免内容被 FixedActionBar 遮挡 -->
-          <view class="bottom-space" v-if="actionButtons.length > 0" />
         </view>
 
         <AppInitializing
@@ -241,16 +240,12 @@
       </AppContent>
     </template>
     <template #footer>
-      <FixedActionBar v-if="actionButtons.length > 0" class="order-action-bar" :class="{ 'is-english': locale === 'en-US' }">
-        <button
-          v-for="action in actionButtons"
-          :key="action.key"
-          class="action-btn"
-          :class="action.type"
-          :disabled="action.type === 'disabled'"
-          @click="handleAction(action.key)"
-        >{{ action.label }}</button>
+      <FixedActionBar v-if="actionButtons.length > 0" class="order-action-bar" width-mode="responsive">
+        <ActionRow :actions="actionButtons" :more-text="t('order.list.more')" @select="selectOrderAction" @overflow="actionMenu = $event" />
       </FixedActionBar>
+    </template>
+    <template #overlay>
+      <ActionOverflowMenu :anchor="actionMenu?.anchor" :actions="overflowActions" :title="t('order.list.more')" @close="actionMenu = null" @select="selectOrderAction" />
     </template>
   </AppPageShell>
 </template>
@@ -273,6 +268,8 @@ import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppInitializing from '@/shared/ui/AppInitializing/AppInitializing.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import OrderStatusProgress from '@/shared/ui/OrderStatusProgress/OrderStatusProgress.vue'
+import ActionRow from '@/shared/ui/ActionRow.vue'
+import ActionOverflowMenu from '@/shared/ui/ActionOverflowMenu.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { batchAddToCart } from '@/shared/api/cartApi.js'
@@ -288,6 +285,7 @@ const reordering = ref(false)
 const collapsedProductGroups = ref({})
 const expandedSplitItems = ref({})
 const showSplitHistory = ref(false)
+const actionMenu = ref(null)
 
 const orderRead = createLocaleReadCoordinator({
   isReady: () => Boolean(orderId.value),
@@ -295,8 +293,8 @@ const orderRead = createLocaleReadCoordinator({
   apply: applyOrderDetailSnapshot,
   onError: showOrderDetailReadError,
 })
-watch(locale, () => orderRead.localeChanged(), { flush: 'sync' })
-onHide(() => orderRead.deactivate())
+watch(locale, () => { actionMenu.value = null; orderRead.localeChanged() }, { flush: 'sync' })
+onHide(() => { actionMenu.value = null; orderRead.deactivate() })
 onUnload(() => orderRead.dispose())
 
 onLoad(async (options) => {
@@ -379,6 +377,8 @@ const splitOverview = computed(() => {
 })
 /** 主状态及退款提示由后端通过启用字典生成，列表与详情完全共用。 */
 const orderDisplay = computed(() => getOrderCustomerDisplay(detail.value))
+/** 订单分包负责进度节点取词，共享组件只接收展示数据。 */
+const progressStepLabels = computed(() => ['submitted', 'paid', 'shipped', 'completed'].map(key => t('order.detail.progressSteps.' + key)))
 const refundDisplay = computed(() => getCustomerRefundDisplay(detail.value))
 
 const cancellationReasonText = computed(() => {
@@ -390,24 +390,24 @@ const cancellationReasonText = computed(() => {
 const customerTimeline = computed(() => {
   if (!detail.value) return []
   const order = detail.value
-  const timeline = [{ key: 'created', title: '订单已提交', time: order.createdAt }]
+  const timeline = [{ key: 'created', title: t('order.detail.timeline.submitted'), time: order.createdAt }]
   if (Number(order.erpReviewStatus) === ERP_REVIEW_STATUS.APPROVED) {
-    timeline.push({ key: 'confirmed', title: '订单已确认', time: order.erpReviewedAt })
+    timeline.push({ key: 'confirmed', title: t('order.detail.timeline.confirmed'), time: order.erpReviewedAt })
   }
   if (Number(order.paymentStatus) === PAYMENT_STATUS.CONFIRMED) {
-    timeline.push({ key: 'paid', title: '付款已完成', description: '付款信息已确认' })
+    timeline.push({ key: 'paid', title: t('order.detail.timeline.paid'), description: t('order.detail.timeline.paidDescription') })
   }
   if (order.stockConfirmedAt) {
-    timeline.push({ key: 'stock-confirmed', title: '商品已确认', time: order.stockConfirmedAt })
+    timeline.push({ key: 'stock-confirmed', title: t('order.detail.timeline.stockConfirmed'), time: order.stockConfirmedAt })
   }
   if (order.shippedAt) {
-    timeline.push({ key: 'shipped', title: '商品已发出', time: order.shippedAt })
+    timeline.push({ key: 'shipped', title: t('order.detail.timeline.shipped'), time: order.shippedAt })
   }
   if (order.completedAt) {
-    timeline.push({ key: 'completed', title: '订单已完成', time: order.completedAt })
+    timeline.push({ key: 'completed', title: t('order.detail.timeline.completed'), time: order.completedAt })
   }
   if (order.cancelledAt) {
-    timeline.push({ key: 'cancelled', title: '订单已取消', time: order.cancelledAt })
+    timeline.push({ key: 'cancelled', title: t('order.detail.timeline.cancelled'), time: order.cancelledAt })
   }
   return timeline
 })
@@ -430,6 +430,7 @@ const actionButtons = computed(() => {
     key: 'reorder',
     label: reordering.value ? t('order.list.reordering') : t('order.list.reorder'),
     type: reordering.value ? 'disabled' : 'default',
+    priority: 2,
   }
 
   const actions = [reorderAction, ...getOrderActionButtons(detail.value.allowedActions)]
@@ -438,19 +439,28 @@ const actionButtons = computed(() => {
   return actions.sort((left, right) => (priority[left.key] ?? 99) - (priority[right.key] ?? 99))
 })
 
+/** 菜单只包含当前服务端仍允许的动作，读取刷新后不会保留失效操作。 */
+const overflowActions = computed(() => actionButtons.value.filter(action => actionMenu.value?.keys.includes(action.key)))
+/** 外露按钮与菜单共用入口，点击前重新检查当前动作与禁用状态。 */
+function selectOrderAction(key) {
+  actionMenu.value = null
+  const action = actionButtons.value.find(item => item.key === key)
+  if (action && action.type !== 'disabled') handleAction(key)
+}
+
 function paymentModeText(mode, paymentStatus, orderStatus) {
   const pendingPayment = Number(orderStatus) === ORDER_STATUS.PENDING_PAYMENT
     && [PAYMENT_STATUS.UNPAID, PAYMENT_STATUS.PAYING, PAYMENT_STATUS.PARTIALLY_PAID,
       PAYMENT_STATUS.FAILED, PAYMENT_STATUS.UNKNOWN].includes(Number(paymentStatus))
-  if (pendingPayment && Number(paymentStatus) === PAYMENT_STATUS.UNPAID) return '待选择支付方式'
+  if (pendingPayment && Number(paymentStatus) === PAYMENT_STATUS.UNPAID) return t('order.detail.paymentMethodPending')
   if (Number(orderStatus) === ORDER_STATUS.CANCELLED && Number(paymentStatus) !== PAYMENT_STATUS.CONFIRMED) {
-    return '未完成支付'
+    return t('order.detail.paymentIncomplete')
   }
   return ({
-    [PAYMENT_MODE.CASH]: '现款支付',
-    [PAYMENT_MODE.CREDIT]: '授信支付',
-    [PAYMENT_MODE.COMBINATION]: '账户组合支付',
-  })[Number(mode)] || '未知方式'
+    [PAYMENT_MODE.CASH]: t('order.detail.paymentModes.cash'),
+    [PAYMENT_MODE.CREDIT]: t('order.detail.paymentModes.credit'),
+    [PAYMENT_MODE.COMBINATION]: t('order.detail.paymentModes.combination'),
+  })[Number(mode)] || t('order.detail.paymentModes.unknown')
 }
 
 function copyText(text) {
@@ -977,8 +987,8 @@ function splitItemQuantityText(split, item) {
 </style>
 <style lang="scss" scoped>
 /* 成品页覆盖层：统一使用项目字体与间距 token，并保持 390px/800px 两档布局。 */
-.order-detail-page { width: 100%; max-width: 1120px; min-height: 0; margin: 0 auto; padding: 10px 16px calc(22px + env(safe-area-inset-bottom)); box-sizing: border-box; background: transparent; }
-.logistics-card, .address-card, .goods-card, .info-card, .price-card { margin: 0 0 10px; padding: 14px; border-radius: var(--radius-card, 14px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-sizing: border-box; }
+.order-detail-page { width: 100%; max-width: var(--content-max-width, 1120px); min-height: 0; margin: 0 auto; padding: 0; box-sizing: border-box; background: transparent; }
+.logistics-card, .address-card, .goods-card, .split-card, .info-card, .price-card { margin: 0 0 10px; padding: 14px; border-radius: var(--radius-card, 14px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-sizing: border-box; }
 .logistics-card:active { opacity: .72; }
 .logistics-info { min-height: 42px; }
 .logistics-info .logistics-text { margin-left: 12px; }
@@ -1028,13 +1038,10 @@ function splitItemQuantityText(split, item) {
 .timeline-title, .timeline-time { display: block; }
 .timeline-title { color: var(--type-title-color); font-size: var(--type-body-small-size, 13px); font-weight: 650; }
 .timeline-time { margin-top: 2px; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
-.bottom-space { height: 76px; }
 .action-btn { display: flex; min-width: 0; height: 44px; flex: 1 1 0; align-items: center; justify-content: center; margin: 0; padding: 0 10px; border: 1px solid var(--color-border, #DDE0E4); border-radius: var(--radius-control, 10px); box-sizing: border-box; color: var(--type-title-color); background: #FFF; font-size: var(--type-button-size, 14px); font-weight: 650; line-height: 1; white-space: nowrap; }
 .action-btn.primary { border-color: var(--color-brand, #D7192D); color: #FFF; background: var(--color-brand, #D7192D); }
 .action-btn.default { border-color: var(--color-border, #DDE0E4); color: var(--type-title-color); background: #FFF; }
 .action-btn.disabled { color: #A8ABB2; background: #ECEEF2; }
-.order-action-bar.is-english :deep(.action-content) { flex-wrap: wrap; }
-.order-action-bar.is-english .action-btn { flex: 1 1 128px; height: auto; min-height: 44px; padding: 10px 8px; line-height: 1.25; white-space: normal; overflow-wrap: anywhere; }
 .order-detail-page.is-english .info-row .info-label,
 .order-detail-page.is-english .price-row .price-label { flex-basis: 96px; line-height: 1.4; overflow-wrap: anywhere; }
  .detail-columns { display: flex; flex-direction: column; gap: 10px; }
@@ -1042,23 +1049,19 @@ function splitItemQuantityText(split, item) {
  .detail-main-column > *, .detail-side-column > * { margin: 0; }
 
 @media (min-width: 720px) {
-  .order-detail-page { padding: 14px 20px 20px; }
   .detail-columns { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr); align-items: start; gap: 10px 14px; }
   .detail-main-column, .detail-side-column { gap: 10px; }
-  .bottom-space { display: none; }
 }
 
 @media (min-width: 720px) and (max-width: 1023px) {
-  .order-detail-page { padding: 12px 14px 18px; }
   .detail-columns { grid-template-columns: minmax(0, 1fr) minmax(260px, .78fr); gap: 8px 10px; }
-  .logistics-card, .address-card, .goods-card, .info-card, .price-card { padding: 12px; }
+  .logistics-card, .address-card, .goods-card, .split-card, .info-card, .price-card { padding: 12px; }
   .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) minmax(0, .7fr) 26px; gap: 8px; min-height: 62px; }
   .spu-image-link { width: 48px; height: 48px; }
 }
 
 @media (max-width: 719px) {
-  .order-detail-page { padding-right: 12px; padding-left: 12px; }
-  .logistics-card, .address-card, .goods-card, .info-card, .price-card { padding: 12px; }
+  .logistics-card, .address-card, .goods-card, .split-card, .info-card, .price-card { padding: 12px; }
   .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) minmax(0, .7fr) 26px; gap: 8px; min-height: 62px; }
   .spu-image-link { width: 48px; height: 48px; }
   .spu-order-total { font-size: 12px; }
@@ -1066,7 +1069,6 @@ function splitItemQuantityText(split, item) {
   .goods-item .goods-info { margin-left: 10px; }
   .goods-item .goods-info .goods-name { font-size: 13px; line-height: 18px; }
   .goods-item .goods-info .price-row .price { font-size: 14px; }
-  .bottom-space { height: 64px; }
 }
 </style>
 

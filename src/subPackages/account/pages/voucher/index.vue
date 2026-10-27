@@ -92,9 +92,9 @@ import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustratio
 import noCouponSvg from '../../../../shared/assets/illustrations/no-coupon.svg?raw'
 
 const tabs = [
-  { key: 'available', label: '可使用', count: 0 },
-  { key: 'used', label: '已使用', count: 0 },
-  { key: 'expired', label: '已过期', count: 0 }
+  { key: 'available', labelKey: 'account.voucher.filters.available', count: 0 },
+  { key: 'used', labelKey: 'account.voucher.filters.used', count: 0 },
+  { key: 'expired', labelKey: 'account.voucher.filters.expired', count: 0 }
 ]
 
 const activeTab = ref('available')
@@ -113,7 +113,7 @@ const tabCountInfo = computed(()=>{
 // 给tab追加数量
 const renderTabs = computed(()=>{
   return tabs.map(tab=>{
-    return {...tab, label: `${tab.label}(${tabCountInfo.value[tab.key]})`}
+    return {...tab, label: `${t(tab.labelKey)}(${tabCountInfo.value[tab.key]})`}
   })
 })
 

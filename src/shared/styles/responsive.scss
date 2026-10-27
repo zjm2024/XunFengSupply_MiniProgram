@@ -25,6 +25,10 @@ $content-max-width-landscape: 1120px;   // iPad 横屏/大屏
 
 // ==================== Mixins ====================
 
+/* 标准业务页：外层复用三档响应式容器，内层统一到新增地址的阅读宽度。 */
+.page-width-container { width: 100%; max-width: var(--page-container-max-width, 100%); margin: 0 auto; box-sizing: border-box; }
+.page-content-frame { width: 100%; min-width: 0; max-width: var(--page-content-max-width, 820px); margin: 0 auto; box-sizing: border-box; }
+
 /**
  * 响应式容器：限制最大宽度并居中
  * 用于页面内容区的外层容器

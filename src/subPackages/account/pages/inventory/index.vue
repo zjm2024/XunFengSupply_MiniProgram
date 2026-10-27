@@ -202,7 +202,7 @@ function formatQty(value) { return Number(value || 0).toLocaleString('zh-CN') }
 .inventory-header { background: var(--surface-page, #F4F5F8); }
 .filter-panel { padding: 7px var(--page-padding-x, 16px) 12px; background: var(--surface-page, #F4F5F8); }
 .inventory-page { width: 100%; }
-.content-wrap { width: 100%; max-width: 820px; margin: 0 auto; padding: 8px var(--page-padding-x,16px) 30px; box-sizing: border-box; }
+.content-wrap { width: 100%; max-width: var(--content-max-width, 1120px); margin: 0 auto; padding: 8px var(--page-padding-x,16px) 30px; box-sizing: border-box; }
 .result-head { display: flex; justify-content: space-between; margin: 0 2px 11px; color: #8C9199; font-size: 10px; }
 .result-head text:first-child { color: #343941; font-size: 13px; font-weight: 680; }
 .stock-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; }
@@ -227,5 +227,8 @@ function formatQty(value) { return Number(value || 0).toLocaleString('zh-CN') }
   .stock-grid { gap: 14px; }
   .stock-card { grid-template-columns: 108px minmax(0,1fr); padding: 16px; }
   .product-image { width: 108px; height: 128px; }
+}
+@media screen and (min-width: 1024px) {
+  .stock-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 </style>

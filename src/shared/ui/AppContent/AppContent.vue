@@ -9,6 +9,7 @@
   - 响应式 max-width：手机 100% / iPad 竖屏 720px / iPad 横屏 1120px
   - 平板端自动居中并增加水平边距
   - 支持自定义滚动事件
+  - width-mode="standard"：使用新增地址页的 820px 标准内容框
 
   使用方式：
     <AppContent @scroll="onScroll" :scroll-top="scrollTop">
@@ -32,6 +33,7 @@
         :show-scrollbar="false"
         :enable-back-to-top="true"
         :scroll-into-view="scrollIntoView"
+        :scroll-top="scrollTop"
         :scroll-with-animation="scrollWithAnimation"
         :refresher-enabled="refresherEnabled"
         :refresher-triggered="refresherTriggered"
@@ -45,7 +47,8 @@
         ref="scrollViewRef"
       >
         <view class="content-body" :style="{ padding: padding }">
-          <slot></slot>
+          <view v-if="widthMode === 'standard' && !noMaxWidth" class="page-content-frame"><slot></slot></view>
+          <slot v-else></slot>
         </view>
       </scroll-view>
     </view>
@@ -58,6 +61,10 @@ import { useResponsive } from '../../composables/useResponsive.js'
 import AppIcon from '../AppIcon/AppIcon.vue'
 
 const props = defineProps({
+  /** 标准业务页共用内容框；默认保持现有响应式容器行为。 */
+  widthMode: { type: String, default: 'responsive' },
+  /** 可选的程序化滚动目标；未传入时沿用原生滚动行为。 */
+  scrollTop: { type: Number, default: undefined },
   /** 自定义内边距，格式: '16px' 或 '16px 24px' */
   padding: {
     type: String,

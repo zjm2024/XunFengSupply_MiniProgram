@@ -107,6 +107,57 @@ async function show(bindings) {
 }
 
 describe('order page locale refresh and transaction safety', () => {
+  it('详情菜单重新检查允许动作，刷新后取消动作不会继续导航', async () => {
+    const view = await page('subPackages/order/pages/detail/index.vue')
+    view.orderId.value = 88
+    await show(view)
+    view.detail.value.allowedActions = ['pay', 'cancel']
+    view.actionMenu.value = { keys: ['cancel'], anchor: { top: 500, bottom: 544, left: 16 } }
+    expect(view.overflowActions.value.map(action => action.key)).toEqual(['cancel'])
+    view.detail.value.allowedActions = ['pay']
+    expect(view.overflowActions.value).toEqual([])
+    view.selectOrderAction('cancel')
+    expect(navigator.navigateTo).not.toHaveBeenCalled()
+    expect(view.actionMenu.value).toBeNull()
+    view.selectOrderAction('pay')
+    expect(navigator.navigateTo).toHaveBeenCalledTimes(1)
+    expect(api.confirmReceipt).not.toHaveBeenCalled()
+  })
+
+  it('列表菜单绑定正确订单，空白关闭无写入，已失效菜单动作不可执行', async () => {
+    const view = await page('subPackages/order/pages/list/index.vue')
+    await show(view)
+    const current = view.orderList.value[0]
+    current.allowedActions = ['pay', 'cancel']
+    view.openActionMenu({ keys: ['cancel'], anchor: { top: 200, bottom: 244, left: 16 } }, current)
+    expect(view.overflowActions.value.map(action => action.key)).toEqual(['cancel'])
+    current.allowedActions = ['pay']
+    view.selectMenuAction('cancel')
+    expect(navigator.navigateTo).not.toHaveBeenCalled()
+    view.openActionMenu({ keys: ['pay'], anchor: {} }, current)
+    view.selectMenuAction('pay')
+    expect(navigator.navigateTo).toHaveBeenCalledWith(routes.order.pay(current.orderId))
+    expect(view.actionMenu.value).toBeNull()
+    expect(cartWrite).not.toHaveBeenCalled()
+    expect(api.confirmReceipt).not.toHaveBeenCalled()
+  })
+
+  it('translates the filter headings while preserving review exclusions, selection and query facts', async () => {
+    const view = await page('subPackages/order/pages/list/index.vue')
+    view.currentTab.value = 'erp-pending'
+    const queryFacts = () => view.displayTabs.value.map(({ value, orderStatus, erpReviewStatus, excludePendingErpReview }) => ({ value, orderStatus, erpReviewStatus, excludePendingErpReview }))
+    const original = queryFacts()
+    expect(view.displayTabs.value.map(tab => tab.label)).toEqual(['全部', '待付款', '待确认', '处理中', '交易完成', '已取消'])
+    runtime.setLocale('en-US')
+    expect(view.displayTabs.value.map(tab => tab.label)).toEqual(['All', 'To pay', 'To confirm', 'Processing', 'Completed', 'Cancelled'])
+    expect(queryFacts()).toEqual(original)
+    expect(view.currentTab.value).toBe('erp-pending')
+    expect(view.currentErpReviewStatus.value).toBe(original[2].erpReviewStatus)
+    expect(view.currentExcludePendingErpReview.value).toBe(false)
+    expect(view.displayTabs.value[3].excludePendingErpReview).toBe(true)
+    expect(api.getOrderList).not.toHaveBeenCalled()
+    expect(api.confirmReceipt).not.toHaveBeenCalled()
+  })
   it('does not query hidden list pages on language change and preserves the loaded window on return', async () => {
     const view = await page('subPackages/order/pages/list/index.vue')
     await show(view)
@@ -136,7 +187,7 @@ describe('order page locale refresh and transaction safety', () => {
     expect(view.orderList.value).toHaveLength(20)
     view.keyword.value = 'committed filter'
     view.keywordInput.value = 'unsubmitted draft'
-    view.expandedActionOrders.value = new Set([1])
+    view.actionMenu.value = { orderId: 1, keys: ['reorder'], anchor: { top: 100, bottom: 144, left: 16 } }
     runtime.setLocale('en')
     await view.orderRead.activate({ refresh: false })
     expect(api.getOrderList).toHaveBeenCalledTimes(4)
@@ -147,7 +198,7 @@ describe('order page locale refresh and transaction safety', () => {
     expect(view.orderList.value[0].payableAmount).toBe(120.50)
     expect(view.keyword.value).toBe('committed filter')
     expect(view.keywordInput.value).toBe('unsubmitted draft')
-    expect(view.expandedActionOrders.value.has(1)).toBe(true)
+    expect(view.actionMenu.value).toBeNull()
     expect(api.confirmReceipt).not.toHaveBeenCalled()
     expect(cartWrite).not.toHaveBeenCalled()
     expect(api.generateClientRequestId).not.toHaveBeenCalled()

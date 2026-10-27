@@ -142,6 +142,7 @@ async function handleClearCache() {
   }
 }
 
+/** 确认后完成本地会话清理，再返回登录页。 */
 async function handleLogout() {
   if (!await openAppDialog({
     confirmText: t('common.confirm'),
@@ -149,7 +150,8 @@ async function handleLogout() {
     title: t('account.settings.logoutTitle'),
     description: t('account.settings.logoutConfirm'),
   })) return
-  userStore.logout().then(() => navigator.reLaunch(routes.auth.login()))
+  await userStore.logout()
+  await navigator.reLaunch(routes.auth.login())
 }
 </script>
 

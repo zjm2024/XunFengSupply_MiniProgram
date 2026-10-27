@@ -13,13 +13,16 @@
           @clear-search="clearSearch"
         />
         <view class="filter-panel">
-        <StatusTabBar :items="displayTabs" :model-value="currentTab" :max-width="700" :item-width="72" @change="switchStatus" />
+          <view class="page-width-container filter-frame"><view class="order-filter-content">
+            <StatusTabBar :items="displayTabs" :model-value="currentTab" max-width="100%" :item-width="72" @change="switchStatus" />
+          </view></view>
         </view>
       </view>
     </template>
 
     <template #content>
       <AppContent
+        :no-max-width="true"
         padding="8px var(--page-padding-x, 16px) 28px"
         :refresher-enabled="true"
         :refresher-triggered="isRefreshing"
@@ -27,6 +30,7 @@
         @refresherrestore="handleRefresherRestore"
         @refresherabort="handleRefresherRestore"
         @scrolltolower="loadMore"
+        @scroll="actionMenu = null"
       >
         <view
           class="order-page"
@@ -97,22 +101,9 @@
                   <text>{{ t('order.list.payable') }}</text>
                   <AmountText :text="'¥' + (formatMoney(order.payableAmount))" />
                 </view>
-                <view class="action-row">
-                  <button
-                    v-if="getOrderActions(order).length > 2"
-                    class="more-action"
-                    @tap.stop="toggleActions(order.orderId)"
-                  >{{ isActionsExpanded(order.orderId) ? t('order.list.collapse') : t('order.list.more') }}<text class="more-action-icon">⌄</text></button>
-                  <view class="action-list">
-                    <button
-                      v-for="action in getVisibleActions(order)"
-                      :key="action.key"
-                      class="action-btn"
-                      :class="action.type"
-                      @tap.stop="handleAction(action.key, order)"
-                    >{{ action.label }}</button>
-                    <button v-if="selectMode === 'afterSale'" class="action-btn primary" @tap.stop="goToDetail(order.orderId)">{{ t('order.list.select') }}</button>
-                  </view>
+                <view class="action-row" @tap.stop>
+                  <ActionRow v-if="selectMode !== 'afterSale'" compact :actions="getOrderActions(order)" :more-text="t('order.list.more')" @select="selectOrderAction($event, order)" @overflow="openActionMenu($event, order)" />
+                  <button v-else class="action-btn primary" @tap.stop="goToDetail(order.orderId)">{{ t('order.list.select') }}</button>
                 </view>
               </view>
               </view>
@@ -137,6 +128,9 @@
 
         </view>
       </AppContent>
+    </template>
+    <template #overlay>
+      <ActionOverflowMenu :anchor="actionMenu?.anchor" :actions="overflowActions" :title="t('order.list.more')" @close="actionMenu = null" @select="selectMenuAction" />
     </template>
   </AppPageShell>
 </template>
@@ -170,20 +164,22 @@ import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
 import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import AppNetworkBanner from '@/shared/ui/AppNetworkBanner/AppNetworkBanner.vue'
+import ActionRow from '@/shared/ui/ActionRow.vue'
+import ActionOverflowMenu from '@/shared/ui/ActionOverflowMenu.vue'
 import { formatDateTime } from '../../../../shared/utils/format.js'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
 const ERP_REVIEW_PENDING_TAB = 'erp-pending'
 const allTabs = Object.freeze([
-  { value: null, label: '全部', orderStatus: null, erpReviewStatus: null, excludePendingErpReview: false },
-  { value: ORDER_STATUS.PENDING_PAYMENT, label: '待付款', orderStatus: ORDER_STATUS.PENDING_PAYMENT, erpReviewStatus: null, excludePendingErpReview: false },
-  { value: ERP_REVIEW_PENDING_TAB, label: '待确认', orderStatus: ORDER_STATUS.PROCESSING, erpReviewStatus: ERP_REVIEW_STATUS.PENDING, excludePendingErpReview: false },
-  { value: ORDER_STATUS.PROCESSING, label: '处理中', orderStatus: ORDER_STATUS.PROCESSING, erpReviewStatus: null, excludePendingErpReview: true },
-  { value: ORDER_STATUS.COMPLETED, label: '交易完成', orderStatus: ORDER_STATUS.COMPLETED, erpReviewStatus: null, excludePendingErpReview: false },
-  { value: ORDER_STATUS.CANCELLED, label: '已取消', orderStatus: ORDER_STATUS.CANCELLED, erpReviewStatus: null, excludePendingErpReview: false },
+  { value: null, labelKey: 'order.list.all', orderStatus: null, erpReviewStatus: null, excludePendingErpReview: false },
+  { value: ORDER_STATUS.PENDING_PAYMENT, labelKey: 'order.list.filters.pendingPayment', orderStatus: ORDER_STATUS.PENDING_PAYMENT, erpReviewStatus: null, excludePendingErpReview: false },
+  { value: ERP_REVIEW_PENDING_TAB, labelKey: 'order.list.filters.pendingConfirmation', orderStatus: ORDER_STATUS.PROCESSING, erpReviewStatus: ERP_REVIEW_STATUS.PENDING, excludePendingErpReview: false },
+  { value: ORDER_STATUS.PROCESSING, labelKey: 'order.list.filters.processing', orderStatus: ORDER_STATUS.PROCESSING, erpReviewStatus: null, excludePendingErpReview: true },
+  { value: ORDER_STATUS.COMPLETED, labelKey: 'order.list.filters.completed', orderStatus: ORDER_STATUS.COMPLETED, erpReviewStatus: null, excludePendingErpReview: false },
+  { value: ORDER_STATUS.CANCELLED, labelKey: 'order.list.filters.cancelled', orderStatus: ORDER_STATUS.CANCELLED, erpReviewStatus: null, excludePendingErpReview: false },
 ])
-const displayTabs = computed(() => allTabs.map(tab => tab.value === null
-  ? { ...tab, label: t('order.list.all') } : tab))
+/** 筛选入口按当前语言取词，查询协议与实际订单状态投影各自保留原职责。 */
+const displayTabs = computed(() => allTabs.map(tab => ({ ...tab, label: t(tab.labelKey) })))
 const currentTab = ref(null)
 const selectedTab = computed(() => allTabs.find(tab => tab.value === currentTab.value) || allTabs[0])
 const currentStatus = computed(() => selectedTab.value.orderStatus)
@@ -203,7 +199,7 @@ const keywordInput = ref('')
 const keyword = ref('')
 const page = reactive({ current: 1, pageSize: 10 })
 const selectMode = ref(null)
-const expandedActionOrders = ref(new Set())
+const actionMenu = ref(null)
 const reorderingOrderId = ref(null)
 const swipeStart = ref(null)
 const loadMoreStatus = computed(() => {
@@ -218,8 +214,8 @@ const orderRead = createLocaleReadCoordinator({
   onError: showOrderListReadError,
   onBusy: setOrderListBusy,
 })
-watch(locale, () => orderRead.localeChanged(), { flush: 'sync' })
-onHide(() => orderRead.deactivate())
+watch(locale, () => { actionMenu.value = null; orderRead.localeChanged() }, { flush: 'sync' })
+onHide(() => { actionMenu.value = null; orderRead.deactivate() })
 onUnload(() => orderRead.dispose())
 
 onLoad(options => {
@@ -399,26 +395,24 @@ function getOrderActions(order) {
       key: 'reorder',
       label: reorderingOrderId.value === order.orderId ? t('order.list.reordering') : t('order.list.reorder'),
       type: reorderingOrderId.value === order.orderId ? 'disabled' : 'default',
+      priority: 2,
     })
   }
 
   const priority = { reorder: 0, afterSale: 1, pay: 2, cancel: 3, confirmReceipt: 4, viewLogistics: 5 }
   return actions.sort((left, right) => (priority[left.key] ?? 99) - (priority[right.key] ?? 99))
 }
-function isActionsExpanded(orderId) {
-  return expandedActionOrders.value.has(orderId)
-}
-
-function toggleActions(orderId) {
-  const next = new Set(expandedActionOrders.value)
-  if (next.has(orderId)) next.delete(orderId)
-  else next.add(orderId)
-  expandedActionOrders.value = next
-}
-
-function getVisibleActions(order) {
-  const actions = getOrderActions(order)
-  return isActionsExpanded(order.orderId) ? actions : actions.slice(0, 2)
+/** 一个页面只展开一个订单菜单，持有订单标识而非过期对象。 */
+function openActionMenu(menu, order) { actionMenu.value = { ...menu, orderId: order.orderId } }
+const menuOrder = computed(() => orderList.value.find(order => order.orderId === actionMenu.value?.orderId))
+const overflowActions = computed(() => menuOrder.value ? getOrderActions(menuOrder.value).filter(action => actionMenu.value?.keys.includes(action.key)) : [])
+/** 菜单只在点击时读取当前订单，状态刷新后失效动作不会继续执行。 */
+function selectMenuAction(key) { if (menuOrder.value) selectOrderAction(key, menuOrder.value) }
+/** 所有按钮统一复核服务端允许动作，并在执行前收起菜单。 */
+function selectOrderAction(key, order) {
+  actionMenu.value = null
+  const action = getOrderActions(order).find(item => item.key === key)
+  if (action && action.type !== 'disabled') handleAction(key, order)
 }
 
 /** 从订单详情读取原成交商品，重新走购物车报价和库存校验。 */
@@ -482,8 +476,10 @@ async function handleAction(key, order) {
 <style lang="scss" scoped>
 .order-status { display: flex; flex: 0 0 auto; justify-content: flex-end; }
 .order-header { background: var(--surface-page, #F4F5F8); }
-.order-page { width: 100%; max-width: 1160px; margin: 0 auto; padding-bottom: env(safe-area-inset-bottom); }
-.filter-panel { padding: 7px var(--page-padding-x, 16px) 12px; background: var(--surface-page, #F4F5F8); }
+.order-page { width: 100%; max-width: var(--content-max-width, 1120px); margin: 0 auto; padding-bottom: env(safe-area-inset-bottom); }
+.filter-panel { background: var(--surface-page, #F4F5F8); }
+.filter-frame { padding: 7px var(--page-padding-x, 16px) 12px; }
+.order-filter-content { width: 100%; max-width: var(--content-max-width, 1120px); margin: 0 auto; box-sizing: border-box; }
 .order-grid, .skeleton-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }
 .order-card { overflow: hidden; padding: 0; border-radius: 17px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); transition: transform .16s ease, opacity .16s ease, box-shadow .16s ease; }
 .order-card:hover { box-shadow: 0 12px 28px rgba(25,30,37,.075); }
@@ -526,21 +522,16 @@ async function handleAction(key, order) {
 .skeleton-line.short { width: 42%; }.skeleton-line.medium { width: 68%; }.skeleton-line.tiny { width: 28%; margin: 0; }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media screen and (min-width: 720px) {
-  .order-page { max-width: 760px; }
-  .filter-panel { padding-top: 9px; padding-bottom: 14px; }
+  .filter-frame { padding-top: 9px; padding-bottom: 14px; }
   .card-header { padding: 16px 18px 11px; }
   .goods-preview { grid-template-columns: 84px minmax(0,1fr); gap: 16px; padding: 4px 18px 16px; }
   .goods-img { width: 84px; height: 84px; }
   .card-footer { padding: 0 18px 16px; }
 }
 
-@media screen and (max-width: 380px) {
-  .filter-panel { padding-right: 8px; padding-left: 8px; }
-}
 
 @media screen and (min-width: 1024px) {
-  .order-page { max-width: 820px; }
-  .order-grid { gap: 14px; }
+  .order-grid, .skeleton-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 }
 
 /* 金额按实际可用宽度缩字，父布局允许收缩。 */

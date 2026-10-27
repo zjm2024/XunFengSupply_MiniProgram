@@ -127,6 +127,26 @@ describe('shared UI localization virtual rendering', () => {
     view.stop()
   })
 
+  it('keeps an in-flight editor open until saving finishes, then allows cancellation', async () => {
+    const view = await loadView('ConfirmPopup/ConfirmPopup.vue', { modelValue: true, dismissDisabled: true, closeOnOverlay: true })
+    view.bindings.handleClose(); view.bindings.handleCancel(); view.bindings.handleOverlayClick()
+    expect(view.bindings.visible.value).toBe(true)
+    expect(view.events).toEqual([])
+    view.props.dismissDisabled = false
+    view.bindings.handleCancel()
+    expect(view.bindings.visible.value).toBe(false)
+    expect(view.events).toEqual([['update:modelValue', false], ['close'], ['cancel']])
+    view.stop()
+  })
+
+  it('keeps confirmation actions usable across short and long labels', () => {
+    const source = readFileSync(resolve('src/shared/ui/ConfirmPopup/ConfirmPopup.vue'), 'utf8')
+    expect(source).toContain('min-width: 112px')
+    expect(source).toContain('grid-template-columns: repeat(auto-fit')
+    expect(source).toContain('.popup-actions.is-single')
+    expect(source).toContain('white-space: normal')
+  })
+
   it('keeps quantity facts and events unchanged when the language changes', async () => {
     const view = await loadView('QuantityStepper/QuantityStepper.vue', { modelValue: 2, min: 0, max: 10,
       step: 1, disabled: false })

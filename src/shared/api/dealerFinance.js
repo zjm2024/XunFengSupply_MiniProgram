@@ -114,6 +114,28 @@ export async function createAppRecharge(params = {}) {
     nextQueryAtUtc: result?.nextQueryAtUtc ?? result?.NextQueryAtUtc ?? null,
     failureCode: result?.failureCode ?? result?.FailureCode ?? null,
     failureMessage: result?.failureMessage ?? result?.FailureMessage ?? null,
+    codeUrl: result?.codeUrl ?? result?.CodeUrl ?? null,
+  }
+}
+
+/** 创建或复用微信 Native 扫码充值意图；只返回二维码链接，不调用手机支付 SDK。 */
+export async function createNativeRecharge(params = {}) {
+  const result = await dispatch('Finance', 'Mini.DealerFinanceController', 'CreateNativeRecharge', {
+    Amount: Number(params.amount || 0),
+    ClientRequestId: params.clientRequestId,
+    FundAccountCode: params.fundAccountCode || null,
+  })
+  return {
+    rechargeNo: String(result?.rechargeNo ?? result?.RechargeNo ?? ''),
+    channel: 'wechat_native',
+    status: Number(result?.status ?? result?.Status ?? 0),
+    resultCertainty: Number(result?.resultCertainty ?? result?.ResultCertainty ?? 0),
+    clientPayload: result?.clientPayload ?? result?.ClientPayload ?? null,
+    codeUrl: result?.codeUrl ?? result?.CodeUrl ?? null,
+    expiresAtUtc: result?.expiresAtUtc ?? result?.ExpiresAtUtc ?? null,
+    nextQueryAtUtc: result?.nextQueryAtUtc ?? result?.NextQueryAtUtc ?? null,
+    failureCode: result?.failureCode ?? result?.FailureCode ?? null,
+    failureMessage: result?.failureMessage ?? result?.FailureMessage ?? null,
   }
 }
 

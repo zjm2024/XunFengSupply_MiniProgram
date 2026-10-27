@@ -7,6 +7,13 @@
     "afterSale": "申请售后"
   },
   "list": {
+    "filters": {
+      "pendingPayment": "待付款",
+      "pendingConfirmation": "待确认",
+      "processing": "处理中",
+      "completed": "交易完成",
+      "cancelled": "已取消"
+    },
     "title": "订单中心",
     "selectTitle": "选择售后订单",
     "search": "搜索订单号",
@@ -37,6 +44,16 @@
     "all": "全部"
   },
   "detail": {
+    "progressSteps": { "submitted": "提交订单", "paid": "完成付款", "shipped": "商家发货", "completed": "交易完成" },
+    "timeline": { "submitted": "订单已提交", "confirmed": "订单已确认", "paid": "付款已完成", "paidDescription": "付款信息已确认", "stockConfirmed": "商品已确认", "shipped": "商品已发出", "completed": "订单已完成", "cancelled": "订单已取消" },
+    "statusUnavailable": "状态暂不可用",
+    "statusUnavailableDescription": "状态信息暂不可用，请稍后刷新或联系客服。",
+    "logisticsFallback": "物流运输中",
+    "offlineSource": "线下订单",
+    "accountPayment": "账户本金支付",
+    "paymentMethodPending": "待选择支付方式",
+    "paymentIncomplete": "未完成支付",
+    "paymentModes": { "cash": "现款支付", "credit": "授信支付", "combination": "账户组合支付", "unknown": "未知方式" },
     "title": "订单详情",
     "trackingNo": "运单号",
     "productInfo": "商品信息",
@@ -191,6 +208,13 @@
     "submitFailed": "售后申请提交失败"
   },
   "afterSaleList": {
+    "filters": {
+      "pendingReview": "待审核",
+      "pendingReturn": "待退货",
+      "returning": "退货中",
+      "refunding": "退款中",
+      "completed": "已完成"
+    },
     "all": "全部",
     "loadFailed": "售后记录加载失败",
     "orderNo": "采购订单",
@@ -212,6 +236,23 @@
     "cancelFailed": "取消失败"
   },
   "split": {
+    "planChanged": "分配方案已变化，请重新确认",
+    "searchPlaceholder": "搜索商品或 SKU",
+    "clearSearch": "清除搜索",
+    "filterAll": "全部",
+    "filterRemaining": "待分配",
+    "filterAddress": "本地址",
+    "searchResultCount": "显示 {count} 条明细",
+    "filterNoMatches": "当前筛选下没有匹配商品",
+    "noSearchResults": "没有找到匹配商品，请尝试商品名称、规格或 SKU 编码",
+    "noAddressItems": "此地址还没有分配商品",
+    "showAllMatches": "查看全部匹配",
+    "productFallback": "商品",
+    "hereQuantity": "本地址 {count} 件",
+    "pendingQuantity": "待分配 {count} 件",
+    "quantityUpdated": "数量已更新，可继续调整",
+    "assignWholeOrderRemaining": "将全单剩余分配到此地址",
+    "assignWholeOrderConfirm": "将全单尚未分配的 {count} 件商品分配到“{name}”？包含当前搜索或筛选隐藏的商品。",
     "loading": "正在读取订单拆单信息…",
     "loadFailed": "订单拆单信息加载失败",
     "retry": "重新加载",

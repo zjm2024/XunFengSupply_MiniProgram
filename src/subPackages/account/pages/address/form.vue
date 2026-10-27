@@ -5,7 +5,7 @@
     </template>
 
     <template #content>
-      <AppContent padding="16px var(--page-padding-x, 16px) 30px">
+      <AppContent width-mode="standard" padding="16px var(--page-padding-x, 16px) 30px">
         <view class="form-page">
           <view class="intro-card">
             <view class="intro-icon"><AppIcon name="location" :size="21" /></view>
@@ -78,7 +78,7 @@
     </template>
 
     <template #footer>
-      <FixedActionBar>
+      <FixedActionBar width-mode="standard">
         <button class="save-btn" :disabled="saving || loading" @tap="saveAddress">
           {{ saving ? t('account.addressForm.saving') : t('account.addressForm.save') }}
         </button>
@@ -239,7 +239,7 @@ async function saveAddress() {
 </script>
 
 <style lang="scss" scoped>
-.form-page { width: 100%; max-width: 820px; margin: 0 auto; }
+.form-page { width: 100%; }
 .intro-card { display: flex; align-items: center; gap: 13px; margin-bottom: 14px; padding: 15px 16px; border-radius: var(--radius-card); background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 .intro-icon { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border-radius: var(--radius-control); color: var(--type-secondary-color); background: var(--surface-card); }
 .intro-title, .intro-desc { display: block; }

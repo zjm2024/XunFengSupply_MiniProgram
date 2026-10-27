@@ -84,7 +84,12 @@
     "fundFlow": "Transactions",
     "creditFlow": "Credit activity",
     "address": "Shipping addresses",
-    "subAccount": "Subaccounts"
+    "subAccount": "Subaccounts",
+    "orderFilters": {
+      "pendingPayment": "To pay",
+      "processing": "In progress",
+      "completed": "Completed"
+    }
   },
   "category": {
     "loading": "Loading categories...",

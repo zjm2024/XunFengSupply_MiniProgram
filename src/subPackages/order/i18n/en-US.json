@@ -7,6 +7,13 @@
     "afterSale": "Request after-sales service"
   },
   "list": {
+    "filters": {
+      "pendingPayment": "To pay",
+      "pendingConfirmation": "To confirm",
+      "processing": "Processing",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
     "title": "Orders",
     "selectTitle": "Select an order for after-sales service",
     "search": "Search order number",
@@ -37,6 +44,16 @@
     "all": "All"
   },
   "detail": {
+    "progressSteps": { "submitted": "Order placed", "paid": "Payment completed", "shipped": "Shipped", "completed": "Order completed" },
+    "timeline": { "submitted": "Order placed", "confirmed": "Order confirmed", "paid": "Payment completed", "paidDescription": "Payment details confirmed", "stockConfirmed": "Products confirmed", "shipped": "Products shipped", "completed": "Order completed", "cancelled": "Order cancelled" },
+    "statusUnavailable": "Status unavailable",
+    "statusUnavailableDescription": "Status information is unavailable. Refresh later or contact support.",
+    "logisticsFallback": "In transit",
+    "offlineSource": "Offline order",
+    "accountPayment": "Account balance payment",
+    "paymentMethodPending": "Payment method not selected",
+    "paymentIncomplete": "Payment incomplete",
+    "paymentModes": { "cash": "Cash payment", "credit": "Credit payment", "combination": "Combined account payment", "unknown": "Unknown payment method" },
     "title": "Order details",
     "trackingNo": "Tracking no.",
     "productInfo": "Products",
@@ -191,6 +208,13 @@
     "submitFailed": "Unable to submit the after-sales request"
   },
   "afterSaleList": {
+    "filters": {
+      "pendingReview": "To review",
+      "pendingReturn": "To return",
+      "returning": "Returning",
+      "refunding": "Refunding",
+      "completed": "Completed"
+    },
     "all": "All",
     "loadFailed": "Unable to load after-sales records",
     "orderNo": "Purchase order",
@@ -212,6 +236,23 @@
     "cancelFailed": "Unable to cancel the request"
   },
   "split": {
+    "planChanged": "The allocation changed. Please confirm again.",
+    "searchPlaceholder": "Search items or SKU",
+    "clearSearch": "Clear search",
+    "filterAll": "All",
+    "filterRemaining": "To assign",
+    "filterAddress": "This address",
+    "searchResultCount": "{count} lines shown",
+    "filterNoMatches": "No matching items in this filter.",
+    "noSearchResults": "No items found. Try a product name, variant or SKU code.",
+    "noAddressItems": "No items allocated to this address.",
+    "showAllMatches": "Show all matches",
+    "productFallback": "Product",
+    "hereQuantity": "Here: {count}",
+    "pendingQuantity": "To assign: {count}",
+    "quantityUpdated": "Updated. You can keep adjusting.",
+    "assignWholeOrderRemaining": "Assign all remaining order items here",
+    "assignWholeOrderConfirm": "Assign all {count} unallocated items in this order to {name}? This includes items hidden by search or filters.",
     "loading": "Loading delivery details…",
     "loadFailed": "Unable to load delivery details",
     "retry": "Reload",

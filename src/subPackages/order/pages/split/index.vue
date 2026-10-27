@@ -4,7 +4,7 @@
       <AppHeader :title="existingSplits.length ? t('order.split.detailsTitle') : t('order.split.editorTitle')" :show-back="true" />
     </template>
     <template #content>
-      <AppContent padding="0">
+      <AppContent padding="0" :scroll-top="scrollTopCommand" @scroll="onPageScroll">
         <view class="allocation-page">
           <view v-if="loading" class="state-card">{{ t('order.split.loading') }}</view>
           <template v-else-if="context">
@@ -83,21 +83,35 @@
                       </view>
                       <text v-if="group.address" class="group-address-detail">{{ group.address.fullAddress }}</text>
                     </view>
+                    <view class="item-tools">
                     <view class="items-heading">
                       <text class="section-title">{{ t('order.split.itemsHeading') }}</text>
                       <button class="more-actions-toggle" :aria-label="t('order.split.moreActions')" :disabled="editingLocked" @tap="actionsExpanded = true">{{ t('order.list.more') }}<text aria-hidden="true"> ···</text></button>
                     </view>
+                    <view class="sku-search">
+                      <AppIcon name="search" :size="17" color="#747b86" />
+                      <input v-model="searchQuery" class="sku-search-input" :placeholder="t('order.split.searchPlaceholder')" :aria-label="t('order.split.searchPlaceholder')" confirm-type="search" maxlength="100" />
+                      <button v-if="searchQuery" class="search-clear" :aria-label="t('order.split.clearSearch')" @tap="clearSearch"><AppIcon name="close" :size="16" /></button>
+                    </view>
+                    <view class="item-filters">
+                      <button v-for="filter in itemFilterOptions" :key="filter.key" :class="{ active: itemFilter === filter.key }" :aria-pressed="itemFilter === filter.key" @tap="itemFilter = filter.key">{{ filter.label }}</button>
+                    </view>
+                    <text v-if="searchTerms.length" class="search-result-count">{{ t('order.split.searchResultCount', { count: visibleItemCount }) }}</text>
+                    </view>
                     <view v-if="groupTotalQuantity(group.addressId) === 0" class="target-hint">{{ t('order.split.emptyTargetShort') }}</view>
-                    <view v-if="onlyUnallocated" class="active-filter"><text>{{ t('order.split.onlyRemaining') }}</text><button class="text-action" @tap="onlyUnallocated = false">{{ t('order.split.showAll') }}</button></view>
-                    <view v-if="onlyUnallocated && !visibleProductGroups.length" class="filtered-empty"><text>{{ t('order.split.filterEmpty') }}</text><button class="text-action" @tap="onlyUnallocated = false">{{ t('order.split.showAll') }}</button></view>
+                    <view v-if="!visibleProductGroups.length" class="filtered-empty"><text>{{ emptyItemsMessage }}</text><button class="text-action" @tap="resetItemFilters">{{ searchTerms.length && !searchMatchedItemCount ? t('order.split.clearSearch') : t('order.split.showAllMatches') }}</button></view>
                     <view v-for="product in visibleProductGroups" :key="product.key" class="allocation-product">
-                      <view class="product-head">
+                      <button class="product-head" :aria-expanded="isProductExpanded(product)" @tap="toggleProduct(product)">
                         <AppImage v-if="product.imageUrl" class="item-image" width="40px" height="40px" :src="product.imageUrl" mode="aspectFill" />
-                        <view class="item-copy"><text class="item-name">{{ product.name }}</text><text class="item-spec">{{ t('order.split.variants', { count: product.items.length }) }}</text></view>
-                      </view>
+                        <view class="item-copy"><text class="item-name">{{ product.name || t('order.split.productFallback') }}</text><view class="item-spec"><text>{{ t('order.split.variants', { count: product.totalVariantCount }) }}</text><text>{{ t('order.split.hereQuantity', { count: product.currentQuantity }) }}</text><text v-if="product.remainingQuantity > 0" class="has-remaining">{{ t('order.split.pendingQuantity', { count: product.remainingQuantity }) }}</text></view></view>
+                        <AppIcon :name="isProductExpanded(product) ? 'chevron-down' : 'chevron-right'" :size="17" color="#747b86" />
+                      </button>
+                      <template v-if="isProductExpanded(product)">
                       <view v-for="item in product.items" :key="itemIdOf(item)" class="group-item-row">
                         <view class="sku-copy">
                           <text class="sku-name">{{ valueOf(item, 'skuName', 'SkuName', '') || valueOf(item, 'skuCode', 'SkuCode', '') || t('order.split.defaultVariant') }}</text>
+                          <text v-if="valueOf(item, 'skuName', 'SkuName', '') && valueOf(item, 'skuCode', 'SkuCode', '')" class="sku-code">{{ valueOf(item, 'skuCode', 'SkuCode', '') }}</text>
+                          <text v-if="isRetainedItem(item)" class="retained-note">{{ t('order.split.quantityUpdated') }}</text>
                           <text v-if="valueOf(item, 'isGift', 'IsGift', false)" class="gift-tag">{{ t('order.split.gift') }}</text>
                           <view class="sku-balance">
                             <text>{{ t('order.split.ordered', { count: quantityOf(item) }) }}</text>
@@ -110,6 +124,7 @@
                           <QuantityStepper class="split-quantity-stepper" :model-value="balanceFor(group.addressId, itemIdOf(item)).current" :min="1" :max="balanceFor(group.addressId, itemIdOf(item)).maximum" :allow-zero="true" :allow-input="true" :disabled="editingLocked || balanceFor(group.addressId, itemIdOf(item)).maximum <= 0" size="compact" @update:model-value="setAddressItemQuantity(group.addressId, itemIdOf(item), $event)" />
                         </view>
                       </view>
+                      </template>
                     </view>
                   </view>
                 </view>
@@ -134,10 +149,9 @@
     <template #overlay>
       <ConfirmPopup v-model="actionsExpanded" :title="t('order.split.moreActions')" :show-cancel="false" :confirm-text="t('order.split.done')" @confirm="actionsExpanded = false">
         <view class="action-menu">
-          <button class="menu-action" :disabled="editingLocked || unallocatedQuantity <= 0" @tap="assignAllRemaining(activeAddressId); actionsExpanded = false">{{ t('order.split.assignRemaining') }}</button>
+          <button class="menu-action" :disabled="editingLocked || unallocatedQuantity <= 0" @tap="actionsExpanded = false; requestAssignAllRemaining(activeAddressId)">{{ t('order.split.assignWholeOrderRemaining') }}</button>
           <button class="menu-action" :disabled="editingLocked || groupTotalQuantity(activeAddressId) <= 0" @tap="actionsExpanded = false; clearCurrentAddress(activeAddressId)">{{ t('order.split.clear') }}</button>
           <button v-if="addressGroups.length > 1" class="menu-action danger-action" :disabled="editingLocked" @tap="actionsExpanded = false; requestRemoveAddress(activeAddressId)">{{ t('order.split.removeAddress') }}</button>
-          <button class="menu-action" :disabled="editingLocked" @tap="onlyUnallocated = !onlyUnallocated; actionsExpanded = false">{{ onlyUnallocated ? t('order.split.showAll') : t('order.split.onlyRemaining') }}</button>
           <button class="menu-action" :disabled="editingLocked" @tap="actionsExpanded = false; openAddressManager()">{{ t('order.split.manageAddress') }}</button>
           <button class="menu-action" @tap="guideExpanded = !guideExpanded">{{ t('order.split.guide') }} {{ guideExpanded ? '−' : '+' }}</button>
           <view v-if="guideExpanded" class="guide-copy"><text>{{ t('order.split.step2Hint') }}</text><text>{{ t('order.split.bulkHint') }}</text><text>{{ t('order.split.step3Hint') }}</text></view>
@@ -165,7 +179,7 @@
 <script setup>
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/order/i18n/register.js'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -204,7 +218,13 @@ const addresses = ref([])
 const allocationPlan = ref([])
 const selectedAddressIds = ref([])
 const activeAddressId = ref(0)
-const onlyUnallocated = ref(false)
+const searchQuery = ref('')
+const itemFilter = ref('all')
+const expandedProducts = ref({})
+const filteredExpansion = ref({})
+const retainedItemId = ref(0)
+const scrollTopCommand = ref(undefined)
+let currentScrollTop = 0, unfilteredScrollTop = null, scrollRestoreVersion = 0
 const loading = ref(true)
 const submitting = ref(false)
 const pageReady = ref(false)
@@ -242,23 +262,88 @@ const productGroups = computed(() => {
   const groups = new Map()
   for (const item of sourceItems.value) {
     const name = valueOf(item, 'productName', 'ProductName', '')
-    const productId = valueOf(item, 'productId', 'ProductId', 0)
+    const productId = String(valueOf(item, 'productId', 'ProductId', '')).trim()
     const code = valueOf(item, 'productCode', 'ProductCode', '')
-    const key = productId ? `id:${productId}` : `name:${name}|code:${code}`
-    if (!groups.has(key)) groups.set(key, { key, name, imageUrl: valueOf(item, 'imageUrl', 'ImageUrl', ''), items: [] })
+    // 缺少 SPU 时保留独立订单行，不按同名猜测归属。
+    const key = /^[1-9]\d*$/.test(productId) ? `id:${productId}` : `line:${itemIdOf(item)}`
+    if (!groups.has(key)) groups.set(key, { key, name: name || code, imageUrl: valueOf(item, 'imageUrl', 'ImageUrl', ''), items: [] })
     groups.get(key).items.push(item)
   }
   return [...groups.values()]
 })
-const visibleProductGroups = computed(() => {
-  if (!onlyUnallocated.value) return productGroups.value
-  const remainingIds = new Set(allocationPlan.value
-    .filter(item => allocationBalance(item).remaining > 0)
-    .map(item => item.orderItemId))
-  return productGroups.value
-    .map(product => ({ ...product, items: product.items.filter(item => remainingIds.has(itemIdOf(item))) }))
-    .filter(product => product.items.length > 0)
-})
+const itemFilterOptions = computed(() => [
+  { key: 'all', label: t('order.split.filterAll') },
+  { key: 'remaining', label: t('order.split.filterRemaining') },
+  { key: 'address', label: t('order.split.filterAddress') },
+])
+const searchTerms = computed(() => normalizeSearch(searchQuery.value).split(/\s+/).filter(Boolean))
+const allocationIndex = computed(() => new Map(allocationPlan.value.map(item => [item.orderItemId, item])))
+const activeBalances = computed(() => new Map(allocationPlan.value.map(item => [item.orderItemId, allocationBalance(item, activeAddressId.value)])))
+const searchMatchedGroups = computed(() => productGroups.value.map(product => ({ ...product, allItems: product.items, items: product.items.filter(item => matchesSearch(item)) })).filter(product => product.items.length))
+const searchMatchedItemCount = computed(() => searchMatchedGroups.value.reduce((sum, product) => sum + product.items.length, 0))
+const visibleProductGroups = computed(() => searchMatchedGroups.value.map(product => {
+  const full = product.allItems
+  return { ...product, totalVariantCount: new Set(full.map(item => valueOf(item, 'skuId', 'SkuId', 0) || valueOf(item, 'skuCode', 'SkuCode', '') || itemIdOf(item))).size,
+    currentQuantity: full.reduce((sum, item) => sum + (activeBalances.value.get(itemIdOf(item))?.current || 0), 0),
+    remainingQuantity: full.reduce((sum, item) => sum + (activeBalances.value.get(itemIdOf(item))?.remaining || 0), 0),
+    items: product.items.filter(item => matchesItemFilter(item) || itemIdOf(item) === retainedItemId.value),
+  }
+}).filter(product => product.items.length))
+const visibleItemCount = computed(() => visibleProductGroups.value.reduce((sum, product) => sum + product.items.length, 0))
+const emptyItemsMessage = computed(() => searchTerms.value.length
+  ? t(searchMatchedItemCount.value ? 'order.split.filterNoMatches' : 'order.split.noSearchResults')
+  : t(itemFilter.value === 'address' ? 'order.split.noAddressItems' : 'order.split.filterEmpty'))
+
+watch([searchQuery, itemFilter], () => { filteredExpansion.value = {}; retainedItemId.value = 0 }, { flush: 'sync' })
+watch(activeAddressId, () => { retainedItemId.value = 0 }, { flush: 'sync' })
+watch(searchQuery, (value, previous) => {
+  scrollRestoreVersion++
+  if (value.trim() && !previous.trim()) unfilteredScrollTop = currentScrollTop
+  if (!value.trim() && previous.trim()) restoreUnfilteredScroll()
+}, { flush: 'sync' })
+
+/** 归一化输入只用于查找，不修改商品、编码或提交数据。 */
+function normalizeSearch(value) { return String(value || '').normalize('NFKC').trim().toLowerCase() }
+/** 多个关键词同时匹配名称、规格和真实业务编码，不拿内部 SKU ID 冒充编码。 */
+function matchesSearch(item) {
+  const text = normalizeSearch(['productName', 'productCode', 'skuName', 'skuCode'].map(key => valueOf(item, key, key[0].toUpperCase() + key.slice(1), '')).join(' '))
+  return searchTerms.value.every(term => text.includes(term))
+}
+/** 筛选仅作用于展示，待分配表示全单仍未安排的数量。 */
+function matchesItemFilter(item) {
+  const balance = activeBalances.value.get(itemIdOf(item))
+  return itemFilter.value === 'all' || (itemFilter.value === 'remaining' ? balance?.remaining > 0 : balance?.current > 0)
+}
+/** 多 SPU 默认收起；检索和筛选自动展开，并保留用户临时折叠选择。 */
+function isProductExpanded(product) {
+  if (searchTerms.value.length || itemFilter.value !== 'all') return filteredExpansion.value[product.key] ?? true
+  return expandedProducts.value[product.key] ?? (productGroups.value.length === 1)
+}
+/** 以真实 SPU 键保存折叠状态，清除检索后恢复原有选择。 */
+function toggleProduct(product) {
+  const target = searchTerms.value.length || itemFilter.value !== 'all' ? filteredExpansion : expandedProducts
+  target.value = { ...target.value, [product.key]: !isProductExpanded(product) }
+}
+/** 刚编辑后不匹配筛选的行暂时保留，防止连续加减时跳位。 */
+function isRetainedItem(item) { return itemIdOf(item) === retainedItemId.value && !matchesItemFilter(item) }
+/** 只清除关键词，保留地址和数量以及原来的普通折叠状态。 */
+function clearSearch() { searchQuery.value = '' }
+/** 空结果时优先解除状态筛选，查无匹配时再清空关键词。 */
+function resetItemFilters() {
+  if (searchTerms.value.length && !searchMatchedItemCount.value) clearSearch()
+  else itemFilter.value = 'all'
+}
+/** 记录原生滚动事件，不在每次滚动时反向驱动滚动位置。 */
+function onPageScroll(event) { currentScrollTop = Number(event?.detail?.scrollTop) || 0 }
+/** 结果列表还原后恢复进入搜索前的位置；新搜索使旧恢复任务失效。 */
+async function restoreUnfilteredScroll() {
+  if (unfilteredScrollTop === null) return
+  const target = unfilteredScrollTop, version = scrollRestoreVersion
+  unfilteredScrollTop = null
+  scrollTopCommand.value = currentScrollTop
+  await nextTick()
+  if (version === scrollRestoreVersion && !searchQuery.value.trim()) scrollTopCommand.value = target
+}
 const addressGroups = computed(() => selectedAddressIds.value.map(addressId => ({
   key: String(addressId),
   addressId,
@@ -357,7 +442,8 @@ async function refreshAddresses() {
 
 /** 按订单明细查找当前 SKU 的分配余额。 */
 function balanceFor(addressId, orderItemId) {
-  return allocationBalance(allocationPlan.value.find(item => item.orderItemId === Number(orderItemId)), addressId)
+  if (Number(addressId) === activeAddressId.value) return activeBalances.value.get(Number(orderItemId)) || allocationBalance(undefined, addressId)
+  return allocationBalance(allocationIndex.value.get(Number(orderItemId)), addressId)
 }
 
 /** 返回明确的联系人和完整地址；已被其他配送地址使用的选项不再重复出现。 */
@@ -413,6 +499,18 @@ function assignAllRemaining(addressId) {
   const id = Number(addressId)
   if (editingLocked.value || !selectedAddressIds.value.includes(id) || unallocatedQuantity.value <= 0) return
   allocationPlan.value = allocateRemainingToAddress(allocationPlan.value, id)
+  retainedItemId.value = 0
+}
+
+/** 批量分配明确针对全单，确认后重查目标和数量，不受当前检索结果限制。 */
+async function requestAssignAllRemaining(addressId) {
+  const id = Number(addressId), quantity = unallocatedQuantity.value
+  if (editingLocked.value || !selectedAddressIds.value.includes(id) || quantity <= 0) return
+  if (!await openAppDialog({ title: t('order.split.assignWholeOrderRemaining'), description: t('order.split.assignWholeOrderConfirm', { count: quantity, name: addressById(id)?.name || t('order.split.addressFallback') }) })) return
+  if (activeAddressId.value !== id || unallocatedQuantity.value !== quantity) {
+    uni.showToast({ title: t('order.split.planChanged'), icon: 'none' }); return
+  }
+  assignAllRemaining(id)
 }
 
 /** 确认后清空指定地址的全部规格；数量回到待分配，其他地址不受影响。 */
@@ -427,6 +525,7 @@ async function clearCurrentAddress(addressId) {
   })
   if (!confirmed || editingLocked.value || !selectedAddressIds.value.includes(id)) return
   allocationPlan.value = clearAddressAllocation(allocationPlan.value, id)
+  retainedItemId.value = 0
 }
 
 /** 独立编辑所选地址的 SKU 数量，领域方法负责限制剩余上限并允许归零。 */
@@ -434,6 +533,7 @@ function setAddressItemQuantity(addressId, orderItemId, requestedQuantity) {
   if (editingLocked.value || !selectedAddressIds.value.includes(Number(addressId))) return
   const index = allocationPlan.value.findIndex(item => item.orderItemId === Number(orderItemId))
   if (index < 0) return
+  if (Number(addressId) === activeAddressId.value && itemFilter.value !== 'all') retainedItemId.value = Number(orderItemId)
   allocationPlan.value[index] = setAddressAllocationQuantity(allocationPlan.value[index], addressId, requestedQuantity)
 }
 /** 读取订单明细标识，区分同商品下不同尺码。 */
@@ -618,7 +718,7 @@ async function submitSplits() {
 .address-tab.active { color: #bd172a; border-color: #d7192d; background: #fff5f6; }
 .address-tab-name { min-width: 0; max-width: 125px; overflow: hidden; font-size: 12px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .address-tab-quantity { flex: none; color: #747b86; font-size: 11px; white-space: nowrap; }
-.address-group-card { min-width: 0; overflow: hidden; border: 1px solid #e9ebef; border-radius: 16px; background: #fff; }
+.address-group-card { min-width: 0; overflow: visible; border: 1px solid #e9ebef; border-radius: 16px; background: #fff; }
 .address-summary { padding: 10px 14px 14px; border-bottom: 1px solid #eceef2; }
 .address-group-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .address-group-copy { display: flex; flex: 1; min-width: 0; flex-wrap: wrap; align-items: baseline; gap: 3px 9px; }
@@ -632,11 +732,22 @@ async function submitSplits() {
 .more-actions-toggle text { margin-left: 5px; font-size: 18px; }
 .allocation-product { margin: 0 14px; }
 .allocation-product + .allocation-product { margin-top: 8px; padding-top: 14px; border-top: 1px solid #e9ebef; }
-.product-head { display: flex; min-width: 0; align-items: center; gap: 10px; padding: 3px 0 7px; }
+.product-head { display: flex; width: 100%; min-width: 0; min-height: 56px; align-items: center; gap: 10px; margin: 0; padding: 8px 0; border: 0; background: transparent; text-align: left; white-space: normal; }
 .item-image { width: 40px; height: 40px; flex: 0 0 40px; overflow: hidden; border-radius: 8px; background: #f4f5f8; }
 .item-copy { min-width: 0; flex: 1; }
 .item-name { display: block; color: #303640; font-size: 13px; font-weight: 600; line-height: 20px; overflow-wrap: anywhere; }
-.item-spec { display: block; margin-top: 2px; color: #8a909a; font-size: 11px; line-height: 17px; }
+.item-spec { display: flex; flex-wrap: wrap; gap: 2px 10px; margin-top: 3px; color: #747b86; font-size: 11px; line-height: 18px; }
+.item-tools { position: sticky; top: 0; z-index: 20; margin-bottom: 10px; padding: 0 14px 12px; border-bottom: 1px solid #eceef2; background: #fff; }
+.item-tools .items-heading { padding-right: 0; padding-left: 0; }
+.sku-search { display: flex; min-height: 44px; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid #e2e5e9; border-radius: 10px; background: #f7f8fa; }
+.sku-search-input { flex: 1; width: 0; min-width: 0; height: 44px; padding: 0; border: 0; outline: none; background: transparent; color: #303640; font-size: 16px; }
+.search-clear { display: flex; flex: 0 0 36px; min-height: 44px; align-items: center; justify-content: center; margin: 0 -6px 0 0; padding: 0; border: 0; background: transparent; }
+.item-filters { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; margin-top: 8px; }
+.item-filters button { display: flex; min-width: 0; min-height: 44px; align-items: center; justify-content: center; margin: 0; padding: 7px 6px; border: 0; border-radius: 8px; background: #f3f4f6; color: #626974; font-size: 12px; line-height: 18px; white-space: normal; }
+.item-filters button.active { color: #b91d31; background: #fff0f2; font-weight: 600; }
+.search-result-count { display: block; margin-top: 8px; color: #747b86; font-size: 11px; line-height: 18px; }
+.sku-code { display: block; margin-top: 2px; color: #747b86; font-size: 11px; line-height: 17px; overflow-wrap: anywhere; }
+.retained-note { display: block; color: #16804b; font-size: 11px; line-height: 17px; }
 .group-item-row { display: grid; grid-template-columns: minmax(0, 1fr) 124px; align-items: center; gap: 10px; min-height: 68px; padding: 9px 0; border-top: 1px solid #f1f2f5; }
 .sku-copy { min-width: 0; }
 .sku-name { color: #333a45; font-size: 13px; font-weight: 500; line-height: 20px; overflow-wrap: anywhere; }

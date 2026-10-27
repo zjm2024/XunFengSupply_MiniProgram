@@ -2,6 +2,9 @@
  * 订单列表和详情只展示服务端字典结果，不在页面中重新推导业务状态。
  * 元数据缺失必须明确呈现不可用，不能回退成成功、已发货或已退款。
  */
+import { t } from '@/shared/i18n/index.js'
+import '../i18n/register.js'
+
 const SUPPORTED_TONES = new Set(['default', 'info', 'warning', 'error', 'success'])
 
 /** 统一处理缺失元数据和服务端允许的标签样式。 */
@@ -9,8 +12,8 @@ function present(display) {
   if (!display?.metadataComplete || !display.text || !display.description) {
     return {
       code: display?.code || '',
-      text: '状态暂不可用',
-      description: '状态信息暂不可用，请稍后刷新或联系客服。',
+      text: t('order.detail.statusUnavailable'),
+      description: t('order.detail.statusUnavailableDescription'),
       type: 'default',
       metadataComplete: false,
       showProgress: false,

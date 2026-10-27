@@ -132,11 +132,11 @@ import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 const STATUS = Object.freeze({ APPLIED: 0, PENDING_REVIEW: 1, PENDING_RETURN: 2, RETURNING: 3, RECEIVED: 4, REFUNDING: 5, COMPLETED: 6, REJECTED: 7, FAILED: 8, CLOSED: 9 })
 const statusTabs = computed(() => [
   { value: null, label: t('order.afterSaleList.all') },
-  { value: STATUS.PENDING_REVIEW, label: '待审核' },
-  { value: STATUS.PENDING_RETURN, label: '待退货' },
-  { value: STATUS.RETURNING, label: '退货中' },
-  { value: STATUS.REFUNDING, label: '退款中' },
-  { value: STATUS.COMPLETED, label: '已完成' },
+  { value: STATUS.PENDING_REVIEW, label: t('order.afterSaleList.filters.pendingReview') },
+  { value: STATUS.PENDING_RETURN, label: t('order.afterSaleList.filters.pendingReturn') },
+  { value: STATUS.RETURNING, label: t('order.afterSaleList.filters.returning') },
+  { value: STATUS.REFUNDING, label: t('order.afterSaleList.filters.refunding') },
+  { value: STATUS.COMPLETED, label: t('order.afterSaleList.filters.completed') },
 ])
 const currentStatus = ref(null)
 const afterSaleList = ref([])

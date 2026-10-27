@@ -75,6 +75,7 @@
       mode="bottom"
       @change="selectTab"
     />
+    <ConfirmHost />
   </view>
 </template>
 
@@ -86,6 +87,7 @@ import { routes } from '@/app/config/routes.js'
 import { useMessageStore } from '@/shared/model/messageStore.js'
 import { useCart } from '@/shared/composables/useCart.js'
 import AppStatusBarSpacer from '@/shared/ui/AppStatusBarSpacer/AppStatusBarSpacer.vue'
+import ConfirmHost from '@/shared/ui/ConfirmPopup/ConfirmHost.vue'
 import HomeTopBar from './components/HomeTopBar.vue'
 import ResponsiveNav from './components/ResponsiveNav.vue'
 import TabHome from './tabs/TabHome.vue'

@@ -14,7 +14,7 @@ beforeEach(async () => {
   registerMainLocales()
   await import('@/subPackages/account/i18n/register.js')
   const storage = new Map()
-  vi.stubGlobal('uni', { showToast: vi.fn(), showModal: vi.fn(), requestPayment: vi.fn(),
+  vi.stubGlobal('uni', { showToast: vi.fn(), showModal: vi.fn(), requestPayment: vi.fn(), setClipboardData: vi.fn(),
     getStorageSync: vi.fn(key => storage.get(key)), setStorageSync: vi.fn((key, value) => storage.set(key, value)),
     removeStorageSync: vi.fn(key => storage.delete(key)), showLoading: vi.fn(), hideLoading: vi.fn(), getProvider: vi.fn() })
 })
@@ -37,7 +37,7 @@ async function open(relative, supplied = {}) {
     getCreditUsageList: vi.fn(async () => ({ items: [], totalCount: 0 })),
     getBillList: vi.fn(async () => ({ items: [], totalCount: 0 })), getBillDetail: vi.fn(async () => ({})),
     getRechargeList: vi.fn(async () => ({ items: [], totalCount: 0 })), payBill: vi.fn(),
-    getDealerFinanceContext: vi.fn(async () => context), createAppRecharge: vi.fn(), ...supplied.api,
+    getDealerFinanceContext: vi.fn(async () => context), createAppRecharge: vi.fn(), createNativeRecharge: vi.fn(), ...supplied.api,
   }
   const hooks = {}, user = vue.reactive({ financeContext: context, updateFinanceContext: vi.fn(),
     hasPermission: vi.fn(() => true) })
@@ -57,6 +57,7 @@ async function open(relative, supplied = {}) {
     if (id.includes('config/routes')) return { routes }
     if (id.includes('config/constant')) return import('@/app/config/constant.js')
     if (id.includes('utils/format')) return import('@/shared/utils/format.js')
+    if (id.includes('utils/qrMatrix')) return import('@/shared/utils/qrMatrix.js')
     if (id.includes('refreshAnimation')) return { waitForRefreshAnimation: vi.fn() }
     if (id.includes('/api/')) return api
     return { default: {} }
@@ -73,7 +74,7 @@ function account(overrides = {}) {
 
 /** 设置本地渠道可用及金额，不调用设备或真实支付接口。 */
 function readyRecharge(v, channel = 'wechat') {
-  v.availableProviders.value = { wechat: true, alipay: true }
+  v.availableProviders.value = { wechat: true, wechat_native: true, alipay: true }
   v.selectedChannel.value = channel
   v.rechargeAmount.value = '12.50'
 }
@@ -175,20 +176,20 @@ describe('库存与财务页面显示语言边界', () => {
     expect(api.getFundFlowList).not.toHaveBeenCalled()
   })
 
-  it('授信变动类型的中英文不改变正负方向，保留已结算状态筛选标签', async () => {
+  it('授信变动和顶部筛选翻译不改变正负方向及原类型值', async () => {
     const { v, api } = await open('credit-flow/index.vue')
     const values = v.filters.value.map(item => item.value)
     i18n.setLocale('en')
     expect(v.usageTitle(1)).toBe('Order reservation')
     expect(v.filters.value.map(item => item.value)).toEqual(values)
-    expect(v.filters.value[4]).toEqual({ label: '已结算', value: 4 })
+    expect(v.filters.value[4]).toEqual({ label: 'Settled', value: 4 })
     for (const [usageType, text] of [[1, '−¥10.00'], [2, '+¥10.00'], [3, '+¥10.00'], [4, '−¥10.00']]) {
       expect(v.formatChange({ usageType, changedAmount: 10 })).toBe(text)
     }
     expect(api.getCreditUsageList).not.toHaveBeenCalled()
   })
 
-  it('账期显示切换不改变查询 YYYY-MM、状态 0、金额汇总与状态标签', async () => {
+  it('账期显示切换不改变查询 YYYY-MM、状态 0 与金额汇总', async () => {
     const row = { billId: 7, status: 0, totalAmount: 100.5, paidAmount: 20, outstandingAmount: 80.5 }
     const { v, api } = await open('bill/list.vue', {
       api: { getBillList: vi.fn(async () => ({ items: [row], totalCount: 1 })) },
@@ -201,11 +202,29 @@ describe('库存与财务页面显示语言边界', () => {
     i18n.setLocale('en')
     expect(display.value).toBe('2026-10')
     expect(v.statusTabs[0].label).toBe('All')
-    expect(v.statusText(0)).toBe('未结清')
+    expect(v.statusTabs.map(tab => tab.label)).toEqual(['All', 'Unsettled', 'Settled', 'Closed'])
+    expect(v.statusTabs.map(tab => tab.status)).toEqual([undefined, 0, 1, 2])
+    expect(v.statusText(0)).toBe('Unsettled')
     expect(v.visibleBills.value).toHaveLength(1)
     expect(v.overview).toMatchObject({ totalAmount: 100.5, paidAmount: 20, outstandingAmount: 80.5 })
     expect(api.getBillList).toHaveBeenCalledTimes(1)
     expect(api.getBillList).toHaveBeenCalledWith({ billPeriod: '2026-10', status: 0, pageNum: 1, pageSize: 20 })
+  })
+
+  it.each(['bill/list.vue', 'bill/detail.vue'])('账单固定状态名称原地切换且保留账单事实：%s', async relative => {
+    const { v, api } = await open(relative)
+    if (v.bill) Object.assign(v.bill, { billId: 7, status: 0, totalAmount: 2022, paidAmount: 0, outstandingAmount: 2022 })
+    const facts = v.bill ? JSON.stringify(v.bill) : JSON.stringify(v.bills.value)
+    const statuses = [0, 1, 2, 99]
+    expect(statuses.map(v.statusText)).toEqual(['未结清', '已结清', '已关闭', '未知状态'])
+    i18n.setLocale('en-US')
+    expect(statuses.map(v.statusText)).toEqual(['Unsettled', 'Settled', 'Closed', 'Unknown status'])
+    expect(statuses.map(v.statusType)).toEqual(['warning', 'success', 'info', 'default'])
+    expect(v.bill ? JSON.stringify(v.bill) : JSON.stringify(v.bills.value)).toBe(facts)
+    expect(api.getBillList).not.toHaveBeenCalled()
+    expect(api.payBill).not.toHaveBeenCalled()
+    i18n.setLocale('zh-CN')
+    expect(v.statusText(0)).toBe('未结清')
   })
 
   it('账期缺省、非法输入与无回调兼容，不改变月份参数', async () => {
@@ -287,6 +306,8 @@ describe('库存与财务页面显示语言边界', () => {
     i18n.setLocale('en')
     expect(v.payMethodText('wechat')).toBe('WeChat top-up')
     expect(v.tabs[0].label).toBe('All')
+    expect(v.tabs.map(tab => tab.label)).toEqual(['All', 'To review', 'Processing', 'Credited', 'Failed'])
+    expect(v.tabs.map(tab => tab.status)).toEqual([undefined, 6, 1, 2, 3])
     expect(v.statusText(5)).toBe('待确认')
     expect(v.isConfirming(row)).toBe(true)
     expect(JSON.stringify(v.records.value)).toBe(facts)
@@ -307,7 +328,9 @@ describe('库存与财务页面显示语言边界', () => {
     expect(invoice.navigator.navigateTo).toHaveBeenCalledWith({ status: constants.ORDER_STATUS.COMPLETED })
     expect(voucher.v.filteredList.value[0].name).toBe('原券名')
     expect(voucher.v.exchangeCode.value).toBe(' keep-code ')
-    expect(voucher.v.renderTabs.value[0].label).toBe('可使用(1)')
+    expect(voucher.v.renderTabs.value[0].label).toBe('Available(1)')
+    expect(voucher.v.renderTabs.value.map(tab => tab.key)).toEqual(['available', 'used', 'expired'])
+    expect(voucher.v.renderTabs.value.slice(1).map(tab => tab.label)).toEqual(['Used(0)', 'Expired(0)'])
     expect(uni.showLoading).not.toHaveBeenCalled()
   })
 })
@@ -317,6 +340,12 @@ describe('充值语言切换与原生支付边界', () => {
     const { v, api } = await open('recharge/index.vue')
     readyRecharge(v)
     const channels = v.paymentChannels.map(({ key, provider, disabled }) => ({ key, provider, disabled }))
+    expect(v.paymentChannels.map(({ key, icon, useOriginalColor }) => ({ key, icon, useOriginalColor }))).toEqual([
+      { key: 'wechat', icon: 'pay-wechat', useOriginalColor: true },
+      { key: 'wechat_native', icon: 'pay-wechat', useOriginalColor: true },
+      { key: 'alipay', icon: 'pay-alipay', useOriginalColor: true },
+      { key: 'abc_cashier', icon: 'bank', useOriginalColor: false },
+    ])
     const id = v.ensureClientRequestId('12.50', 'wechat')
     const stored = uni.setStorageSync.mock.lastCall[1]
     expect(v.selectedPaymentChannel.value.title).toBe('微信支付')
@@ -370,6 +399,27 @@ describe('充值语言切换与原生支付边界', () => {
     expect(v.pendingClientRequestId.value).toBe(request.clientRequestId)
     expect(api.getDealerFinanceContext).toHaveBeenCalledTimes(1)
     expect(v.submitting.value).toBe(false)
+  })
+
+  it('Native 入口创建扫码充值单并展示二维码，不调用手机支付 SDK', async () => {
+    const { v, api } = await open('recharge/index.vue', {
+      api: { createNativeRecharge: vi.fn(async () => ({
+        status: 0,
+        rechargeNo: 'RC-NATIVE-001',
+        codeUrl: 'weixin://wxpay/bizpayurl?pr=test',
+      })) },
+    })
+    readyRecharge(v, 'wechat_native')
+    await v.startRecharge()
+    expect(api.createNativeRecharge).toHaveBeenCalledWith(expect.objectContaining({
+      channel: 'wechat_native', amount: 12.5, fundAccountCode: 'FA-100',
+    }))
+    expect(v.nativeQrVisible.value).toBe(true)
+    expect(v.nativeQrNumber.value).toBe('RC-NATIVE-001')
+    expect(v.nativeQrMatrix.value.length).toBeGreaterThan(0)
+    expect(uni.requestPayment).not.toHaveBeenCalled()
+    v.closeNativeQr()
+    expect(v.nativeQrVisible.value).toBe(false)
   })
 
   it.each(['0', '-1', '1.234', 'abc'])('无效充值金额 %s 不创建订单或调用原生支付', async amount => {
