@@ -187,7 +187,8 @@ const orderId = ref(null)
 const orderNo = ref('')
 const payMode = ref(PAYMENT_MODE.COMBINATION)     // 默认使用单一余额账户支付
 const payAmount = ref(0)    // 单位：元（后端返回元）
-const payType = ref(typeof plus === 'undefined' ? 'wechat_native' : 'wechat')
+// 汇报演示默认进入网页微信扫码充值。
+const payType = ref('wechat_native')
 const paying = ref(false)
 const remainTime = ref(0)   // 剩余时间（秒）
 const paymentExpired = ref(false)
@@ -226,7 +227,7 @@ const cashPaymentMethods = computed(() => [
   { key: 'wechat_native', label: t('order.pay.wechatNative'), description: t('order.pay.wechatNativeDescription'), icon: 'pay-wechat' },
   { key: 'wechat', label: t('order.pay.wechat'), description: t('order.pay.wechatDescription'), icon: 'pay-wechat' },
   { key: 'alipay', label: t('order.pay.alipay'), description: t('order.pay.alipayDescription'), icon: 'pay-alipay' },
-])
+].filter(channel => channel.key === 'wechat_native'))
 const confirmButtonText = computed(() => {
   if (paying.value) return t('order.pay.paying')
   if (paymentExpired.value) return t('order.pay.paymentEnded')
@@ -422,7 +423,8 @@ async function handleConfirmPay() {
     if (payMode.value === PAYMENT_MODE.CASH) {
       returningFromRecharge = true
       await navigator.navigateTo(routes.account.recharge({ orderId: orderId.value,
-        amount: Number(payAmount.value).toFixed(2), channel: payType.value,
+        amount: Number(payAmount.value).toFixed(2),
+        channel: cashPaymentMethods.value.some(item => item.key === payType.value) ? payType.value : 'wechat_native',
         fundAccountCode: finance.value.currentAccount?.fundAccountCode || null }))
       return
     }

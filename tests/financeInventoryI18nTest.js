@@ -24,6 +24,7 @@ afterEach(() => {
   vi.useRealTimers()
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
 })
 
 /** 运行真实页面 setup，隔离后端、原生支付和生命周期，禁止真实资金操作。 */
@@ -41,7 +42,7 @@ async function open(relative, supplied = {}) {
     getRechargeStatus: vi.fn(async rechargeNo => ({ rechargeNo, status: 0 })), ...supplied.api,
   }
   const hooks = {}, user = vue.reactive({ financeContext: context, updateFinanceContext: vi.fn(),
-    hasPermission: vi.fn(() => true) })
+    hasPermission: vi.fn(() => true), ...supplied.user })
   const navigator = { navigateTo: vi.fn(), redirectTo: vi.fn(), back: vi.fn() }
   const routes = { order: { detail: id => '/order/' + id, pay: id => '/pay/' + id, list: params => params },
     account: { inventoryDetail: id => '/inventory/' + id, billDetail: id => '/bill/' + id,
@@ -60,6 +61,8 @@ async function open(relative, supplied = {}) {
     if (id.includes('utils/format')) return import('@/shared/utils/format.js')
     if (id.includes('utils/qrMatrix')) return import('@/shared/utils/qrMatrix.js')
     if (id.includes('refreshAnimation')) return { waitForRefreshAnimation: vi.fn() }
+    if (id.includes('/sessionCleanup.js')) return import('@/shared/session/sessionCleanup.js')
+    if (id.includes('/rechargeRealtime.js')) return import('@/subPackages/account/services/rechargeRealtime.js')
     if (id.includes('/api/')) return api
     return { default: {} }
   })
@@ -661,5 +664,64 @@ describe('充值语言切换与原生支付边界', () => {
     const payload = { appid: 'a', partnerid: 'p', prepayid: 'pre', package: 'pkg', noncestr: 'n', timestamp: 't', sign: 's' }
     expect(v.parseWeChatPayOrderInfo(payload)).toBe(payload)
     expect(api.createAppRecharge).toHaveBeenCalledTimes(1)
+  })
+})
+
+
+describe('充值页实时推送接入', () => {
+  it('真实页面收到通知后补查已提交状态，清除二维码并显示成功，不自动扣订单款', async () => {
+    const handlers = {}, task = { send: vi.fn(), close: vi.fn(),
+      onOpen: fn => { handlers.open = fn }, onMessage: fn => { handlers.message = fn },
+      onError: fn => { handlers.error = fn }, onClose: fn => { handlers.close = fn } }
+    vi.stubEnv('VITE_PAYMENT_WS_URL', 'wss://api.example.test/api/realtime/payment')
+    uni.connectSocket = vi.fn(() => task)
+    const { v, api, hooks, user } = await open('recharge/index.vue', {
+      user: { token: 'test.jwt.token', userId: 7 },
+      api: { createNativeRecharge: vi.fn(async () => ({ rechargeNo: 'RC-PUSH', status: 0,
+        codeUrl: 'weixin://wxpay/bizpayurl?pr=test' })) },
+    })
+    hooks.load({ channel: 'wechat_native' })
+    readyRecharge(v, 'wechat_native')
+    await v.startRecharge()
+    await vue.nextTick()
+    expect(v.nativeQrVisible.value).toBe(true)
+    expect(v.nativeQrMatrix.value.length).toBeGreaterThan(0)
+    handlers.open()
+    handlers.message({ data: JSON.stringify({ type: 'subscribed', rechargeNo: 'RC-PUSH' }) })
+    await new Promise(resolve => setTimeout(resolve, 0))
+    api.getRechargeStatus.mockResolvedValueOnce({ rechargeNo: 'RC-PUSH', status: 2 })
+    handlers.message({ data: JSON.stringify({ type: 'changed', rechargeNo: 'RC-PUSH', version: 3 }) })
+    await new Promise(resolve => setTimeout(resolve, 0))
+    expect(v.nativeQrMatrix.value).toEqual([])
+    expect(v.nativeQrLink.value).toBe('')
+    expect(v.nativeQrStatus.value).toBe(2)
+    expect(v.pendingRechargeNo.value).toBe('')
+    expect(uni.showToast).toHaveBeenCalledWith(expect.objectContaining({ icon: 'success' }))
+    expect(api.createNativeRecharge).toHaveBeenCalledTimes(1)
+    expect(task.close).toHaveBeenCalled()
+    hooks.hide(); hooks.unload()
+  })
+})
+
+
+describe('缓存充值页退出会话清理', () => {
+  it('退出时即使旧 token 字段未变化也主动关闭连接，卸载后不残留清理监听', async () => {
+    vi.stubEnv('VITE_PAYMENT_WS_URL', 'wss://api.example.test/api/realtime/payment')
+    const task = { onOpen: vi.fn(), onMessage: vi.fn(), onError: vi.fn(), onClose: vi.fn(), close: vi.fn() }
+    uni.connectSocket = vi.fn(() => task)
+    const { v, user } = await open('recharge/index.vue', { user: { token: 'old.token.value', userId: 7 } })
+    v.pendingRechargeNo.value = 'RC-LOGOUT'
+    v.nativeQrVisible.value = true
+    await vue.nextTick()
+    expect(uni.connectSocket).toHaveBeenCalledTimes(1)
+    const cleanup = await import('@/shared/session/sessionCleanup.js')
+    await cleanup.runSessionCleanup()
+    await vue.nextTick()
+    expect(user.token).toBe('old.token.value')
+    expect(v.pendingRechargeNo.value).toBe('')
+    expect(v.nativeQrVisible.value).toBe(false)
+    expect(task.close).toHaveBeenCalled()
+    stops.splice(0).forEach(stop => stop())
+    expect(cleanup.getCleanupHandlerCount()).toBe(0)
   })
 })

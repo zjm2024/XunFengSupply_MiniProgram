@@ -86,7 +86,7 @@
 
                 <view class="channel-picker">
                   <view
-                    v-for="channel in paymentChannels"
+                    v-for="channel in visiblePaymentChannels"
                     :key="channel.key"
                     class="channel-card"
                     :class="{ selected: selectedChannel === channel.key, disabled: channel.disabled }"
@@ -189,7 +189,7 @@
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/account/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onScopeDispose } from 'vue'
 import { onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
@@ -201,6 +201,8 @@ import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 import { createQrMatrix } from '@/shared/utils/qrMatrix.js'
+import { createRechargeRealtime } from '@/subPackages/account/services/rechargeRealtime.js'
+import { registerSessionCleanup, unregisterSessionCleanup } from '@/shared/session/sessionCleanup.js'
 
 const userStore = useUserStore()
 const finance = ref(userStore.financeContext)
@@ -211,9 +213,11 @@ const paymentChannels = Object.freeze([
   { key: 'alipay', /** 渠道名称按当前语言显示。 */ get title() { return t('account.recharge.alipay') }, icon: 'pay-alipay', color: '#1677FF', provider: 'alipay', useOriginalColor: true, /** 渠道说明按当前语言显示。 */ get description() { return t('account.recharge.alipayHint') } },
   { key: 'abc_cashier', /** 渠道名称按当前语言显示。 */ get title() { return t('account.recharge.bank') }, icon: 'bank', color: '#8A9098', provider: null, useOriginalColor: false, disabled: true, /** 渠道说明按当前语言显示。 */ get description() { return t('account.recharge.bankHint') } },
 ])
+// 汇报演示只展示微信网页扫码入口，保留其余渠道实现以便后续恢复。
+const visiblePaymentChannels = computed(() => paymentChannels.filter(channel => channel.key === 'wechat_native'))
 const rechargeAmount = ref('')
 const submitting = ref(false)
-const selectedChannel = ref('wechat')
+const selectedChannel = ref('wechat_native')
 const availableProviders = ref(null)
 const pendingClientRequestId = ref('')
 const pendingRequestAmount = ref('')
@@ -236,6 +240,34 @@ const lastFinalRecharge = ref(null)
 let rechargeCheckPromise = null
 let pageVisible = true
 let successNoticePending = false
+const rechargeRealtime = createRechargeRealtime({
+  getToken: () => userStore.token,
+  refresh: () => checkRechargeResult({ silent: true, afterCurrent: true }),
+})
+
+/** 可见待支付页独占实时连接，终态、退出账号及页面隐藏立即释放。 */
+function syncRechargeRealtime() {
+  if (pageVisible && pendingRechargeNo.value && userStore.token) rechargeRealtime.start(pendingRechargeNo.value)
+  else rechargeRealtime.stop()
+}
+const rechargeCleanupKey = 'finance-recharge-' + Date.now() + '-' + Math.random().toString(36).slice(2)
+/** 统一退出会话钩子主动关闭缓存页连接，并清除该页所有待支付显示上下文。 */
+function resetRechargeSession() {
+  rechargeRealtime.stop()
+  nativeQrVisible.value = false
+  nativeQrMatrix.value = []
+  nativeQrLink.value = ''
+  successNoticePending = false
+  clearPendingRequest()
+}
+registerSessionCleanup(rechargeCleanupKey, resetRechargeSession)
+onScopeDispose(() => { rechargeRealtime.stop(); unregisterSessionCleanup(rechargeCleanupKey) })
+watch(() => pendingRechargeNo.value, syncRechargeRealtime)
+watch(() => [userStore.token, userStore.userId], ([token, userId], previous) => {
+  if (!token || (previous?.[1] && previous[1] !== userId)) {
+    resetRechargeSession()
+  } else syncRechargeRealtime()
+}, { flush: 'sync' })
 
 const creditUsage = computed(() => {
   const total = Number(finance.value.credit?.totalAmount || 0)
@@ -261,8 +293,8 @@ onLoad((options = {}) => {
   rechargeOrderId.value = Number.isSafeInteger(id) && id > 0 ? id : null
   rechargeAccountCode.value = rechargeOrderId.value ? String(options.fundAccountCode || '') || null : null
   if (rechargeOrderId.value && Number(options.amount) > 0) rechargeAmount.value = Number(options.amount).toFixed(2)
-  if (paymentChannels.some(item => item.key === options.channel && !item.disabled)) selectedChannel.value = options.channel
-  else if (typeof plus === 'undefined') selectedChannel.value = 'wechat_native'
+  if (visiblePaymentChannels.value.some(item => item.key === options.channel && !item.disabled)) selectedChannel.value = options.channel
+  else selectedChannel.value = 'wechat_native'
 })
 
 /** 继续订单收银台，扣款仍需用户确认并由后端重新检查订单状态。 */
@@ -277,9 +309,10 @@ onShow(() => {
   restorePendingRequest()
   checkPaymentAvailability()
   if (pendingRechargeNo.value) checkRechargeResult({ silent: true })
+  syncRechargeRealtime()
 })
-onHide(() => { pageVisible = false })
-onUnload(() => { pageVisible = false })
+onHide(() => { pageVisible = false; rechargeRealtime.stop() })
+onUnload(() => { pageVisible = false; rechargeRealtime.stop() })
 
 async function loadFinance() {
   try {
@@ -312,7 +345,7 @@ function restorePendingRequest() {
   pendingRequestChannel.value = String(pending.channel || 'wechat')
   pendingOrderId.value = pending.orderId || null
   pendingRechargeNo.value = String(pending.rechargeNo || '')
-  if (paymentChannels.some(item => item.key === pendingRequestChannel.value && !item.disabled)) {
+  if (visiblePaymentChannels.value.some(item => item.key === pendingRequestChannel.value && !item.disabled)) {
     selectedChannel.value = pendingRequestChannel.value
   }
   if (!rechargeAmount.value && pendingRequestAmount.value) rechargeAmount.value = pendingRequestAmount.value
@@ -336,7 +369,7 @@ function checkPaymentAvailability() {
 
 /** 选择支付渠道；银行收银台等未启用渠道只展示规划状态，不发起请求。 */
 function selectPaymentChannel(channel) {
-  if (channel.disabled || submitting.value) return
+  if (channel.disabled || submitting.value || !visiblePaymentChannels.value.some(item => item.key === channel.key)) return
   if (selectedChannel.value !== channel.key) clearPendingRequest()
   selectedChannel.value = channel.key
 }
@@ -425,16 +458,18 @@ function announceRechargeSuccess() {
   uni.showToast({ title: t('account.recharge.successTitle'), icon: 'success' })
 }
 
-/** 用户点击或回到前台时单次补查，共享在途请求；不设轮询，不触发渠道查单或重复充值。 */
-function checkRechargeResult({ silent = false } = {}) {
-  if (rechargeCheckPromise) return rechargeCheckPromise
+/** 手动、推送及回到前台均只读本地事实；推送到达在途查询时追加一次读取以覆盖提交竞态。 */
+function checkRechargeResult({ silent = false, afterCurrent = false } = {}) {
+  if (rechargeCheckPromise) return afterCurrent
+    ? rechargeCheckPromise.then(() => checkRechargeResult({ silent })) : rechargeCheckPromise
   const rechargeNo = pendingRechargeNo.value
+  const statusToken = userStore.token
   if (!rechargeNo) return Promise.resolve(null)
   checkingRecharge.value = true
   rechargeCheckPromise = (async () => {
     try {
       const response = await getRechargeStatus(rechargeNo)
-      if (pendingRechargeNo.value !== rechargeNo) return null
+      if (pendingRechargeNo.value !== rechargeNo || userStore.token !== statusToken) return null
       if (String(response.rechargeNo) !== rechargeNo) throw new Error(t('account.recharge.checkFailed'))
       applyRechargeResult(response)
       if (response.status === 2) await loadFinance()
@@ -638,7 +673,7 @@ function goToCreditFlow() { navigator.navigateTo(routes.account.creditFlow()) }
 .amount-input { min-width: 0; height: 42px; flex: 1; color: #20242A; font-size: 18px; font-weight: 700; }
 .amount-placeholder { color: #B3B7BE; font-size: 12px; font-weight: 400; }
 .quick-amounts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; margin-top: 10px; }
-.quick-amount { height: 29px; padding: 0; border: 1px solid #E6E9EC; border-radius: 9px; color: #5F6670; background: #FFF; font-size: 10px; line-height: 27px; }
+.quick-amount { height: 29px; border: 1px solid #E6E9EC; border-radius: 9px; color: #5F6670; background: #FFF; font-size: 10px; line-height: 27px; }
 .quick-amount::after { border: 0; }
 .quick-amount.active { color: #C51327; border-color: #F1BAC1; background: #FFF2F3; }
 .coming-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 10px; }

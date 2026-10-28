@@ -182,8 +182,9 @@ const CAPTCHA_ERRORS = new Set([
 ])
 
 const userStore = useUserStore()
-const account = ref('')
-const password = ref('')
+// 汇报演示默认填充；登录仍使用正常账号认证和验证码流程。
+const account = ref('18696541236')
+const password = ref('123456')
 const showPassword = ref(false)
 const agreeProtocol = ref(false)
 const logging = ref(false)
