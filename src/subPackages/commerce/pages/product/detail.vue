@@ -332,7 +332,9 @@ const productParams = computed(() => product.value ? [
 ] : [])
 
 // ==================== 行为 ====================
+let openFromHome = false
 onLoad(options => {
+  openFromHome = options?.openPurchase === '1'
   productId.value = Number(options?.id || options?.productId || 0)
   loadProduct()
 })
@@ -378,6 +380,7 @@ async function loadProduct() {
     const initialSku = firstAvailable || result.skus?.[0]
     selectedSkuId.value = initialSku?.skuId ?? null
     pageState.value = PageStatus.CONTENT
+    if (openFromHome) { openFromHome = false; openPurchaseSheet() }
   } catch (error) {
     pageFailure.value = error?.message ? error : localError('commerce.product.loadFailed')
     pageState.value = PageStatus.ERROR

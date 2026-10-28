@@ -34,6 +34,9 @@ export const ACCOUNT_STATUS = '/subPackages/auth/pages/account-status/index'
 
 // ==================== commerce：商品/交易分包 ====================
 
+export const HOME_SECTION = '/subPackages/commerce/pages/home-section/index'
+export const ANNOUNCEMENTS = '/subPackages/content/pages/announcements/index'
+export const ANNOUNCEMENT_DETAIL = '/subPackages/content/pages/announcements/detail'
 export const PRODUCT_LIST = '/subPackages/commerce/pages/product/list'
 export const PRODUCT_DETAIL = '/subPackages/commerce/pages/product/detail'
 export const PRODUCT_VARIANTS = '/subPackages/commerce/pages/product/variants'
@@ -90,7 +93,7 @@ export const ABOUT = '/subPackages/content/pages/about/index'
 export const REGISTERED_ROUTES = Object.freeze([
   STARTUP, HOME,
   LOGIN, APPLY_SIGN, AGREEMENT, ACCOUNT_STATUS,
-  PRODUCT_LIST, PRODUCT_DETAIL, PRODUCT_VARIANTS, CART, CHECKOUT,
+  HOME_SECTION, ANNOUNCEMENTS, ANNOUNCEMENT_DETAIL, PRODUCT_LIST, PRODUCT_DETAIL, PRODUCT_VARIANTS, CART, CHECKOUT,
   ORDER_LIST, ORDER_DETAIL, PAY_PAGE, FULFILLMENT_SPLIT, APPLY_AFTER_SALE, AFTER_SALE_LIST, CANCEL_ORDER,
   ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
   DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, SECURITY,
@@ -158,6 +161,9 @@ export const ROUTE_META = Object.freeze({
   },
 
   // ===== commerce 分包 =====
+  [HOME_SECTION]: { title: '商品专区', requireAuth: true, requireSign: false, allowFrozen: false, owner: null },
+  [ANNOUNCEMENTS]: { title: '平台公告', requireAuth: true, requireSign: false, allowFrozen: false, owner: null },
+  [ANNOUNCEMENT_DETAIL]: { title: '公告详情', requireAuth: true, requireSign: false, allowFrozen: false, owner: null },
   [PRODUCT_LIST]: {
     title: '商品列表',
     requireAuth: true,
@@ -614,6 +620,8 @@ export const routes = {
   },
 
   commerce: {
+    homeSection: ({ homePageId, componentId, configStamp } = {}) => withQuery(HOME_SECTION, { homePageId: assertValidId(homePageId, 'homeSection'), componentId: assertValidId(componentId, 'homeSection'), configStamp }),
+    productPurchase: productId => withQuery(PRODUCT_DETAIL, { productId: assertValidId(productId, 'productPurchase'), openPurchase: 1 }),
     productList: ({ categoryId, keyword, mode } = {}) =>
       withQuery(PRODUCT_LIST, { categoryId, keyword, mode }),
     productDetail: (productId) => {
@@ -703,6 +711,8 @@ export const routes = {
   },
 
   content: {
+    announcements: () => ANNOUNCEMENTS,
+    announcementDetail: id => withQuery(ANNOUNCEMENT_DETAIL, { announcementId: assertValidId(id, 'announcementDetail') }),
     news: () => NEWS,
     newsDetail: (id) => {
       const validId = assertValidId(id, 'content.newsDetail')

@@ -53,7 +53,7 @@ async function setup(path) {
 
 describe('retained real home function names', () => {
   it('updates homepage feature labels in place and keeps the news entry action', async () => {
-    const page = await setup('pages/home/tabs/TabHome.vue')
+    const page = await setup('pages/home/tabs/LegacyHome.vue')
     expect(page.bindings.features.value.map(item => item.label)).toContain('批量采购')
     runtime.setLocale('en')
     expect(page.bindings.features.value.map(item => item.label)).toContain('Bulk orders')

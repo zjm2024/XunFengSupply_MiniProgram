@@ -91,5 +91,25 @@
     "loading": "Uploading...",
     "missingUrl": "The upload response did not include a URL",
     "failed": "Upload failed"
+  },
+  "homePage": {
+    "more": "More",
+    "buy": "Select options",
+    "noAnnouncements": "No announcements",
+    "emptyFloor": "No products available",
+    "retry": "Unable to load. Tap to retry",
+    "loadFloor": "Tap to load products",
+    "loading": "Loading...",
+    "section": "Product collection",
+    "search": "Search this collection",
+    "configured": "Default",
+    "latest": "Newest",
+    "empty": "No matching products",
+    "end": "All products loaded",
+    "unavailable": "This collection has changed or is unavailable. Please return home.",
+    "home": "Return home",
+    "announcements": "Announcements",
+    "announcement": "Announcement",
+    "notFound": "This content is unavailable"
   }
 }

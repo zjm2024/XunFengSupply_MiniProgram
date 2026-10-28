@@ -91,5 +91,25 @@
     "loading": "上传中...",
     "missingUrl": "上传响应缺少 URL",
     "failed": "上传失败"
+  },
+  "homePage": {
+    "more": "更多",
+    "buy": "选择规格",
+    "noAnnouncements": "暂无公告",
+    "emptyFloor": "暂无可用商品",
+    "retry": "加载失败，点击重试",
+    "loadFloor": "点击加载商品",
+    "loading": "正在加载",
+    "section": "商品专区",
+    "search": "搜索本专区商品",
+    "configured": "默认排序",
+    "latest": "新品优先",
+    "empty": "暂无符合条件的商品",
+    "end": "已全部加载",
+    "unavailable": "该专区已更新或停用，请返回首页重新进入",
+    "home": "返回首页",
+    "announcements": "平台公告",
+    "announcement": "公告详情",
+    "notFound": "内容已下架或不存在"
   }
 }

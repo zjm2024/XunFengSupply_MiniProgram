@@ -53,7 +53,7 @@
             @messages="goToMessages"
             @settings="goToSettings"
           />
-          <view class="tab-stage">
+          <view class="tab-stage" :class="{ 'tab-stage--home': activeTab === 'home' }">
             <TabHome
               v-show="activeTab === 'home'"
               :active="activeTab === 'home'"
@@ -227,8 +227,10 @@ onUnmounted(() => {
 }
 
 .home-scroll {
-  flex: 1;
-  height: 100%;
+  flex: 1 1 0;
+  height: 0;
+  min-height: 0;
+  box-sizing: border-box;
 }
 
 .home-scroll--integrated {
@@ -253,6 +255,11 @@ onUnmounted(() => {
   box-sizing: border-box;
   display: flex;
   justify-content: center;
+}
+
+.tab-stage--home {
+  display: block;
+  padding-bottom: 0;
 }
 
 @media screen and (min-width: 800px) {

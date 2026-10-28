@@ -1,4 +1,4 @@
-﻿{
+{
     "name": "supply-chain-mini",
     "appid": "",
     "versionName": "1.0.0",
@@ -118,6 +118,13 @@
                 },
                 {
                     "path": "pages/checkout/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/home-section/index",
                     "style": {
                         "navigationStyle": "custom",
                         "navigationBarTitleText": ""
@@ -388,6 +395,20 @@
                 },
                 {
                     "path": "pages/about/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/announcements/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/announcements/detail",
                     "style": {
                         "navigationStyle": "custom",
                         "navigationBarTitleText": ""
