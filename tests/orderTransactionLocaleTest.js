@@ -70,6 +70,25 @@ async function load(relative) {
 }
 
 describe('订单写操作在语言切换期间的真实页面回归', () => {
+  it('在线充值入口只传本地订单上下文，返回后刷新余额但不自动确认扣款', async () => {
+    const page = await load('pay/index.vue')
+    await hooks.onLoad[0]({ orderId: '88' })
+    page.payMode.value = 1
+    page.payType.value = 'wechat_native'
+    await page.handleConfirmPay()
+    expect(navigation.navigateTo).toHaveBeenCalledTimes(1)
+    const target = navigation.navigateTo.mock.lastCall[0]
+    expect(target).toContain('orderId=88')
+    expect(target).toContain('channel=wechat_native')
+    expect(target).not.toContain('erp_order_no')
+    expect(financeApi.confirmDealerOrderPayment).not.toHaveBeenCalled()
+    for (const show of hooks.onShow) show()
+    await Promise.resolve()
+    expect(page.payMode.value).toBe(3)
+    expect(financeApi.getDealerFinanceContext).toHaveBeenCalledTimes(2)
+    expect(financeApi.confirmDealerOrderPayment).not.toHaveBeenCalled()
+  })
+
   it.each([2, 3])('支付模式 %s 的在途请求保持原参数和幂等键，成功结果仍导航原订单', async mode => {
     const page = await load('pay/index.vue')
     await hooks.onLoad[0]({ orderId: '88' })

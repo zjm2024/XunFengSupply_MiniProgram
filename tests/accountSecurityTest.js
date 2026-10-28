@@ -10,7 +10,7 @@ beforeEach(async () => {
   dialogs = await import('@/shared/composables/useAppDialog.js')
   const { registerMainLocales } = await import('@/app/i18n/registerMain.js'); registerMainLocales()
   await import('@/subPackages/account/i18n/register.js')
-  facts = { customerId: 22, username: 'buyer22', realName: 'Actual buyer', companyName: 'Actual company', dealerCode: 'CU_ACTUAL', grade: 'B', mobile: '138****5678', email: 'actual@example.com', landlinePhone: '02012345678', isMaster: false }
+  facts = { customerId: 22, username: 'buyer22', realName: 'Actual buyer', companyName: 'Actual company', dealerCode: 'CU_ACTUAL', grade: 2, gradeName: '二级', gradeNameEn: 'Tier 2', mobile: '138****5678', email: 'actual@example.com', landlinePhone: '02012345678', isMaster: false }
   api = { getAccountProfile: vi.fn(async () => ({ ...facts })), saveAccountProfile: vi.fn(async () => true), saveAccountContact: vi.fn(async () => true), saveAccountPassword: vi.fn(async () => true), getAccountDevices: vi.fn(async () => [{ deviceId: 5, deviceName: 'Actual device' }]), removeAccountDevice: vi.fn(async () => true) }
   user = { userId: 22, realName: 'Actual buyer', updateOwnProfile: vi.fn(), logout: vi.fn(async () => {}) }
   navigation = { navigateTo: vi.fn(), reLaunch: vi.fn(async () => true) }
@@ -41,6 +41,15 @@ async function open(name) {
 function deferred() { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no }); return { promise, resolve, reject } }
 
 describe('real account profile and security workflows', () => {
+  it('grade uses bilingual dictionary labels and changes language without another profile request', async () => {
+    const { v } = await open('profile'); await v.loadProfile()
+    expect(v.gradeLabel.value).toBe('二级')
+    i18n.setLocale('en-US')
+    expect(v.gradeLabel.value).toBe('Tier 2')
+    v.profile.gradeNameEn = ''
+    expect(v.gradeLabel.value).toBe('二级')
+    expect(api.getAccountProfile).toHaveBeenCalledTimes(1)
+  })
   it('profile rows edit one field, cancel discards locally and save retains the other allowed field', async () => {
     const { v } = await open('profile'); await v.loadProfile()
     v.startProfileEdit('realName'); v.editValue.value = 'Draft name'

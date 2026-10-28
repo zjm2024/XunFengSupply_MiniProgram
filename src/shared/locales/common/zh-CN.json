@@ -8,6 +8,15 @@
   "close": "关闭",
   "back": "返回",
   "tip": "提示",
+  "productCard": {
+    "fallbackName": "薰风精选商品",
+    "fromPrice": "{price}起",
+    "stockUnknown": "库存以实际为准",
+    "stockEmpty": "暂无库存",
+    "stockLow": "仅剩 {count} {unit}",
+    "stockAvailable": "库存充足",
+    "minimum": "{count}{unit}起订"
+  },
   "errors": {
     "cancelled": "请求已取消",
     "timeout": "请求超时，请稍后重试",

@@ -92,6 +92,7 @@ async function page(relative) {
     if (id.endsWith('/model/orderDisplay.js')) return import('@/subPackages/order/model/orderDisplay.js')
     if (id.endsWith('/domain/reorderCart.js')) return import('@/subPackages/order/domain/reorderCart.js')
     if (id.endsWith('/utils/format.js')) return { formatDateTime: value => value }
+    if (id.endsWith('/utils/priceDisplay.js')) return import('@/shared/utils/priceDisplay.js')
     if (id.endsWith('/utils/refreshAnimation.js')) return { waitForRefreshAnimation: async () => {} }
     if (id.endsWith('.vue')) return { default: { render: () => null } }
     throw new Error('Unreviewed test import: ' + id)

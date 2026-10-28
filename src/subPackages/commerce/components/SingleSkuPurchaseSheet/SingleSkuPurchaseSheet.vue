@@ -16,6 +16,7 @@
         <view class="summary-copy">
           <view class="summary-price">
             <AmountText class="price" :text="'¥' + (formatMoney(selectedSku?.price ?? product?.price))" />
+            <AmountText v-if="selectedPriceDisplay.showListPrice" class="list-price" :class="{ 'list-price--strike': selectedPriceDisplay.strikeListPrice }" :text="'¥' + formatMoney(selectedPriceDisplay.listPrice)" />
           </view>
           <text class="summary-stock" :class="{ empty: !selectedSku?.canPurchase }">{{ stockText }}</text>
           <text class="summary-selected">{{ t('commerce.purchase.selected', { name: selectedSkuName }) }}</text>
@@ -87,6 +88,7 @@
 
 <script setup>
 import { t } from '@/shared/i18n/index.js'
+import { getPriceDisplay } from '@/shared/utils/priceDisplay.js'
 import '@/subPackages/commerce/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, ref, watch } from 'vue'
@@ -132,6 +134,7 @@ const selectedColorName = computed(() => selectedColorGroup.value?.name || '')
 const sizeOptions = computed(() => selectedColorGroup.value?.items || [])
 const hasPurchasableSku = computed(() => productSkus.value.some(sku => sku.canPurchase))
 const selectedSku = computed(() => productSkus.value.find(sku => String(sku.skuId) === String(selectedSkuId.value)) || null)
+const selectedPriceDisplay = computed(() => getPriceDisplay(selectedSku.value || {}))
 const minimumQuantity = computed(() => Math.max(1, Number(selectedSku.value?.minOrderQty || props.product?.moq || 1)))
 const maximumQuantity = computed(() => {
   if (!selectedSku.value?.stockKnown) return 9999
@@ -306,6 +309,9 @@ function formatMoney(value) {
 }
 
 .price-symbol { font-size: 14px; }
+.summary-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; min-width: 0; }
+.list-price { max-width: 100%; color: var(--color-text-secondary); font-size: 13px; }
+.list-price--strike :deep(.amount-text__value) { text-decoration: line-through; }
 .summary-stock { margin-top: 4px; color: var(--success-color, #168A52); font-size: var(--type-caption-size, 12px); }
 .summary-stock.empty { color: var(--danger-color, #B42318); }
 .summary-selected { margin-top: 5px; overflow: hidden; color: var(--color-text-secondary, #5F646C); font-size: var(--type-body-small-size, 13px); text-overflow: ellipsis; white-space: nowrap; }

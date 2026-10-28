@@ -88,7 +88,7 @@
                       <text class="sku-name">SKU：{{ item.skuCode || item.skuId || '-' }}</text>
                       <view class="price-row">
                         <AmountText class="price" :text="'¥' + (Number(item.salePrice || 0).toFixed(2))" />
-                        <AmountText v-if="item.basePrice > item.salePrice" class="list-price" :text="'¥' + (Number(item.basePrice).toFixed(2))" />
+                        <AmountText v-if="getPriceDisplay(item).showListPrice" class="list-price" :class="{ 'list-price--strike': getPriceDisplay(item).strikeListPrice }" :text="'¥' + Number(item.listPrice).toFixed(2)" />
                         <text class="qty">x{{ item.quantity }}</text>
                       </view>
                       <AmountText v-if="item.strategyDiscount > 0" class="strategy-discount" :text="(t('order.detail.strategyDiscount')) + ' ¥' + (item.strategyDiscount.toFixed(2))" />
@@ -252,6 +252,7 @@
 
 <script setup>
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
+import { getPriceDisplay } from '@/shared/utils/priceDisplay.js'
 import { ref, computed, watch } from 'vue'
 import { locale, t } from '@/shared/i18n/index.js'
 import { createLocaleReadCoordinator } from '@/shared/composables/localeReadCoordinator.js'
@@ -578,8 +579,11 @@ const productGroups = computed(() => {
       skuCode: item.skuCode || item.SkuCode || item.code || item.Code || '',
       basePrice: Number(item.basePrice ?? item.BasePrice ?? item.base_price ?? item.salePrice ?? item.SalePrice ?? 0),
       salePrice: Number(item.salePrice ?? item.SalePrice ?? item.price ?? item.Price ?? 0),
+      listPrice: Number(item.listPrice ?? item.ListPrice ?? 0),
+      priceSource: item.priceSource ?? item.PriceSource ?? 'BASE',
+      priceRuleId: item.priceRuleId ?? item.PriceRuleId ?? null,
       quantity: Number(item.quantity ?? item.Quantity ?? 0),
-      strategyDiscount: Math.max(0, Number(item.basePrice ?? item.BasePrice ?? item.base_price ?? 0) - Number(item.salePrice ?? item.SalePrice ?? item.price ?? item.Price ?? 0)) * Number(item.quantity ?? item.Quantity ?? 0),
+      strategyDiscount: Math.round(getPriceDisplay(item).strategyDiscount * Number(item.quantity ?? item.Quantity ?? 0) * 100) / 100,
       promotionDiscount: Number(item.discountAmount ?? item.DiscountAmount ?? 0),
       lineTotal: Number(item.totalAmount ?? item.TotalAmount ?? item.subTotal ?? item.SubTotal ?? 0),
       promotionSnapshot: item.promotionSnapshot ?? item.PromotionSnapshot ?? null,
@@ -636,6 +640,8 @@ function splitItemQuantityText(split, item) {
 </script>
 
 <style lang="scss" scoped>
+.list-price { color: var(--color-text-tertiary, #94969c); font-size: 12px; font-weight: 400; }
+.list-price--strike :deep(.amount-text__value) { text-decoration: line-through; }
 .order-detail-page {
   min-height: 100%;
   background: var(--bg-color);

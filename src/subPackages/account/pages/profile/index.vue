@@ -25,7 +25,7 @@
               <view class="profile-group">
                 <view class="profile-row"><text class="profile-label">{{ t('account.profile.dealerName') }}</text><text class="profile-value">{{ profile.companyName || t('account.profile.notProvided') }}</text></view>
                 <button class="profile-row profile-code" :disabled="!profile.dealerCode" :aria-label="t('account.profile.customerId') + ' · ' + t('account.profile.copy')" @tap="copyCode"><text class="profile-label">{{ t('account.profile.customerId') }}</text><text class="profile-value">{{ profile.dealerCode || t('account.profile.notProvided') }}</text></button>
-                <view class="profile-row"><text class="profile-label">{{ t('account.profile.grade') }}</text><text class="profile-value">{{ profile.grade || t('account.profile.notProvided') }}</text></view>
+                <view class="profile-row"><text class="profile-label">{{ t('account.profile.grade') }}</text><text class="profile-value">{{ gradeLabel }}</text></view>
               </view>
               <text v-if="profile.dealerCode" class="profile-caption">{{ t('account.profile.copyHint') }}</text>
             </view>
@@ -54,7 +54,7 @@
 <script setup>
 import { computed, reactive, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { t } from '@/shared/i18n/index.js'
+import { t, getLocale } from '@/shared/i18n/index.js'
 import '../../i18n/register.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -75,6 +75,8 @@ const loading = ref(false), loaded = ref(false), saving = ref(false)
 const loadError = ref(''), saveError = ref(''), validationKey = ref('')
 const editField = ref(''), editValue = ref('')
 const displayName = computed(() => profile.realName || profile.username || t('account.profile.notProvided'))
+/** 等级显示只取后端字典标签，英文缺失回退中文；切换语言不重发请求。 */
+const gradeLabel = computed(() => (getLocale() === 'en-US' ? profile.gradeNameEn || profile.gradeName : profile.gradeName) || t('account.profile.notProvided'))
 const editTitle = computed(() => t(editField.value === 'landlinePhone' ? 'account.profile.landline' : 'account.profile.accountName'))
 const editVisible = computed({ get: () => Boolean(editField.value), set: value => { if (!value) closeProfileEdit() } })
 const dirty = computed(() => draft.realName.trim() !== original.realName || draft.landlinePhone.trim() !== original.landlinePhone)

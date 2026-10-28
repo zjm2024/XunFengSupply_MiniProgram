@@ -51,9 +51,13 @@
                 </text>
                 <view class="price-row">
                   <AmountText class="price" :text="'¥' + (formatMoney(selectedSkuPrice))" />
-                  <AmountText v-if="selectedSkuListPrice > 0 && selectedSkuListPrice !== selectedSkuPrice" class="list-price" :text="' ¥' + (formatMoney(selectedSkuListPrice))" />
+                  <AmountText v-if="selectedPriceDisplay.showListPrice" class="list-price" :class="{ 'list-price--strike': selectedPriceDisplay.strikeListPrice }" :text="' ¥' + (formatMoney(selectedPriceDisplay.listPrice))" />
                   <text class="price-unit">/ {{ product.unit }}</text>
                 </view>
+                <button v-if="selectedSku" class="price-variant" @tap="openPurchaseSheet">
+                  <text>{{ t('commerce.product.currentVariant', { name: selectedSku.specName || selectedSku.skuCode || t('commerce.product.defaultVariant') }) }}</text>
+                  <AppIcon name="chevron-right" :size="13" />
+                </button>
                 <view class="facts">
                   <text>{{ t('commerce.product.minimum', { count: selectedMinOrderQty, unit: product.unit }) }}</text>
                   <text class="fact-dot">·</text>
@@ -206,6 +210,7 @@
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/commerce/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
+import { getPriceDisplay } from '@/shared/utils/priceDisplay.js'
 import { AppError, ErrorKind } from '@/shared/api/appError.js'
 import { computed, ref } from 'vue'
 import { onBackPress, onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app'
@@ -283,8 +288,8 @@ const selectedSku = computed(() => {
   return product.value.skus.find(sku => String(sku.skuId) === String(selectedSkuId.value)) || null
 })
 
-const selectedSkuPrice = computed(() => Number(selectedSku.value?.price || product.value?.price || 0))
-const selectedSkuListPrice = computed(() => Number(selectedSku.value?.listPrice || 0))
+const selectedSkuPrice = computed(() => Number(selectedSku.value?.price ?? product.value?.price ?? 0))
+const selectedPriceDisplay = computed(() => getPriceDisplay(selectedSku.value || {}))
 const selectedMinOrderQty = computed(() => Math.max(1, Number(selectedSku.value?.minOrderQty || product.value?.moq || 1)))
 const hasPurchasableSku = computed(() => Boolean(product.value?.skus?.some(sku => sku.canPurchase)))
 const detailImageStock = computed(() => {
@@ -619,8 +624,12 @@ function localError(messageKey) {
 
 .price-symbol { font-size: 16px; font-weight: 700; }
 .price { font-size: 30px; font-weight: 750; font-variant-numeric: tabular-nums; }
-.list-price { margin-left: 8px; color: var(--color-text-disabled); font-size: 13px; text-decoration: line-through; }
+.list-price { margin-left: 8px; color: var(--color-text-disabled); font-size: 13px; }
+.list-price--strike :deep(.amount-text__value) { text-decoration: line-through; }
 .price-unit { margin-left: 4px; color: var(--color-text-secondary); font-size: 12px; }
+.price-variant { display: flex; align-items: center; justify-content: flex-start; gap: 5px; width: auto; max-width: 100%; min-height: 32px; padding: 3px 0; margin: 0; color: var(--color-text-secondary); background: transparent; text-align: left; font-size: 12px; line-height: 18px; }
+.price-variant::after { border: 0; }
+.price-variant text { min-width: 0; overflow-wrap: anywhere; }
 
 .facts {
   display: flex;

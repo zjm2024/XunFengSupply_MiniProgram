@@ -95,6 +95,7 @@
                     <text class="sku-code">SKU：{{ sku.skuCode || '-' }}</text>
                     <view class="sku-price-row">
                       <AmountText class="sku-price" :text="'¥' + (formatMoney(sku.price))" />
+                      <AmountText v-if="getPriceDisplay(sku).showListPrice" class="sku-list-price" :class="{ 'sku-list-price--strike': getPriceDisplay(sku).strikeListPrice }" :text="'¥' + formatMoney(getPriceDisplay(sku).listPrice)" />
                       <text class="sku-moq">{{ t('commerce.variants.minimum', { count: sku.minOrderQty, unit: product.unit }) }}</text>
                     </view>
                   </view>
@@ -137,6 +138,7 @@
 
 <script setup>
 import { t } from '@/shared/i18n/index.js'
+import { getPriceDisplay } from '@/shared/utils/priceDisplay.js'
 import '@/subPackages/commerce/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { AppError, ErrorKind } from '@/shared/api/appError.js'
@@ -424,6 +426,8 @@ function localError(messageKey) {
 .sku-code { display: block; margin-top: 5px; overflow: hidden; color: var(--color-text-tertiary); font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .sku-price-row { margin-top: 7px; }
 .sku-price { color: var(--color-brand); font-size: 15px; font-weight: 700; }
+.sku-list-price { max-width: 100%; color: var(--color-text-secondary); font-size: 12px; }
+.sku-list-price--strike :deep(.amount-text__value) { text-decoration: line-through; }
 .sku-moq { color: var(--color-text-secondary); font-size: 11px; }
 .validation-message { padding: 11px 14px; border-radius: 9px; color: var(--danger-color, #B42318); background: #FFF1F1; font-size: 12px; line-height: 1.5; }
 

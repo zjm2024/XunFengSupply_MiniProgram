@@ -170,7 +170,7 @@
                             <text class="product-code">SKU：{{ item.code || item.skuId }}</text>
                             <view class="price-line">
                               <AmountText class="price" :text="'¥' + (formatMoney(item.price))" />
-                              <AmountText v-if="item.basePrice > item.price" class="list-price" :text="'¥' + (formatMoney(item.basePrice))" />
+                              <AmountText v-if="getPriceDisplay(item).showListPrice" class="list-price" :class="{ 'list-price--strike': getPriceDisplay(item).strikeListPrice }" :text="'¥' + formatMoney(item.listPrice)" />
                               <text class="unit">/ {{ unitText(item) }}</text>
                             </view>
                             <AmountText v-if="item.strategyDiscount > 0" class="strategy-discount" :text="t('commerce.cart.strategyAmount', { amount: formatMoney(item.strategyDiscount) })" />
@@ -299,6 +299,7 @@
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/commerce/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
+import { getPriceDisplay } from '@/shared/utils/priceDisplay.js'
 import { AppError, ErrorKind } from '@/shared/api/appError.js'
 import { computed, onBeforeUnmount, ref } from 'vue'
 import { onHide, onShow, onUnload } from '@dcloudio/uni-app'
@@ -1152,7 +1153,7 @@ function localError(messageKey) {
   font-weight: 400;
 }
 
-.list-price :deep(.amount-text__value) { text-decoration: line-through; }
+.list-price--strike :deep(.amount-text__value) { text-decoration: line-through; }
 
 .unit {
   margin-left: 3px;

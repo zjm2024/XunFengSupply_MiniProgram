@@ -8,6 +8,15 @@
   "close": "Close",
   "back": "Back",
   "tip": "Notice",
+  "productCard": {
+    "fallbackName": "Kumpoo products",
+    "fromPrice": "From {price}",
+    "stockUnknown": "Stock subject to availability",
+    "stockEmpty": "Out of stock",
+    "stockLow": "{count} {unit} left",
+    "stockAvailable": "In stock",
+    "minimum": "Min. {count} {unit}"
+  },
   "errors": {
     "cancelled": "The request was canceled.",
     "timeout": "The request timed out. Please try again later.",

@@ -129,7 +129,7 @@
                           </view>
                           <view class="product-amount">
                             <AmountText :text="'¥' + (formatMoney(item.totalAmount))" />
-                            <AmountText v-if="item.listPrice > item.salePrice" class="list-price" :text="' ¥' + (formatMoney(item.listPrice * item.quantity))" />
+                            <AmountText v-if="getPriceDisplay(item).showListPrice" class="list-price" :class="{ 'list-price--strike': getPriceDisplay(item).strikeListPrice }" :text="' ¥' + formatMoney(item.listPrice * item.quantity)" />
                           </view>
                         </view>
                       </view>
@@ -303,6 +303,7 @@
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/commerce/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
+import { getPriceDisplay } from '@/shared/utils/priceDisplay.js'
 import { AppError, ErrorKind } from '@/shared/api/appError.js'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
@@ -372,9 +373,9 @@ const displayItems = computed(() => {
   return checkoutItems.value.map(item => ({
     ...item,
     name: item.name || '商品',
-    basePrice: number(item.basePrice || item.price),
+    basePrice: number(item.basePrice ?? item.price),
     salePrice: number(item.price),
-    listPrice: number(item.listPrice || item.basePrice || item.price),
+    listPrice: number(item.listPrice),
     priceSource: item.priceSource || 'BASE',
     strategyDiscount: number(item.strategyDiscount),
     totalAmount: number(item.price) * number(item.quantity),
@@ -514,7 +515,7 @@ function normalizePreview(raw = {}) {
     const listPrice = number(valueOf(source, 'listPrice', 'ListPrice'), salePrice)
     const priceSource = valueOf(source, 'priceSource', 'PriceSource', cartItem.priceSource || 'BASE')
     const quantity = Math.max(1, number(valueOf(source, 'quantity', 'Quantity'), cartItem.quantity || 1))
-    const strategyDiscount = basePrice > salePrice ? Math.round((basePrice - salePrice) * quantity * 100) / 100 : 0
+    const strategyDiscount = Math.round(getPriceDisplay({ listPrice, salePrice, priceSource }).strategyDiscount * quantity * 100) / 100
     const promotionDiscount = number(valueOf(source, 'promotionDiscountAmount', 'PromotionDiscountAmount'), 0)
     const availableStock = number(
       valueOf(source, 'availableStock', 'AvailableStock'),
@@ -1211,8 +1212,8 @@ function copyDisplayError(source, fallbackKey) {
   color: var(--color-text-tertiary, #94969C);
   font-size: 11px;
   font-weight: 400;
-  text-decoration: line-through;
 }
+.list-price--strike :deep(.amount-text__value) { text-decoration: line-through; }
 
 .stock-risk {
   margin-top: 5px;

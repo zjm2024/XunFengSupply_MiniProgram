@@ -10,6 +10,7 @@
  * - 调用方（调度器、页面）不得构造 PascalCase DTO
  */
 import { dispatch } from '../../../shared/api/dispatchClient.js'
+import { getPriceDisplay } from '@/shared/utils/priceDisplay.js'
 import { AppError, ErrorKind } from '@/shared/api/appError.js'
 
 // ==================== JSDoc 类型定义 ====================
@@ -98,8 +99,9 @@ function normalizeCartItem(item = {}) {
   const quantity = Math.max(0, number(item.quantity ?? item.Quantity))
   const selected = item.isSelected ?? item.IsSelected ?? item.selected ?? item.is_selected
   const basePrice = number(item.basePrice ?? item.BasePrice ?? item.base_price, price)
+  const listPrice = number(item.listPrice ?? item.ListPrice ?? item.list_price)
   const priceSource = item.priceSource ?? item.PriceSource ?? item.price_source ?? "BASE"
-  const strategyDiscount = number(item.strategyDiscountAmount ?? item.StrategyDiscountAmount ?? item.strategy_discount_amount, basePrice > price ? Math.round((basePrice - price) * quantity * 100) / 100 : 0)
+  const strategyDiscount = number(item.strategyDiscountAmount ?? item.StrategyDiscountAmount ?? item.strategy_discount_amount, Math.round(getPriceDisplay({ price, listPrice, priceSource, priceRuleId: item.priceRuleId ?? item.PriceRuleId }).strategyDiscount * quantity * 100) / 100)
   return {
     cartItemId: item.cartItemId ?? item.CartItemId ?? item.cart_id ?? item.id,
     productId: item.productId ?? item.ProductId ?? item.product_id,
@@ -111,6 +113,7 @@ function normalizeCartItem(item = {}) {
     unit: item.unit ?? item.Unit ?? '件',
     price,
     basePrice,
+    listPrice,
     priceSource,
     priceRuleId: item.priceRuleId ?? item.PriceRuleId ?? item.price_rule_id ?? null,
     priceRuleVersion: item.priceRuleVersion ?? item.PriceRuleVersion ?? item.price_rule_version ?? null,

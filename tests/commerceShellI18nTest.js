@@ -69,6 +69,7 @@ async function open(relative, supplied = {}, props = {}) {
     if (id.includes('config/routes')) return { routes }
     if (id.includes('cartGrouping')) return import('@/subPackages/commerce/model/cartGrouping.js')
     if (id.includes('utils/format')) return import('@/shared/utils/format.js')
+    if (id.includes('utils/priceDisplay.js')) return import('@/shared/utils/priceDisplay.js')
     if (id.includes('refreshAnimation')) return { waitForRefreshAnimation: vi.fn() }
     if (id.includes('/api/')) return api
     return { default: { render: () => null } }

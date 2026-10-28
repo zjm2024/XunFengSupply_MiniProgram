@@ -3,7 +3,10 @@ import { dispatch } from '@/shared/api/dispatchClient.js'
 /** 仅投影真实账号资料，兼容后端字段大小写。 */
 export function normalizeAccountProfile(data = {}) {
   const field = name => data[name] ?? data[name[0].toUpperCase() + name.slice(1)]
-  return Object.fromEntries(['customerId', 'username', 'dealerCode', 'erpCustomerCode', 'realName', 'companyName', 'contactName', 'mobile', 'landlinePhone', 'email', 'grade', 'isMaster', 'createdAt'].map(name => [name, field(name) ?? '']))
+  const profile = Object.fromEntries(['customerId', 'username', 'dealerCode', 'erpCustomerCode', 'realName', 'companyName', 'contactName', 'mobile', 'landlinePhone', 'email', 'gradeName', 'gradeNameEn', 'isMaster', 'createdAt'].map(name => [name, field(name) ?? '']))
+  const grade = field('grade')
+  profile.grade = Number.isInteger(grade) && grade >= 1 && grade <= 3 ? grade : null
+  return profile
 }
 /** 读取当前账号与所属经销商资料，身份由后端确定。 */
 export async function getAccountProfile() {

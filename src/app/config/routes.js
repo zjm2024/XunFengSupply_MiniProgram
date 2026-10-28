@@ -676,7 +676,7 @@ export const routes = {
       return withQuery(DEALER_INVENTORY_DETAIL, { skuId: id })
     },
     security: () => SECURITY,
-    recharge: () => RECHARGE,
+    recharge: ({ orderId, amount, channel, fundAccountCode } = {}) => withQuery(RECHARGE, { orderId, amount, channel, fundAccountCode }),
     rechargeRecords: () => RECHARGE_RECORDS,
     fundFlow: () => FUND_FLOW,
     creditFlow: () => CREDIT_FLOW,

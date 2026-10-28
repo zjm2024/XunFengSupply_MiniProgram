@@ -623,7 +623,14 @@
     "createFailed": "Unable to create the {channel} top-up. Please try again later.",
     "requested": "A payment request was sent to {channel}. Check top-up history for crediting progress.",
     "qrTitle": "WeChat scan to pay",
-    "qrHint": "Scan this QR code with WeChat. After payment, check top-up history for the credited status.",
+    "qrHint": "Scan with WeChat. After paying, tap below to check your top-up.",
+    "successTitle": "Top-up successful",
+    "closedTitle": "Payment not completed",
+    "closedHint": "This top-up was closed or failed. Check your top-up history. Start a new top-up to try again.",
+    "checkPaid": "I've paid — check result",
+    "checking": "Checking payment…",
+    "stillPending": "Not credited yet. Check again shortly. Do not pay twice.",
+    "checkFailed": "Unable to check the result. Please try again later.",
     "qrNumber": "Top-up {number}",
     "qrCopyLink": "Copy payment link",
     "qrCopied": "Payment link copied",
@@ -633,7 +640,10 @@
     "startFailed": "Unable to start {channel}. Please try again later.",
     "totalAmount": "Total ¥{amount}",
     "usedAmount": "Used ¥{amount}",
-    "frozenAmount": "Frozen ¥{amount}"
+    "frozenAmount": "Frozen ¥{amount}",
+    "orderTopUp": "Top up for this order",
+    "orderTopUpHint": "Funds go to your balance first. Once credited, return to the order and confirm payment.",
+    "continueOrder": "Continue to checkout"
   },
   "rechargeRecords": {
     "filters": {

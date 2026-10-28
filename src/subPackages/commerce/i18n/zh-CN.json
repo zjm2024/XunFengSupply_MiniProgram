@@ -22,6 +22,7 @@
     "collapse": "收起规格",
     "delete": "删除",
     "defaultVariant": "默认规格",
+    "currentVariant": "当前规格：{name}",
     "summary": "采购汇总",
     "summaryHint": "仅结算当前勾选商品",
     "selectedItems": "已选商品",

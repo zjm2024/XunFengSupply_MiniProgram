@@ -16,12 +16,15 @@
     </view>
 
     <view class="app-product-card__body">
-      <text class="app-product-card__name">{{ product.name || '薰风精选商品' }}</text>
+      <text class="app-product-card__name">{{ product.name || t('common.productCard.fallbackName') }}</text>
       <text v-if="showCode && product.code" class="app-product-card__code">{{ product.code }}</text>
 
       <view class="app-product-card__price-row">
-        <AmountText class="app-product-card__price" :text="'¥' + (formattedPrice)" />
-        <text v-if="variant !== 'compact' && unitText" class="app-product-card__unit">/{{ unitText }}</text>
+        <view class="app-product-card__current-price">
+          <AmountText class="app-product-card__price" :text="product.hasPriceRange ? t('common.productCard.fromPrice', { price: '¥' + formattedPrice }) : '¥' + formattedPrice" />
+          <text v-if="variant !== 'compact' && unitText" class="app-product-card__unit">/{{ unitText }}</text>
+        </view>
+        <AmountText v-if="priceDisplay.showListPrice" class="app-product-card__list-price" :class="{ 'app-product-card__list-price--strike': priceDisplay.strikeListPrice }" :text="'¥' + priceDisplay.listPrice.toFixed(2)" />
       </view>
 
       <text
@@ -29,7 +32,7 @@
         class="app-product-card__stock"
         :class="`app-product-card__stock--${stockState}`"
       >
-        {{ stockText }}<text v-if="minimumOrder > 0 && unitText"> · {{ minimumOrder }}{{ unitText }}起订</text>
+        {{ stockText }}<text v-if="minimumOrder > 0 && unitText"> · {{ t('common.productCard.minimum', { count: minimumOrder, unit: unitText }) }}</text>
       </text>
     </view>
   </view>
@@ -38,6 +41,8 @@
 <script setup>
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed } from 'vue'
+import { t } from '@/shared/i18n/index.js'
+import { getPriceDisplay } from '@/shared/utils/priceDisplay.js'
 import AppProductImage from '../AppProductImage/AppProductImage.vue'
 
 const props = defineProps({
@@ -65,6 +70,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['click'])
+const priceDisplay = computed(() => getPriceDisplay(props.product))
 
 const formattedPrice = computed(() => {
   const price = Number(props.product.price)
@@ -90,10 +96,10 @@ const stockState = computed(() => {
   return 'normal'
 })
 const stockText = computed(() => {
-  if (!hasKnownStock.value) return '库存以实际为准'
-  if (stock.value <= 0) return '暂无库存'
-  if (stock.value < 50) return unitText.value ? `仅剩 ${stock.value} ${unitText.value}` : `仅剩 ${stock.value}`
-  return '库存充足'
+  if (!hasKnownStock.value) return t('common.productCard.stockUnknown')
+  if (stock.value <= 0) return t('common.productCard.stockEmpty')
+  if (stock.value < 50) return t('common.productCard.stockLow', { count: stock.value, unit: unitText.value }).trim()
+  return t('common.productCard.stockAvailable')
 })
 </script>
 
@@ -359,6 +365,9 @@ const stockText = computed(() => {
 }
 
 /* 金额按实际可用宽度缩字，父布局允许收缩。 */
-.app-product-card__price-row { min-width: 0; flex-wrap: nowrap; }
+.app-product-card__price-row { min-width: 0; flex-wrap: wrap; column-gap: 7px; row-gap: 2px; }
+.app-product-card__current-price { display: flex; align-items: baseline; min-width: 0; max-width: 100%; }
+.app-product-card__list-price { max-width: 100%; color: var(--color-text-secondary, #7d8188); font-size: 11px; line-height: 18px; }
+.app-product-card__list-price--strike :deep(.amount-text__value) { text-decoration: line-through; }
 .app-product-card__unit { flex: none; }
 </style>

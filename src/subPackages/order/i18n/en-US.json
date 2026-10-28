@@ -44,8 +44,22 @@
     "all": "All"
   },
   "detail": {
-    "progressSteps": { "submitted": "Order placed", "paid": "Payment completed", "shipped": "Shipped", "completed": "Order completed" },
-    "timeline": { "submitted": "Order placed", "confirmed": "Order confirmed", "paid": "Payment completed", "paidDescription": "Payment details confirmed", "stockConfirmed": "Products confirmed", "shipped": "Products shipped", "completed": "Order completed", "cancelled": "Order cancelled" },
+    "progressSteps": {
+      "submitted": "Order placed",
+      "paid": "Payment completed",
+      "shipped": "Shipped",
+      "completed": "Order completed"
+    },
+    "timeline": {
+      "submitted": "Order placed",
+      "confirmed": "Order confirmed",
+      "paid": "Payment completed",
+      "paidDescription": "Payment details confirmed",
+      "stockConfirmed": "Products confirmed",
+      "shipped": "Products shipped",
+      "completed": "Order completed",
+      "cancelled": "Order cancelled"
+    },
     "statusUnavailable": "Status unavailable",
     "statusUnavailableDescription": "Status information is unavailable. Refresh later or contact support.",
     "logisticsFallback": "In transit",
@@ -53,7 +67,12 @@
     "accountPayment": "Account balance payment",
     "paymentMethodPending": "Payment method not selected",
     "paymentIncomplete": "Payment incomplete",
-    "paymentModes": { "cash": "Cash payment", "credit": "Credit payment", "combination": "Combined account payment", "unknown": "Unknown payment method" },
+    "paymentModes": {
+      "cash": "Cash payment",
+      "credit": "Credit payment",
+      "combination": "Combined account payment",
+      "unknown": "Unknown payment method"
+    },
     "title": "Order details",
     "trackingNo": "Tracking no.",
     "productInfo": "Products",
@@ -122,20 +141,20 @@
     "chooseMethod": "Choose a payment method",
     "methodEffective": "The selected method applies only to this checkout.",
     "onlineChannel": "Online payment channel",
-    "channelTip": "Choose a payment method. It can be used here after the channel is enabled.",
+    "channelTip": "Choose a channel to continue to top-up.",
     "creditAccount": "Credit account",
     "creditAmountLabel": "Credit used for this order",
     "availableCredit": "Available credit",
     "remainingCredit": "Credit remaining after payment",
     "creditTip": "The credit amount will be added to this month's bill. Please repay it by the 5th of each month.",
-    "cashUnavailableNotice": "This order does not support online payment yet. Please contact your account manager.",
+    "cashUnavailableNotice": "Top up first, then confirm payment from your balance. A top-up alone does not pay the order.",
     "balanceAllocation": "Balance allocation",
     "masterAccount": "Master account",
     "availableBalance": "Available ¥{amount}",
     "allocated": "Allocated ¥{amount}",
     "payable": "Due ¥{amount}",
-    "cash": "Cash payment",
-    "cashDescription": "This method is not available yet",
+    "cash": "Top up & pay",
+    "cashDescription": "Top up your balance, then confirm order payment",
     "credit": "Credit payment",
     "creditDescription": "Settle through the dealer's credit line and create an accounts receivable bill",
     "balance": "Account balance",
@@ -164,7 +183,9 @@
     "totalMismatch": "The account allocation total must equal the amount due",
     "cashIntegration": "Cash payment integration is not ready for production",
     "failed": "Payment failed",
-    "paid": "Payment successful"
+    "paid": "Payment successful",
+    "wechatNative": "WeChat QR pay",
+    "wechatNativeDescription": "Scan a QR code with WeChat to top up"
   },
   "cancel": {
     "orderNo": "Order no.: ",

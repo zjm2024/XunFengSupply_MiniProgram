@@ -37,18 +37,19 @@ async function open(relative, supplied = {}) {
     getCreditUsageList: vi.fn(async () => ({ items: [], totalCount: 0 })),
     getBillList: vi.fn(async () => ({ items: [], totalCount: 0 })), getBillDetail: vi.fn(async () => ({})),
     getRechargeList: vi.fn(async () => ({ items: [], totalCount: 0 })), payBill: vi.fn(),
-    getDealerFinanceContext: vi.fn(async () => context), createAppRecharge: vi.fn(), createNativeRecharge: vi.fn(), ...supplied.api,
+    getDealerFinanceContext: vi.fn(async () => context), createAppRecharge: vi.fn(), createNativeRecharge: vi.fn(),
+    getRechargeStatus: vi.fn(async rechargeNo => ({ rechargeNo, status: 0 })), ...supplied.api,
   }
   const hooks = {}, user = vue.reactive({ financeContext: context, updateFinanceContext: vi.fn(),
     hasPermission: vi.fn(() => true) })
-  const navigator = { navigateTo: vi.fn(), back: vi.fn() }
-  const routes = { order: { detail: id => '/order/' + id, list: params => params },
+  const navigator = { navigateTo: vi.fn(), redirectTo: vi.fn(), back: vi.fn() }
+  const routes = { order: { detail: id => '/order/' + id, pay: id => '/pay/' + id, list: params => params },
     account: { inventoryDetail: id => '/inventory/' + id, billDetail: id => '/bill/' + id,
       fundFlow: () => '/fund-flow', creditFlow: () => '/credit-flow', rechargeRecords: () => '/records' },
     content: { help: () => '/help' } }
   const page = await loadPageSetup('subPackages/account/pages/' + relative, async id => {
     if (id === 'vue') return vue
-    if (id === '@dcloudio/uni-app') return { onLoad: fn => { hooks.load = fn }, onShow: fn => { hooks.show = fn } }
+    if (id === '@dcloudio/uni-app') return { onLoad: fn => { hooks.load = fn }, onShow: fn => { hooks.show = fn }, onHide: fn => { hooks.hide = fn }, onUnload: fn => { hooks.unload = fn } }
     if (id.includes('i18n/index')) return i18n
     if (id.includes('/useAppDialog.js')) return dialogHarness()
     if (id.includes('pageState')) return import('@/shared/model/pageState.js')
@@ -336,6 +337,36 @@ describe('库存与财务页面显示语言边界', () => {
 })
 
 describe('充值语言切换与原生支付边界', () => {
+  it('订单充值保存上下文、隔离普通充值幂等键，到账后需主动返回收银台', async () => {
+    const { v, api, hooks, navigator } = await open('recharge/index.vue', {
+      api: { createNativeRecharge: vi.fn(async () => ({ rechargeNo: 'RC-ORDER', status: 2 })) },
+    })
+    uni.setStorageSync('finance:pending-app-recharge', { clientRequestId: 'ordinary', amount: '12.50', createdAt: Date.now() })
+    hooks.load({ orderId: '88', amount: '12.50', channel: 'wechat_native', fundAccountCode: 'FA-ORDER' })
+    v.restorePendingRequest()
+    expect(v.pendingClientRequestId.value).toBe('')
+    await v.startRecharge()
+    expect(api.createNativeRecharge).toHaveBeenCalledWith(expect.objectContaining({ amount: 12.5, fundAccountCode: 'FA-ORDER' }))
+    expect(api.createNativeRecharge.mock.calls[0][0]).not.toHaveProperty('orderId')
+    expect(uni.getStorageSync('finance:pending-app-recharge').clientRequestId).toBe('ordinary')
+    expect(navigator.redirectTo).not.toHaveBeenCalled()
+    expect(uni.requestPayment).not.toHaveBeenCalled()
+    expect(v.confirmedRechargeNo.value).toBe('RC-ORDER')
+    v.continueOrderPayment()
+    expect(navigator.redirectTo).toHaveBeenCalledWith('/pay/88')
+  })
+
+  it('不同订单即使金额与渠道相同也不能复用充值幂等键', async () => {
+    const { v, hooks } = await open('recharge/index.vue')
+    hooks.load({ orderId: '88' })
+    const first = v.ensureClientRequestId('12.50', 'wechat_native')
+    hooks.load({ orderId: '99' })
+    const next = v.ensureClientRequestId('12.50', 'wechat_native')
+    expect(first).not.toBe(next)
+    expect(uni.getStorageSync('finance:pending-app-recharge:order:88').clientRequestId).toBe(first)
+    expect(uni.getStorageSync('finance:pending-app-recharge:order:99').clientRequestId).toBe(next)
+  })
+
   it('渠道名称响应式更新，渠道代码、provider、金额、能力和幂等上下文不变', async () => {
     const { v, api } = await open('recharge/index.vue')
     readyRecharge(v)
@@ -422,6 +453,145 @@ describe('充值语言切换与原生支付边界', () => {
     expect(v.nativeQrVisible.value).toBe(false)
   })
 
+  it('扫码到账单次查询合并在途请求，成功后二维码变结果，不重复充值或本地增加金额', async () => {
+    let complete
+    const { v, api } = await open('recharge/index.vue', { api: {
+      createNativeRecharge: vi.fn(async () => ({ status: 0, rechargeNo: 'RC-SUCCESS', codeUrl: 'weixin://wxpay/bizpayurl?pr=test' })),
+      getRechargeStatus: vi.fn(() => new Promise(resolve => { complete = resolve })),
+    } })
+    readyRecharge(v, 'wechat_native')
+    await v.startRecharge()
+    const first = v.checkRechargeResult()
+    expect(v.checkRechargeResult()).toBe(first)
+    expect(api.getRechargeStatus).toHaveBeenCalledTimes(1)
+    i18n.setLocale('en')
+    complete({ rechargeNo: 'RC-SUCCESS', status: 2 })
+    await first
+    expect(v.nativeQrStatus.value).toBe(2)
+    expect(v.nativeQrVisible.value).toBe(true)
+    expect(v.nativeQrMatrix.value).toEqual([])
+    expect(v.nativeQrLink.value).toBe('')
+    expect(v.pendingClientRequestId.value).toBe('')
+    expect(v.finance.value.currentAccount.availableBalance).toBe(200)
+    expect(uni.showToast).toHaveBeenCalledWith({ title: 'Top-up successful', icon: 'success' })
+    await v.checkRechargeResult()
+    expect(api.getRechargeStatus).toHaveBeenCalledTimes(1)
+    expect(api.createNativeRecharge).toHaveBeenCalledTimes(1)
+    expect(uni.requestPayment).not.toHaveBeenCalled()
+  })
+
+  it.each([false, true])('SDK成功和前台补查先后顺序 %s 都只确认一次，不回退确认中', async confirmedBeforeSdk => {
+    const payload = { appid: 'a', partnerid: 'p', prepayid: 'pre', package: 'pkg', noncestr: 'n', timestamp: 't', sign: 's' }
+    const { v, api } = await open('recharge/index.vue', { api: {
+      createAppRecharge: vi.fn(async () => ({ status: 0, rechargeNo: 'RC-SDK', clientPayload: payload })),
+      getRechargeStatus: vi.fn(async () => ({ rechargeNo: 'RC-SDK', status: 2 })),
+    } })
+    readyRecharge(v)
+    const pending = v.startRecharge()
+    await vi.waitFor(() => expect(uni.requestPayment).toHaveBeenCalledTimes(1))
+    if (confirmedBeforeSdk) await v.checkRechargeResult({ silent: true })
+    uni.requestPayment.mock.lastCall[0].success({})
+    await pending
+    expect(api.getRechargeStatus).toHaveBeenCalledWith('RC-SDK')
+    expect(api.getRechargeStatus).toHaveBeenCalledTimes(1)
+    expect(api.createAppRecharge).toHaveBeenCalledTimes(1)
+    expect(uni.showModal).not.toHaveBeenCalled()
+    expect(uni.showToast).toHaveBeenCalledWith({ title: i18n.t('account.recharge.successTitle'), icon: 'success' })
+  })
+
+  it('回到前台恢复原单号并只查一次，查到成功不重建充值', async () => {
+    const { v, hooks, api } = await open('recharge/index.vue', { api: {
+      getRechargeStatus: vi.fn(async () => ({ rechargeNo: 'RC-RESUME', status: 2 })),
+    } })
+    uni.getStorageSync.mockReturnValue({ clientRequestId: 'original-key', rechargeNo: 'RC-RESUME',
+      amount: '100', channel: 'wechat_native', createdAt: Date.now() })
+    hooks.show()
+    await vi.waitFor(() => expect(v.pendingClientRequestId.value).toBe(''))
+    expect(api.getRechargeStatus).toHaveBeenCalledWith('RC-RESUME')
+    expect(api.getRechargeStatus).toHaveBeenCalledTimes(1)
+    expect(api.createNativeRecharge).not.toHaveBeenCalled()
+    expect(api.createAppRecharge).not.toHaveBeenCalled()
+    expect(uni.requestPayment).not.toHaveBeenCalled()
+    expect(uni.showToast).toHaveBeenCalledWith({ title: i18n.t('account.recharge.successTitle'), icon: 'success' })
+  })
+
+  it('页面隐藏期间确认成功，返回前台后补显示一次成功提示，不重复查询或充值', async () => {
+    let complete
+    const { v, hooks, api } = await open('recharge/index.vue', { api: {
+      createNativeRecharge: vi.fn(async () => ({ status: 0, rechargeNo: 'RC-HIDDEN', codeUrl: 'weixin://wxpay/bizpayurl?pr=test' })),
+      getRechargeStatus: vi.fn(() => new Promise(resolve => { complete = resolve })),
+    } })
+    readyRecharge(v, 'wechat_native')
+    await v.startRecharge()
+    const pending = v.checkRechargeResult()
+    hooks.hide()
+    complete({ rechargeNo: 'RC-HIDDEN', status: 2 })
+    await pending
+    expect(uni.showToast).not.toHaveBeenCalledWith(expect.objectContaining({ icon: 'success' }))
+    i18n.setLocale('en')
+    hooks.show()
+    hooks.show()
+    expect(uni.showToast).toHaveBeenCalledTimes(1)
+    expect(uni.showToast).toHaveBeenCalledWith({ title: 'Top-up successful', icon: 'success' })
+    expect(api.getRechargeStatus).toHaveBeenCalledTimes(1)
+    expect(api.createNativeRecharge).toHaveBeenCalledTimes(1)
+    expect(v.nativeQrStatus.value).toBe(2)
+  })
+
+  it.each([0, 1, 5])('扫码状态 %s 保留二维码和原请求，不报成功也不启动持续轮询', async status => {
+    const { v, api } = await open('recharge/index.vue', { api: {
+      createNativeRecharge: vi.fn(async () => ({ status: 0, rechargeNo: 'RC-PENDING', codeUrl: 'weixin://wxpay/bizpayurl?pr=test' })),
+      getRechargeStatus: vi.fn(async () => ({ rechargeNo: 'RC-PENDING', status })),
+    } })
+    readyRecharge(v, 'wechat_native')
+    await v.startRecharge()
+    const id = v.pendingClientRequestId.value
+    await v.checkRechargeResult()
+    expect(v.nativeQrMatrix.value.length).toBeGreaterThan(0)
+    expect(v.pendingClientRequestId.value).toBe(id)
+    expect(v.nativeQrStatus.value).toBe(0)
+    expect(uni.showToast).toHaveBeenCalledWith({ title: i18n.t('account.recharge.stillPending'), icon: 'none' })
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(api.getRechargeStatus).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([3, 4])('扫码终态 %s 移除二维码并释放当前充值上下文，不显示成功', async status => {
+    const { v } = await open('recharge/index.vue', { api: {
+      createNativeRecharge: vi.fn(async () => ({ status: 0, rechargeNo: 'RC-CLOSED', codeUrl: 'weixin://wxpay/bizpayurl?pr=test' })),
+      getRechargeStatus: vi.fn(async () => ({ rechargeNo: 'RC-CLOSED', status })),
+    } })
+    readyRecharge(v, 'wechat_native')
+    await v.startRecharge()
+    await v.checkRechargeResult()
+    expect(v.nativeQrStatus.value).toBe(status)
+    expect(v.nativeQrMatrix.value).toEqual([])
+    expect(v.pendingClientRequestId.value).toBe('')
+    expect(uni.showToast).not.toHaveBeenCalledWith(expect.objectContaining({ icon: 'success' }))
+  })
+
+  it('查询网络失败保留原支付上下文，旧单查询返回不覆盖后来新建的充值', async () => {
+    let complete
+    const { v, api } = await open('recharge/index.vue', { api: {
+      createNativeRecharge: vi.fn(async () => ({ status: 0, rechargeNo: 'RC-OLD', codeUrl: 'weixin://wxpay/bizpayurl?pr=test' })),
+      getRechargeStatus: vi.fn().mockRejectedValueOnce(new Error('network'))
+        .mockImplementationOnce(() => new Promise(resolve => { complete = resolve })),
+    } })
+    readyRecharge(v, 'wechat_native')
+    await v.startRecharge()
+    const id = v.pendingClientRequestId.value
+    await v.checkRechargeResult()
+    expect(v.pendingClientRequestId.value).toBe(id)
+    expect(v.nativeQrMatrix.value.length).toBeGreaterThan(0)
+    const pending = v.checkRechargeResult()
+    v.pendingRechargeNo.value = 'RC-NEW'
+    complete({ rechargeNo: 'RC-OLD', status: 2 })
+    await pending
+    expect(v.pendingRechargeNo.value).toBe('RC-NEW')
+    expect(v.pendingClientRequestId.value).toBe(id)
+    expect(uni.showToast).not.toHaveBeenCalledWith(expect.objectContaining({ icon: 'success' }))
+    expect(api.createNativeRecharge).toHaveBeenCalledTimes(1)
+  })
+
   it.each(['0', '-1', '1.234', 'abc'])('无效充值金额 %s 不创建订单或调用原生支付', async amount => {
     const { v, api } = await open('recharge/index.vue')
     readyRecharge(v)
@@ -472,7 +642,8 @@ describe('充值语言切换与原生支付边界', () => {
     expect(uni.requestPayment).not.toHaveBeenCalled()
     expect(v.pendingClientRequestId.value).toBe('')
     expect(v.finance.value.currentAccount.availableBalance).toBe(200)
-    expect(uni.showModal.mock.lastCall[0].content).toContain('has been credited')
+    expect(uni.showModal).not.toHaveBeenCalled()
+    expect(uni.showToast).toHaveBeenCalledWith({ title: 'Top-up successful', icon: 'success' })
   })
 
   it('失败响应保留后端原 message，缺失 SDK 参数仍按原边界拒绝支付', async () => {

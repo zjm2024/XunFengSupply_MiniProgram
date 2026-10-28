@@ -44,8 +44,22 @@
     "all": "全部"
   },
   "detail": {
-    "progressSteps": { "submitted": "提交订单", "paid": "完成付款", "shipped": "商家发货", "completed": "交易完成" },
-    "timeline": { "submitted": "订单已提交", "confirmed": "订单已确认", "paid": "付款已完成", "paidDescription": "付款信息已确认", "stockConfirmed": "商品已确认", "shipped": "商品已发出", "completed": "订单已完成", "cancelled": "订单已取消" },
+    "progressSteps": {
+      "submitted": "提交订单",
+      "paid": "完成付款",
+      "shipped": "商家发货",
+      "completed": "交易完成"
+    },
+    "timeline": {
+      "submitted": "订单已提交",
+      "confirmed": "订单已确认",
+      "paid": "付款已完成",
+      "paidDescription": "付款信息已确认",
+      "stockConfirmed": "商品已确认",
+      "shipped": "商品已发出",
+      "completed": "订单已完成",
+      "cancelled": "订单已取消"
+    },
     "statusUnavailable": "状态暂不可用",
     "statusUnavailableDescription": "状态信息暂不可用，请稍后刷新或联系客服。",
     "logisticsFallback": "物流运输中",
@@ -53,7 +67,12 @@
     "accountPayment": "账户本金支付",
     "paymentMethodPending": "待选择支付方式",
     "paymentIncomplete": "未完成支付",
-    "paymentModes": { "cash": "现款支付", "credit": "授信支付", "combination": "账户组合支付", "unknown": "未知方式" },
+    "paymentModes": {
+      "cash": "现款支付",
+      "credit": "授信支付",
+      "combination": "账户组合支付",
+      "unknown": "未知方式"
+    },
     "title": "订单详情",
     "trackingNo": "运单号",
     "productInfo": "商品信息",
@@ -122,20 +141,20 @@
     "chooseMethod": "选择支付方式",
     "methodEffective": "支付方式仅在本次收银台确认时生效",
     "onlineChannel": "在线支付通道",
-    "channelTip": "请选择常用支付方式；通道开通后可在此直接支付",
+    "channelTip": "选择充值渠道，进入充值中心完成到账。",
     "creditAccount": "授信账户",
     "creditAmountLabel": "本次赊账",
     "availableCredit": "当前可用额度",
     "remainingCredit": "赊账后剩余额度",
     "creditTip": "赊账金额将计入本月账单，请于每月5日前完成还款",
-    "cashUnavailableNotice": "当前订单暂不支持在线付款，请联系客户经理处理。",
+    "cashUnavailableNotice": "先充值到账，再确认订单付款。充值成功不会自动将订单标记为已支付。",
     "balanceAllocation": "账户余额分摊",
     "masterAccount": "主账户",
     "availableBalance": "可用 ¥{amount}",
     "allocated": "已分配 ¥{amount}",
     "payable": "应付 ¥{amount}",
-    "cash": "现款支付",
-    "cashDescription": "该支付方式暂未开放",
+    "cash": "在线充值后付款",
+    "cashDescription": "充值到账后，再使用余额确认订单付款",
     "credit": "授信支付",
     "creditDescription": "使用经销商主体授信结算，生成应收账单",
     "balance": "账户余额支付",
@@ -164,7 +183,9 @@
     "totalMismatch": "账户分摊合计必须等于订单应付金额",
     "cashIntegration": "现款支付渠道尚未完成生产联调",
     "failed": "支付失败",
-    "paid": "支付成功"
+    "paid": "支付成功",
+    "wechatNative": "微信扫码支付",
+    "wechatNativeDescription": "生成二维码，使用微信扫码充值"
   },
   "cancel": {
     "orderNo": "订单编号：",

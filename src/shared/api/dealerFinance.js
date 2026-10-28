@@ -139,6 +139,20 @@ export async function createNativeRecharge(params = {}) {
   }
 }
 
+/** 只读查询当前登录经销商的本地充值结果；不预支付、不触发支付机构查单。 */
+export async function getRechargeStatus(rechargeNo) {
+  const result = await dispatch('Finance', 'Mini.DealerFinanceController', 'GetRechargeStatus', {
+    RechargeNo: String(rechargeNo || ''),
+  })
+  return {
+    rechargeNo: String(result?.rechargeNo ?? result?.RechargeNo ?? ''),
+    status: Number(result?.status ?? result?.Status ?? 0),
+    amount: Number(result?.amount ?? result?.Amount ?? 0),
+    completedAtUtc: result?.completedAtUtc ?? result?.CompletedAtUtc ?? null,
+    failureCode: result?.failureCode ?? result?.FailureCode ?? null,
+  }
+}
+
 export function confirmDealerOrderPayment(params = {}) {
   return dispatch('Finance', 'Mini.DealerFinanceController', 'ConfirmOrderPayment', {
     OrderId: Number(params.orderId || 0),

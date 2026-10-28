@@ -62,6 +62,9 @@ function normalizeSku(item, product) {
     price: number(firstDefined(item, ['currentPrice', 'price', 'salePrice'], product.price)),
     listPrice: number(firstDefined(item, ['listPrice', 'standardPrice'])),
     basePrice: number(firstDefined(item, ['basePrice', 'base_price'])),
+    priceSource: firstDefined(item, ['priceSource', 'PriceSource'], 'BASE'),
+    priceRuleId: firstDefined(item, ['priceRuleId', 'PriceRuleId'], null),
+    matchedScope: firstDefined(item, ['matchedScope', 'MatchedScope'], null),
     stock,
     stockKnown,
     minOrderQty,
@@ -122,6 +125,8 @@ export function normalizeProduct(item = {}, extra = {}) {
   const prices = Array.isArray(item?.prices) ? item.prices : []
   const currentPrice = firstDefined(item, ['currentPrice'], firstDefined(source, ['currentPrice', 'minCurrentPrice', 'basePrice', 'price'], 0))
   const priceRule = prices.find(rule => number(rule.price) === number(currentPrice)) || prices[0]
+  const minPrice = firstDefined(source, ['minCurrentPrice', 'MinCurrentPrice'], null)
+  const maxPrice = firstDefined(source, ['maxCurrentPrice', 'MaxCurrentPrice'], null)
   const images = normalizeImages(source)
   const rawProductStock = firstDefined(source, ['totalEffectiveStock', 'stockQuantity', 'stock', 'availableStock'], null)
   const productStockKnown = rawProductStock !== null && rawProductStock !== ''
@@ -136,6 +141,14 @@ export function normalizeProduct(item = {}, extra = {}) {
     image: images[0],
     images,
     price: number(currentPrice),
+    minCurrentPrice: minPrice === null ? null : number(minPrice),
+    maxCurrentPrice: maxPrice === null ? null : number(maxPrice),
+    hasPriceRange: minPrice !== null && maxPrice !== null && number(maxPrice) > number(minPrice),
+    displaySkuId: firstDefined(source, ['displaySkuId', 'DisplaySkuId'], null),
+    listPrice: number(firstDefined(source, ['listPrice', 'ListPrice'])),
+    priceSource: firstDefined(source, ['priceSource', 'PriceSource'], 'BASE'),
+    priceRuleId: firstDefined(source, ['priceRuleId', 'PriceRuleId'], null),
+    matchedScope: firstDefined(source, ['matchedScope', 'MatchedScope'], null),
     stock: productStockKnown ? number(rawProductStock) : null,
     stockKnown: productStockKnown,
     moq: Math.max(1, number(firstDefined(source, ['minOrderQty', 'minQuantity'], priceRule?.minQuantity ?? 1), 1)),

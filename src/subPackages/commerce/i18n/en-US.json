@@ -22,6 +22,7 @@
     "collapse": "Collapse variants",
     "delete": "Delete",
     "defaultVariant": "Default variant",
+    "currentVariant": "Variant: {name}",
     "summary": "Purchase summary",
     "summaryHint": "Only selected items will be checked out",
     "selectedItems": "Selected products",

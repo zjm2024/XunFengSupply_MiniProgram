@@ -7,6 +7,11 @@
     <template #content>
       <AppContent padding="16px var(--page-padding-x, 16px) 30px">
         <view class="recharge-page">
+          <view v-if="rechargeOrderId" class="service-card order-recharge-context">
+            <text class="section-title">{{ t('account.recharge.orderTopUp') }}</text>
+            <text class="section-desc">{{ t('account.recharge.orderTopUpHint') }}</text>
+            <button v-if="confirmedRechargeNo" class="finance-btn" @tap="continueOrderPayment">{{ t('account.recharge.continueOrder') }}</button>
+          </view>
           <view class="page-grid">
             <view class="overview-column">
               <view class="balance-card">
@@ -158,14 +163,24 @@
         </view>
         <button class="native-qr-close" aria-label="close" @tap="closeNativeQr">×</button>
       </view>
-      <text class="native-qr-hint">{{ t('account.recharge.qrHint') }}</text>
-      <view class="native-qr-code">
+      <view v-if="nativeQrStatus === 2" class="native-qr-result" role="status">
+        <view class="native-qr-success"><AppIcon name="check" :size="38" color="#168A52" /></view>
+        <text class="native-qr-result-title">{{ t('account.recharge.successTitle') }}</text>
+        <text class="native-qr-result-hint">{{ t('account.recharge.creditedHint') }}</text>
+      </view>
+      <view v-else-if="[3, 4].includes(nativeQrStatus)" class="native-qr-result" role="status">
+        <text class="native-qr-result-title">{{ t('account.recharge.closedTitle') }}</text>
+        <text class="native-qr-result-hint">{{ t('account.recharge.closedHint') }}</text>
+      </view>
+      <text v-else class="native-qr-hint">{{ t('account.recharge.qrHint') }}</text>
+      <view v-if="![2, 3, 4].includes(nativeQrStatus)" class="native-qr-code">
         <view v-for="(row, rowIndex) in nativeQrMatrix" :key="rowIndex" class="native-qr-row">
           <view v-for="(dark, columnIndex) in row" :key="columnIndex" class="native-qr-cell" :class="{ dark }" />
         </view>
       </view>
-      <button class="native-qr-copy" @tap="copyNativeQrLink">{{ t('account.recharge.qrCopyLink') }}</button>
-      <button class="native-qr-done" @tap="closeNativeQr">{{ t('account.recharge.qrClose') }}</button>
+      <button v-if="![2, 3, 4].includes(nativeQrStatus)" class="native-qr-copy" @tap="copyNativeQrLink">{{ t('account.recharge.qrCopyLink') }}</button>
+      <button v-if="![2, 3, 4].includes(nativeQrStatus)" class="native-qr-done" :disabled="checkingRecharge" @tap="checkRechargeResult()">{{ t(checkingRecharge ? 'account.recharge.checking' : 'account.recharge.checkPaid') }}</button>
+      <button class="native-qr-done" :class="{ 'native-qr-dismiss': ![2, 3, 4].includes(nativeQrStatus) }" @tap="closeNativeQr">{{ t('account.recharge.qrClose') }}</button>
     </view>
   </view>
 </template>
@@ -175,12 +190,12 @@ import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/account/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
-import { createAppRecharge, createNativeRecharge, getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
+import { createAppRecharge, createNativeRecharge, getRechargeStatus, getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import { useUserStore } from '@/shared/session/userStore.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
@@ -203,11 +218,24 @@ const availableProviders = ref(null)
 const pendingClientRequestId = ref('')
 const pendingRequestAmount = ref('')
 const pendingRequestChannel = ref('wechat')
+const pendingOrderId = ref(null)
 const pendingRechargeStorageKey = 'finance:pending-app-recharge'
+const rechargeOrderId = ref(null)
+const rechargeAccountCode = ref(null)
+const pendingStorageKey = computed(() => rechargeOrderId.value
+  ? `${pendingRechargeStorageKey}:order:${rechargeOrderId.value}` : pendingRechargeStorageKey)
 const nativeQrVisible = ref(false)
 const nativeQrLink = ref('')
 const nativeQrNumber = ref('')
 const nativeQrMatrix = ref([])
+const nativeQrStatus = ref(0)
+const pendingRechargeNo = ref('')
+const checkingRecharge = ref(false)
+const confirmedRechargeNo = ref('')
+const lastFinalRecharge = ref(null)
+let rechargeCheckPromise = null
+let pageVisible = true
+let successNoticePending = false
 
 const creditUsage = computed(() => {
   const total = Number(finance.value.credit?.totalAmount || 0)
@@ -227,11 +255,31 @@ const paymentSupportHint = computed(() => {
   return t('account.recharge.balanceHint')
 })
 
+/** 路由只提供本地订单ID；ERP单号由后端校验，充值成功不自动扣款。 */
+onLoad((options = {}) => {
+  const id = Number(options.orderId)
+  rechargeOrderId.value = Number.isSafeInteger(id) && id > 0 ? id : null
+  rechargeAccountCode.value = rechargeOrderId.value ? String(options.fundAccountCode || '') || null : null
+  if (rechargeOrderId.value && Number(options.amount) > 0) rechargeAmount.value = Number(options.amount).toFixed(2)
+  if (paymentChannels.some(item => item.key === options.channel && !item.disabled)) selectedChannel.value = options.channel
+  else if (typeof plus === 'undefined') selectedChannel.value = 'wechat_native'
+})
+
+/** 继续订单收银台，扣款仍需用户确认并由后端重新检查订单状态。 */
+function continueOrderPayment() {
+  if (rechargeOrderId.value) navigator.redirectTo(routes.order.pay(rechargeOrderId.value))
+}
+
 onShow(() => {
+  pageVisible = true
+  if (successNoticePending) announceRechargeSuccess()
   loadFinance()
   restorePendingRequest()
   checkPaymentAvailability()
+  if (pendingRechargeNo.value) checkRechargeResult({ silent: true })
 })
+onHide(() => { pageVisible = false })
+onUnload(() => { pageVisible = false })
 
 async function loadFinance() {
   try {
@@ -254,14 +302,16 @@ function contactFinance() {
 
 /** 恢复尚未确认的本地幂等键，避免网络中断后重复创建充值单。 */
 function restorePendingRequest() {
-  const pending = uni.getStorageSync(pendingRechargeStorageKey)
+  const pending = uni.getStorageSync(pendingStorageKey.value)
   if (!pending || Date.now() - Number(pending.createdAt || 0) > 30 * 60 * 1000) {
-    uni.removeStorageSync(pendingRechargeStorageKey)
+    uni.removeStorageSync(pendingStorageKey.value)
     return
   }
   pendingClientRequestId.value = String(pending.clientRequestId || '')
   pendingRequestAmount.value = String(pending.amount || '')
   pendingRequestChannel.value = String(pending.channel || 'wechat')
+  pendingOrderId.value = pending.orderId || null
+  pendingRechargeNo.value = String(pending.rechargeNo || '')
   if (paymentChannels.some(item => item.key === pendingRequestChannel.value && !item.disabled)) {
     selectedChannel.value = pendingRequestChannel.value
   }
@@ -306,14 +356,17 @@ function selectQuickAmount(amount) {
 function ensureClientRequestId(amount, channel) {
   if (pendingClientRequestId.value
     && pendingRequestAmount.value === amount
-    && pendingRequestChannel.value === channel) return pendingClientRequestId.value
+    && pendingRequestChannel.value === channel
+    && pendingOrderId.value === rechargeOrderId.value) return pendingClientRequestId.value
   pendingClientRequestId.value = `app-${channel}-recharge-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
   pendingRequestAmount.value = amount
   pendingRequestChannel.value = channel
-  uni.setStorageSync(pendingRechargeStorageKey, {
+  pendingOrderId.value = rechargeOrderId.value
+  uni.setStorageSync(pendingStorageKey.value, {
     clientRequestId: pendingClientRequestId.value,
     amount,
     channel,
+    orderId: rechargeOrderId.value,
     createdAt: Date.now(),
   })
   return pendingClientRequestId.value
@@ -323,7 +376,79 @@ function ensureClientRequestId(amount, channel) {
 function clearPendingRequest() {
   pendingClientRequestId.value = ''
   pendingRequestAmount.value = ''
-  uni.removeStorageSync(pendingRechargeStorageKey)
+  pendingRechargeNo.value = ''
+  uni.removeStorageSync(pendingStorageKey.value)
+}
+
+/** 保存服务端单号，恢复页面时只读查询此单，不重复调用创建接口。 */
+function rememberRecharge(response) {
+  if (!response.rechargeNo) return
+  pendingRechargeNo.value = String(response.rechargeNo)
+  const existing = uni.getStorageSync(pendingStorageKey.value) || {}
+  uni.setStorageSync(pendingStorageKey.value, {
+    ...existing, rechargeNo: pendingRechargeNo.value, clientRequestId: pendingClientRequestId.value,
+    amount: pendingRequestAmount.value, channel: pendingRequestChannel.value, createdAt: existing.createdAt || Date.now(),
+  })
+}
+
+/** 使用服务端已提交状态更新界面；支付SDK回调本身不能确认到账。 */
+function applyRechargeResult(response) {
+  const number = String(response.rechargeNo || pendingRechargeNo.value || '')
+  if (response.status === 2) {
+    lastFinalRecharge.value = { rechargeNo: number, status: response.status }
+    if (nativeQrNumber.value === number) {
+      nativeQrStatus.value = 2
+      nativeQrMatrix.value = []
+      nativeQrLink.value = ''
+    }
+    clearPendingRequest()
+    if (confirmedRechargeNo.value !== number || !number) {
+      confirmedRechargeNo.value = number
+      announceRechargeSuccess()
+    }
+  } else if ([3, 4].includes(response.status)) {
+    lastFinalRecharge.value = { rechargeNo: number, status: response.status }
+    if (nativeQrNumber.value === number) {
+      nativeQrStatus.value = response.status
+      nativeQrMatrix.value = []
+      nativeQrLink.value = ''
+    }
+    clearPendingRequest()
+  }
+}
+
+/** 后台确认的成功提示留到页面可见时显示，避免从支付工具返回前被吞掉。 */
+function announceRechargeSuccess() {
+  successNoticePending = true
+  if (!pageVisible) return
+  successNoticePending = false
+  uni.showToast({ title: t('account.recharge.successTitle'), icon: 'success' })
+}
+
+/** 用户点击或回到前台时单次补查，共享在途请求；不设轮询，不触发渠道查单或重复充值。 */
+function checkRechargeResult({ silent = false } = {}) {
+  if (rechargeCheckPromise) return rechargeCheckPromise
+  const rechargeNo = pendingRechargeNo.value
+  if (!rechargeNo) return Promise.resolve(null)
+  checkingRecharge.value = true
+  rechargeCheckPromise = (async () => {
+    try {
+      const response = await getRechargeStatus(rechargeNo)
+      if (pendingRechargeNo.value !== rechargeNo) return null
+      if (String(response.rechargeNo) !== rechargeNo) throw new Error(t('account.recharge.checkFailed'))
+      applyRechargeResult(response)
+      if (response.status === 2) await loadFinance()
+      else if (!silent && pageVisible) uni.showToast({ title: t([3, 4].includes(response.status) ? 'account.recharge.closedTitle' : 'account.recharge.stillPending'), icon: 'none' })
+      return response.status
+    } catch (error) {
+      if (!silent && pageVisible) uni.showToast({ title: error?.message || t('account.recharge.checkFailed'), icon: 'none' })
+      return null
+    } finally {
+      checkingRecharge.value = false
+      rechargeCheckPromise = null
+    }
+  })()
+  return rechargeCheckPromise
 }
 
 /** 校验并解析后端生成的 APP 微信支付参数，拒绝客户端自行拼装签名数据。 */
@@ -372,16 +497,17 @@ async function startRecharge() {
       channel: channel.key,
       amount: Number(amount),
       clientRequestId: ensureClientRequestId(amount, channel.key),
-      fundAccountCode: finance.value.currentAccount?.fundAccountCode || null,
+      fundAccountCode: rechargeAccountCode.value || finance.value.currentAccount?.fundAccountCode || null,
+       // 订单页进入充值只用于支付完成后的本地回跳，不传给充值接口或 ERP。
     })
+    rememberRecharge(response)
     if ([3, 4].includes(response.status)) {
       clearPendingRequest()
       throw new Error(response.failureMessage || t('account.recharge.createFailed', { channel: channel.title }))
     }
     if (response.status === 2) {
       // 服务端已经确认到账；本地幂等键只服务于当前一次支付，不能复用到下一次同金额充值。
-      clearPendingRequest()
-      await showPaymentResultPending(t('account.recharge.creditedHint'))
+      applyRechargeResult(response)
       return
     }
     if (!response.clientPayload) {
@@ -398,6 +524,9 @@ async function startRecharge() {
       : response.clientPayload
     if (typeof orderInfo !== 'string' && channel.key === 'alipay') throw new Error(t('account.recharge.alipayFormat'))
     await requestPayment(channel.key, orderInfo)
+    if (response.rechargeNo && lastFinalRecharge.value?.rechargeNo === response.rechargeNo) return
+    const confirmedStatus = await checkRechargeResult({ silent: true })
+    if ([2, 3, 4].includes(confirmedStatus)) return
     await showPaymentResultPending(t('account.recharge.requested', { channel: channel.title }))
   } catch (error) {
     const message = String(error?.errMsg || error?.message || '')
@@ -414,6 +543,7 @@ async function startRecharge() {
 
 /** 展示服务端返回的 Native 支付二维码；关闭弹层不会清除幂等上下文，便于继续查看或重试。 */
 function openNativeQr(response) {
+  nativeQrStatus.value = Number(response.status || 0)
   nativeQrLink.value = String(response.codeUrl || '')
   nativeQrNumber.value = String(response.rechargeNo || '')
   nativeQrMatrix.value = createQrMatrix(nativeQrLink.value)
@@ -534,6 +664,12 @@ function goToCreditFlow() { navigator.navigateTo(routes.account.creditFlow()) }
 .native-qr-copy, .native-qr-done { display: block; width: 100%; height: 42px; margin: 0; border-radius: 11px; font-size: 13px; line-height: 42px; }
 .native-qr-copy { color: #D7192D; background: #FFF3F4; }
 .native-qr-done { margin-top: 9px; color: #FFF; background: #D7192D; }
+.native-qr-dismiss { color: var(--color-text-secondary, #6F7680); background: #F5F6F8; }
+.native-qr-done[disabled] { opacity: .6; }
+.native-qr-result { display: flex; align-items: center; flex-direction: column; padding: 28px 6px; text-align: center; }
+.native-qr-success { display: flex; align-items: center; justify-content: center; width: 70px; height: 70px; margin-bottom: 16px; border-radius: 50%; background: #EAF7EF; }
+.native-qr-result-title { display: block; font-size: 20px; line-height: 28px; font-weight: 700; }
+.native-qr-result-hint { display: block; margin-top: 10px; color: var(--color-text-secondary, #6F7680); font-size: 13px; line-height: 21px; overflow-wrap: anywhere; }
 @media screen and (min-width: 760px) {
   .page-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
   .overview-column { grid-template-columns: minmax(0, 1.08fr) minmax(0, .92fr); grid-column: 1 / -1; gap: 18px; }
@@ -559,4 +695,6 @@ function goToCreditFlow() { navigator.navigateTo(routes.account.creditFlow()) }
 .wallet-mark { flex: none; }
 .credit-foot { min-width: 0; flex-wrap: wrap; gap: 6px 12px; }
 .credit-foot .amount-text { font-size: inherit; }
+.order-recharge-context { margin-bottom: 14px; }
+.order-recharge-context .section-desc { line-height: 1.6; }
 </style>

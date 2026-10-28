@@ -187,13 +187,14 @@ const orderId = ref(null)
 const orderNo = ref('')
 const payMode = ref(PAYMENT_MODE.COMBINATION)     // 默认使用单一余额账户支付
 const payAmount = ref(0)    // 单位：元（后端返回元）
-const payType = ref('wechat') // wechat/alipay/bank-card
+const payType = ref(typeof plus === 'undefined' ? 'wechat_native' : 'wechat')
 const paying = ref(false)
 const remainTime = ref(0)   // 剩余时间（秒）
 const paymentExpired = ref(false)
 const confirmationPending = ref(false)
 const finance = ref({ credit: {}, accounts: [] })
-const cashPaymentAvailable = false
+const cashPaymentAvailable = true
+let returningFromRecharge = false
 const selectedAccountIds = ref([])
 const allocationAmounts = ref({})
 const orderPayable = ref(true)
@@ -217,14 +218,14 @@ const allocationTotal = computed(() => selectedAccountIds.value.reduce(
 ))
 const availableCreditAmount = computed(() => Math.max(0, Number(finance.value.credit?.availableAmount || 0)))
 const paymentModeOptions = computed(() => [
-  { value: PAYMENT_MODE.CASH, label: t('order.pay.cash'), description: t('order.pay.cashDescription'), icon: 'pay-cash', disabled: true },
+  { value: PAYMENT_MODE.CASH, label: t('order.pay.cash'), description: t('order.pay.cashDescription'), icon: 'pay-cash', disabled: false },
   { value: PAYMENT_MODE.CREDIT, label: t('order.pay.credit'), description: t('order.pay.creditDescription'), icon: 'pay-credit', disabled: Number(finance.value.credit?.status) !== 1 },
   { value: PAYMENT_MODE.COMBINATION, label: t('order.pay.balance'), description: t('order.pay.balanceDescription'), icon: 'pay-combine', disabled: false },
 ])
 const cashPaymentMethods = computed(() => [
+  { key: 'wechat_native', label: t('order.pay.wechatNative'), description: t('order.pay.wechatNativeDescription'), icon: 'pay-wechat' },
   { key: 'wechat', label: t('order.pay.wechat'), description: t('order.pay.wechatDescription'), icon: 'pay-wechat' },
   { key: 'alipay', label: t('order.pay.alipay'), description: t('order.pay.alipayDescription'), icon: 'pay-alipay' },
-  { key: 'bank-card', label: t('order.pay.bankCard'), description: t('order.pay.bankCardDescription'), icon: 'bank' },
 ])
 const confirmButtonText = computed(() => {
   if (paying.value) return t('order.pay.paying')
@@ -244,6 +245,11 @@ onLoad(async (options) => {
 
 onShow(() => {
   if (orderId.value && !paying.value) loadOrderInfo()
+  if (returningFromRecharge) {
+    returningFromRecharge = false
+    payMode.value = PAYMENT_MODE.COMBINATION
+    loadFinanceContext()
+  }
 })
 
 onUnmounted(() => {
@@ -412,6 +418,13 @@ async function handleConfirmPay() {
         })),
       })
       return handlePaid()
+    }
+    if (payMode.value === PAYMENT_MODE.CASH) {
+      returningFromRecharge = true
+      await navigator.navigateTo(routes.account.recharge({ orderId: orderId.value,
+        amount: Number(payAmount.value).toFixed(2), channel: payType.value,
+        fundAccountCode: finance.value.currentAccount?.fundAccountCode || null }))
+      return
     }
     throw localError('cashIntegration')
   } catch (e) {
