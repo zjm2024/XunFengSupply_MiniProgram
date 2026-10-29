@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <AppPageShell>
     <template #header>
       <AppHeader :title="t('commerce.titles.checkout')" :show-back="true" />
@@ -308,7 +308,6 @@ import { AppError, ErrorKind } from '@/shared/api/appError.js'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { createOrder, generateClientRequestId, getExpressCompanies, previewOrder } from '../../api/checkoutApi.js'
-import { removeItems } from '../../api/cartApi.js'
 import { getAddressList } from '../../../account/api/addressApi.js'
 import { useCart } from '@/shared/composables/useCart.js'
 import { PAYMENT_MODE, DELIVERY_TYPE } from '@/app/config/constant.js'
@@ -696,7 +695,7 @@ async function prepareSubmit() {
   confirmModalVisible.value = true
 }
 
-/** 保留原下单参数、幂等、赠品确认和购物车清理顺序。 */
+/** 提交结算快照，由服务端在订单事务内校验并清理共享购物车。 */
 async function confirmSubmit() {
   if (submitting.value || !canSubmit.value) return
   confirmModalVisible.value = false
@@ -711,6 +710,7 @@ async function confirmSubmit() {
   try {
     const response = await createOrder({
       ClientRequestId: clientRequestId.value,
+      CartItemIds: orderedCartIds,
       Items: buildOrderItems(),
       AddressId: addressId.value,
       QuoteFingerprint: previewData.value?.quoteFingerprint || null,
@@ -732,11 +732,7 @@ async function confirmSubmit() {
       }))
       .filter(order => order.orderId > 0)
 
-    try {
-      if (orderedCartIds.length) await removeItems(orderedCartIds)
-    } catch (cleanupError) {
-      console.warn('[Checkout] 订单已创建，但购物车清理失败:', cleanupError)
-    }
+    // 服务端已原子消费本次购物车快照，本地仅同步显示结果。
     cartStore.optimisticRemove(orderedCartIds)
 
     navigator.redirectTo(routes.order.pay(orderId))

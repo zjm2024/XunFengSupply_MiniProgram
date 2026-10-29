@@ -171,25 +171,49 @@ describe('购物车与结算语言切换', () => {
     await v.confirmSubmit()
     expect(api.createOrder).toHaveBeenCalledTimes(1)
     const constants = await import('@/app/config/constant.js')
-    expect(api.createOrder.mock.lastCall[0]).toEqual({ ClientRequestId: 'stable-order-key', Items: [{ SkuId: 11, Quantity: 2 }],
+    expect(api.createOrder.mock.lastCall[0]).toEqual({ ClientRequestId: 'stable-order-key', CartItemIds: [1], Items: [{ SkuId: 11, Quantity: 2 }],
       AddressId: 19, QuoteFingerprint: 'stable-quote', PaymentMode: constants.PAYMENT_MODE.CASH,
       DeliveryType: constants.DELIVERY_TYPE.DELIVERY, ExpressCompanyCode: 'SF', CustomerRemark: '需要包装', OmitUnavailableGifts: false })
     complete({ orderId: 70 })
     await pending
-    expect(api.removeItems).toHaveBeenCalledTimes(1)
-    expect(api.removeItems).toHaveBeenCalledWith([1])
+    expect(api.removeItems).not.toHaveBeenCalled()
     expect(hook.cartStore.optimisticRemove).toHaveBeenCalledWith([1])
     expect(navigator.redirectTo).toHaveBeenCalledWith({ name: 'pay', value: 70 })
     expect(v.submitting.value).toBe(false)
     expect(api.createOrder).toHaveBeenCalledTimes(1)
   })
 
-  it('下单后清理购物车失败仍导航原支付订单，切换不会再创建', async () => {
+  it('购物车清理由服务端事务完成，不发送迟到删除请求', async () => {
     const { v, api, navigator } = await checkout({ api: { removeItems: vi.fn().mockRejectedValue(new Error('cleanup failed')) } })
     i18n.setLocale('en')
     await v.confirmSubmit()
     expect(api.createOrder).toHaveBeenCalledTimes(1)
     expect(navigator.redirectTo).toHaveBeenCalledWith({ name: 'pay', value: 70 })
+    expect(api.removeItems).not.toHaveBeenCalled()
+  })
+
+  it('共享购物车冲突保留当前结算快照，不执行本地或服务端删除', async () => {
+    const raw = Object.assign(new Error('购物车内容已变化，请刷新'), { httpStatus: 409, errorCode: 'CONFLICT' })
+    const { v, api, hook, navigator } = await checkout({ api: { createOrder: vi.fn().mockRejectedValue(raw) } })
+    await v.confirmSubmit()
+    expect(api.createOrder.mock.lastCall[0].CartItemIds).toEqual([1])
+    expect(api.removeItems).not.toHaveBeenCalled()
+    expect(hook.cartStore.optimisticRemove).not.toHaveBeenCalled()
+    expect(navigator.redirectTo).not.toHaveBeenCalled()
+    expect(v.checkoutItems.value).toHaveLength(1)
+    expect(v.submitting.value).toBe(false)
+  })
+
+  it('网络结果未知后重试复用原订单请求和购物车行，不生成第二个下单意图', async () => {
+    const createOrder = vi.fn().mockRejectedValueOnce(new Error('network timeout')).mockResolvedValueOnce({ orderId: 70 })
+    const { v, api, hook } = await checkout({ api: { createOrder } })
+    await v.confirmSubmit()
+    expect(hook.cartStore.optimisticRemove).not.toHaveBeenCalled()
+    await v.confirmSubmit()
+    expect(api.createOrder.mock.calls.map(([request]) => request.ClientRequestId)).toEqual(['stable-order-key', 'stable-order-key'])
+    expect(api.createOrder.mock.calls.map(([request]) => request.CartItemIds)).toEqual([[1], [1]])
+    expect(api.removeItems).not.toHaveBeenCalled()
+    expect(hook.cartStore.optimisticRemove).toHaveBeenCalledTimes(1)
   })
 
   it('赠品不足拒绝继续时不重发下单，原 errorCode 不变', async () => {

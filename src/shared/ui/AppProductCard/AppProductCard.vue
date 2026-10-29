@@ -162,7 +162,8 @@ const stockText = computed(() => {
 
 .app-product-card--tile .app-product-card__image-wrap {
   width: 100%;
-  aspect-ratio: 1.18 / 1;
+  /* 首页商品图统一使用正方形画布，避免不同原图比例造成卡片视觉跳动。 */
+  aspect-ratio: 1 / 1;
   background: #FAFAFB;
 }
 
