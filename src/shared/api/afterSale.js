@@ -21,8 +21,18 @@ export function normalizeAfterSaleItem(source = {}) {
     afterSaleNo: String(pick(source, 'afterSaleNo', 'AfterSaleNo', '') || ''),
     orderId: numberOf(pick(source, 'orderId', 'OrderId', 0)),
     orderNo: String(pick(source, 'orderNo', 'OrderNo', '') || ''),
+    sourceType: numberOf(pick(source, 'sourceType', 'SourceType', 0)),
+    pricingStatus: numberOf(pick(source, 'pricingStatus', 'PricingStatus', Number(pick(source, 'orderId', 'OrderId', 0)) > 0 ? 1 : 0)),
+    workflowVersion: numberOf(pick(source, 'workflowVersion', 'WorkflowVersion', 1)),
+    inventoryStatus: numberOf(pick(source, 'inventoryStatus', 'InventoryStatus', 0)),
+    erpSubmissionStatus: numberOf(pick(source, 'erpSubmissionStatus', 'ErpSubmissionStatus', 0)),
+    erpReviewStatus: numberOf(pick(source, 'erpReviewStatus', 'ErpReviewStatus', 0)),
+    receiptStatus: numberOf(pick(source, 'receiptStatus', 'ReceiptStatus', 0)),
+    pricingVersion: numberOf(pick(source, 'pricingVersion', 'PricingVersion', 0)),
     afterSaleType: numberOf(pick(source, 'afterSaleType', 'AfterSaleType', 0)),
     status: numberOf(pick(source, 'status', 'Status', 0)),
+    statusName: String(pick(source, 'statusName', 'StatusName', '') || ''),
+    statusNameEn: String(pick(source, 'statusNameEn', 'StatusNameEn', '') || ''),
     reason: String(pick(source, 'reason', 'Reason', '') || ''),
     refundAmount: numberOf(pick(source, 'refundAmount', 'RefundAmount', 0)),
     returnCarrierCode: String(pick(source, 'returnCarrierCode', 'ReturnCarrierCode', '') || ''),
@@ -52,6 +62,30 @@ function toApplyAfterSalePayload(params = {}) {
 
 export function applyAfterSale(params = {}) {
   return dispatch('MallOrder', CONTROLLER, 'ApplyAfterSale', toApplyAfterSalePayload(params))
+    .then(normalizeAfterSaleItem)
+}
+
+/** 获取当前主体的售后详情，集中适配商品、审核说明和时间字段。 */
+export function getAfterSaleDetail(afterSaleId) {
+  return dispatch('MallOrder', CONTROLLER, 'GetAfterSaleDetail', { AfterSaleId: Number(afterSaleId) }).then(source => {
+    if (!source) return null
+    return {
+      ...normalizeAfterSaleItem(source),
+      auditRemark: String(pick(source, 'auditRemark', 'AuditRemark', '') || ''),
+      receivedAt: pick(source, 'receivedAt', 'ReceivedAt', null),
+      refundStatus: numberOf(pick(source, 'refundStatus', 'RefundStatus', 0)),
+      items: (pick(source, 'items', 'Items', []) || []).map(item => ({
+        afterSaleItemId: numberOf(pick(item, 'afterSaleItemId', 'AfterSaleItemId', 0)),
+        orderItemId: numberOf(pick(item, 'orderItemId', 'OrderItemId', 0)),
+        productName: String(pick(item, 'productName', 'ProductName', '') || ''),
+        skuName: String(pick(item, 'skuName', 'SkuName', '') || ''),
+        imageUrl: String(pick(item, 'imageUrl', 'ImageUrl', '') || ''),
+        applyQuantity: numberOf(pick(item, 'applyQuantity', 'ApplyQuantity', 0)),
+        receivedQuantity: numberOf(pick(item, 'receivedQuantity', 'ReceivedQuantity', 0)),
+        refundAmount: numberOf(pick(item, 'refundAmount', 'RefundAmount', 0)),
+      })),
+    }
+  })
 }
 
 export function getAfterSaleableItems(orderId) {
@@ -66,6 +100,21 @@ export function getAfterSaleableItems(orderId) {
       refundAmount: numberOf(pick(source, 'refundAmount', 'RefundAmount', 0)),
     }))
   })
+}
+
+/** 提交经销商自有库存售后，退款账户、仓库与SKU均由后端校验归属和可用量。 */
+export function applyInventoryAfterSale(params = {}) {
+  const payload = {
+    RefundAccountId: Number(params.refundAccountId ?? params.RefundAccountId ?? 0),
+    ClientRequestId: params.clientRequestId ?? params.ClientRequestId ?? '',
+    Reason: params.reason ?? params.Reason ?? '',
+    Items: (params.items ?? params.Items ?? []).map(item => ({
+      WarehouseId: Number(item.warehouseId ?? item.WarehouseId ?? 0),
+      SkuId: Number(item.skuId ?? item.SkuId ?? 0),
+      Quantity: Number(item.quantity ?? item.Quantity ?? 0),
+    })),
+  }
+  return dispatch('MallOrder', CONTROLLER, 'ApplyInventoryAfterSale', payload).then(normalizeAfterSaleItem)
 }
 
 export function getAfterSaleList(params = {}) {
@@ -95,6 +144,15 @@ export function getAfterSaleCount() {
     completed: numberOf(pick(result, 'completed', 'Completed', 0)),
     rejected: numberOf(pick(result, 'rejected', 'Rejected', 0)),
   }))
+}
+
+/** 售后物流复用下单页现有可用承运商接口，提交稳定编码、界面只展示名称。 */
+export function getAfterSaleCarriers() {
+  return dispatch('MallOrder', 'Mini.OrderController', 'GetExpressCompanies', {}).then(result =>
+    (Array.isArray(result) ? result : []).map(item => ({
+      code: String(pick(item, 'code', 'Code', '') || ''),
+      name: String(pick(item, 'name', 'Name', '') || ''),
+    })).filter(item => item.code && item.name))
 }
 
 export function cancelAfterSale(params = {}) {

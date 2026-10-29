@@ -3,11 +3,11 @@
     <template #header>
       <view class="order-header">
         <AppHeader
-          :title="selectMode === 'afterSale' ? t('order.list.selectTitle') : t('order.list.title')"
+          :title="t('order.list.title')"
           :show-back="true"
           :searchable="true"
           :search-value="keywordInput"
-          :search-placeholder="selectMode === 'afterSale' ? t('order.list.searchAfterSale') : t('order.list.search')"
+          :search-placeholder="t('order.list.search')"
           @update:search-value="keywordInput = $event"
           @search="applySearch"
           @clear-search="clearSearch"
@@ -102,8 +102,7 @@
                   <AmountText :text="'¥' + (formatMoney(order.payableAmount))" />
                 </view>
                 <view class="action-row" @tap.stop>
-                  <ActionRow v-if="selectMode !== 'afterSale'" compact :actions="getOrderActions(order)" :more-text="t('order.list.more')" @select="selectOrderAction($event, order)" @overflow="openActionMenu($event, order)" />
-                  <button v-else class="action-btn primary" @tap.stop="goToDetail(order.orderId)">{{ t('order.list.select') }}</button>
+                  <ActionRow compact :actions="getOrderActions(order)" :more-text="t('order.list.more')" @select="selectOrderAction($event, order)" @overflow="openActionMenu($event, order)" />
                 </view>
               </view>
               </view>
@@ -198,7 +197,6 @@ const loadMoreError = ref(false)
 const keywordInput = ref('')
 const keyword = ref('')
 const page = reactive({ current: 1, pageSize: 10 })
-const selectMode = ref(null)
 const actionMenu = ref(null)
 const reorderingOrderId = ref(null)
 const swipeStart = ref(null)
@@ -224,7 +222,6 @@ onLoad(options => {
     if (allTabs.some(tab => tab.value === requestedStatus)) currentTab.value = requestedStatus
   }
   if (options.reviewStatus === 'pending') currentTab.value = ERP_REVIEW_PENDING_TAB
-  if (options.selectMode === 'afterSale') selectMode.value = 'afterSale'
 })
 
 onShow(() => {
@@ -366,17 +363,6 @@ function loadMore() {
 }
 
 function goToDetail(orderId) {
-  if (selectMode.value === 'afterSale') {
-    try {
-      const pages = getCurrentPages()
-      const eventChannel = pages[pages.length - 1]?.getOpenerEventChannel?.()
-      eventChannel?.emit('orderSelected', { orderId })
-    } catch (error) {
-      console.warn('[OrderList] 返回订单选择结果失败:', error)
-    }
-    navigator.back()
-    return
-  }
   navigator.navigateTo(routes.order.detail(orderId))
 }
 
@@ -387,8 +373,6 @@ function formatMoney(value) {
 }
 /** 订单列表只展示服务端允许的动作，并把本地再来一单置于首屏。 */
 function getOrderActions(order) {
-  if (selectMode.value === 'afterSale') return []
-
   const actions = getOrderActionButtons(order?.allowedActions)
   if (Number(order?.itemCount || 0) > 0) {
     actions.push({
@@ -464,7 +448,7 @@ async function handleAction(key, order) {
       }
       break
     case 'afterSale':
-      navigator.navigateTo(routes.order.afterSaleApply(order.orderId))
+      navigator.navigateTo(routes.order.afterSaleApply(order.orderId, order.orderNo))
       break
     case 'reorder':
       await reorderOrder(order)
@@ -531,7 +515,7 @@ async function handleAction(key, order) {
 
 
 @media screen and (min-width: 1024px) {
-  .order-grid, .skeleton-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+  .order-grid, .skeleton-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
 }
 
 /* 金额按实际可用宽度缩字，父布局允许收缩。 */

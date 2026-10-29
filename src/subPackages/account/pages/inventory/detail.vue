@@ -74,6 +74,8 @@
                   </view>
                 </view>
               </view>
+              <button v-if="detail.availableQuantity > 0 && userStore.hasPermission('INVENTORY_VIEW')" class="after-sale-button" @tap="openInventoryAfterSale">{{ t('account.inventory.applyAfterSale') }}</button>
+              <button v-if="detail.availableQuantity > 0 && userStore.hasPermission('INVENTORY_VIEW')" class="after-sale-button" @tap="openInventoryAfterSale">{{ t('account.inventory.applyAfterSale') }}</button>
               <view class="data-note"><AppIcon name="info" :size="15" /><text>{{ t('account.inventory.dataNote') }}</text></view>
             </template>
           </AppPageState>
@@ -133,6 +135,9 @@ async function loadDetail() {
   }
 }
 
+function openInventoryAfterSale() {
+  if (detail.value?.skuId && detail.value.availableQuantity > 0) navigator.navigateTo(routes.order.inventoryAfterSaleApply({ skuId: detail.value.skuId }))
+}
 function canOpenOrder(item) {
   return item.sourceType === 'ORDER' && item.sourceId > 0 && userStore.hasPermission('ORDER_VIEW')
 }
@@ -193,6 +198,10 @@ function formatQty(value) { return Number(value || 0).toLocaleString('zh-CN') }
 .delta.negative { color: #9A3933; }
 .empty-ledger { display: flex; flex-direction: column; align-items: center; padding: 12px 0; color: #9B9FA6; font-size: 11px; text-align: center; }
 .ledger-empty-illustration { width: 112px; height: 112px; }
+.after-sale-button { display: flex; min-height: 42px; align-items: center; justify-content: center; margin: 14px 0 0; padding: 9px 14px; border-radius: 11px; background: #D7192D; color: #fff; font-size: 13px; font-weight: 650; }
+.after-sale-button::after { border: 0; }
+.after-sale-button { display: flex; min-height: 42px; align-items: center; justify-content: center; margin: 14px 0 0; padding: 9px 14px; border-radius: 11px; background: #D7192D; color: #fff; font-size: 13px; font-weight: 650; }
+.after-sale-button::after { border: 0; }
 .data-note { display: flex; align-items: flex-start; gap: 8px; margin: 14px 2px 0; color: #848A93; font-size: 9px; line-height: 1.6; }
 @media screen and (min-width: 720px) {
   .hero-card { grid-template-columns: 134px minmax(0,1fr); padding: 19px; }

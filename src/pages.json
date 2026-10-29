@@ -172,6 +172,20 @@
                     }
                 },
                 {
+                    "path": "pages/after-sale/inventory-apply",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/after-sale/detail",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
                     "path": "pages/after-sale/list",
                     "style": {
                         "navigationStyle": "custom",

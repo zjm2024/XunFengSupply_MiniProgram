@@ -410,7 +410,8 @@
     "lastInbound": "Last receipt {date}",
     "warehouseCount": "{count} warehouse locations",
     "warehouseTotal": "{count} locations",
-    "recentTotal": "Latest {count} entries"
+    "recentTotal": "Latest {count} entries",
+    "applyAfterSale": "Request inventory return"
   },
   "fundFlow": {
     "empty": "No transactions",

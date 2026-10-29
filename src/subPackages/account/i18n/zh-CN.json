@@ -410,7 +410,8 @@
     "lastInbound": "最近入库 {date}",
     "warehouseCount": "{count} 个仓位",
     "warehouseTotal": "{count} 个",
-    "recentTotal": "最近 {count} 条"
+    "recentTotal": "最近 {count} 条",
+    "applyAfterSale": "申请库存售后"
   },
   "fundFlow": {
     "empty": "暂无资金流水",

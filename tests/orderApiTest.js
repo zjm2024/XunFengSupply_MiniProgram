@@ -326,6 +326,20 @@ describe('Fulfillment Address API Layer', () => {
   })
 })
 describe('AfterSale API Layer', () => {
+  it('售后详情保留审核备注、物流、时间和商品明细，适配 PascalCase', async () => {
+    const source = { AfterSaleId: 5, AfterSaleNo: 'AS-5', Status: 2, StatusName: '待退货', StatusNameEn: 'Pending Return',
+      AuditRemark: '先联系确认地址', ReturnCarrierCode: 'ZTO', ReturnTrackingNo: '123', CreatedAt: '2026-10-29T01:00:00Z',
+      Items: [{ AfterSaleItemId: 8, OrderItemId: 9, ApplyQuantity: 2, ReceivedQuantity: 0, RefundAmount: '30.25', ProductName: '商品' }] }
+    const dispatchMock = vi.fn().mockResolvedValue(source)
+    vi.doMock('@/shared/api/dispatchClient.js', () => ({ dispatch: dispatchMock }))
+    const { getAfterSaleDetail } = await import('@/subPackages/order/api/afterSaleApi.js')
+    const detail = await getAfterSaleDetail(5)
+    expect(dispatchMock).toHaveBeenCalledWith('MallOrder', 'Mini.AfterSaleController', 'GetAfterSaleDetail', { AfterSaleId: 5 })
+    expect(detail).toMatchObject({ afterSaleId: 5, status: 2, statusNameEn: 'Pending Return', auditRemark: '先联系确认地址',
+      returnCarrierCode: 'ZTO', returnTrackingNo: '123', createdAt: '2026-10-29T01:00:00Z',
+      items: [{ afterSaleItemId: 8, orderItemId: 9, applyQuantity: 2, refundAmount: 30.25 }] })
+  })
+
   it('applyAfterSale 应将 camelCase 转换为 PascalCase', async () => {
     const dispatchMock = vi.fn().mockResolvedValue({})
 

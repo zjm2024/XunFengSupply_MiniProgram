@@ -50,7 +50,9 @@ export const ORDER_DETAIL = '/subPackages/order/pages/detail/index'
 export const PAY_PAGE = '/subPackages/order/pages/pay/index'
 export const FULFILLMENT_SPLIT = '/subPackages/order/pages/split/index'
 export const APPLY_AFTER_SALE = '/subPackages/order/pages/after-sale/apply'
+export const APPLY_INVENTORY_AFTER_SALE = '/subPackages/order/pages/after-sale/inventory-apply'
 export const AFTER_SALE_LIST = '/subPackages/order/pages/after-sale/list'
+export const AFTER_SALE_DETAIL = '/subPackages/order/pages/after-sale/detail'
 export const CANCEL_ORDER = '/subPackages/order/pages/cancel/index'
 
 // ==================== account：账户分包 ====================
@@ -94,7 +96,7 @@ export const REGISTERED_ROUTES = Object.freeze([
   STARTUP, HOME,
   LOGIN, APPLY_SIGN, AGREEMENT, ACCOUNT_STATUS,
   HOME_SECTION, ANNOUNCEMENTS, ANNOUNCEMENT_DETAIL, PRODUCT_LIST, PRODUCT_DETAIL, PRODUCT_VARIANTS, CART, CHECKOUT,
-  ORDER_LIST, ORDER_DETAIL, PAY_PAGE, FULFILLMENT_SPLIT, APPLY_AFTER_SALE, AFTER_SALE_LIST, CANCEL_ORDER,
+  ORDER_LIST, ORDER_DETAIL, PAY_PAGE, FULFILLMENT_SPLIT, APPLY_AFTER_SALE, APPLY_INVENTORY_AFTER_SALE, AFTER_SALE_LIST, AFTER_SALE_DETAIL, CANCEL_ORDER,
   ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
   DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, SECURITY,
   RECHARGE, RECHARGE_RECORDS, FUND_FLOW, CREDIT_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS, NOTIFICATION_SETTINGS,
@@ -241,8 +243,23 @@ export const ROUTE_META = Object.freeze({
     allowFrozen: false,
     owner: null,
   },
+  [APPLY_INVENTORY_AFTER_SALE]: {
+    title: '库存售后申请',
+    requireAuth: true,
+    requireSign: true,
+    allowFrozen: false,
+    requiredPermission: 'INVENTORY_VIEW',
+    owner: null,
+  },
   [AFTER_SALE_LIST]: {
     title: '售后记录',
+    requireAuth: true,
+    requireSign: true,
+    allowFrozen: false,
+    owner: null,
+  },
+  [AFTER_SALE_DETAIL]: {
+    title: '售后详情',
     requireAuth: true,
     requireSign: true,
     allowFrozen: false,
@@ -656,11 +673,13 @@ export const routes = {
       const id = assertValidId(orderId, 'order.fulfillmentSplit')
       return withQuery(FULFILLMENT_SPLIT, { orderId: id })
     },
-    afterSaleApply: (orderId) => {
+    afterSaleApply: (orderId, orderNo) => {
       const id = assertValidId(orderId, 'order.afterSaleApply')
-      return withQuery(APPLY_AFTER_SALE, { orderId: id })
+      return withQuery(APPLY_AFTER_SALE, { orderId: id, orderNo })
     },
-    afterSaleList: () => AFTER_SALE_LIST,
+    inventoryAfterSaleApply: ({ skuId } = {}) => withQuery(APPLY_INVENTORY_AFTER_SALE, { skuId: assertValidId(skuId, 'inventoryAfterSaleApply') }),
+    afterSaleDetail: (afterSaleId) => withQuery(AFTER_SALE_DETAIL, { afterSaleId: assertValidId(afterSaleId, 'order.afterSaleDetail') }),
+    afterSaleList: ({ afterSaleId } = {}) => withQuery(AFTER_SALE_LIST, { afterSaleId }),
     cancelOrder: (orderId, extra = {}) => {
       const id = assertValidId(orderId, 'order.cancelOrder')
       const params = { orderId: id, ...extra }

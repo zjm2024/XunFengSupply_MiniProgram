@@ -435,7 +435,7 @@ const actionButtons = computed(() => {
   }
 
   const actions = [reorderAction, ...getOrderActionButtons(detail.value.allowedActions)]
-  // 售后是已发货订单的主要入口，固定栏空间不足时也要优先显示。
+  // 售后是已完成订单的主要入口，固定栏空间不足时也要优先显示。
   const priority = { reorder: 0, afterSale: 1, pay: 2, cancel: 3, confirmReceipt: 4, viewLogistics: 5 }
   return actions.sort((left, right) => (priority[left.key] ?? 99) - (priority[right.key] ?? 99))
 })
@@ -542,7 +542,7 @@ async function handleAction(key) {
       }
       break
     case 'afterSale':
-      navigator.navigateTo(routes.order.afterSaleApply(orderId.value))
+      navigator.navigateTo(routes.order.afterSaleApply(orderId.value, detail.value?.orderNo))
       break
   }
 }

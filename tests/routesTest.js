@@ -34,7 +34,8 @@ import {
   FULFILLMENT_SPLIT,
   CANCEL_ORDER,
   APPLY_AFTER_SALE,
-  AFTER_SALE_LIST,
+  APPLY_INVENTORY_AFTER_SALE,
+  AFTER_SALE_LIST, AFTER_SALE_DETAIL,
   // account 分包
   ACCOUNT_CENTER,
   ACCOUNT_PROFILE,
@@ -214,7 +215,7 @@ describe('Routes - REGISTERED_ROUTES 完整性', () => {
       STARTUP, HOME,
       LOGIN, APPLY_SIGN, AGREEMENT, ACCOUNT_STATUS,
       HOME_SECTION, ANNOUNCEMENTS, ANNOUNCEMENT_DETAIL, PRODUCT_LIST, PRODUCT_DETAIL, PRODUCT_VARIANTS, CART, CHECKOUT,
-      ORDER_LIST, ORDER_DETAIL, PAY_PAGE, FULFILLMENT_SPLIT, APPLY_AFTER_SALE, AFTER_SALE_LIST, CANCEL_ORDER,
+      ORDER_LIST, ORDER_DETAIL, PAY_PAGE, FULFILLMENT_SPLIT, APPLY_AFTER_SALE, APPLY_INVENTORY_AFTER_SALE, AFTER_SALE_LIST, AFTER_SALE_DETAIL, CANCEL_ORDER,
       ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
       DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, SECURITY,
       RECHARGE, RECHARGE_RECORDS, FUND_FLOW, CREDIT_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS, NOTIFICATION_SETTINGS,
@@ -223,8 +224,8 @@ describe('Routes - REGISTERED_ROUTES 完整性', () => {
     expect(REGISTERED_ROUTES).toEqual(expected)
   })
 
-  it('应包含 50 个路由', () => {
-    expect(REGISTERED_ROUTES.length).toBe(50)
+  it('应包含 52 个路由', () => {
+    expect(REGISTERED_ROUTES.length).toBe(52)
   })
 
   it('不应有重复路由', () => {
@@ -422,6 +423,12 @@ describe('Routes - routes 工厂函数', () => {
     const url = routes.order.afterSaleApply(789)
     expect(url).toContain(APPLY_AFTER_SALE)
     expect(url).toContain('orderId=789')
+  })
+
+  it('order.afterSaleApply(id, orderNo) 保留当前订单编号', () => {
+    const url = routes.order.afterSaleApply(789, 'SO-20261029-001')
+    expect(url).toContain('orderId=789')
+    expect(url).toContain('orderNo=SO-20261029-001')
   })
 
   it('account.center() 应返回 ACCOUNT_CENTER', () => {
@@ -715,5 +722,17 @@ describe('Routes - 工厂函数 query 编码', () => {
   it('无参数时不应添加 query string', () => {
     const url = routes.account.center()
     expect(url).not.toContain('?')
+  })
+})
+
+describe('售后详情独立路由', () => {
+  it('登记独立页面并保留登录签约约束', () => {
+    expect(AFTER_SALE_DETAIL).toBe('/subPackages/order/pages/after-sale/detail')
+    expect(routes.order.afterSaleDetail(55)).toBe(AFTER_SALE_DETAIL + '?afterSaleId=55')
+    expect(ROUTE_META[AFTER_SALE_DETAIL]).toMatchObject({ requireAuth: true, requireSign: true })
+  })
+  it('拒绝缺失的售后单号', () => {
+    expect(() => routes.order.afterSaleDetail()).toThrow()
+    expect(() => routes.order.afterSaleDetail('')).toThrow()
   })
 })

@@ -11,6 +11,7 @@
 
     <template #content>
       <AppContent
+        width-mode="standard"
         padding="8px var(--page-padding-x, 16px) 28px"
         :refresher-enabled="true"
         :refresher-triggered="isRefreshing"
@@ -42,16 +43,16 @@
 
           <template v-else-if="afterSaleList.length">
             <view class="after-sale-grid">
-              <view v-for="item in afterSaleList" :key="item.afterSaleId" class="after-sale-card">
+              <view v-for="item in afterSaleList" :key="item.afterSaleId" class="after-sale-card" @tap.stop="viewAfterSale(item)">
               <view class="card-header">
                 <view class="identify-copy">
                   <view class="type-line">
                     <text class="type-tag">{{ getTypeLabel(item.afterSaleType) }}</text>
                     <text class="after-sale-no">{{ item.afterSaleNo }}</text>
                   </view>
-                  <text class="order-no">{{ t('order.afterSaleList.orderNo') }} {{ item.orderNo || '-' }}</text>
+                  <text class="order-no">{{ item.orderId > 0 ? `${t('order.afterSaleList.orderNo')} ${item.orderNo || '-'}` : t('order.afterSaleList.inventorySource') }}</text>
                 </view>
-                <StatusTag :type="getStatusType(item.status)" :text="getStatusLabel(item.status)" />
+                <StatusTag :type="getStatusType(item.status)" :text="getStatusLabel(item)" />
               </view>
 
               <view class="goods-row">
@@ -64,8 +65,7 @@
               </view>
 
               <view v-if="!isTerminal(item.status)" class="progress-block">
-                <view class="progress-copy"><text>{{ getStatusHelp(item.status) }}</text><text>{{ getProgress(item.status) }}%</text></view>
-                <view class="progress-track"><view class="progress-value" :style="{ width: `${getProgress(item.status)}%` }" /></view>
+                <view class="progress-copy"><text>{{ getProgressHelp(item) }}</text></view>
               </view>
               <view v-else class="result-note" :class="getResultTone(item.status)">
                 <AppIcon :name="item.status === STATUS.COMPLETED ? 'check' : 'info'" :size="16" />
@@ -75,11 +75,12 @@
               <view class="card-footer">
                 <view class="refund-amount">
                   <text>{{ t('order.afterSaleList.refundRequested') }}</text>
-                  <AmountText :text="'¥' + (formatMoney(item.refundAmount))" />
+                  <text v-if="isAwaitingPrice(item)" class="awaiting-price">{{ t('order.afterSaleList.awaitingPrice') }}</text><AmountText v-else :text="'¥' + (formatMoney(item.refundAmount))" />
                 </view>
                 <view class="actions">
-                  <button v-if="canCancel(item.status)" class="action-btn secondary" @tap="confirmCancel(item)">{{ t('order.afterSaleList.cancel') }}</button>
-                  <button class="action-btn secondary" @tap="viewOrder(item)">{{ t('order.afterSaleList.viewOrder') }}</button>
+                  <button v-if="canCancel(item)" class="action-btn secondary" :disabled="Boolean(actionLoading)" @tap.stop="confirmCancel(item)">{{ t('order.afterSaleList.cancel') }}</button>
+                  <button class="action-btn secondary" :disabled="Boolean(actionLoading)" @tap.stop="viewAfterSale(item)">{{ item.status === STATUS.PENDING_RETURN && item.afterSaleType === 2 ? t('order.afterSaleDetail.fillLogistics') : t('order.afterSaleDetail.view') }}</button>
+                  <button v-if="item.orderId > 0" class="action-btn secondary" @tap.stop="viewOrder(item)">{{ t('order.afterSaleList.viewOrder') }}</button>
                 </view>
               </view>
               </view>
@@ -107,11 +108,11 @@
 </template>
 
 <script setup>
-import { t } from '@/shared/i18n/index.js'
+import { t, getLocale } from '@/shared/i18n/index.js'
 import '@/subPackages/order/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, reactive, ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import { ORDER_STATUS } from '@/app/config/constant.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
@@ -139,6 +140,9 @@ const statusTabs = computed(() => [
   { value: STATUS.COMPLETED, label: t('order.afterSaleList.filters.completed') },
 ])
 const currentStatus = ref(null)
+let redirectedToDetail = false
+const actionLoading = ref(0)
+let listRevision = 0
 const afterSaleList = ref([])
 const loading = ref(false)
 const isRefreshing = ref(false)
@@ -156,7 +160,15 @@ const loadMoreStatus = computed(() => {
   return 'idle'
 })
 
-onShow(() => resetAndLoad())
+onLoad(async options => {
+  const id = Number(options?.afterSaleId)
+  if (Number.isSafeInteger(id) && id > 0) {
+    redirectedToDetail = true
+    const result = await navigator.redirectTo(routes.order.afterSaleDetail(id))
+    if (result === false) { redirectedToDetail = false; await resetAndLoad() }
+  }
+})
+onShow(() => { if (!redirectedToDetail) return resetAndLoad() })
 
 function switchStatus(status) {
   if (currentStatus.value === status) return
@@ -165,13 +177,15 @@ function switchStatus(status) {
 }
 
 async function resetAndLoad() {
+  const revision = ++listRevision
+  loading.value = false
   page.current = 1
   afterSaleList.value = []
   totalCount.value = 0
   hasMore.value = true
   loadError.value = ''
   loadMoreError.value = false
-  await loadRecords()
+  await loadRecords(revision)
 }
 
 async function handleRefresh() {
@@ -191,23 +205,25 @@ function handleRefresherRestore() {
 }
 
 /** 读取售后列表，保留错误对象让已有页面按当前语言显示。 */
-async function loadRecords() {
+async function loadRecords(revision = listRevision) {
   if (loading.value || !hasMore.value) return
   loading.value = true
   loadError.value = ''
   if (page.current > 1) loadMoreError.value = false
   try {
     const result = await getAfterSaleList({ status: currentStatus.value, pageNum: page.current, pageSize: page.pageSize })
+    if (revision !== listRevision) return
     afterSaleList.value = page.current === 1 ? result.items : [...afterSaleList.value, ...result.items]
     totalCount.value = Number(result.totalCount || afterSaleList.value.length)
     hasMore.value = afterSaleList.value.length < totalCount.value
     loadMoreError.value = false
   } catch (error) {
+    if (revision !== listRevision) return
     loadError.value = error?.message ? error : { key: 'order.afterSaleList.networkFailed' }
     if (page.current > 1) page.current--
     if (page.current > 1 || afterSaleList.value.length) loadMoreError.value = true
   } finally {
-    loading.value = false
+    if (revision === listRevision) loading.value = false
   }
 }
 
@@ -219,8 +235,8 @@ function loadMore() {
 
 /** 仅格式化售后申请类型名称，状态投影仍沿用原显示来源。 */
 function getTypeLabel(type) { return ({ 1: t('order.afterSale.onlyRefund'), 2: t('order.afterSale.returnRefund') })[type] || t('order.afterSaleList.request') }
-function getStatusLabel(status) {
-  return ({ 0: '已申请', 1: '待审核', 2: '待退货', 3: '退货中', 4: '已收货', 5: '退款中', 6: '已完成', 7: '已驳回', 8: '处理失败', 9: '已关闭' })[status] || '状态更新中'
+function getStatusLabel(item) {
+  return (getLocale() === 'en-US' ? item.statusNameEn || item.statusName : item.statusName) || t('order.afterSaleDetail.statusUpdating')
 }
 function getStatusType(status) {
   if (status === STATUS.COMPLETED) return 'success'
@@ -230,31 +246,45 @@ function getStatusType(status) {
   return 'default'
 }
 function getStatusHelp(status) {
-  return ({
-    0: '申请已提交，系统正在分派审核',
-    1: '品牌方正在核对订单与售后原因',
-    2: '审核已通过，请按售后指引寄回商品',
-    3: '退货商品运输中，请留意物流状态',
-    4: '品牌方已收货，正在核验商品',
-    5: '退款处理中，请留意账户资金变动',
-    6: '本次售后已处理完成',
-    7: '申请未通过，可联系客户服务了解原因',
-    8: '处理未完成，请联系客户服务',
-    9: '本次售后申请已关闭',
-  })[status] || '售后状态正在同步'
+  const keys = ['applied', 'review', 'toReturn', 'returning', 'received', 'refunding', 'completed', 'rejected', 'failed', 'closed']
+  return t('order.afterSaleDetail.help.' + (keys[status] || 'unknown'))
 }
-function getProgress(status) { return ({ 0: 12, 1: 28, 2: 48, 3: 62, 4: 76, 5: 90, 6: 100 })[status] || 0 }
+/** 新规则展示真实库存、ERP、WMS和定价节点，不把外部处理中误写成旧流程状态。 */
+function getProgressHelp(item) {
+  if (item.workflowVersion !== 2) return getStatusHelp(item.status)
+  if (item.status === STATUS.REJECTED || item.status === STATUS.FAILED || item.status === STATUS.CLOSED) return getStatusHelp(item.status)
+  if (item.inventoryStatus === 4) return t('order.afterSaleDetail.workflow.inventoryFailed')
+  if (item.erpSubmissionStatus === 4) return t('order.afterSaleDetail.workflow.resultUnknown')
+  if (item.erpSubmissionStatus === 3) return t('order.afterSaleDetail.workflow.createFailed')
+  if (item.inventoryStatus === 0 || item.erpSubmissionStatus === 0) return t('order.afterSaleDetail.workflow.reserving')
+  if (item.erpSubmissionStatus === 1) return t('order.afterSaleDetail.workflow.creating')
+  if (item.erpReviewStatus === 0) return t('order.afterSaleDetail.workflow.erpReview')
+  if (item.erpReviewStatus === 2) return t('order.afterSaleDetail.workflow.erpRejected')
+  if (item.receiptStatus === 3) return t('order.afterSaleDetail.workflow.receiptDifference')
+  if (item.receiptStatus === 1) return t('order.afterSaleDetail.workflow.receiptPartial')
+  if (item.receiptStatus === 0) return t('order.afterSaleDetail.workflow.receipt')
+  if (item.pricingStatus === 0) return t('order.afterSaleDetail.workflow.pricing')
+  if (item.status === STATUS.REFUNDING) return t('order.afterSaleDetail.workflow.settlement')
+  return getStatusHelp(item.status)
+}
 function isTerminal(status) { return [STATUS.COMPLETED, STATUS.REJECTED, STATUS.FAILED, STATUS.CLOSED].includes(status) }
 function getResultTone(status) { return status === STATUS.COMPLETED ? 'success' : 'muted' }
-function canCancel(status) { return [STATUS.APPLIED, STATUS.PENDING_REVIEW].includes(status) }
+function canCancel(item) { return item.workflowVersion !== 2 && [STATUS.APPLIED, STATUS.PENDING_REVIEW].includes(item.status) }
 function formatMoney(value) {
   const number = Number(value)
   return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
-function viewOrder(item) { navigator.navigateTo(routes.order.detail(item.orderId)) }
+/** 列表详情使用独立路由，返回后由onShow重新读取状态。 */
+function viewAfterSale(item) { navigator.navigateTo(routes.order.afterSaleDetail(item.afterSaleId)) }
+/** 只有新规则库存来源尚未定价时显示待定价，历史订单金额正常显示。 */
+function isAwaitingPrice(item) { return item.workflowVersion === 2 && item.sourceType === 2 && item.pricingStatus === 0 }
+function viewOrder(item) { if (item?.orderId > 0) navigator.navigateTo(routes.order.detail(item.orderId)) }
 function viewCompletedOrders() { navigator.navigateTo(routes.order.list({ status: ORDER_STATUS.COMPLETED })) }
 /** 确认取消当前售后申请，提交固定审计原因并刷新原列表。 */
 async function confirmCancel(item) {
+  if (actionLoading.value) return
+  actionLoading.value = item.afterSaleId
+  try {
   if (!await openAppDialog({
     title: t('order.afterSaleList.cancelTitle'),
     description: t('order.afterSaleList.cancelContent', { number: item.afterSaleNo }),
@@ -263,16 +293,17 @@ async function confirmCancel(item) {
   try {
     await cancelAfterSale({ afterSaleId: item.afterSaleId, reason: '经销商主动取消' })
     uni.showToast({ title: t('order.afterSaleList.cancelled'), icon: 'success' })
-    resetAndLoad()
+    await resetAndLoad()
   } catch (error) {
     uni.showToast({ title: error?.message || t('order.afterSaleList.cancelFailed'), icon: 'none' })
   }
+  } finally { actionLoading.value = 0 }
 }
 </script>
 
 <style lang="scss" scoped>
 .after-sale-header { background: var(--surface-page, #F4F5F8); }
-.after-sale-page { width: 100%; max-width: 1160px; margin: 0 auto; padding-bottom: env(safe-area-inset-bottom); }
+.after-sale-page { width: 100%; margin: 0 auto; }
 .filter-panel { padding: 7px var(--page-padding-x, 16px) 12px; background: var(--surface-page, #F4F5F8); }
 .after-sale-grid, .skeleton-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
 .after-sale-card { padding: 16px; border-radius: 19px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
@@ -290,12 +321,12 @@ async function confirmCancel(item) {
 .reason { color: #646B75; }
 .progress-block, .result-note { margin-top: 15px; padding: 11px 12px; border-radius: 12px; background: #F6F7F8; }
 .progress-copy { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: #6E7580; font-size: 9px; }
-.progress-copy text:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.progress-copy text:first-child { line-height: 1.6; overflow-wrap: anywhere; }
 .progress-track { height: 5px; margin-top: 8px; overflow: hidden; border-radius: 999px; background: #E1E4E7; }
 .progress-value { height: 100%; border-radius: inherit; background: #D7192D; transition: width .25s ease; }
 .result-note { display: flex; align-items: center; gap: 8px; color: #6D747E; font-size: 10px; }
 .result-note.success { color: #32664D; background: #F0F7F3; }
-.card-footer { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #EEF0F2; }
+.card-footer { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid #EEF0F2; }
 .refund-amount text { display: block; }
 .refund-amount text:first-child { color: #989DA5; font-size: 9px; }
 .refund-amount > .amount-text { margin-top: 4px; color: #22262B; font-size: 16px; font-weight: 730; }
@@ -308,13 +339,11 @@ async function confirmCancel(item) {
 .skeleton-main { display: flex; gap: 13px; margin: 16px 0; }.skeleton-image { width: 72px; height: 72px; flex: none; border-radius: 13px; background: #F0F1F3; }.skeleton-copy { flex: 1; padding-top: 7px; }
 .skeleton-line { height: 12px; margin-bottom: 10px; border-radius: 6px; background: linear-gradient(90deg,#F2F3F4 25%,#E8EAEC 50%,#F2F3F4 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }.skeleton-line.short { width: 42%; }.skeleton-line.medium { width: 65%; }.skeleton-line.tiny { width: 28%; margin: 0; }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
-@media screen and (min-width: 720px) {
-  .after-sale-grid, .skeleton-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 15px; }
-}
 @media screen and (max-width: 380px) {
   .filter-panel { padding-right: 10px; padding-left: 10px; }
 }
 
 /* 金额按实际可用宽度缩字，父布局允许收缩。 */
+.awaiting-price { color: #A36A20; font-size: 12px; font-weight: 600; }
 .refund-amount { min-width: 0; max-width: 65%; }
 </style>

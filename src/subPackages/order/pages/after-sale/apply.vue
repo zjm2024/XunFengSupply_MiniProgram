@@ -1,226 +1,190 @@
-<!--
-  发起售后申请页面（分包：afterSaleSub）
-  对应业务流程节点：
-  售后闭环 → 发起售后申请、选择售后类型、上传凭证图片
--->
 <template>
   <AppPageShell>
-    <template #header>
-      <AppHeader :title="t('order.titles.apply')" :show-back="true" />
-    </template>
+    <template #header><AppHeader :title="t('order.titles.apply')" :show-back="true" /></template>
     <template #content>
-      <AppContent>
+      <AppContent width-mode="standard" padding="12px var(--page-padding-x, 16px) 24px">
         <view class="apply-after-sale-page">
-          <!-- 选择订单商品 -->
-          <view class="select-order-section" v-if="!selectedOrder" @click="goSelectOrder">
-            <view class="select-trigger">
-              <AppIcon name="plus" :size="24" color="#999" />
-              <text class="hint">{{ t('order.afterSale.selectGoods') }}</text>
-              <AppIcon name="chevron-right" :size="16" color="#CCC" />
-            </view>
-          </view>
-
-          <!-- 已选商品展示 -->
-          <view
-            v-for="item in afterSaleItems"
-            :key="item.orderItemId"
-            class="selected-goods"
-            :class="{ active: selectedGoods?.orderItemId === item.orderItemId }"
-            @tap="selectGoods(item)"
-          >
-            <AppProductImage class="goods-image" :src="item.imageUrl" mode="aspectFill" />
-            <view class="goods-info">
-              <text class="goods-name">{{ item.productName }}</text>
-               <text class="sku-name">{{ item.skuName }} · {{ t('order.afterSale.availableQuantity', { count: item.availableQuantity }) }}</text>
-            </view>
-            <view class="select-mark">{{ selectedGoods?.orderItemId === item.orderItemId ? t('order.afterSale.selected') : t('order.afterSale.select') }}</view>
-          </view>
-
-          <!-- 售后类型选择 -->
-          <view class="type-section">
-            <text class="section-label"><text class="required">*</text> {{ t('order.afterSale.type') }}</text>
-            <view class="type-options">
-              <view 
-                class="type-option" 
-                :class="{ active: form.type === item.value }"
-                v-for="item in afterSaleTypes" 
-                :key="item.value"
-                @click="form.type = item.value"
-              >
-                <text class="type-icon">{{ item.icon }}</text>
-                <text class="type-name">{{ item.label }}</text>
-                <text class="type-desc">{{ item.desc }}</text>
+          <AppPageState v-if="loading" state="loading" :title="t('common.loading')" compact />
+          <AppPageState v-else-if="loadError" state="error" :title="t('order.afterSale.loadFailed')" :description="loadError" :action-text="orderId ? t('common.retry') : ''" compact @retry="loadAfterSaleableItems(orderId)" />
+          <template v-else>
+            <view v-if="orderNo" class="order-context"><text>{{ t('order.afterSale.orderContext') }}</text><text class="order-number">{{ orderNo }}</text></view>
+            <view class="section-card">
+              <view class="section-heading">
+                <text class="section-label">{{ t('order.afterSale.selectGoods') }}</text>
               </view>
+              <text class="section-note">{{ t('order.afterSale.shippedOnly') }}</text>
+              <AppPageState v-if="!afterSaleItems.length" state="empty" :title="t('order.afterSale.noProducts')" compact />
+              <template v-else>
+                <view class="selection-summary">
+                  <text>{{ t('order.afterSale.selectionCount', { count: selectedLines.length, quantity: totalQuantity }) }}</text>
+                  <button class="text-button" :disabled="submitting || submitted" @tap="toggleAll">{{ allSelected ? t('order.afterSale.clearSelection') : t('order.afterSale.selectAll') }}</button>
+                </view>
+                <view v-for="item in afterSaleItems" :key="item.orderItemId" class="goods-row">
+                  <button class="check-button" :class="{ checked: quantities[item.orderItemId] > 0 }" :disabled="submitting || submitted" :aria-label="t('order.afterSale.select') + ' ' + item.productName + ' ' + item.skuName" @tap="selectGoods(item)">
+                    <AppIcon v-if="quantities[item.orderItemId] > 0" name="check" :size="14" color="#fff" />
+                  </button>
+                  <AppProductImage class="goods-image" :src="item.imageUrl" mode="aspectFit" />
+                  <view class="goods-info">
+                    <text class="goods-name">{{ item.productName }}</text>
+                    <text class="sku-name">{{ item.skuName }}</text>
+                    <text class="section-note">{{ t('order.afterSale.availableQuantity', { count: item.availableQuantity }) }}</text>
+                    <QuantityStepper v-if="quantities[item.orderItemId] > 0" size="sm" :model-value="quantities[item.orderItemId]" :min="1" :max="item.availableQuantity" allow-input :disabled="submitting || submitted" @update:modelValue="setQuantity($event, item)" />
+                  </view>
+                </view>
+              </template>
             </view>
-          </view>
-
-          <!-- 申请数量与预计退款金额 -->
-          <view class="amount-section" v-if="selectedGoods">
-            <view class="quantity-row">
-              <text class="section-label">{{ t('order.afterSale.quantity') }}</text>
-              <input class="quantity-input" type="number" :value="form.quantity" @input="setQuantity($event.detail.value)" />
-            </view>
-            <text class="section-label">{{ t('order.afterSale.refundAmount') }}</text>
-            <view class="amount-display">
-              <AmountText class="amount-value" :text="'¥' + (estimatedRefundAmount.toFixed(2))" />
-            </view>
-            <text class="amount-tip">{{ t('order.afterSale.refundNote') }}</text>
-          </view>
-
-          <!-- 售后原因 -->
-          <view class="reason-section">
-            <text class="section-label"><text class="required">*</text> {{ t('order.afterSale.reason') }}</text>
-            <input 
-              class="reason-input" 
-              v-model="form.reason"
-              :placeholder="t('order.afterSale.reasonPlaceholder')"
-              maxlength="100"
-            />
-          </view>
-
-          <!-- 底部占位 -->
-          <view style="height: 140rpx;" />
+            <template v-if="afterSaleItems.length">
+              <view class="section-card">
+                <text class="section-label">{{ t('order.afterSale.type') }}</text>
+                <view class="type-summary">
+                  <view class="type-copy">
+                    <text class="type-name">{{ t('order.afterSale.returnRefund') }}</text>
+                    <text class="section-note">{{ t('order.afterSale.returnRefundDescription') }}</text>
+                  </view>
+                  <AppIcon name="check" :size="17" color="#D7192D" />
+                </view>
+              </view>
+              <view class="section-card">
+                <text class="section-label">{{ t('order.afterSale.reason') }}</text>
+                <textarea v-model="form.reason" class="reason-input" :disabled="submitting || submitted" :placeholder="t('order.afterSale.reasonPlaceholder')" maxlength="500" auto-height />
+                <text class="character-count">{{ form.reason.length }}/500</text>
+              </view>
+              <view class="section-card refund-card">
+                <view class="refund-row"><text>{{ t('order.afterSale.refundAmount') }}</text><AmountText class="refund-value" :text="'¥' + estimatedRefundAmount.toFixed(2)" /></view>
+                <text class="section-note">{{ t('order.afterSale.refundNote') }}</text>
+              </view>
+            </template>
+          </template>
         </view>
       </AppContent>
     </template>
     <template #footer>
-      <FixedActionBar>
-        <button 
-          class="submit-btn" 
-          :disabled="submitting || !canSubmit"
-          @click="handleSubmit"
-        >
-          {{ submitting ? t('order.afterSale.submitting') : t('order.afterSale.submit') }}
-        </button>
+      <FixedActionBar width-mode="standard">
+        <button class="submit-btn" :disabled="submitting || submitted || !canSubmit" @tap="handleSubmit">{{ submitting ? t('order.afterSale.submitting') : t('order.afterSale.submit') }}</button>
       </FixedActionBar>
     </template>
   </AppPageShell>
 </template>
 
 <script setup>
+import { reactive, ref, computed } from 'vue'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/order/i18n/register.js'
-import AmountText from '@/shared/ui/AmountText/AmountText.vue'
-import { reactive, ref, computed } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
 import { applyAfterSale, getAfterSaleableItems } from '../../api/afterSaleApi.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
+import QuantityStepper from '@/shared/ui/QuantityStepper/QuantityStepper.vue'
+import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 
-// 售后类型选项
-const afterSaleTypes = computed(() => [
-  { value: 1, label: t('order.afterSale.onlyRefund'), icon: '¥', desc: t('order.afterSale.onlyRefundDescription') },
-  { value: 2, label: t('order.afterSale.returnRefund'), icon: '↩', desc: t('order.afterSale.returnRefundDescription') },
-])
-
+let successRedirectTimer = null
+let pageDisposed = false
+onUnload(() => { pageDisposed = true; if (successRedirectTimer) clearTimeout(successRedirectTimer) })
 const orderId = ref('')
-const selectedOrder = ref(null)
-const selectedGoods = ref(null)
+const orderNo = ref('')
 const afterSaleItems = ref([])
+const quantities = reactive({})
+const loading = ref(false)
+const loadError = ref('')
 const submitting = ref(false)
+const submitted = ref(false)
 const clientRequestId = ref('')
 const requestFingerprint = ref('')
+const form = reactive({ type: 2, reason: '' })
+let loadRevision = 0
+const selectedLines = computed(() => afterSaleItems.value
+  .filter(item => quantities[item.orderItemId] > 0)
+  .map(item => ({ orderItemId: item.orderItemId, quantity: quantities[item.orderItemId] }))
+  .sort((a, b) => a.orderItemId - b.orderItemId))
+const totalQuantity = computed(() => selectedLines.value.reduce((sum, item) => sum + item.quantity, 0))
+const allSelected = computed(() => afterSaleItems.value.length > 0 && selectedLines.value.length === afterSaleItems.value.length)
+const canSubmit = computed(() => !loading.value && !loadError.value && Number(orderId.value) > 0
+  && form.type === 2 && form.reason.trim().length > 0 && selectedLines.value.length > 0)
 
-const form = reactive({
-  type: 1,
-  reason: '',
-  quantity: 1
-})
+/** 逐行按分计算预估金额，完整申请一行时保留服务端剩余净额。 */
+const estimatedRefundAmount = computed(() => afterSaleItems.value.reduce((sum, item) => {
+  const quantity = quantities[item.orderItemId] || 0
+  return sum + (quantity > 0 && item.availableQuantity > 0
+    ? Math.round(Number(item.refundAmount || 0) * 100 * quantity / item.availableQuantity) : 0)
+}, 0) / 100)
 
-// 是否可以提交
-const canSubmit = computed(() => {
-  return form.type && form.reason.trim() && selectedGoods.value && form.quantity > 0
-})
-
-/** 按当前申请数量估算退款金额，实际金额仍以后端审核为准。 */
-const estimatedRefundAmount = computed(() => {
-  if (!selectedGoods.value || selectedGoods.value.availableQuantity <= 0) return 0
-  return Number(selectedGoods.value.refundAmount || 0) / selectedGoods.value.availableQuantity * form.quantity
-})
-
-onLoad((options) => {
-  if (options.orderId) {
-    orderId.value = options.orderId
-    loadAfterSaleableItems(options.orderId)
+onLoad(options => {
+  const currentOrderId = Number(options?.orderId || 0)
+  if (currentOrderId > 0) {
+    orderId.value = String(currentOrderId)
+    orderNo.value = String(options?.orderNo || '')
+    loadAfterSaleableItems(currentOrderId)
+  } else {
+    loadError.value = t('order.afterSale.missingOrder')
   }
 })
 
-/** 加载当前订单可申请售后的商品，并默认选中第一项。 */
+/** 加载当前订单内仍符合申请条件的明细，失败时保留重试入口。 */
 async function loadAfterSaleableItems(currentOrderId) {
+  if (submitting.value || submitted.value || !currentOrderId) return
+  const revision = ++loadRevision
+  loading.value = true
+  loadError.value = ''
   try {
-    afterSaleItems.value = await getAfterSaleableItems(currentOrderId)
-    selectedOrder.value = { orderId: Number(currentOrderId) }
-    selectGoods(afterSaleItems.value[0] || null)
-    if (!afterSaleItems.value.length) uni.showToast({ title: t('order.afterSale.noProducts'), icon: 'none' })
+    const items = await getAfterSaleableItems(currentOrderId)
+    if (revision !== loadRevision) return
+    afterSaleItems.value = items.filter(item => item.availableQuantity > 0)
+    Object.keys(quantities).forEach(key => delete quantities[key])
+    afterSaleItems.value.forEach(item => { quantities[item.orderItemId] = 0 })
   } catch (error) {
+    if (revision !== loadRevision) return
     afterSaleItems.value = []
-    selectedGoods.value = null
-    uni.showToast({ title: error?.message || t('order.afterSale.loadFailed'), icon: 'none' })
+    loadError.value = error?.message || t('order.afterSale.loadFailed')
+  } finally {
+    if (revision === loadRevision) loading.value = false
   }
 }
 
-/** 切换本次申请的商品并恢复其最大可申请数量。 */
+/** 勾选或取消单个 SKU，其他已选商品及数量保留。 */
 function selectGoods(item) {
-  selectedGoods.value = item
-  requestFingerprint.value = ''
-  clientRequestId.value = ''
-  form.quantity = item ? Math.max(1, Number(item.availableQuantity || 1)) : 1
+  if (!item || submitting.value || submitted.value) return
+  quantities[item.orderItemId] = quantities[item.orderItemId] > 0 ? 0 : item.availableQuantity
 }
 
-/** 将申请数量限制在当前商品的可售后数量内。 */
-function setQuantity(rawValue) {
-  const maximum = Number(selectedGoods.value?.availableQuantity || 1)
-  form.quantity = Math.min(maximum, Math.max(1, Math.floor(Number(rawValue) || 1)))
+/** 数量规范为该 SKU 可申请范围内的整数。 */
+function setQuantity(raw, item = afterSaleItems.value[0]) {
+  if (!item || submitting.value || submitted.value) return
+  quantities[item.orderItemId] = Math.min(item.availableQuantity, Math.max(1, Math.floor(Number(raw) || 1)))
 }
 
-function goSelectOrder() {
-  navigator.navigateTo(routes.order.list({ selectMode: 'afterSale' }), {
-    events: {
-      orderSelected(payload) {
-        if (payload?.orderId) {
-          orderId.value = payload.orderId
-          loadAfterSaleableItems(payload.orderId)
-        }
-      },
-    },
-  })
+/** 全选使用各行可申请数量，清空时不修改申请原因。 */
+function toggleAll() {
+  if (submitting.value || submitted.value) return
+  const clear = allSelected.value
+  afterSaleItems.value.forEach(item => { quantities[item.orderItemId] = clear ? 0 : item.availableQuantity })
 }
 
-/** 提交售后申请并跳转至售后记录页。 */
+/** 固定本次提交快照；失败重试复用请求号，成功后锁住按钮并打开新单详情。 */
 async function handleSubmit() {
-  if (!canSubmit.value) {
-    uni.showToast({ title: t('order.afterSale.required'), icon: 'none' })
-    return
+  if (submitting.value || submitted.value || !canSubmit.value) return
+  const payload = { orderId: Number(orderId.value), afterSaleType: form.type,
+    reason: form.reason.trim(), items: selectedLines.value.map(item => ({ ...item })) }
+  const fingerprint = JSON.stringify(payload)
+  if (fingerprint !== requestFingerprint.value) {
+    requestFingerprint.value = fingerprint
+    clientRequestId.value = 'after-sale-' + orderId.value + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10)
   }
   submitting.value = true
   try {
-    const fingerprint = JSON.stringify({
-      orderId: Number(orderId.value),
-      afterSaleType: form.type,
-      reason: form.reason.trim(),
-      orderItemId: selectedGoods.value.orderItemId,
-      quantity: form.quantity,
-    })
-    if (fingerprint !== requestFingerprint.value) {
-      requestFingerprint.value = fingerprint
-      clientRequestId.value = 'after-sale-' + orderId.value + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 10)
-    }
-    await applyAfterSale({
-      orderId: Number(orderId.value),
-      afterSaleType: form.type,
-      reason: form.reason.trim(),
-      clientRequestId: clientRequestId.value,
-      items: [{ orderItemId: selectedGoods.value.orderItemId, quantity: form.quantity }],
-    })
+    const result = await applyAfterSale({ ...payload, clientRequestId: clientRequestId.value })
+    if (pageDisposed) return
+    submitted.value = true
     uni.showToast({ title: t('order.afterSale.submitted'), icon: 'success' })
-    setTimeout(() => navigator.redirectTo(routes.order.afterSaleList()), 500)
+    successRedirectTimer = setTimeout(() => navigator.redirectTo(result?.afterSaleId ? routes.order.afterSaleDetail(result.afterSaleId) : routes.order.afterSaleList()), 500)
   } catch (error) {
+    if (pageDisposed) return
     uni.showToast({ title: error?.message || t('order.afterSale.submitFailed'), icon: 'none' })
   } finally {
     submitting.value = false
@@ -229,245 +193,32 @@ async function handleSubmit() {
 </script>
 
 <style lang="scss" scoped>
-.apply-after-sale-page {
-  min-height: 100%;
-  padding: 0 var(--page-padding-x, 16px) 30px;
-  box-sizing: border-box;
-  background: var(--bg-color);
-}
-
-.select-order-section {
-  background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: 12rpx;
-  overflow: hidden;
-  margin-bottom: 16rpx;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  
-  .select-trigger {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 32rpx;
-    
-    .hint {
-      flex: 1;
-      text-align: center;
-      font-size: 14px;
-      color: var(--text-placeholder);
-    }
-  }
-}
-
-.selected-goods {
-  display: flex;
-  background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: 12rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  
-  .goods-image {
-    width: 160rpx;
-    height: 160rpx;
-    border-radius: 8rpx;
-    flex-shrink: 0;
-  }
-  
-  .goods-info {
-    margin-left: 20rpx;
-    
-    .goods-name {
-      display: block;
-      font-size: 14px;
-      color: var(--text-primary);
-      font-weight: 500;
-    }
-    
-    .sku-name {
-      display: block;
-      font-size: 12px;
-      color: var(--text-placeholder);
-      margin-top: 8rpx;
-    }
-  }
-}
-
-.selected-goods.active {
-  outline: 1px solid rgba(215, 25, 45, .32);
-  background: rgba(255,248,249,.7);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-}
-
-.select-mark {
-  flex: 0 0 auto;
-  color: var(--color-brand, #D7192D);
-  font-size: var(--type-caption-size, 12px);
-  font-weight: 650;
-}
-
-.quantity-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid #EEF0F2;
-}
-
-.quantity-row .section-label { margin-bottom: 0; }
-
-.quantity-input {
-  width: 72px;
-  height: 36px;
-  padding: 0 10px;
-  border: 1px solid var(--color-border, #DDE0E4);
-  border-radius: var(--radius-control, 10px);
-  box-sizing: border-box;
-  background: var(--surface-subtle, #F7F8FA);
-  font-size: var(--type-body-size, 14px);
-  text-align: center;
-}
-
-.type-section, .amount-section, .reason-section, .evidence-section, .desc-section {
-  background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: 12rpx;
-  padding: 28rpx 32rpx;
-  margin-bottom: 16rpx;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-  
-  .section-label {
-    display: block;
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 20rpx;
-    
-    .required {
-      color: #F56C6C;
-      margin-right: 4rpx;
-    }
-  }
-}
-
-.type-options {
-  .type-option {
-    display: flex;
-    align-items: center;
-    padding: 24rpx;
-    border: 2rpx solid var(--border-color);
-    border-radius: 12rpx;
-    margin-bottom: 16rpx;
-    
-    &:last-child { margin-bottom: 0; }
-    
-    &.active {
-      border-color: var(--primary-color);
-      background: rgba(196, 30, 58, 0.02);
-    }
-    
-    .type-icon {
-      font-size: 18px;
-      margin-right: 16rpx;
-    }
-    
-    .type-name {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-primary);
-      margin-right: 16rpx;
-    }
-    
-    .type-desc {
-      font-size: 11px;
-      color: var(--text-placeholder);
-    }
-  }
-}
-
-.amount-display {
-  display: flex;
-  align-items: baseline;
-  padding: 20rpx 0;
-  
-  .amount-symbol {
-    font-size: 18px;
-    color: var(--primary-color);
-    font-weight: 600;
-  }
-  
-  .amount-value {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--primary-color);
-  }
-}
-
-.amount-tip {
-  font-size: 12px;
-  color: var(--text-placeholder);
-}
-
-.reason-input {
-  width: 100%;
-  height: 80rpx;
-  background: var(--bg-color);
-  border-radius: 8rpx;
-  padding: 0 20rpx;
-  font-size: 14px;
-  box-sizing: border-box;
-}
-
-.desc-textarea {
-  width: 100%;
-  height: 160rpx;
-  background: var(--bg-color);
-  border-radius: 8rpx;
-  padding: 20rpx;
-  font-size: 13px;
-  box-sizing: border-box;
-}
-
-.submit-btn {
-  width: 100%;
-  height: 88rpx;
-  line-height: 88rpx;
-  background: var(--primary-color);
-  color: #fff;
-  font-size: 16px;
-  font-weight: 600;
-  border-radius: 44rpx;
-  border: none;
-  
-  &[disabled] {
-    opacity: 0.5;
-  }
-}
-
-/* 与订单、充值页面统一：浅色页面底 + 白色内容卡片 + 品牌红主操作。 */
-.select-order-section,
-.selected-goods,
-.type-section,
-.amount-section,
-.reason-section {
-  border-radius: 17px;
-  margin-bottom: 12px;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-}
-
-.select-order-section .select-trigger { min-height: 52px; padding: 14px 16px; box-sizing: border-box; }
-.selected-goods { padding: 14px; }
-.type-section, .amount-section, .reason-section { padding: 16px; }
-.type-section .section-label, .amount-section .section-label, .reason-section .section-label { margin-bottom: 12px; font-size: 14px; }
-.submit-btn { background: var(--color-brand, #D7192D); }
-
-/* 金额按实际可用宽度缩字，父布局允许收缩。 */
-.amount-display { min-width: 0; }
+.apply-after-sale-page { min-width: 0; }
+.order-context { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; padding: 13px 16px; border: 1px solid #F0E1E3; border-radius: 14px; background: #FFF9FA; color: #777D86; font-size: 12px; }
+.order-number { min-width: 0; overflow-wrap: anywhere; color: #30363E; font-weight: 650; text-align: right; }
+.section-card { padding: 16px; margin-bottom: 12px; border-radius: 16px; background: var(--surface-card, #fff); }
+.section-heading, .selection-summary, .refund-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.section-label { display: block; min-width: 0; font-size: 15px; font-weight: 650; line-height: 1.5; }
+.section-note { display: block; margin-top: 5px; color: var(--text-secondary, #737A84); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.text-button { flex-shrink: 0; margin: 0; padding: 6px 0 6px 8px; background: transparent; color: #D7192D; font-size: 12px; line-height: 1.5; }
+button::after { border: 0; }
+.selection-summary { margin-top: 12px; padding-top: 10px; border-top: 1px solid #EEF0F2; font-size: 12px; color: #737A84; }
+.goods-row { display: flex; gap: 10px; align-items: flex-start; padding: 16px 0; border-bottom: 1px solid #EEF0F2; }
+.goods-row:last-child { border-bottom: 0; padding-bottom: 0; }
+.check-button { display: flex; flex: 0 0 24px; width: 24px; height: 24px; align-items: center; justify-content: center; margin: 17px 0 0; padding: 0; border: 1px solid #DDE0E4; border-radius: 50%; background: #fff; }
+.check-button.checked { background: #D7192D; border-color: #D7192D; }
+.goods-image { flex: 0 0 64px; width: 64px; height: 64px; border-radius: 10px; overflow: hidden; }
+.goods-info { min-width: 0; flex: 1; }
+.goods-name { display: block; font-size: 14px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
+.sku-name { display: block; margin-top: 4px; font-size: 12px; color: #737A84; overflow-wrap: anywhere; }
+.goods-info .quantity-stepper { margin-top: 10px; }
+.type-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 12px; border: 1px solid #F0D9DD; border-radius: 12px; background: #FFF8F9; line-height: 1.5; }
+.type-copy { min-width: 0; flex: 1; }
+.type-name { font-size: 14px; font-weight: 600; }
+.reason-input { display: block; width: 100%; min-height: 100px; margin-top: 12px; padding: 12px; box-sizing: border-box; border-radius: 10px; background: #F6F7F9; font-size: 14px; line-height: 1.6; }
+.character-count { display: block; margin-top: 6px; text-align: right; color: #969AA3; font-size: 11px; }
+.refund-row { font-size: 14px; }
+.refund-value { min-width: 0; color: #D7192D; font-size: 22px; font-weight: 700; }
+.submit-btn { display: flex; min-height: 46px; width: 100%; margin: 0; padding: 11px 16px; align-items: center; justify-content: center; border-radius: 12px; background: #D7192D; color: #fff; font-size: 15px; font-weight: 600; line-height: 1.5; white-space: normal; }
+.submit-btn[disabled] { background: #E9EAED; color: #969AA3; }
 </style>
