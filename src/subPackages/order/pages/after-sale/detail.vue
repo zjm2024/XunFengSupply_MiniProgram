@@ -13,19 +13,16 @@
       <view class="detail-row"><text>{{ t('order.afterSale.type') }}</text><text>{{ detail.afterSaleType === 2 ? t('order.afterSale.returnRefund') : t('order.afterSale.onlyRefund') }}</text></view>
       <view v-if="detail.workflowVersion === 2" class="workflow-block">
         <text class="note-title">{{ t('order.afterSaleDetail.workflow.title') }}</text>
-        <view class="detail-row"><text>{{ t('order.afterSaleDetail.workflow.inventoryLabel') }}</text><text>{{ workflowLabel('inventory', detail.inventoryStatus) }}</text></view>
-        <view class="detail-row"><text>{{ t('order.afterSaleDetail.workflow.submissionLabel') }}</text><text>{{ workflowLabel('submission', detail.erpSubmissionStatus) }}</text></view>
         <view class="detail-row"><text>{{ t('order.afterSaleDetail.workflow.reviewLabel') }}</text><text>{{ workflowLabel('review', detail.erpReviewStatus) }}</text></view>
-        <view class="detail-row"><text>{{ t('order.afterSaleDetail.workflow.receiptLabel') }}</text><text>{{ workflowLabel('receiptStatus', detail.receiptStatus) }}</text></view>
-        <view class="detail-row"><text>{{ t('order.afterSaleDetail.workflow.pricingLabel') }}</text><text>{{ workflowLabel('pricingStatus', detail.pricingStatus) }}<template v-if="detail.pricingVersion"> · {{ t('order.afterSaleDetail.workflow.pricingVersion', { version: detail.pricingVersion }) }}</template></text></view>
+        <view v-if="detail.status !== 7" class="detail-row"><text>{{ t('order.afterSaleDetail.workflow.receiptLabel') }}</text><text>{{ workflowLabel('receiptStatus', detail.receiptStatus) }}</text></view>
       </view>
-      <view class="detail-row"><text>{{ t('order.afterSaleList.refundRequested') }}</text><text v-if="awaitingPrice" class="awaiting-price">{{ t('order.afterSaleList.awaitingPrice') }}</text><AmountText v-else :text="'¥' + detail.refundAmount.toFixed(2)" /></view>
+      <view class="detail-row"><text>{{ t('order.afterSaleList.refundRequested') }}</text><text v-if="awaitingPrice || closedUnpricedAmount" class="awaiting-price">{{ closedUnpricedAmount ? '—' : t('order.afterSaleList.awaitingPrice') }}</text><AmountText v-else :text="'¥' + detail.refundAmount.toFixed(2)" /></view>
       <view class="note-block"><text class="note-title">{{ t('order.afterSale.reason') }}</text><text>{{ detail.reason }}</text></view>
       <view v-if="detail.auditRemark" class="note-block audit-note"><text class="note-title">{{ t('order.afterSaleDetail.auditRemark') }}</text><text>{{ detail.auditRemark }}</text></view>
       <view v-for="item in detail.items" :key="item.afterSaleItemId || item.orderItemId" class="detail-product">
         <AppProductImage class="product-image" :src="item.imageUrl" mode="aspectFit" />
         <view class="product-copy"><text class="product-name">{{ item.productName }}</text><text>{{ item.skuName }}</text><text>{{ t('order.afterSaleDetail.itemQuantity', { quantity: item.applyQuantity, received: item.receivedQuantity }) }}</text></view>
-        <text v-if="awaitingPrice" class="product-amount awaiting-price">{{ t('order.afterSaleList.awaitingPrice') }}</text><AmountText v-else class="product-amount" :text="'¥' + item.refundAmount.toFixed(2)" />
+        <text v-if="awaitingPrice || closedUnpricedAmount" class="product-amount awaiting-price">{{ closedUnpricedAmount ? '—' : t('order.afterSaleList.awaitingPrice') }}</text><AmountText v-else class="product-amount" :text="'¥' + item.refundAmount.toFixed(2)" />
       </view>
       <view class="time-block">
         <view class="detail-row"><text>{{ t('order.afterSaleDetail.createdAt') }}</text><text>{{ formatDateTimeSec(detail.createdAt) }}</text></view>
@@ -33,7 +30,7 @@
         <view v-if="detail.receivedAt" class="detail-row"><text>{{ t('order.afterSaleDetail.receivedAt') }}</text><text>{{ formatDateTimeSec(detail.receivedAt) }}</text></view>
         <view v-if="detail.completedAt" class="detail-row"><text>{{ t('order.afterSaleDetail.completedAt') }}</text><text>{{ formatDateTimeSec(detail.completedAt) }}</text></view>
       </view>
-      <view v-if="detail.returnTrackingNo" class="note-block"><text class="note-title">{{ t('order.afterSaleDetail.returnLogistics') }}</text><text>{{ detail.returnCarrierCode }} · {{ detail.returnTrackingNo }}</text></view>
+      <view v-if="detail.returnTrackingNo" class="note-block"><text class="note-title">{{ t('order.afterSaleDetail.returnLogistics') }}</text><text>{{ [detail.returnCarrierCode, detail.returnTrackingNo].filter(Boolean).join(' · ') }}</text></view>
       <view v-if="detail.status === 2 && detail.afterSaleType === 2" class="return-form">
         <text class="note-title">{{ t('order.afterSaleDetail.returnLogistics') }}</text>
         <text class="return-note">{{ t('order.afterSaleDetail.returnNote') }}</text>
@@ -76,6 +73,7 @@ const saving = ref(false)
 const error = ref('')
 const saveError = ref('')
 const logistics = reactive({ carrierCode: '', trackingNo: '' })
+let logisticsInitialized = false
 const carriers = ref([])
 const carrierError = ref('')
 const selectedCarrierName = computed(() => carriers.value.find(item => item.code === logistics.carrierCode)?.name || '')
@@ -93,7 +91,9 @@ onLoad(options => {
 })
 onShow(() => { if (!saving.value) return loadDetail() })
 onUnload(() => { disposed = true; readRevision++ })
-const awaitingPrice = computed(() => detail.value?.workflowVersion === 2 && detail.value?.sourceType === 2 && detail.value?.pricingStatus === 0)
+const unconfirmedAmount = computed(() => detail.value?.workflowVersion === 2 && detail.value?.sourceType === 2 && detail.value?.pricingStatus === 0)
+const closedUnpricedAmount = computed(() => unconfirmedAmount.value && [6, 7, 8, 9].includes(detail.value?.status))
+const awaitingPrice = computed(() => unconfirmedAmount.value && !closedUnpricedAmount.value)
 
 /** 每次打开或主动刷新时读取真实审核/物流结果，保留未提交物流草稿。 */
 async function loadDetail() {
@@ -107,6 +107,11 @@ async function loadDetail() {
     if (disposed || revision !== readRevision) return
     if (!result) throw new Error(t('order.afterSaleDetail.notFound'))
     detail.value = result
+    if (!logisticsInitialized) {
+      logistics.carrierCode = result.returnCarrierCode || ''
+      logistics.trackingNo = result.returnTrackingNo || ''
+      logisticsInitialized = true
+    }
     if (result.status === 2 && result.afterSaleType === 2 && !carriers.value.length) await loadCarriers()
   } catch (failure) {
     if (!disposed && revision === readRevision) error.value = failure?.message || t('order.afterSaleDetail.loadFailed')

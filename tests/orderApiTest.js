@@ -372,3 +372,23 @@ describe('AfterSale API Layer', () => {
     )
   })
 })
+
+describe('SKU shipment detail mapping',()=>{
+ it('preserves zero and null separately when mapping shipment quantities',async()=>{
+  const dispatch=vi.fn().mockResolvedValue({OrderId:88,Items:[
+    {OrderItemId:1,Quantity:5,Unit:'双',ShippedQuantity:2,UnshippedQuantity:3},
+    {OrderItemId:2,Quantity:4,ShippedQuantity:0,UnshippedQuantity:4},
+    {OrderItemId:3,Quantity:2,ShippedQuantity:null},
+  ]})
+  vi.doMock('@/shared/api/dispatchClient.js',()=>({dispatch}))
+  const {getOrderDetail}=await import('@/subPackages/order/api/orderApi.js');const result=await getOrderDetail(88)
+  expect(result.items.map(item=>[item.shippedQuantity,item.unshippedQuantity])).toEqual([[2,3],[0,4],[null,null]])
+  expect(result.items[0]).toMatchObject({orderItemId:1,quantity:5,unit:'双'})
+ })
+ it('older responses without SKU shipment fields remain unknown',async()=>{
+  const dispatch=vi.fn().mockResolvedValue({orderId:88,orderStatus:40,items:[{quantity:3}]})
+  vi.doMock('@/shared/api/dispatchClient.js',()=>({dispatch}))
+  const {getOrderDetail}=await import('@/subPackages/order/api/orderApi.js')
+  expect((await getOrderDetail(88)).items[0]).toMatchObject({shippedQuantity:null,unshippedQuantity:null})
+ })
+})

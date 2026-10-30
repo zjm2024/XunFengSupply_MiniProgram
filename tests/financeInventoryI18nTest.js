@@ -33,7 +33,7 @@ async function open(relative, supplied = {}) {
     frozenBalance: 10 }, accounts: [], subjectAvailableBalance: 200,
   credit: { totalAmount: 1000, availableAmount: 700, usedAmount: 200, frozenAmount: 100, isFrozen: false } }
   const api = {
-    getDealerInventoryList: vi.fn(async () => ({ items: [], totalCount: 0 })), getDealerInventoryDetail: vi.fn(),
+    getDealerInventoryProducts: vi.fn(async () => ({ items: [], totalCount: 0 })), getDealerInventoryDetail: vi.fn(),
     getFundFlowList: vi.fn(async () => ({ items: [], totalCount: 0 })),
     getCreditUsageList: vi.fn(async () => ({ items: [], totalCount: 0 })),
     getBillList: vi.fn(async () => ({ items: [], totalCount: 0 })), getBillDetail: vi.fn(async () => ({})),
@@ -54,6 +54,7 @@ async function open(relative, supplied = {}) {
     if (id.includes('i18n/index')) return i18n
     if (id.includes('/useAppDialog.js')) return dialogHarness()
     if (id.includes('pageState')) return import('@/shared/model/pageState.js')
+    if (id.includes('inventoryReturnDraft')) return import('@/shared/model/inventoryReturnDraft.js')
     if (id.includes('userStore')) return { useUserStore: () => user }
     if (id.includes('navigator')) return { navigator }
     if (id.includes('config/routes')) return { routes }
@@ -87,7 +88,7 @@ describe('库存与财务页面显示语言边界', () => {
   it('库存筛选重新取词但保留搜索、原产品、数量和分页参数', async () => {
     const item = { skuId: 9, productName: '原商品', skuName: '蓝色/S', unit: '件', availableQuantity: 1234.5 }
     const { v, api } = await open('inventory/index.vue', {
-      api: { getDealerInventoryList: vi.fn(async () => ({ items: [item], totalCount: 1 })) },
+      api: { getDealerInventoryProducts: vi.fn(async () => ({ items: [item], totalCount: 1 })) },
     })
     v.keywordInput.value = ' 用户输入 '
     v.keyword.value = '用户输入'
@@ -103,8 +104,8 @@ describe('库存与财务页面显示语言边界', () => {
     expect(v.activeTab.value).toBe('low')
     expect(JSON.stringify(v.items.value)).toBe(facts)
     expect(v.formatQty(1234.5)).toBe(quantity)
-    expect(api.getDealerInventoryList).toHaveBeenCalledTimes(1)
-    expect(api.getDealerInventoryList).toHaveBeenCalledWith({ pageNum: 1, pageSize: 16,
+    expect(api.getDealerInventoryProducts).toHaveBeenCalledTimes(1)
+    expect(api.getDealerInventoryProducts).toHaveBeenCalledWith({ pageNum: 1, pageSize: 16,
       keyword: '用户输入', stockStatus: 'low' })
   })
 
@@ -130,7 +131,7 @@ describe('库存与财务页面显示语言边界', () => {
     '%s 保留可重新取词的网络错误及原错误身份，不因语言变化重读', async relative => {
       const network = new errors.AppError('', errors.ErrorKind.NETWORK,
         { messageKey: 'common.errors.network', traceId: 'keep-trace', errorCode: 'KEEP-CODE' })
-      const api = Object.fromEntries(['getDealerInventoryList', 'getFundFlowList', 'getCreditUsageList',
+      const api = Object.fromEntries(['getDealerInventoryProducts', 'getFundFlowList', 'getCreditUsageList',
         'getBillList', 'getRechargeList'].map(name => [name, vi.fn().mockRejectedValue(network)]))
       const { v } = await open(relative, { api })
       await (v.reload || v.resetAndLoad || v.loadBillList)()

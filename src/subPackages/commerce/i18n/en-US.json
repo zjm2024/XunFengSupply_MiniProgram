@@ -62,7 +62,16 @@
     "removeOne": "Remove “{name}” from your cart?",
     "removeInvalid": "Remove {count} unavailable items?",
     "removeSelected": "Delete {count} selected SKUs?",
-    "removeAll": "Clear all {count} SKUs from your cart? This cannot be undone."
+    "removeAll": "Clear all {count} SKUs from your cart? This cannot be undone.",
+    "searchPlaceholder": "Product / SKU / barcode",
+    "searchCount": "{count} matching SKUs",
+    "showAll": "Show all",
+    "selectResults": "Select results",
+    "noSearchResults": "No matching products. Try another name or code.",
+    "hiddenSelected": "{count} selected SKUs are outside these results. Checkout includes all selected items.",
+    "hiddenManagement": "{count} selected SKUs are outside these results. Delete only affects the current results.",
+    "invalidCount": "Unavailable items ({count} SKUs)",
+    "clearInvalidResults": "Remove matching items"
   },
   "checkout": {
     "priceChanged": "Prices have been updated using the latest dealer pricing. Review them before submitting.",

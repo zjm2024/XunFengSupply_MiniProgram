@@ -101,6 +101,16 @@ function normalizeOrder(order = {}) {
     statusLogs: order.statusLogs ?? order.StatusLogs ?? [],
     giftOmitted: (order.giftOmitted ?? order.GiftOmitted) === true,
     omittedGiftSkus: order.omittedGiftSkus ?? order.OmittedGiftSkus ?? [],
+    items: (order.items ?? order.Items ?? []).map(item => {
+      const quantity = number(item.quantity ?? item.Quantity)
+      const rawShipped = item.shippedQuantity ?? item.ShippedQuantity
+      const sent = rawShipped == null ? null : Math.max(0, number(rawShipped))
+      return { ...item, orderItemId: number(item.orderItemId ?? item.OrderItemId),
+        quantity, unit: item.unit ?? item.Unit ?? '',
+        shippedQuantity: sent,
+        unshippedQuantity: sent == null ? null : Math.max(0, number(item.unshippedQuantity ?? item.UnshippedQuantity, quantity - sent)),
+      }
+    }),
     fulfillmentSplits: (order.fulfillmentSplits ?? order.FulfillmentSplits ?? []).map(split => ({
       ...split,
       customerStatus: normalizeCustomerDisplay(split.customerStatus ?? split.CustomerStatus),

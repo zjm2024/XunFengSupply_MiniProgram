@@ -49,6 +49,10 @@
                 <textarea v-model="form.reason" class="reason-input" :disabled="submitting || submitted" :placeholder="t('order.afterSale.reasonPlaceholder')" maxlength="500" auto-height />
                 <text class="character-count">{{ form.reason.length }}/500</text>
               </view>
+              <view class="section-card express-card">
+                <text class="section-label">{{ t('order.afterSale.expressNo') }}</text>
+                <input v-model="form.expressNo" class="express-input" :disabled="submitting || submitted" maxlength="100" :placeholder="t('order.afterSale.expressNoPlaceholder')" />
+              </view>
               <view class="section-card refund-card">
                 <view class="refund-row"><text>{{ t('order.afterSale.refundAmount') }}</text><AmountText class="refund-value" :text="'¥' + estimatedRefundAmount.toFixed(2)" /></view>
                 <text class="section-note">{{ t('order.afterSale.refundNote') }}</text>
@@ -97,7 +101,7 @@ const submitting = ref(false)
 const submitted = ref(false)
 const clientRequestId = ref('')
 const requestFingerprint = ref('')
-const form = reactive({ type: 2, reason: '' })
+const form = reactive({ type: 2, reason: '', expressNo: '' })
 let loadRevision = 0
 const selectedLines = computed(() => afterSaleItems.value
   .filter(item => quantities[item.orderItemId] > 0)
@@ -170,7 +174,7 @@ function toggleAll() {
 async function handleSubmit() {
   if (submitting.value || submitted.value || !canSubmit.value) return
   const payload = { orderId: Number(orderId.value), afterSaleType: form.type,
-    reason: form.reason.trim(), items: selectedLines.value.map(item => ({ ...item })) }
+    reason: form.reason.trim(), expressNo: form.expressNo.trim(), items: selectedLines.value.map(item => ({ ...item })) }
   const fingerprint = JSON.stringify(payload)
   if (fingerprint !== requestFingerprint.value) {
     requestFingerprint.value = fingerprint
@@ -221,4 +225,5 @@ button::after { border: 0; }
 .refund-value { min-width: 0; color: #D7192D; font-size: 22px; font-weight: 700; }
 .submit-btn { display: flex; min-height: 46px; width: 100%; margin: 0; padding: 11px 16px; align-items: center; justify-content: center; border-radius: 12px; background: #D7192D; color: #fff; font-size: 15px; font-weight: 600; line-height: 1.5; white-space: normal; }
 .submit-btn[disabled] { background: #E9EAED; color: #969AA3; }
+.express-input { width:100%; height:44px; margin-top:12px; padding:0 12px; box-sizing:border-box; border-radius:10px; background:#F6F8FA; color:#3F4C5C; font-size:14px; }
 </style>

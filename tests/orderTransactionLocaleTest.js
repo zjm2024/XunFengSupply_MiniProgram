@@ -85,6 +85,7 @@ describe('订单写操作在语言切换期间的真实页面回归', () => {
     page.setQuantity(1, page.afterSaleItems.value[0])
     page.setQuantity(99, page.afterSaleItems.value[1])
     page.form.reason = '多个规格质量问题'
+    page.form.expressNo = '  SF-ORDER-001  '
     expect(page.totalQuantity.value).toBe(4)
     expect(page.estimatedRefundAmount.value).toBe(125.51)
     const pending = deferred()
@@ -94,6 +95,7 @@ describe('订单写操作在语言切换期间的真实页面回归', () => {
     page.toggleAll()
     expect(page.totalQuantity.value).toBe(4)
     expect(saleApi.applyAfterSale).toHaveBeenCalledTimes(1)
+    expect(saleApi.applyAfterSale.mock.calls[0][0].expressNo).toBe('SF-ORDER-001')
     expect(saleApi.applyAfterSale.mock.calls[0][0].items).toEqual([{ orderItemId: 101, quantity: 3 }, { orderItemId: 102, quantity: 1 }])
     pending.resolve({ afterSaleId: 55 })
     await writing
@@ -230,6 +232,7 @@ describe('订单写操作在语言切换期间的真实页面回归', () => {
     await page.loadAfterSaleableItems('88')
     page.form.type = 2
     page.form.reason = '  原因 user text  '
+    page.form.expressNo = '  SF-RETRY-001  '
     page.setQuantity(2)
     saleApi.applyAfterSale.mockRejectedValueOnce(new Error('原始拒绝'))
     await page.handleSubmit()
@@ -238,6 +241,8 @@ describe('订单写操作在语言切换期间的真实页面回归', () => {
     runtime.setLocale('en')
     await vue.nextTick()
     expect(page.form.reason).toBe('  原因 user text  ')
+    expect(page.form.expressNo).toBe('  SF-RETRY-001  ')
+    expect(original.expressNo).toBe('SF-RETRY-001')
     expect(page.quantities[101]).toBe(2)
     expect(page.form.type).toBe(2)
     expect(page).not.toHaveProperty('afterSaleTypes')
@@ -253,11 +258,11 @@ describe('订单写操作在语言切换期间的真实页面回归', () => {
     expect(page.canCancel({ workflowVersion: 2, status: 1 })).toBe(false)
     expect(page.canCancel({ workflowVersion: 1, status: 1 })).toBe(true)
     expect(page.getProgressHelp({ workflowVersion: 2, status: 1, inventoryStatus: 2, erpSubmissionStatus: 2,
-      erpReviewStatus: 1, receiptStatus: 3, pricingStatus: 0 })).toBe('仓库实收数量存在差异，正在核对。')
+      erpReviewStatus: 1, receiptStatus: 3, pricingStatus: 0 })).toBe('退货数量正在核对。')
     runtime.setLocale('en')
     await vue.nextTick()
     expect(page.getProgressHelp({ workflowVersion: 2, status: 1, inventoryStatus: 2, erpSubmissionStatus: 2,
-      erpReviewStatus: 1, receiptStatus: 2, pricingStatus: 0 })).toBe('The return is closed. Finance is confirming the refund amount.')
+      erpReviewStatus: 1, receiptStatus: 2, pricingStatus: 0 })).toBe('The items were received. The refund amount is pending confirmation.')
   })
 
   it('售后读取错误重新显示当前语言，切换不重新拉取列表', async () => {
@@ -310,6 +315,12 @@ describe('售后独立详情页与列表导航', () => {
     expect(saleApi.getAfterSaleList).toHaveBeenCalledTimes(2)
     expect(page.isAwaitingPrice({ workflowVersion: 1, sourceType: 1, pricingStatus: 0 })).toBe(false)
     expect(page.isAwaitingPrice({ workflowVersion: 2, sourceType: 2, pricingStatus: 0 })).toBe(true)
+    const rejected = { workflowVersion: 2, sourceType: 2, pricingStatus: 0, status: 7 }
+    expect(page.isAwaitingPrice(rejected)).toBe(false)
+    expect(page.isClosedUnpricedAmount(rejected)).toBe(true)
+    expect(runtime.t('order.afterSaleList.awaitingPrice')).toBe('退款金额待确认')
+    runtime.setLocale('en-US')
+    expect(runtime.t('order.afterSaleList.awaitingPrice')).toBe('Refund amount pending')
   })
 
   it('申请成功后离开页面取消延迟跳转，避免打断用户新页面', async () => {
@@ -347,4 +358,14 @@ describe('售后导航失败和卸载期间写入', () => {
     expect(navigation.redirectTo).not.toHaveBeenCalled()
     expect(uni.showToast).not.toHaveBeenCalled()
   })
+})
+
+describe('申请物流单号的后续展示',()=>{
+ it('详情首次预填申请单号，刷新保留用户的未提交修改',async()=>{
+  saleApi.getAfterSaleDetail.mockResolvedValue({afterSaleId:55,status:1,afterSaleType:2,returnTrackingNo:'SF-APPLICATION',returnCarrierCode:''})
+  const page=await load('after-sale/detail.vue');page.afterSaleId.value=55;await page.loadDetail()
+  expect(page.logistics.trackingNo).toBe('SF-APPLICATION')
+  page.logistics.trackingNo='';await page.loadDetail();expect(page.logistics.trackingNo).toBe('')
+  page.logistics.trackingNo='SF-DRAFT';await page.loadDetail();expect(page.logistics.trackingNo).toBe('SF-DRAFT')
+ })
 })

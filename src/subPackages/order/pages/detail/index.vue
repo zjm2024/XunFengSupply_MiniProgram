@@ -1,4 +1,4 @@
-﻿<!--
+<!--
   订单详情页面（分包：orderSub）
   对应业务流程节点：
   订单履约发货 → 查看客户可见订单信息、物流进度与可执行操作
@@ -62,6 +62,7 @@
                   <view class="spu-order-copy">
                     <text class="spu-order-name">{{ group.name }}</text>
                     <text class="spu-order-meta">{{ t('order.detail.productSummary', { count: group.items.length, quantity: group.totalQuantity }) }}</text>
+                    <text class="spu-shipping-summary">{{ group.shipmentSummary }}</text>
                   </view>
                   <AmountText class="spu-order-total" :text="'¥' + (group.totalAmount.toFixed(2))" />
                   <view class="spu-collapse-button">
@@ -81,7 +82,7 @@
                     class="goods-item"
                   >
                     <view class="goods-image-link" @tap="goToProductDetail(item)">
-                      <AppProductImage class="goods-image" :src="item.image" mode="aspectFill" />
+                      <AppProductImage class="goods-image" :src="item.image" :lazy-load="true" mode="aspectFill" />
                     </view>
                     <view class="goods-info">
                       <text class="goods-name">{{ item.skuName || t('order.detail.defaultVariant') }}</text>
@@ -90,6 +91,10 @@
                         <AmountText class="price" :text="'¥' + (Number(item.salePrice || 0).toFixed(2))" />
                         <AmountText v-if="getPriceDisplay(item).showListPrice" class="list-price" :class="{ 'list-price--strike': getPriceDisplay(item).strikeListPrice }" :text="'¥' + Number(item.listPrice).toFixed(2)" />
                         <text class="qty">x{{ item.quantity }}</text>
+                      </view>
+                      <view class="item-shipment" :class="'is-' + item.shipment.tone">
+                        <text class="item-shipment-status">{{ item.shipment.text }}</text>
+                        <view v-if="item.shipment.known" class="item-shipment-quantities"><text>{{ t('order.detail.skuShipped', { quantity: item.shipment.sent }) }} {{ item.unit }}</text><text>{{ t('order.detail.skuUnshipped', { quantity: item.shipment.remaining }) }} {{ item.unit }}</text></view>
                       </view>
                       <AmountText v-if="item.strategyDiscount > 0" class="strategy-discount" :text="(t('order.detail.strategyDiscount')) + ' ¥' + (item.strategyDiscount.toFixed(2))" />
                       <AmountText v-if="item.promotionDiscount > 0" class="promotion-discount" :text="(t('order.detail.promotionDiscount')) + ' ¥' + (item.promotionDiscount.toFixed(2))" />
@@ -124,9 +129,15 @@
                 <view v-if="isSplitItemsExpanded(split)" class="split-items-detail">
                   <text v-if="split.erpReviewReasonMessage" class="split-no">{{ t('order.detail.reason') }}{{ split.erpReviewReasonMessage }}</text>
                   <text v-if="split.splitNo" class="split-no">{{ t('order.detail.deliveryNo') }}{{ split.splitNo }}</text>
-                  <view v-for="item in split.items" :key="`${split.splitId}-${item.orderItemId}`" class="split-item">
-                    <text class="split-item-name">{{ item.skuName || item.productName || t('order.detail.genericProduct') }}</text>
-                    <text class="split-item-qty">{{ splitItemQuantityText(split, item) }}</text>
+                  <view v-for="group in splitProductGroups(split)" :key="group.key" class="split-product-card">
+                    <view class="split-product-header">
+                      <AppProductImage class="split-product-image" :src="group.image" :lazy-load="true" />
+                      <text class="split-product-name">{{ group.name }}</text>
+                    </view>
+                    <view v-for="item in group.items" :key="item.orderItemId || item.skuId" class="split-item">
+                      <text class="split-item-name">{{ item.skuName || t('order.detail.defaultVariant') }}</text>
+                      <text class="split-item-qty">{{ splitItemQuantityText(split, item) }}</text>
+                    </view>
                   </view>
                 </view>
               </view>
@@ -554,7 +565,7 @@ const productGroups = computed(() => {
     const productId = Number(item.productId ?? item.ProductId ?? 0)
     const skuId = Number(item.skuId ?? item.SkuId ?? 0)
     const rawProductName = item.productName || item.ProductName || ''
-    const productName = rawProductName || item.skuName || item.SkuName || t('order.detail.productFallback')
+    const productName = rawProductName || t('order.detail.productFallback')
     const key = productId > 0
       ? `spu-${productId}`
       : rawProductName
@@ -587,17 +598,55 @@ const productGroups = computed(() => {
       promotionDiscount: Number(item.discountAmount ?? item.DiscountAmount ?? 0),
       lineTotal: Number(item.totalAmount ?? item.TotalAmount ?? item.subTotal ?? item.SubTotal ?? 0),
       promotionSnapshot: item.promotionSnapshot ?? item.PromotionSnapshot ?? null,
+      unit: item.unit ?? item.Unit ?? '',
+      shipment: itemShipmentDisplay(item),
     })
   })
   return Array.from(groups.values()).map(group => ({
     ...group,
+    shipmentSummary: group.items.every(item => item.shipment.known)
+      ? t('order.detail.skuShippingSummary', { sent: group.items.reduce((sum,item) => sum + item.shipment.sent,0), total: group.items.reduce((sum,item) => sum + item.quantity,0) })
+      : t('order.detail.skuShippingUnknown'),
     totalQuantity: group.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
     totalAmount: group.items.reduce((sum, item) => sum + (Number(item.lineTotal) || (Number(item.salePrice) || 0) * (Number(item.quantity) || 0)), 0),
   }))
 })
 
+/** 建立订单行到SPU快照的索引，避免分单渲染反复扫描全部订单行。 */
+const productByOrderItemId = computed(() => {
+  const result = new Map()
+  productGroups.value.forEach(group => group.items.forEach(item => {
+    if (item.orderItemId != null) result.set(String(item.orderItemId), group)
+  }))
+  return result
+})
+
+/** 分单明细始终按SPU包裹SKU；缺少分单商品快照时通过原订单行恢复标题。 */
+function splitProductGroups(split) {
+  const groups = new Map()
+  ;(split.items || []).forEach((item,index) => {
+    const parent = productByOrderItemId.value.get(String(item.orderItemId))
+    const key = parent?.key || (item.productId ? 'spu-' + item.productId : 'line-' + (item.orderItemId ?? index))
+    if (!groups.has(key)) groups.set(key, { key, name:parent?.name || item.productName || t('order.detail.productFallback'), image:parent?.image || item.imageUrl || '', items:[] })
+    groups.get(key).items.push(item)
+  })
+  return Array.from(groups.values())
+}
+
+/** 只按逐行实发事实显示状态，既不从整单状态推算数量，也不把历史未知记录显示成零。 */
+function itemShipmentDisplay(item) {
+  const raw = item.shippedQuantity ?? item.ShippedQuantity
+  if (raw == null || !Number.isFinite(Number(raw))) return { known:false,text:t('order.detail.skuShippingUnknown'),tone:'unknown' }
+  const sent = Math.max(0,Number(raw)), total = Math.max(0,Number(item.quantity ?? item.Quantity) || 0)
+  const remaining = Math.max(0,Number(item.unshippedQuantity ?? item.UnshippedQuantity ?? (total-sent)) || 0)
+  const key = sent <= 0 ? 'skuNotShipped' : remaining > 0 ? 'skuPartiallyShipped' : 'skuFullyShipped'
+  return { known:true,sent,remaining,text:t('order.detail.' + key),tone:sent <= 0 ? 'pending' : remaining > 0 ? 'partial' : 'shipped' }
+}
+
+/** 未拆单时默认展开规格，仍保留用户手动折叠和拆单订单的按需展开。 */
 function isProductGroupCollapsed(groupKey) {
-  return collapsedProductGroups.value[groupKey] !== false
+  const selected = collapsedProductGroups.value[groupKey]
+  return selected == null ? Boolean(detail.value?.fulfillmentSplits?.length) : selected
 }
 
 function toggleProductGroup(groupKey) {
@@ -640,6 +689,13 @@ function splitItemQuantityText(split, item) {
 </script>
 
 <style lang="scss" scoped>
+.spu-shipping-summary { display:block; margin-top:5px; color:#7D8997; font-size:11px; line-height:1.5; }
+.item-shipment { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin-top:10px; }
+.item-shipment-status { padding:3px 7px; border-radius:5px; background:#F0F2F5; color:#87929F; font-size:11px; line-height:1.5; }
+.item-shipment.is-shipped .item-shipment-status { color:#287251; background:#EDF7F1; }
+.item-shipment.is-partial .item-shipment-status { color:#B47C24; background:#FFF6E7; }
+.item-shipment-quantities { display:flex; flex-wrap:wrap; gap:5px 12px; color:#7D8997; font-size:11px; line-height:1.6; }
+
 .list-price { color: var(--color-text-tertiary, #94969c); font-size: 12px; font-weight: 400; }
 .list-price--strike :deep(.amount-text__value) { text-decoration: line-through; }
 .order-detail-page {
@@ -767,6 +823,10 @@ function splitItemQuantityText(split, item) {
 .split-history-toggle { justify-content: center; margin-top: 10px; padding-top: 10px; border-top: 1rpx solid var(--border-color); }
 .split-toggle-icon { transition: transform .2s ease; }
 .split-toggle-icon.expanded { transform: rotate(90deg); }
+.split-product-card { margin-top:10px; padding:10px; background:#fff; border-radius:8px; }
+.split-product-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; min-width:0; }
+.split-product-image { flex:0 0 40px; width:40px; height:40px; border-radius:6px; overflow:hidden; }
+.split-product-name { flex:1; min-width:0; font-weight:600; font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
 .split-items-detail { margin-top: 8px; padding: 10px; border-radius: 8px; background: #f7f8fa; }
 .split-no { display: block; margin-bottom: 8px; color: var(--text-placeholder); font-size: 11px; overflow-wrap: anywhere; }
 .split-item { display: flex; justify-content: space-between; gap: 12px; margin-top: 7px; color: var(--text-secondary); font-size: 12px; }

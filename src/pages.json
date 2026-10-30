@@ -255,6 +255,14 @@
                     }
                 },
                 {
+                    "path": "pages/inventory/overview",
+                    "style": { "navigationStyle": "custom", "navigationBarTitleText": "" }
+                },
+                {
+                    "path": "pages/inventory/ledger",
+                    "style": { "navigationStyle": "custom", "navigationBarTitleText": "" }
+                },
+                {
                     "path": "pages/inventory/detail",
                     "style": {
                         "navigationStyle": "custom",

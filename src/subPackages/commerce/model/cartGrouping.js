@@ -1,4 +1,4 @@
-﻿function number(value, fallback = 0) {
+function number(value, fallback = 0) {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : fallback
 }
@@ -46,5 +46,17 @@ export function groupItemsBySpu(items = []) {
       allSelected: purchasableItems.length > 0 && selectedItems.length === purchasableItems.length,
       partiallySelected: selectedItems.length > 0 && selectedItems.length < purchasableItems.length,
     }
+  })
+}
+
+/** 在已加载购物车中匹配名称、规格、编码和条码；保留原对象及选择状态。 */
+export function filterCartItems(items = [], keyword = '') {
+  const normalize = value => String(value ?? '').normalize('NFKC').toLocaleLowerCase().trim()
+  const terms = normalize(keyword).split(/\s+/).filter(Boolean)
+  const source = Array.isArray(items) ? items : []
+  if (!terms.length) return source
+  return source.filter(item => {
+    const text = [item?.name, item?.skuName, item?.code, item?.skuCode, item?.barcode].map(normalize).join(' ')
+    return terms.every(term => text.includes(term))
   })
 }

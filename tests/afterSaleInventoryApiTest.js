@@ -29,7 +29,7 @@ describe('Inventory after-sale API', () => {
     expect(waiting.pricingVersion).toBe(4)
     expect(order.pricingStatus).toBe(1)
   })
-  it('maps account and warehouse SKU intent to the inventory endpoint contract', async () => {
+  it('maps account and SKU intent without exposing a warehouse to the inventory endpoint contract', async () => {
     const dispatchMock = vi.fn().mockResolvedValue({ AfterSaleId: 91, AfterSaleNo: 'AS-91', Status: 1 })
     vi.doMock('@/shared/api/dispatchClient.js', () => ({ dispatch: dispatchMock }))
     const { applyInventoryAfterSale } = await import('@/shared/api/afterSale.js')
@@ -39,7 +39,7 @@ describe('Inventory after-sale API', () => {
     })
     expect(dispatchMock).toHaveBeenCalledWith('MallOrder', 'Mini.AfterSaleController', 'ApplyInventoryAfterSale', {
       RefundAccountId: 8, ClientRequestId: 'inventory-1', Reason: '仓库退货',
-      Items: [{ WarehouseId: 3, SkuId: 12, Quantity: 2 }],
+      Items: [{ SkuId: 12, Quantity: 2 }],
     })
     expect(result.afterSaleId).toBe(91)
     expect(result.afterSaleNo).toBe('AS-91')

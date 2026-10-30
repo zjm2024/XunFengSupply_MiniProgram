@@ -1,9 +1,14 @@
-﻿﻿<template>
+<template>
   <AppPageShell>
     <template #header>
       <app-header
         :title="t('commerce.titles.cart')"
         :show-back="true"
+        :searchable="true"
+        :search-value="searchKeyword"
+        :search-placeholder="t('commerce.cart.searchPlaceholder')"
+        @update:search-value="setSearchKeyword"
+        @clear-search="clearSearch"
         :action-text="pageState === PageStatus.CONTENT ? (isManaging ? t('commerce.titles.done') : t('commerce.titles.manage')) : ''"
         @back="goBack"
         @action="toggleManagement"
@@ -58,10 +63,23 @@
                   <view class="toolbar-left">
                     <text class="toolbar-title">{{ t('commerce.cart.list') }}</text>
                     <text class="toolbar-desc">
-                      {{ t('commerce.cart.listCount', { products: validGroups.length, skus: cartStore.validItems.length, quantity: cartStore.summary.allQuantity }) }}
+                      {{ t('commerce.cart.listCount', { products: visibleProductCount, skus: visibleItems.length, quantity: visibleQuantity }) }}
                     </text>
                   </view>
                   <button v-if="!isManaging" class="outline-btn button-center" @click="goToProductList">{{ t('commerce.cart.continue') }}</button>
+                </view>
+
+                <view v-if="isSearching" class="search-summary">
+                  <text>{{ t('commerce.cart.searchCount', { count: visibleItems.length }) }}</text>
+                  <button class="link-btn button-center" @tap.stop="clearSearch">{{ t('commerce.cart.showAll') }}</button>
+                </view>
+                <view v-if="hiddenSelectedCount" class="search-selection-hint">
+                  <text>{{ t(isManaging ? 'commerce.cart.hiddenManagement' : 'commerce.cart.hiddenSelected', { count: hiddenSelectedCount }) }}</text>
+                </view>
+                <view v-if="isSearching && !visibleItems.length" class="search-empty">
+                  <AppIcon name="search" :size="28" />
+                  <text>{{ t('commerce.cart.noSearchResults') }}</text>
+                  <button class="link-btn button-center" @tap.stop="clearSearch">{{ t('commerce.cart.showAll') }}</button>
                 </view>
 
                 <!-- 同步状态提示 -->
@@ -77,26 +95,31 @@
                 </view>
 
                 <!-- 失效商品区 -->
-                <view v-if="cartStore.invalidItems.length > 0" class="invalid-section">
+                <view v-if="visibleInvalidItems.length > 0" class="invalid-section">
                   <view class="invalid-header">
-                    <text class="invalid-title">{{ cartStore.invalidSummaryText }}</text>
-                    <button class="link-btn button-center" @click="removeInvalidItems">{{ t('commerce.cart.clearInvalid') }}</button>
+                    <text class="invalid-title">{{ t('commerce.cart.invalidCount', { count: visibleInvalidItems.length }) }}</text>
+                    <button class="link-btn button-center" @click="removeInvalidItems">{{ t(isSearching ? 'commerce.cart.clearInvalidResults' : 'commerce.cart.clearInvalid') }}</button>
                   </view>
                   <view class="cart-list">
-                    <view v-for="item in cartStore.invalidItems" :key="item.cartItemId" class="cart-card is-invalid">
+                    <view v-for="group in invalidGroups" :key="group.key" class="spu-card invalid-spu">
+                      <view class="invalid-spu-header">
+                        <text class="spu-name">{{ group.name }}</text>
+                        <text class="spu-meta">{{ t('commerce.cart.groupCount', { count: group.skuCount, quantity: group.totalQuantity }) }}</text>
+                      </view>
+                    <view v-for="item in group.items" :key="item.cartItemId" class="cart-card is-invalid">
                       <label v-if="isManaging" class="check-wrap" @tap.stop="onToggleSelect(item)">
                         <view class="check" :class="{ checked: isManagementSelected(item) }">
                           <text v-if="isManagementSelected(item)">✓</text>
                         </view>
                       </label>
-                      <view class="invalid-tag">失效</view>
                       <AppProductImage class="product-image" :src="item.image" :stock="item.stock" />
                       <view class="product-info">
-                        <text class="product-name">{{ item.name || t('commerce.cart.productRef', { id: item.productId }) }}</text>
+                        <text class="product-name">{{ item.skuName || t('commerce.cart.defaultVariant') }}</text>
                         <text class="product-code">{{ t('commerce.cart.code', { code: item.code || item.productId }) }}</text>
                         <text class="invalid-reason">{{ item.invalidReason || t('commerce.cart.invalidHint') }}</text>
                       </view>
                       <button v-if="!isManaging" class="delete-btn button-center" @click="deleteOne(item.cartItemId)">{{ t('commerce.cart.remove') }}</button>
+                    </view>
                     </view>
                   </view>
                 </view>
@@ -249,9 +272,9 @@
             <view class="check" :class="{ checked: areAllItemsSelected }">
               <text v-if="areAllItemsSelected">✓</text>
             </view>
-            <text>{{ t('commerce.cart.selectAll') }}</text>
+            <text>{{ t(isSearching ? 'commerce.cart.selectResults' : 'commerce.cart.selectAll') }}</text>
           </label>
-          <button class="clear-cart-btn button-center" @tap="requestClearAll">
+          <button v-if="!isSearching" class="clear-cart-btn button-center" @tap="requestClearAll">
             <AppIcon name="trash" :size="17" />
             <text>{{ t('commerce.cart.clearAll') }}</text>
           </button>
@@ -268,7 +291,7 @@
             <view class="check" :class="{ checked: areAllValidSelected }">
               <text v-if="areAllValidSelected">✓</text>
             </view>
-            <text>{{ t('commerce.cart.selectAll') }}</text>
+            <text>{{ t(isSearching ? 'commerce.cart.selectResults' : 'commerce.cart.selectAll') }}</text>
           </label>
           <view class="footer-total">
             <text class="footer-label">{{ t('commerce.cart.selectedCount', { count: cartStore.summary.selectedQuantity }) }}</text>
@@ -317,7 +340,7 @@ import ConfirmPopup from '../../../../shared/ui/ConfirmPopup/ConfirmPopup.vue'
 import AppProductImage from '../../../../shared/ui/AppProductImage/AppProductImage.vue'
 import AppSvgIllustration from '../../../../shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
-import { groupItemsBySpu } from '../../model/cartGrouping.js'
+import { groupItemsBySpu, filterCartItems } from '../../model/cartGrouping.js'
 import cartEmptySvg from '../../../../shared/assets/illustrations/empty-cart.svg?raw'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
@@ -350,6 +373,7 @@ const deleteConfirmText = computed(() => {
   if (dialog.messageKey === 'commerce.cart.removeOne') parameters.name ||= t('commerce.cart.thisProduct')
   return t(dialog.messageKey, parameters)
 })
+const searchKeyword = ref('')
 const isManaging = ref(false)
 const collapsedGroupKeys = ref({})
 const activeActionItemId = ref(null)
@@ -389,17 +413,40 @@ const hasStaleForDisplay = computed(() =>
 const canCheckout = computed(() =>
   cartStore.hasSelected && !cartStore.summary.isOverLimit,
 )
-const validGroups = computed(() => groupItemsBySpu(cartStore.validItems))
+const isSearching = computed(() => Boolean(searchKeyword.value.trim()))
+const visibleItems = computed(() => filterCartItems(cartStore.items, searchKeyword.value))
+const visibleValidItems = computed(() => visibleItems.value.filter(item => item.canPurchase !== false))
+const visibleInvalidItems = computed(() => visibleItems.value.filter(item => item.canPurchase === false))
+const visibleQuantity = computed(() => visibleItems.value.reduce((sum,item) => sum + (Number(item.quantity) || 0),0))
+const validGroups = computed(() => groupItemsBySpu(visibleValidItems.value))
+const invalidGroups = computed(() => groupItemsBySpu(visibleInvalidItems.value))
+const visibleProductCount = computed(() => groupItemsBySpu(visibleItems.value).length)
+const hiddenSelectedCount = computed(() => {
+  if (!isSearching.value) return 0
+  const visibleIds = new Set(visibleItems.value.map(item => String(item.cartItemId)))
+  return cartStore.items.filter(item => item.selected !== false && (isManaging.value || item.canPurchase !== false) && !visibleIds.has(String(item.cartItemId))).length
+})
 const areAllValidSelected = computed(() =>
-  cartStore.validItems.length > 0 && cartStore.validItems.every(item => isSelected(item)),
+  visibleValidItems.value.length > 0 && visibleValidItems.value.every(item => isSelected(item)),
 )
-const managementSelectedItems = computed(() => cartStore.items.filter(item => item.selected !== false))
+const managementSelectedItems = computed(() => visibleItems.value.filter(item => item.selected !== false))
 const managementSelectedCount = computed(() => managementSelectedItems.value.length)
 const areAllItemsSelected = computed(() =>
-  cartStore.items.length > 0 && cartStore.items.every(item => item.selected !== false),
+  visibleItems.value.length > 0 && visibleItems.value.every(item => item.selected !== false),
 )
 
 // ==================== 事件处理 ====================
+
+/** 搜索只改变展示范围，不请求接口或重置选择。 */
+function setSearchKeyword(value) {
+  searchKeyword.value = String(value ?? '')
+  activeActionItemId.value = null
+}
+
+/** 恢复全部商品并保留原数量、选择及折叠状态。 */
+function clearSearch() {
+  setSearchKeyword('')
+}
 
 /** 刷新购物车 */
 async function refreshCart() {
@@ -455,9 +502,11 @@ function toggleManagement() {
   activeActionItemId.value = null
 }
 
+/** 管理模式全选只操作当前搜索结果，避免删除隐藏商品。 */
 function onManagementSelectAll(selected) {
   activeActionItemId.value = null
-  selectAllItems(Boolean(selected))
+  if (isSearching.value) batchSetSelected(visibleItems.value.map(item => Number(item.cartItemId)).filter(Boolean), Boolean(selected))
+  else selectAllItems(Boolean(selected))
 }
 
 function onToggleGroup(group) {
@@ -469,7 +518,8 @@ function onToggleGroup(group) {
 /** 全选/取消全选 */
 function onSelectAll(selected) {
   activeActionItemId.value = null
-  selectAllItems(Boolean(selected))
+  if (isSearching.value) batchSetSelected(visibleValidItems.value.map(item => Number(item.cartItemId)).filter(Boolean), Boolean(selected))
+  else selectAllItems(Boolean(selected))
 }
 
 function toggleGroup(groupKey) {
@@ -480,8 +530,9 @@ function toggleGroup(groupKey) {
   }
 }
 
+/** 搜索命中时展开规格，清空搜索后恢复原有折叠偏好。 */
 function isGroupCollapsed(groupKey) {
-  return Boolean(collapsedGroupKeys.value[groupKey])
+  return !isSearching.value && Boolean(collapsedGroupKeys.value[groupKey])
 }
 
 function isItemActionOpen(cartItemId) {
@@ -594,7 +645,7 @@ function deleteOne(cartItemId) {
 
 /** 移除失效商品 */
 function removeInvalidItems() {
-  const ids = cartStore.invalidItems.map(i => Number(i.cartItemId))
+  const ids = visibleInvalidItems.value.map(i => Number(i.cartItemId))
   if (ids.length === 0) return
   pendingDeleteIds = ids
   pendingClearAll = false
@@ -616,7 +667,7 @@ function requestDeleteSelected() {
 
 /** 保存清空动作并显示可重新取词的确认，不直接提交。 */
 function requestClearAll() {
-  if (cartStore.items.length === 0) return
+  if (isSearching.value || cartStore.items.length === 0) return
   pendingDeleteIds = null
   pendingClearAll = true
   deleteTitleKey.value = 'commerce.cart.clearAllTitle'
@@ -1523,4 +1574,19 @@ function localError(messageKey) {
 .summary-row > text, .unit { flex: none; }
 .limit-amounts { display: flex; min-width: 0; flex-wrap: wrap; align-items: baseline; gap: 3px; }
 .limit-amounts .amount-text { font-size: inherit; }
+
+.search-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 2px 10px; color:#6b7280; font-size:13px; }
+.search-selection-hint { padding:10px 12px; margin-bottom:12px; background:#fff4e9; color:#995318; border-radius:10px; font-size:12px; line-height:1.6; overflow-wrap:anywhere; }
+.search-empty { display:flex; flex-direction:column; align-items:center; gap:14px; padding:36px 16px; color:#858b96; }
+.invalid-spu-header { display:flex; flex-direction:column; gap:5px; padding:14px 16px; border-bottom:1px solid #f1f2f4; }
+.invalid-spu .cart-card { border:0; border-radius:0; box-shadow:none; }
+.invalid-spu .product-info { padding-right:0; }
+.invalid-spu .product-code, .invalid-spu .invalid-reason { overflow-wrap:anywhere; }
+.invalid-header { flex-wrap:wrap; row-gap:6px; }
+@media screen and (max-width:480px) {
+  .invalid-spu .cart-card.is-invalid { grid-template-columns:64px minmax(0,1fr); }
+  .invalid-spu .product-image { width:64px; height:64px; }
+  .invalid-spu .delete-btn { grid-column:2; justify-self:end; }
+  .cart-layout.is-managing .invalid-spu .cart-card.is-invalid { grid-template-columns:22px 64px minmax(0,1fr); }
+}
 </style>

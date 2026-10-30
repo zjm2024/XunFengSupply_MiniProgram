@@ -301,3 +301,56 @@ describe('order page locale refresh and transaction safety', () => {
     expect(cartWrite).not.toHaveBeenCalled()
   })
 })
+
+describe('订单详情逐SKU发货', () => {
+  it('未拆单默认展开SKU并区分同一商品的已发、部分和未发', async () => {
+    const view = await page('subPackages/order/pages/detail/index.vue')
+    view.detail.value = { ...order('zh-CN'), orderStatus:40, items:[
+      {orderItemId:1,productId:1,skuId:11,productName:'鞋',quantity:5,shippedQuantity:5,unshippedQuantity:0},
+      {orderItemId:2,productId:1,skuId:11,productName:'鞋',quantity:4,shippedQuantity:2,unshippedQuantity:2},
+      {orderItemId:3,productId:2,skuId:12,productName:'衣',quantity:3,shippedQuantity:0,unshippedQuantity:3},
+    ] }
+    const groups=view.productGroups.value
+    expect(groups.map(group=>group.items.map(item=>item.shipment.text))).toEqual([['已发货','部分发货'],['未发货']])
+    expect(groups[0].shipmentSummary).toBe('已发 7 / 下单 9')
+    expect(groups.every(group=>!view.isProductGroupCollapsed(group.key))).toBe(true)
+    view.toggleProductGroup(groups[0].key);expect(view.isProductGroupCollapsed(groups[0].key)).toBe(true)
+    expect(view.productGroups.value[0].items[1].shipment).toMatchObject({sent:2,remaining:2})
+  })
+  it('历史字段未知时不按整单已发货反推SKU数量；语言切换只更新显示', async () => {
+    const view=await page('subPackages/order/pages/detail/index.vue')
+    view.detail.value={...order('zh-CN'),orderStatus:60,fulfillmentStatus:6,items:[{productId:1,skuId:11,quantity:5,shippedQuantity:null}]}
+    expect(view.productGroups.value[0].items[0].shipment).toMatchObject({known:false,text:'发货明细待更新'})
+    runtime.setLocale('en-US')
+    expect(view.productGroups.value[0].items[0].shipment.text).toBe('Shipment details pending')
+    expect(view.productGroups.value[0].items[0].quantity).toBe(5)
+    expect(api.getOrderDetail).not.toHaveBeenCalled()
+  })
+  it('已拆单仍保留原展开行为，取消或短发的未发数量不标成待发', async () => {
+    const view=await page('subPackages/order/pages/detail/index.vue')
+    view.detail.value={...order('zh-CN'),orderStatus:90,fulfillmentSplits:[{splitId:1}],items:[{productId:1,skuId:11,quantity:5,shippedQuantity:2,unshippedQuantity:3}]}
+    const group=view.productGroups.value[0]
+    expect(view.isProductGroupCollapsed(group.key)).toBe(true)
+    expect(group.items[0].shipment).toMatchObject({sent:2,remaining:3,text:'部分发货'})
+    expect(runtime.t('order.detail.skuUnshipped',{quantity:3})).toBe('未发 3')
+  })
+})
+
+describe('订单SPU保持完整分组', () => {
+  it('单规格和历史缺少父商品名称时仍保留SPU标题及规格层级', async () => {
+    const view=await page('subPackages/order/pages/detail/index.vue')
+    view.detail.value={...order('zh-CN'),items:[{productId:10,orderItemId:101,skuId:11,productName:'羽球服',skuName:'蓝色 / S',quantity:1},{orderItemId:102,skuId:12,skuName:'红色 / M',quantity:2}]}
+    expect(view.productGroups.value).toHaveLength(2)
+    expect(view.productGroups.value.map(x=>x.items.length)).toEqual([1,1])
+    expect(view.productGroups.value[1].name).toBe(runtime.t('order.detail.productFallback'))
+    expect(view.productGroups.value[1].name).not.toBe('红色 / M')
+  })
+  it('分单以订单行追溯SPU；单SKU仍包裹，孤立明细安全兜底不误合并', async () => {
+    const view=await page('subPackages/order/pages/detail/index.vue')
+    view.detail.value={...order('zh-CN'),items:[{productId:10,orderItemId:101,skuId:11,productName:'羽球服',imageUrl:'original',quantity:1},{productId:10,orderItemId:102,skuId:12,productName:'羽球服',quantity:2},{productId:20,orderItemId:103,skuId:11,productName:'比赛服',quantity:1}]}
+    const result=view.splitProductGroups({items:[{orderItemId:101,skuName:'蓝/S'},{orderItemId:102,skuName:'红/M'},{orderItemId:103,skuName:'白/L'},{orderItemId:999,skuName:'均码'}]})
+    expect(result.map(x=>x.items.length)).toEqual([2,1,1])
+    expect(result[0]).toMatchObject({key:'spu-10',name:'羽球服',image:'original'})
+    expect(result[1].name).toBe('比赛服');expect(result[2].name).toBe(runtime.t('order.detail.productFallback'))
+  })
+})

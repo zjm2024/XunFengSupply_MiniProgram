@@ -305,3 +305,16 @@ describe('Cart Mapper - normalizeCartItem (indirect test)', () => {
     })
   })
 })
+
+describe.each(['shared','commerce'])('%s cart searchable metadata', owner => {
+  it('normalizes SKU code and barcode for both casing conventions without dropping leading zeros', async () => {
+    const dispatch=vi.fn().mockResolvedValue({items:[{CartItemId:1,ProductName:'羽球服',SkuCode:'KH-01',Barcode:'0012345678901'},{cartItemId:2,skuCode:'KH-02',barcode:'0099'},{CartItemId:3}]})
+    vi.doMock('@/shared/api/dispatchClient.js',()=>({dispatch}))
+    const api=owner==='shared'?await import('@/shared/api/cartApi.js'):await import('@/subPackages/commerce/api/cartApi.js')
+    const {items}=await api.getCartList()
+    expect(items[0]).toMatchObject({skuCode:'KH-01',code:'KH-01',barcode:'0012345678901'})
+    expect(items[1]).toMatchObject({skuCode:'KH-02',barcode:'0099'})
+    expect(items[2]).toMatchObject({skuCode:'',barcode:''})
+    expect(dispatch).toHaveBeenCalledTimes(1)
+  })
+})

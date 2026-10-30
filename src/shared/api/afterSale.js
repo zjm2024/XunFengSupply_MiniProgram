@@ -46,9 +46,16 @@ export function normalizeAfterSaleItem(source = {}) {
   }
 }
 
+/** 仅发送已填写的物流单号，空值保持旧申请契约。 */
+function optionalExpressNo(params) {
+  const value = String(params.expressNo ?? params.ExpressNo ?? '').trim()
+  return value ? { ExpressNo: value } : {}
+}
+
 function toApplyAfterSalePayload(params = {}) {
   return {
     OrderId: params.orderId ?? params.OrderId,
+    ...optionalExpressNo(params),
     AfterSaleType: params.afterSaleType ?? params.AfterSaleType,
     ReasonCode: params.reasonCode ?? params.ReasonCode ?? null,
     Reason: params.reason ?? params.Reason ?? null,
@@ -102,14 +109,14 @@ export function getAfterSaleableItems(orderId) {
   })
 }
 
-/** 提交经销商自有库存售后，退款账户、仓库与SKU均由后端校验归属和可用量。 */
+/** 提交经销商自有库存售后，退款账户与SKU由后端校验，库存归属由服务端解析。 */
 export function applyInventoryAfterSale(params = {}) {
   const payload = {
     RefundAccountId: Number(params.refundAccountId ?? params.RefundAccountId ?? 0),
+    ...optionalExpressNo(params),
     ClientRequestId: params.clientRequestId ?? params.ClientRequestId ?? '',
     Reason: params.reason ?? params.Reason ?? '',
     Items: (params.items ?? params.Items ?? []).map(item => ({
-      WarehouseId: Number(item.warehouseId ?? item.WarehouseId ?? 0),
       SkuId: Number(item.skuId ?? item.SkuId ?? 0),
       Quantity: Number(item.quantity ?? item.Quantity ?? 0),
     })),

@@ -75,7 +75,7 @@
               <view class="card-footer">
                 <view class="refund-amount">
                   <text>{{ t('order.afterSaleList.refundRequested') }}</text>
-                  <text v-if="isAwaitingPrice(item)" class="awaiting-price">{{ t('order.afterSaleList.awaitingPrice') }}</text><AmountText v-else :text="'¥' + (formatMoney(item.refundAmount))" />
+                  <text v-if="isClosedUnpricedAmount(item)" class="awaiting-price">—</text><text v-else-if="isAwaitingPrice(item)" class="awaiting-price">{{ t('order.afterSaleList.awaitingPrice') }}</text><AmountText v-else :text="'¥' + (formatMoney(item.refundAmount))" />
                 </view>
                 <view class="actions">
                   <button v-if="canCancel(item)" class="action-btn secondary" :disabled="Boolean(actionLoading)" @tap.stop="confirmCancel(item)">{{ t('order.afterSaleList.cancel') }}</button>
@@ -276,8 +276,10 @@ function formatMoney(value) {
 }
 /** 列表详情使用独立路由，返回后由onShow重新读取状态。 */
 function viewAfterSale(item) { navigator.navigateTo(routes.order.afterSaleDetail(item.afterSaleId)) }
-/** 只有新规则库存来源尚未定价时显示待定价，历史订单金额正常显示。 */
-function isAwaitingPrice(item) { return item.workflowVersion === 2 && item.sourceType === 2 && item.pricingStatus === 0 }
+/** 进行中的库存售后尚无确认金额时，不把零价占位显示为退款金额。 */
+function isAwaitingPrice(item) { return item.workflowVersion === 2 && item.sourceType === 2 && item.pricingStatus === 0 && !isTerminal(item.status) }
+/** 已结束且未确认金额的申请显示空值，不继续提示客户等待确认或误写成零元退款。 */
+function isClosedUnpricedAmount(item) { return item.workflowVersion === 2 && item.sourceType === 2 && item.pricingStatus === 0 && isTerminal(item.status) }
 function viewOrder(item) { if (item?.orderId > 0) navigator.navigateTo(routes.order.detail(item.orderId)) }
 function viewCompletedOrders() { navigator.navigateTo(routes.order.list({ status: ORDER_STATUS.COMPLETED })) }
 /** 确认取消当前售后申请，提交固定审计原因并刷新原列表。 */

@@ -1,25 +1,23 @@
 import { dispatch } from './dispatchClient.js'
 
-/** Fetches only the inventory fields needed to prepare a return request. */
-export async function getDealerInventoryReturnOptions(skuId) {
-  const result = await dispatch('MallInventory', 'Mini.DealerInventoryController', 'GetInventoryDetail', {
-    SkuId: Number(skuId || 0),
+/** Read current return quantities in one authenticated batch without any warehouse data. */
+export async function getDealerInventoryReturnItems(skuIds) {
+  const result = await dispatch('MallInventory', 'Mini.DealerInventoryController', 'GetReturnItems', {
+    SkuIds: [...new Set(skuIds.map(Number))],
   })
-  if (!result) return null
-  const value = (camel, pascal, fallback = undefined) => result?.[camel] ?? result?.[pascal] ?? fallback
-  const warehouses = value('warehouses', 'Warehouses', [])
-  return {
-    skuId: Number(value('skuId', 'SkuId', skuId) || 0),
-    productName: String(value('productName', 'ProductName', '') || ''),
-    skuName: String(value('skuName', 'SkuName', '') || ''),
-    imageUrl: String(value('imageUrl', 'ImageUrl', '') || ''),
-    unit: String(value('unit', 'Unit', '件') || '件'),
-    availableQuantity: Number(value('availableQuantity', 'AvailableQuantity', 0) || 0),
-    warehouses: (Array.isArray(warehouses) ? warehouses : []).map(item => ({
-      warehouseId: Number(item?.warehouseId ?? item?.WarehouseId ?? 0),
-      warehouseCode: String(item?.warehouseCode ?? item?.WarehouseCode ?? ''),
-      warehouseName: String(item?.warehouseName ?? item?.WarehouseName ?? ''),
-      availableQuantity: Number(item?.availableQuantity ?? item?.AvailableQuantity ?? 0),
-    })),
-  }
+  return (Array.isArray(result) ? result : []).map(item => ({
+    productId: Number(item.productId ?? item.ProductId ?? 0),
+    skuId: Number(item.skuId ?? item.SkuId ?? 0),
+    productName: String(item.productName ?? item.ProductName ?? ''),
+    skuName: String(item.skuName ?? item.SkuName ?? ''),
+    imageUrl: String(item.imageUrl ?? item.ImageUrl ?? ''),
+    unit: String(item.unit ?? item.Unit ?? ''),
+    availableQuantity: Number(item.availableQuantity ?? item.AvailableQuantity ?? 0),
+  }))
+}
+
+/** Preserve the single-SKU entry while using the same warehouse-free contract as batch returns. */
+export async function getDealerInventoryReturnOptions(skuId) {
+  const rows = await getDealerInventoryReturnItems([skuId])
+  return rows.find(item => item.skuId === Number(skuId)) || null
 }

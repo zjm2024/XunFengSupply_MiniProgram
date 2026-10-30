@@ -48,6 +48,9 @@ function normalizeOverview(source = {}) {
     reservedQuantity: numberOf(pick(source, 'reservedQuantity', 'ReservedQuantity', 0)),
     unavailableQuantity: numberOf(pick(source, 'unavailableQuantity', 'UnavailableQuantity', 0)),
     availableQuantity: numberOf(pick(source, 'availableQuantity', 'AvailableQuantity', 0)),
+    outOfStockSkuCount: numberOf(pick(source, 'outOfStockSkuCount', 'OutOfStockSkuCount', 0)),
+    availableSkuCount: numberOf(pick(source, 'availableSkuCount', 'AvailableSkuCount', 0)),
+    reservedSkuCount: numberOf(pick(source, 'reservedSkuCount', 'ReservedSkuCount', 0)),
     lowStockSkuCount: numberOf(pick(source, 'lowStockSkuCount', 'LowStockSkuCount', 0)),
     lastInboundAt: pick(source, 'lastInboundAt', 'LastInboundAt', null),
   }
@@ -62,6 +65,7 @@ export async function getDealerInventoryList(params = {}) {
     PageNum: numberOf(params.pageNum || 1) || 1,
     PageSize: numberOf(params.pageSize || 20) || 20,
     Keyword: params.keyword?.trim() || null,
+    ProductId: params.productId ? numberOf(params.productId) : null,
     StockStatus: params.stockStatus || 'all',
     LowStockThreshold: numberOf(params.lowStockThreshold || 10) || 10,
   })
@@ -98,6 +102,7 @@ export async function getDealerInventoryDetail(skuId) {
       transactionId: numberOf(pick(item, 'transactionId', 'TransactionId', 0)),
       businessType: String(pick(item, 'businessType', 'BusinessType', '') || ''),
       quantityDelta: numberOf(pick(item, 'quantityDelta', 'QuantityDelta', 0)),
+      reservedDelta: numberOf(pick(item, 'reservedDelta', 'ReservedDelta', 0)),
       sourceType: String(pick(item, 'sourceType', 'SourceType', '') || ''),
       sourceId: numberOf(pick(item, 'sourceId', 'SourceId', 0)),
       sourceNo: String(pick(item, 'sourceNo', 'SourceNo', '') || ''),
@@ -105,4 +110,50 @@ export async function getDealerInventoryDetail(skuId) {
       occurredAt: pick(item, 'occurredAt', 'OccurredAt', null),
     })),
   }
+}
+
+/** Normalize both the physical movement and the return reservation movement. */
+export function normalizeInventoryTransaction(source = {}) {
+  return {
+    ...normalizeInventoryItem(source),
+    transactionId: numberOf(pick(source, 'transactionId', 'TransactionId', 0)),
+    businessType: String(pick(source, 'businessType', 'BusinessType', '') || ''),
+    quantityDelta: numberOf(pick(source, 'quantityDelta', 'QuantityDelta', 0)),
+    reservedDelta: numberOf(pick(source, 'reservedDelta', 'ReservedDelta', 0)),
+    sourceType: String(pick(source, 'sourceType', 'SourceType', '') || ''),
+    sourceId: numberOf(pick(source, 'sourceId', 'SourceId', 0)),
+    sourceNo: String(pick(source, 'sourceNo', 'SourceNo', '') || ''),
+    occurredAt: pick(source, 'occurredAt', 'OccurredAt', null),
+  }
+}
+
+/** Query the authenticated dealer's activity; never send an identity from the page. */
+export async function getDealerInventoryTransactions(params = {}) {
+  const result = await dispatch('MallInventory', CONTROLLER, 'GetTransactions', {
+    PageNum: numberOf(params.pageNum || 1) || 1,
+    PageSize: numberOf(params.pageSize || 20) || 20,
+    SkuId: params.skuId ? numberOf(params.skuId) : null,
+    Keyword: params.keyword?.trim() || null,
+    BusinessType: params.businessType || null,
+    StartAt: params.startAt || null,
+    EndAt: params.endAt || null,
+  })
+  const rawItems = pick(result, 'items', 'Items', [])
+  return {
+    items: (Array.isArray(rawItems) ? rawItems : []).map(normalizeInventoryTransaction),
+    totalCount: numberOf(pick(result, 'totalCount', 'TotalCount', 0)),
+  }
+}
+
+/** Read a server-paged SPU list, rather than grouping a truncated SKU page in the client. */
+export async function getDealerInventoryProducts(params = {}) {
+  const result = await dispatch('MallInventory', CONTROLLER, 'GetProductList', {
+    PageNum: numberOf(params.pageNum || 1) || 1, PageSize: numberOf(params.pageSize || 16) || 16,
+    Keyword: params.keyword?.trim() || null, StockStatus: params.stockStatus || 'all',
+  })
+  const raw = pick(result, 'items', 'Items', [])
+  return { items: (Array.isArray(raw) ? raw : []).map(item => ({
+    ...normalizeInventoryItem(item), unit: String(pick(item, 'unit', 'Unit', '') || ''),
+    skuCount: numberOf(pick(item, 'skuCount', 'SkuCount', 0)),
+  })), totalCount: numberOf(pick(result, 'totalCount', 'TotalCount', 0)) }
 }

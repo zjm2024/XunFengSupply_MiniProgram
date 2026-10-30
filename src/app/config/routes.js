@@ -64,6 +64,8 @@ export const ADDRESS_FORM = '/subPackages/account/pages/address/form'
 export const SUB_ACCOUNT = '/subPackages/account/pages/sub-account/index'
 export const DEALER_INVENTORY = '/subPackages/account/pages/inventory/index'
 export const DEALER_INVENTORY_DETAIL = '/subPackages/account/pages/inventory/detail'
+export const DEALER_INVENTORY_OVERVIEW = '/subPackages/account/pages/inventory/overview'
+export const DEALER_INVENTORY_LEDGER = '/subPackages/account/pages/inventory/ledger'
 export const SECURITY = '/subPackages/account/pages/security/index'
 export const RECHARGE = '/subPackages/account/pages/recharge/index'
 export const RECHARGE_RECORDS = '/subPackages/account/pages/recharge/records'
@@ -98,7 +100,7 @@ export const REGISTERED_ROUTES = Object.freeze([
   HOME_SECTION, ANNOUNCEMENTS, ANNOUNCEMENT_DETAIL, PRODUCT_LIST, PRODUCT_DETAIL, PRODUCT_VARIANTS, CART, CHECKOUT,
   ORDER_LIST, ORDER_DETAIL, PAY_PAGE, FULFILLMENT_SPLIT, APPLY_AFTER_SALE, APPLY_INVENTORY_AFTER_SALE, AFTER_SALE_LIST, AFTER_SALE_DETAIL, CANCEL_ORDER,
   ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
-  DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, SECURITY,
+  DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, DEALER_INVENTORY_OVERVIEW, DEALER_INVENTORY_LEDGER, SECURITY,
   RECHARGE, RECHARGE_RECORDS, FUND_FLOW, CREDIT_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS, NOTIFICATION_SETTINGS,
   NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MANUAL_PDF_PREVIEW, MESSAGE, MESSAGE_DETAIL, HELP, ABOUT,
 ])
@@ -407,6 +409,14 @@ export const ROUTE_META = Object.freeze({
     requiredPermission: 'INVENTORY_VIEW',
     owner: null,
   },
+  [DEALER_INVENTORY_OVERVIEW]: {
+    title: '库存汇总', requireAuth: true, requireSign: true, allowFrozen: false,
+    requiredPermission: 'INVENTORY_VIEW', owner: null,
+  },
+  [DEALER_INVENTORY_LEDGER]: {
+    title: '库存流水', requireAuth: true, requireSign: true, allowFrozen: false,
+    requiredPermission: 'INVENTORY_VIEW', owner: null,
+  },
   [DEALER_INVENTORY_DETAIL]: {
     title: '库存详情',
     requireAuth: true,
@@ -677,7 +687,7 @@ export const routes = {
       const id = assertValidId(orderId, 'order.afterSaleApply')
       return withQuery(APPLY_AFTER_SALE, { orderId: id, orderNo })
     },
-    inventoryAfterSaleApply: ({ skuId } = {}) => withQuery(APPLY_INVENTORY_AFTER_SALE, { skuId: assertValidId(skuId, 'inventoryAfterSaleApply') }),
+    inventoryAfterSaleApply: ({ skuId } = {}) => withQuery(APPLY_INVENTORY_AFTER_SALE, skuId == null ? null : { skuId: assertValidId(skuId, 'inventoryAfterSaleApply') }),
     afterSaleDetail: (afterSaleId) => withQuery(AFTER_SALE_DETAIL, { afterSaleId: assertValidId(afterSaleId, 'order.afterSaleDetail') }),
     afterSaleList: ({ afterSaleId } = {}) => withQuery(AFTER_SALE_LIST, { afterSaleId }),
     cancelOrder: (orderId, extra = {}) => {
@@ -697,7 +707,10 @@ export const routes = {
     subAccount: () => SUB_ACCOUNT,
     subAccountForm: ({ accountId, username, realName, mobile, status, permissions } = {}) =>
       withQuery(SUB_ACCOUNT_FORM, { accountId, username, realName, mobile, status, permissions }),
-    inventory: () => DEALER_INVENTORY,
+    inventory: ({ stockStatus } = {}) => withQuery(DEALER_INVENTORY, { stockStatus }),
+    inventoryOverview: () => DEALER_INVENTORY_OVERVIEW,
+    inventoryLedger: ({ skuId } = {}) => withQuery(DEALER_INVENTORY_LEDGER,
+      skuId == null ? null : { skuId: assertValidId(skuId, 'account.inventoryLedger') }),
     inventoryDetail: (skuId) => {
       const id = assertValidId(skuId, 'account.inventoryDetail')
       return withQuery(DEALER_INVENTORY_DETAIL, { skuId: id })

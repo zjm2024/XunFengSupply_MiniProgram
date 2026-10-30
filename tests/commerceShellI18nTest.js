@@ -414,3 +414,47 @@ describe('商品操作面板语言切换', () => {
     expect(view.events).toEqual([['apply', { categoryPath: [category], stockFilter: 'inStock', sortKey: 'priceAsc' }]])
   })
 })
+
+describe('购物车搜索与操作范围', () => {
+  /** 以可搜索和隐藏的有效、失效明细运行真实页面事件。 */
+  async function searchedCart() {
+    const view=await open('pages/cart/index.vue'),store=view.hook.cartStore
+    store.items=[
+      {cartItemId:1,productId:5,skuId:11,name:'训练服',skuName:'蓝色 / S',skuCode:'KH-001',barcode:'00123',selected:true,quantity:2,price:10},
+      {cartItemId:2,productId:5,skuId:12,name:'训练服',skuName:'红色 / M',skuCode:'KH-002',selected:true,quantity:3,price:10},
+      {cartItemId:3,productId:6,skuId:13,name:'球鞋',skuName:'42',skuCode:'KH-003',selected:true,quantity:1,price:20,canPurchase:false},
+      {cartItemId:4,productId:7,skuId:14,name:'袜子',skuName:'均码',skuCode:'KH-004',selected:true,quantity:1,price:5,canPurchase:false},
+    ]
+    store.validItems=store.items.slice(0,2);store.invalidItems=store.items.slice(2)
+    return view
+  }
+  it('查询与清空保留全部勾选及数量，单个搜索结果仍显示SPU，不发起查询', async () => {
+    const {v,hook}=await searchedCart()
+    v.toggleGroup('spu-5');expect(v.isGroupCollapsed('spu-5')).toBe(true)
+    v.setSearchKeyword('kh-001');expect(v.isGroupCollapsed('spu-5')).toBe(false)
+    expect(v.validGroups.value[0]).toMatchObject({key:'spu-5',name:'训练服',skuCount:1})
+    expect(v.hiddenSelectedCount.value).toBe(1)
+    v.onSelectAll(false)
+    expect(hook.batchSetSelected).toHaveBeenCalledWith([1],false)
+    expect(hook.selectAllItems).not.toHaveBeenCalled()
+    v.setSearchKeyword('00123');expect(v.visibleItems.value.map(x=>x.cartItemId)).toEqual([1])
+    v.setSearchKeyword('不存在');expect(v.visibleItems.value).toEqual([])
+    expect(v.pageState.value).toBe('content')
+    v.clearSearch();expect(v.validGroups.value[0].items).toHaveLength(2)
+    expect(hook.cartStore.items.map(x=>[x.quantity,x.selected])).toEqual([[2,true],[3,true],[1,true],[1,true]])
+    expect(hook.loadCart).not.toHaveBeenCalled();expect(hook.setItemQuantity).not.toHaveBeenCalled()
+    await v.goToCheckout();expect(hook.flush).toHaveBeenCalledTimes(1)
+  })
+  it('管理全选、删除和清失效只操作匹配行，搜索中禁止一键清空全车', async () => {
+    const {v,hook}=await searchedCart();v.toggleManagement();v.setSearchKeyword('KH-003')
+    expect(v.invalidGroups.value[0]).toMatchObject({key:'spu-6',name:'球鞋',skuCount:1})
+    expect(v.managementSelectedCount.value).toBe(1);expect(v.hiddenSelectedCount.value).toBe(3)
+    v.onManagementSelectAll(false);expect(hook.batchSetSelected).toHaveBeenCalledWith([3],false)
+    v.requestClearAll();expect(v.showDeleteConfirm.value).toBe(false)
+    v.requestDeleteSelected();await v.confirmDelete();expect(hook.deleteItems).toHaveBeenLastCalledWith([3])
+    v.removeInvalidItems();await v.confirmDelete();expect(hook.deleteItems).toHaveBeenLastCalledWith([3])
+    expect(hook.clearAll).not.toHaveBeenCalled()
+    i18n.setLocale('en');expect(i18n.t('commerce.cart.selectResults')).toBe('Select results')
+    expect(hook.loadCart).not.toHaveBeenCalled()
+  })
+})

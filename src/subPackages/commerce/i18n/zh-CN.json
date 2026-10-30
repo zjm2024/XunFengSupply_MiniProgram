@@ -62,7 +62,16 @@
     "removeOne": "确定从购物车移除「{name}」？",
     "removeInvalid": "确定清空 {count} 件失效商品？",
     "removeSelected": "确定删除已选择的 {count} 个 SKU？",
-    "removeAll": "确定清空购物车中的 {count} 个 SKU？此操作不可撤销。"
+    "removeAll": "确定清空购物车中的 {count} 个 SKU？此操作不可撤销。",
+    "searchPlaceholder": "搜索商品 / SKU / 条码",
+    "searchCount": "找到 {count} 个 SKU",
+    "showAll": "查看全部",
+    "selectResults": "全选结果",
+    "noSearchResults": "没有找到相关商品，试试其他名称或编码",
+    "hiddenSelected": "另有 {count} 个已选 SKU 不在搜索结果中，结算包含全部已选商品。",
+    "hiddenManagement": "另有 {count} 个已选 SKU 不在搜索结果中，本次删除仅包含当前结果。",
+    "invalidCount": "失效商品（{count} 个 SKU）",
+    "clearInvalidResults": "清理当前失效项"
   },
   "checkout": {
     "priceChanged": "商品价格已按最新经销商价格重新核算，请确认后提交。",
