@@ -348,4 +348,7 @@ async function confirmCancel(item) {
 /* 金额按实际可用宽度缩字，父布局允许收缩。 */
 .awaiting-price { color: #A36A20; font-size: 12px; font-weight: 600; }
 .refund-amount { min-width: 0; max-width: 65%; }
+
+/* 列表行内操作统一尺寸，底栏/表单主操作不应用此规则。 */
+.action-btn,.empty-action{min-width:var(--list-action-min-width,72px);height:var(--list-action-height,32px);min-height:var(--list-action-height,32px);padding:0 10px;border-radius:var(--list-action-radius,8px);font-size:var(--list-action-font-size,12px);line-height:20px;box-sizing:border-box;}
 </style>

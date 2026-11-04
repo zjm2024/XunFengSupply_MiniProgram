@@ -263,6 +263,10 @@ function permissionLabel(code) {
     INVENTORY_VIEW: t('account.permissions.viewInventory'),
     SUB_ACCOUNT_MANAGE: t('account.permissions.manageAccounts'),
     COMBINATION_PAY_PARTICIPATE: t('account.permissions.combinedPayment'),
+    PUBLIC_STOCK_SHARE: t('account.permissions.publicStockShare'),
+    RETAIL_SHARE_CREATE: t('account.permissions.retailShareCreate'),
+    RETAIL_SHARE_VIEW: t('account.permissions.retailShareView'),
+    RETAIL_SHARE_REVOKE: t('account.permissions.retailShareRevoke'),
   }[code] || code
 }
 
@@ -342,6 +346,8 @@ function editAccount(account) {
     mobile: account.phone || '',
     status: account.status,
     permissions: JSON.stringify(account.permissions || []),
+    version: account.version == null ? '' : String(account.version),
+    shareVersion: account.shareVersion || '',
   }))
 }
 
@@ -588,4 +594,7 @@ async function toggleStatus(account) {
 .account-details, .detail-value { min-width: 0; }
 .balance-values { display: flex; flex: 1; flex-wrap: wrap; gap: 4px 10px; }
 .balance-values .amount-text { font-size: inherit; }
+
+/* 列表行内操作统一尺寸，底栏/表单主操作不应用此规则。 */
+.action-btn,.empty-action{min-width:var(--list-action-min-width,72px);height:var(--list-action-height,32px);min-height:var(--list-action-height,32px);padding:0 10px;border-radius:var(--list-action-radius,8px);font-size:var(--list-action-font-size,12px);line-height:20px;box-sizing:border-box;}
 </style>

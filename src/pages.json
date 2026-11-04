@@ -256,11 +256,17 @@
                 },
                 {
                     "path": "pages/inventory/overview",
-                    "style": { "navigationStyle": "custom", "navigationBarTitleText": "" }
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
                 },
                 {
                     "path": "pages/inventory/ledger",
-                    "style": { "navigationStyle": "custom", "navigationBarTitleText": "" }
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
                 },
                 {
                     "path": "pages/inventory/detail",
@@ -431,6 +437,68 @@
                 },
                 {
                     "path": "pages/announcements/detail",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                }
+            ]
+        },
+        {
+            "root": "subPackages/share",
+            "name": "share",
+            "pages": [
+                {
+                    "path": "pages/public-stock/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/public-stock/detail",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/dealer/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/dealer-generate/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/dealer-records/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/retail/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/retail/search",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
+                },
+                {
+                    "path": "pages/public-stock/search",
                     "style": {
                         "navigationStyle": "custom",
                         "navigationBarTitleText": ""

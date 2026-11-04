@@ -19,7 +19,7 @@
       <text class="app-product-card__name">{{ product.name || t('common.productCard.fallbackName') }}</text>
       <text v-if="showCode && product.code" class="app-product-card__code">{{ product.code }}</text>
 
-      <view class="app-product-card__price-row">
+      <view v-if="props.showPrice !== false" class="app-product-card__price-row">
         <view class="app-product-card__current-price">
           <AmountText class="app-product-card__price" :text="product.hasPriceRange ? t('common.productCard.fromPrice', { price: '¥' + formattedPrice }) : '¥' + formattedPrice" />
           <text v-if="variant !== 'compact' && unitText" class="app-product-card__unit">/{{ unitText }}</text>
@@ -27,13 +27,13 @@
         <AmountText v-if="priceDisplay.showListPrice" class="app-product-card__list-price" :class="{ 'app-product-card__list-price--strike': priceDisplay.strikeListPrice }" :text="'¥' + priceDisplay.listPrice.toFixed(2)" />
       </view>
 
-      <text
+      <slot name="stock"><text
         v-if="showStock"
         class="app-product-card__stock"
         :class="`app-product-card__stock--${stockState}`"
       >
         {{ stockText }}<text v-if="minimumOrder > 0 && unitText"> · {{ t('common.productCard.minimum', { count: minimumOrder, unit: unitText }) }}</text>
-      </text>
+      </text></slot>
     </view>
   </view>
 </template>
@@ -56,6 +56,10 @@ const props = defineProps({
     validator: value => ['row', 'tile', 'compact'].includes(value),
   },
   showCode: {
+    type: Boolean,
+    default: true,
+  },
+  showPrice: {
     type: Boolean,
     default: true,
   },

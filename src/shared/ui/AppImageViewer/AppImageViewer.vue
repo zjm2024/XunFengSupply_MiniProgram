@@ -415,6 +415,7 @@ watch(
    根容器
    ================================================================ */
 .hv-viewer {
+  pointer-events: auto;
   position: fixed;
   z-index: 2000;
   top: 0;

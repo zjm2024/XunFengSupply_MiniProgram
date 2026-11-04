@@ -1,7 +1,7 @@
 
 .inventory-wrap { max-width: 1040px; width: 100%; margin: 0 auto; box-sizing: border-box; }
 .inventory-tools { display: flex; gap: 10px; margin-bottom: 18px; }
-.inventory-tools button { flex: 1; display: flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; margin: 0; padding: 10px; border-radius: 12px; background: #fff; color: #363C45; font-size: 13px; line-height: 1.5; }
+.inventory-tools button { flex: 0 1 auto; display: flex; min-height:var(--list-tool-height,36px); align-items: center; justify-content: center; gap: 8px; margin: 0; padding:6px 12px; border-radius:var(--list-action-radius,8px); background: #fff; color: #363C45; font-size: 13px; line-height: 1.5; }
 button::after { border: 0; }
 .result-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 2px 12px; color: #8B919B; font-size: 12px; }
 .result-head text:first-child { color: #343B45; font-size: 14px; font-weight: 600; }

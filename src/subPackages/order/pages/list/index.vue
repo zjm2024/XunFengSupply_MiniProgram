@@ -383,7 +383,7 @@ function getOrderActions(order) {
     })
   }
 
-  const priority = { reorder: 0, afterSale: 1, pay: 2, cancel: 3, confirmReceipt: 4, viewLogistics: 5 }
+  const priority = { reorder: 0, pay: 1, cancel: 2, confirmReceipt: 3, viewLogistics: 4 }
   return actions.sort((left, right) => (priority[left.key] ?? 99) - (priority[right.key] ?? 99))
 }
 /** 一个页面只展开一个订单菜单，持有订单标识而非过期对象。 */
@@ -521,4 +521,7 @@ async function handleAction(key, order) {
 /* 金额按实际可用宽度缩字，父布局允许收缩。 */
 .amount-area { min-width: 0; }
 .amount-area > text { flex: none; }
+
+/* 列表行内操作统一尺寸，底栏/表单主操作不应用此规则。 */
+.action-btn,.empty-action{min-width:var(--list-action-min-width,72px);height:var(--list-action-height,32px);min-height:var(--list-action-height,32px);padding:0 10px;border-radius:var(--list-action-radius,8px);font-size:var(--list-action-font-size,12px);line-height:20px;box-sizing:border-box;}
 </style>

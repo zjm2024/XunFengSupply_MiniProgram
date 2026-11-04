@@ -14,6 +14,8 @@
     "placeholder": "Product name / SKU / barcode"
   },
   "startup": {
+    "invalidShareTitle": "Invalid sharing link",
+    "invalidShareDescription": "Please use a valid stock enquiry or ordering link. A domain alone, missing credentials or a link for another purpose cannot open this page. Contact your dealer for the correct link.",
     "title": "Loading the purchasing workspace",
     "tip": "Synchronizing account and purchasing data",
     "newVersion": "New version available",
@@ -74,6 +76,8 @@
     "processing": "{count} requests in progress",
     "help": "Help center",
     "helpDescription": "Purchasing and after-sales help",
+    "share": "Sharing center",
+    "shareDescription": "Public stock sharing and retail links",
     "invoice": "Invoices",
     "invoiceDescription": "Company details and invoice history",
     "identity": "Customer ID {code}",

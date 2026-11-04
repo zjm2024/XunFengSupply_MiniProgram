@@ -25,6 +25,7 @@ import {
   routes,
 } from '../config/routes.js'
 import { canAccess, isPublicRoute } from './routeGuard.js'
+import { APP_SURFACE } from '../config/shareSurface.js'
 import { useUserStore } from '../../shared/session/userStore.js'
 import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 import { t } from '@/shared/i18n/index.js'
@@ -60,13 +61,8 @@ function getUserSnapshot() {
  * @returns {Promise<boolean>}
  */
 function guardedNavigate(method, url, options = {}) {
-  // 公开路由快速放行（不依赖 Pinia）
-  if (isPublicRoute(url)) {
-    return doUniNavigate(method, url, options)
-  }
-
-  // 调用 routeGuard 获取判定结果
-  const user = getUserSnapshot()
+  // 公开页也必须通过构建表面检查；仅省略不需要的会话读取。
+  const user = isPublicRoute(url) ? null : getUserSnapshot()
   const verdict = canAccess(url, user)
 
   if (!verdict.allowed) {
@@ -146,6 +142,11 @@ function doUniNavigate(method, url, options = {}) {
 function handleBlocked(method, url, verdict) {
   const { reason, path } = verdict
 
+  if (reason === 'SURFACE_MISMATCH') {
+    console.warn('[Navigator] 当前构建表面拒绝路由，返回分享入口:', { path, mode: APP_SURFACE.mode })
+    return doUniNavigate('reLaunch', APP_SURFACE.entry)
+  }
+
   if (reason === 'NOT_LOGGED_IN') {
     // 防止重复触发
     if (_isHandlingAuth) return Promise.resolve(false)
@@ -208,7 +209,7 @@ function handleBlocked(method, url, verdict) {
 function getCurrentRoute() {
   const pages = getCurrentPages()
   const cur = pages[pages.length - 1]
-  return cur ? `/${cur.route}` : HOME
+  return cur ? `/${cur.route}` : (APP_SURFACE.mode === 'share-h5' ? APP_SURFACE.entry : HOME)
 }
 
 /**
@@ -252,16 +253,20 @@ function safeBackOrHome() {
   return new Promise((resolve) => {
     let target
     try {
-      const userStore = useUserStore()
-      if (!userStore.isLogin) {
-        target = routes.auth.login()
-      } else if (userStore.isFrozen) {
-        target = routes.auth.accountStatus()
+      if (APP_SURFACE.mode === 'share-h5') {
+        target = APP_SURFACE.entry
       } else {
-        target = routes.home()
+        const userStore = useUserStore()
+        if (!userStore.isLogin) {
+          target = routes.auth.login()
+        } else if (userStore.isFrozen) {
+          target = routes.auth.accountStatus()
+        } else {
+          target = routes.home()
+        }
       }
     } catch (e) {
-      target = HOME
+      target = APP_SURFACE.mode === 'share-h5' ? APP_SURFACE.entry : HOME
     }
 
     uni.reLaunch({
@@ -341,10 +346,10 @@ export const navigator = {
     try {
       const userStore = useUserStore()
       await userStore.logout()
-      return doUniNavigate('reLaunch', routes.auth.login())
+      return doUniNavigate('reLaunch', APP_SURFACE.mode === 'share-h5' ? APP_SURFACE.entry : routes.auth.login())
     } catch (e) {
       console.error('[Navigator] handleAuthError 失败:', e)
-      return doUniNavigate('reLaunch', LOGIN)
+      return doUniNavigate('reLaunch', APP_SURFACE.mode === 'share-h5' ? APP_SURFACE.entry : LOGIN)
     } finally {
       _isHandlingAuth = false
     }

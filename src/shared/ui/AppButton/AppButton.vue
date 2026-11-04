@@ -45,7 +45,7 @@ defineEmits(['tap'])
 }
 
 .app-button::after { display: none; }
-.app-button.size-sm { height: var(--control-height-compact, 40px); font-size: 14px; }
+.app-button.size-sm { min-width:var(--list-action-min-width,72px);height:var(--list-tool-height,36px);padding:0 12px;border-radius:var(--list-action-radius,8px);font-size:13px;line-height:20px; }
 .app-button.size-md { height: var(--control-height, 48px); }
 .app-button.block { width: 100%; }
 .app-button:active:not([disabled]) { opacity: 0.82; }

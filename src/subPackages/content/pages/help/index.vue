@@ -1,4 +1,4 @@
-﻿﻿<template>
+﻿<template>
   <AppPageShell>
     <template #header>
       <app-header :title="t('content.titles.help')" :show-back="true" />
@@ -146,7 +146,6 @@ const categories = computed(() => [
   { key: 'payment', name: t('content.help.payment'), icon: '💰', count: 8 },
   { key: 'account', name: t('content.help.account'), icon: '👤', count: 6 },
   { key: 'product', name: t('content.help.product'), icon: '🏸', count: 10 },
-  { key: 'after_sale', name: t('content.help.afterSale'), icon: '🔄', count: 7 },
   { key: 'other', name: t('content.help.other'), icon: '❓', count: 5 }
 ])
 
@@ -165,13 +164,6 @@ const hotQuestions = computed(() => [
     summary: t('content.help.paySummary'),
     views: 1280,
     isHot: true
-  },
-  {
-    id: '3',
-    title: t('content.help.afterSaleQuestion'),
-    summary: t('content.help.afterSaleSummary'),
-    views: 980,
-    isHot: false
   },
   {
     id: '4',

@@ -32,19 +32,21 @@
               </view>
             </view>
             <input
-              v-else
+              v-else-if="!searchEntry"
               class="search-input"
               :value="editingKeyword"
               :placeholder="placeholder ?? t('common.search.placeholder')"
+              placeholder-style="color:#a2a7ae;font-size:14px;font-weight:400"
               :focus="autoFocus"
               confirm-type="search"
               @input="handleKeywordInput"
               @confirm="$emit('search')"
             />
+            <text v-if="searchEntry" class="search-input search-entry-placeholder">{{ placeholder ?? t('common.search.placeholder') }}</text>
             <view v-if="keyword && !keywordCommitted" class="search-clear" @click.stop="$emit('clear-keyword')">
               <AppIcon name="close" :size="14" />
             </view>
-            <view class="search-submit" hover-class="search-submit--pressed" @click.stop="$emit('search')">
+            <view class="search-submit" hover-class="search-submit--pressed" @click.stop="searchEntry ? $emit('search-entry') : $emit('search')">
               <text>{{ t('common.search.label') }}</text>
             </view>
           </view>
@@ -55,9 +57,10 @@
           </view>
         </view>
 
-        <view v-if="showTools" class="quick-sort-bar">
+        <view v-if="showTools" class="quick-sort-bar" :class="{'has-result-count':showResultCount}">
+          <text v-if="showResultCount" class="catalog-result-count">{{ total }} 件商品</text>
           <view
-            v-for="item in quickSortItems"
+            v-for="item in (showSort ? quickSortItems : [])"
             :key="item.key"
             class="quick-sort-item"
             :class="{ 'is-active': isQuickSortActive(item.key) }"
@@ -96,6 +99,7 @@ import AppIcon from '../AppIcon/AppIcon.vue'
 import AppStatusBarSpacer from '../AppStatusBarSpacer/AppStatusBarSpacer.vue'
 
 const props = defineProps({
+  searchEntry: { type: Boolean, default: false },
   backOnly: { type: Boolean, default: false },
   transparent: { type: Boolean, default: false },
   sticky: { type: Boolean, default: true },
@@ -105,6 +109,8 @@ const props = defineProps({
   autoFocus: { type: Boolean, default: false },
   keywordCommitted: { type: Boolean, default: false },
   showTools: { type: Boolean, default: true },
+  showSort: { type: Boolean, default: true },
+  showResultCount: { type: Boolean, default: false },
   showCart: { type: Boolean, default: true },
   cartCount: { type: Number, default: 0 },
   total: { type: Number, default: 0 },
@@ -117,6 +123,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits([
+  'search-entry',
   'update:keyword',
   'search',
   'clear-keyword',
@@ -156,6 +163,7 @@ function beginKeywordEditing() {
 }
 
 function handleSearchBoxClick() {
+  if (props.searchEntry) { emit('search-entry'); return }
   if (props.keywordCommitted && props.keyword) {
     beginKeywordEditing()
   }
@@ -308,6 +316,14 @@ watch(() => props.theme, applyStatusBarStyle)
   color: #252a31;
   font-size: 14px;
   background: transparent;
+}
+
+.search-entry-placeholder {
+  display: flex;
+  align-items: center;
+  color: #a2a7ae;
+  font-weight: 400;
+  line-height: 20px;
 }
 
 .search-input::placeholder {
@@ -581,4 +597,4 @@ watch(() => props.theme, applyStatusBarStyle)
     padding-left: 36px;
   }
 }
-</style>
+.has-result-count{justify-content:space-between}.catalog-result-count{margin-right:auto;font-size:12px;line-height:20px;color:var(--text-secondary,#737a84)}.has-result-count .filter-entry{flex:none;margin-left:16px}</style>

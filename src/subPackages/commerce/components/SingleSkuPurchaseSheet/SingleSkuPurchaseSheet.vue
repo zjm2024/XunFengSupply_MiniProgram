@@ -62,6 +62,7 @@
           <text v-else-if="!sizeOptions.length" class="empty-hint">{{ t('commerce.purchase.chooseColor') }}</text>
         </view>
 
+        <view v-if="hasMore" class="sheet-section"><AppButton block variant="secondary" :loading="loadingMore" @tap="emit('more')">加载更多规格</AppButton></view>
         <view class="sheet-section quantity-section">
           <view>
             <text class="section-label">{{ t('commerce.purchase.quantity') }}</text>
@@ -76,8 +77,8 @@
         </view>
       </scroll-view>
 
-      <view class="sheet-actions">
-        <button class="batch-button button-center" :disabled="!hasPurchasableSku || submitting" @tap="emit('batch')">{{ t('commerce.purchase.batch') }}</button>
+      <view class="sheet-actions" :class="{ 'is-single': !showBatch }">
+        <button v-if="showBatch" class="batch-button button-center" :disabled="!hasPurchasableSku || submitting" @tap="emit('batch')">{{ t('commerce.purchase.batch') }}</button>
         <button class="confirm-button button-center" :disabled="!canConfirm || submitting" @tap="confirm">
           {{ submitting ? t('commerce.purchase.adding') : t('commerce.purchase.add') }}
         </button>
@@ -87,6 +88,7 @@
 </template>
 
 <script setup>
+import AppButton from '@/shared/ui/AppButton/AppButton.vue'
 import { t } from '@/shared/i18n/index.js'
 import { getPriceDisplay } from '@/shared/utils/priceDisplay.js'
 import '@/subPackages/commerce/i18n/register.js'
@@ -96,13 +98,17 @@ import AppProductImage from '../../../../shared/ui/AppProductImage/AppProductIma
 import QuantityStepper from '@/shared/ui/QuantityStepper/QuantityStepper.vue'
 
 const props = defineProps({
+  showBatch: { type: Boolean, default: true },
+  stockStateOnly: { type: Boolean, default: false },
+  hasMore: Boolean,
+  loadingMore: Boolean,
   visible: { type: Boolean, default: false },
   product: { type: Object, default: null },
   initialSkuId: { type: [Number, String], default: null },
   submitting: { type: Boolean, default: false },
 })
 
-const emit = defineEmits(['update:visible', 'confirm', 'batch'])
+const emit = defineEmits(['update:visible', 'confirm', 'batch', 'more'])
 
 const selectedSkuId = ref(null)
 const selectedColorKey = ref('')
@@ -156,6 +162,7 @@ const minimumText = computed(() => t('commerce.purchase.minimum', { count: minim
 const stockText = computed(() => {
   if (!selectedSku.value) return '请选择规格'
   if (!selectedSku.value.canPurchase) return selectedSku.value.invalidReason || '暂无库存'
+  if (props.stockStateOnly) return selectedSku.value.stockState === 'LOW_STOCK' ? '库存紧张' : '有库存'
   if (!selectedSku.value.stockKnown) return '库存状态暂不可用，请稍后重试'
   return `库存 ${selectedSku.value.stock} ${props.product?.unit || '件'}`
 })
@@ -216,6 +223,7 @@ function formatMoney(value) {
 
 <style lang="scss" scoped>
 .sku-sheet-mask {
+  pointer-events: auto;
   position: fixed;
   inset: 0;
   z-index: 1200;
@@ -227,6 +235,9 @@ function formatMoney(value) {
 }
 
 .sku-sheet {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   width: 100%;
   max-height: min(78vh, 680px);
   padding: 8px 16px calc(14px + env(safe-area-inset-bottom));
@@ -241,6 +252,8 @@ function formatMoney(value) {
 
 @keyframes xf-sku-mask-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes xf-sku-sheet-in { from { opacity: .2; transform: translateY(48px) scale(.985); } to { opacity: 1; transform: translateY(0) scale(1); } }
+
+.sheet-header, .product-summary, .sheet-actions { flex-shrink: 0; }
 
 .sheet-handle {
   width: 36px;
@@ -317,6 +330,9 @@ function formatMoney(value) {
 .summary-selected { margin-top: 5px; overflow: hidden; color: var(--color-text-secondary, #5F646C); font-size: var(--type-body-small-size, 13px); text-overflow: ellipsis; white-space: nowrap; }
 
 .sheet-scroll {
+  flex: 1;
+  min-height: 0;
+  overscroll-behavior: contain;
   max-height: calc(min(78vh, 680px) - 250px);
 }
 
@@ -407,6 +423,8 @@ function formatMoney(value) {
   gap: 10px;
   padding-top: 12px;
 }
+
+.sheet-actions.is-single { grid-template-columns: minmax(0, 1fr); }
 
 .batch-button,
 .confirm-button {

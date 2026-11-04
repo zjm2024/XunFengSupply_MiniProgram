@@ -185,7 +185,7 @@ async function preview(item) {
 .manual-page { width: 100%; max-width: 1120px; padding: 12px 16px calc(30px + env(safe-area-inset-bottom)); box-sizing: border-box; }
 .category-tabs { width: 100%; margin-bottom: 14px; white-space: nowrap; }
 .category-tabs-inner { display: flex; gap: 8px; width: max-content; }
-.category-btn { min-height: 34px; padding: 0 16px; border: 1px solid #E5E6EB; border-radius: 17px; color: #666A73; background: #FFF; font-size: 12px; line-height: 34px; }
+.category-btn { min-height:var(--list-action-height,32px);padding:0 12px;border:1px solid #E5E6EB;border-radius:var(--list-action-radius,8px); color: #666A73; background: #FFF; font-size:var(--list-action-font-size,12px);line-height:30px; }
 .category-btn::after { border: 0; }
 .category-btn.is-active { border-color: #D7192D; color: #FFF; background: #D7192D; font-weight: 700; }
 .manual-list { display: grid; gap: 12px; }

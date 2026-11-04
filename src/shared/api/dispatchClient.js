@@ -139,6 +139,7 @@ export function request(config) {
     loadingText = t('common.loading'),
     timeout = DEFAULT_TIMEOUT,
     rawResponse = false,
+    withCredentials = false,
     anonymous = false,
     authStrategy = 'auto',
     retryCount = 0,
@@ -167,6 +168,7 @@ export function request(config) {
       method,
       data,
       header: mergeHeader,
+      withCredentials: withCredentials === true,
       timeout,
 
       success(res) {
@@ -248,6 +250,37 @@ export function request(config) {
 // 核心 API：dispatch 动态调度请求
 // ============================================
 
+/** 独立访客入口使用配置API域名的HTTPS Cookie运输，不携带经销商账号JWT。 */
+function shareSessionTransport(module, className, method, options) {
+  const fail = () => { throw new AppError(t('common.errors.operation'), ErrorKind.BUSINESS, { errorCode: 'SHARE_ACCESS_TRANSPORT' }) }
+  const access = module === 'MallOrder' && className === 'Mini.ShareAccessController' && ['Exchange', 'Resolve', 'GetState'].includes(method)
+  const catalog = module === 'MallProduct' && className === 'Mini.ShareCatalogController' && ['GetCategories', 'GetList', 'GetDetail', 'QuoteSelection'].includes(method)
+  const checkout = module === 'MallOrder' && className === 'Mini.ShareCheckoutController' && ['GetAreas', 'GetCarriers', 'Preview'].includes(method)
+  const order = module === 'MallOrder' && className === 'Mini.ShareOrderController' && ['Prepare','Create','GetCurrent'].includes(method)
+  const payment = module === 'Finance' && className === 'Mini.SharePaymentController' && ['Authorize','CompleteAuthorization','Pay','Query'].includes(method)
+  if ((!access && !catalog && !checkout && !order && !payment) || typeof window === 'undefined') return fail()
+  const local = import.meta.env.DEV && window.location.protocol === 'http:'
+    && ['localhost', '127.0.0.1', '[::1]'].includes(window.location.hostname)
+  if (window.location.protocol !== 'https:' && !local) return fail()
+  const header = {}
+  for (const key of ['X-Share-Context', 'X-Share-CSRF']) {
+    const value = options.header?.[key]
+    if (value !== undefined) {
+      if (typeof value !== 'string' || !/^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$/.test(value)) return fail()
+      header[key] = value
+    }
+  }
+  if (access && method === 'Exchange') header['X-Share-Bootstrap'] = '1'
+  const path = import.meta.env.VITE_DISPATCH_URL || '/api/dispatch'
+  // 统一使用既有API域名和调度路径；访客请求仍只携带独立Cookie，不读取经销商JWT。
+  if (!/^\/(?!\/)[^?#\\\s]+$/.test(path)) return fail()
+  const base = import.meta.env.VITE_API_BASE_URL || window.location.origin
+  let target
+  try { target = new URL(path, base.endsWith('/') ? base : base + '/') } catch { return fail() }
+  if (target.username || target.password || target.search || target.hash || (target.protocol !== 'https:' && !(local && target.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(target.hostname)))) return fail()
+  return { url: target.href, header }
+}
+
 /**
  * 统一动态调度请求函数
  *
@@ -276,19 +309,22 @@ export function request(config) {
  * const ctx = await dispatch('MallDealer', 'Mini.ProfileController', 'GetBootstrapContext', {}, { authStrategy: 'passive' })
  */
 export async function dispatch(module, className, method, params = {}, options = {}) {
+  const sessionTransport = options.shareSession === true ? shareSessionTransport(module, className, method, options) : null
   const isPublic = options.anonymous === true || PUBLIC_METHODS.has(method)
 
   return request({
-    url: DISPATCH_URL,
+    url: sessionTransport?.url || DISPATCH_URL,
+    header: sessionTransport?.header || {},
+    withCredentials: sessionTransport !== null,
     method: 'POST',
     data: { module, class: className, method, params },
     showLoading: options.showLoading ?? false,
     loadingText: options.loadingText || t('common.loading'),
     timeout: options.timeout || DEFAULT_TIMEOUT,
     rawResponse: options.rawResponse || false,
-    authStrategy: options.authStrategy || 'auto',
+    authStrategy: sessionTransport ? 'passive' : (options.authStrategy || 'auto'),
     // 公开接口完全不读取/发送 Authorization，避免空 Bearer 头干扰认证中间件。
-    anonymous: isPublic,
+    anonymous: isPublic || sessionTransport !== null,
   })
 }
 

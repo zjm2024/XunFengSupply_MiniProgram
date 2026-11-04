@@ -5,8 +5,8 @@
     <view class="drawer-panel" :style="panelStyle">
       <view class="drawer-header">
         <view>
-          <text class="drawer-title">{{ t('commerce.filters.title') }}</text>
-          <text class="drawer-subtitle">{{ t('commerce.filters.hint') }}</text>
+          <text class="drawer-title">{{ title ?? t('commerce.filters.title') }}</text>
+          <text class="drawer-subtitle">{{ hint ?? t('commerce.filters.hint') }}</text>
         </view>
         <view class="close-button" hover-class="button--pressed" @click="$emit('close')">
           <AppIcon name="close" :size="18" />
@@ -87,7 +87,7 @@
           </view>
         </view>
 
-        <view class="filter-section">
+        <view v-if="showStock" class="filter-section">
           <view class="section-heading">
             <text class="section-title">{{ t('commerce.filters.stock') }}</text>
             <text class="section-hint">{{ t('commerce.filters.stockHint') }}</text>
@@ -107,7 +107,8 @@
           </view>
         </view>
 
-        <view class="filter-section">
+        <slot name="extra" />
+        <view v-if="showSort" class="filter-section">
           <view class="section-heading">
             <text class="section-title">{{ t('commerce.filters.sort') }}</text>
             <text class="section-hint">{{ t('commerce.filters.sortHint') }}</text>
@@ -158,9 +159,13 @@ const props = defineProps({
   categoryPath: { type: Array, default: () => [] },
   stockFilter: { type: String, default: '' },
   sortKey: { type: String, default: 'default' },
+  title: {type:String,default:null},
+  hint: {type:String,default:null},
+  showStock: { type:Boolean, default:true },
+  showSort: { type:Boolean, default:true },
 })
 
-const emit = defineEmits(['close', 'apply'])
+const emit = defineEmits(['close', 'apply', 'reset'])
 
 const stockOptions = computed(() => [
   { value: '', label: t('commerce.filters.allStock'), description: t('commerce.filters.allStockHint') },
@@ -221,7 +226,9 @@ function selectCategory(category) {
   }
 }
 
+/** 重置草稿并通知扩展筛选同步复位，不立即提交查询。 */
 function resetDraft() {
+  emit('reset')
   draftCategoryPath.value = []
   categoryLevel.value = 0
   draftStockFilter.value = ''

@@ -1,7 +1,7 @@
 /** 按实测宽度分配单行操作；不足时优先保留高优先级动作，完整动作留在菜单。 */
-export function fitActionRow(actions, availableWidth, widths = [], moreWidth = 60, gap = 8) {
+export function fitActionRow(actions, availableWidth, widths = [], moreWidth = 60, gap = 8, minimumWidth = 112) {
   if (!actions.length) return { visible: [], overflow: [] }
-  const sizes = actions.map((_, index) => Math.max(112, widths[index] || 112))
+  const sizes = actions.map((_, index) => Math.max(minimumWidth, widths[index] || minimumWidth))
   if (sizes.reduce((sum, size) => sum + size, 0) + gap * (actions.length - 1) <= availableWidth) {
     return { visible: actions, overflow: [] }
   }

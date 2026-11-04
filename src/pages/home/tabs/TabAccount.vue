@@ -119,7 +119,6 @@ import { getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import { getProfile } from '@/shared/api/auth.js'
 import { getDealerInventoryOverview } from '@/shared/api/inventory.js'
 import { getOrderCounts } from '@/shared/api/order.js'
-import { getAfterSaleCount } from '@/shared/api/afterSale.js'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppInitializing from '@/shared/ui/AppInitializing/AppInitializing.vue'
 import AppImage from '@/shared/ui/AppImage/AppImage.vue'
@@ -130,7 +129,6 @@ const finance = ref(userStore.financeContext)
 const inventoryOverview = ref(null)
 const dealerCode = ref(String(userStore.dealerInfo?.dealerCode || '').trim())
 const orderCounts = reactive({ allCount: 0, pendingReviewCount: 0, pendingPaymentCount: 0, processingCount: 0, completedCount: 0 })
-const afterSaleCounts = reactive({ total: 0, pendingReview: 0, pendingReturn: 0, returning: 0, refunding: 0 })
 const dashboardLoading = ref(false)
 const dashboardInitialized = ref(false)
 const functionsExpanded = ref(true)
@@ -161,9 +159,6 @@ const accountCopy = computed(() => ({
   sections: { orders: t('main.accountPanel.orders'), functions: t('main.accountPanel.functions'), service: t('main.accountPanel.service') },
   actions: { allOrders: t('main.accountPanel.allOrders'), expand: t('main.accountPanel.expand'), collapse: t('main.accountPanel.collapse') },
   services: {
-    afterSales: t('main.accountPanel.afterSales'),
-    afterSalesDescription: t('main.accountPanel.afterSalesDescription'),
-    afterSalesProcessing: count => t('main.accountPanel.processing', { count }),
     help: t('main.accountPanel.help'),
     helpDescription: t('main.accountPanel.helpDescription'),
     invoice: t('main.accountPanel.invoice'),
@@ -176,12 +171,6 @@ const dealerLevel = computed(() => userStore.creditLevel || accountCopy.value.fa
 const accountNoticeText = computed(() => (
   !userStore.isAccountNormal ? accountCopy.value.notice.abnormal : accountCopy.value.notice.frozen
 ))
-const pendingAfterSaleCount = computed(() => (
-  Number(afterSaleCounts.pendingReview || 0)
-  + Number(afterSaleCounts.pendingReturn || 0)
-  + Number(afterSaleCounts.returning || 0)
-  + Number(afterSaleCounts.refunding || 0)
-))
 const showInitialLoading = computed(() => props.active && dashboardLoading.value && !dashboardInitialized.value)
 const metricEntries = computed(() => [
   { key: 'credit', value: formatCompactMoney(finance.value?.credit?.availableAmount), label: accountCopy.value.metrics.credit, action: goToRecharge },
@@ -190,13 +179,7 @@ const metricEntries = computed(() => [
   { key: 'score', value: String(userStore.creditScore || 0), unit: accountCopy.value.metrics.scoreUnit, label: accountCopy.value.metrics.score },
 ])
 const serviceEntries = computed(() => [
-  {
-    key: 'after-sales',
-    label: accountCopy.value.services.afterSales,
-    description: pendingAfterSaleCount.value ? accountCopy.value.services.afterSalesProcessing(pendingAfterSaleCount.value) : accountCopy.value.services.afterSalesDescription,
-    icon: 'profile-after-sales',
-    action: goToAfterSales,
-  },
+  ...(['PUBLIC_STOCK_SHARE', 'RETAIL_SHARE_CREATE', 'RETAIL_SHARE_VIEW', 'RETAIL_SHARE_REVOKE'].some(code => userStore.hasPermission(code)) ? [{ key: 'share', label: t('main.accountPanel.share'), description: t('main.accountPanel.shareDescription'), icon: 'globe', action: goToShare }] : []),
   { key: 'help', label: accountCopy.value.services.help, description: accountCopy.value.services.helpDescription, icon: 'profile-help', action: goToHelp },
   { key: 'invoice', label: accountCopy.value.services.invoice, description: accountCopy.value.services.invoiceDescription, icon: 'profile-invoice', action: goToInvoice },
 ])
@@ -214,7 +197,6 @@ async function loadDashboard() {
       { key: 'finance', request: getDealerFinanceContext() },
       ...(userStore.hasPermission('INVENTORY_VIEW') ? [{ key: 'inventory', request: getDealerInventoryOverview() }] : []),
       ...(userStore.hasPermission('ORDER_VIEW') ? [{ key: 'orders', request: getOrderCounts() }] : []),
-      { key: 'afterSale', request: getAfterSaleCount() },
     ]
     const results = await Promise.allSettled(tasks.map(item => item.request))
     results.forEach((result, index) => {
@@ -232,7 +214,6 @@ async function loadDashboard() {
         userStore.updateFinanceContext(result.value)
       } else if (key === 'inventory') inventoryOverview.value = result.value
       else if (key === 'orders') Object.assign(orderCounts, result.value)
-      else if (key === 'afterSale') Object.assign(afterSaleCounts, result.value)
     })
   } finally {
     dashboardInitialized.value = true
@@ -254,8 +235,9 @@ function formatCount(value) { return Number(value) > 99 ? '99+' : String(value) 
 
 function openProfile() { return navigator.navigateTo(routes.account.profile()) }
 function goToOrders(status) { return navigator.navigateTo(routes.order.list(typeof status === 'number' ? { status } : {})) }
+/** 打开经销商分享中心，页面与服务端会再次校验权限。 */
+function goToShare() { return navigator.navigateTo(routes.share.home()) }
 function goToInventory() { return navigator.navigateTo(routes.account.inventory()) }
-function goToAfterSales() { return navigator.navigateTo(routes.order.afterSaleList()) }
 function goToInvoice() { return navigator.navigateTo(routes.account.invoice()) }
 function goToRecharge() { return navigator.navigateTo(routes.account.recharge()) }
 function goToBill() { return navigator.navigateTo(routes.account.billList()) }

@@ -1,3 +1,4 @@
+import { internalSharePath } from './sharePublicRoutes.js'
 /**
  * @file 路由常量、元数据与工厂 - 全局唯一路由来源（SSOT）
  * @description
@@ -92,10 +93,20 @@ export const MESSAGE_DETAIL = '/subPackages/content/pages/message/detail'
 export const HELP = '/subPackages/content/pages/help/index'
 export const ABOUT = '/subPackages/content/pages/about/index'
 
+// ==================== share：独立公开H5/分享分包 ====================
+export const PUBLIC_STOCK = '/subPackages/share/pages/public-stock/index'
+export const PUBLIC_STOCK_DETAIL = '/subPackages/share/pages/public-stock/detail'
+export const SHARE_RETAIL_SEARCH = '/subPackages/share/pages/retail/search'
+export const PUBLIC_STOCK_SEARCH = '/subPackages/share/pages/public-stock/search'
+export const SHARE_RETAIL = '/subPackages/share/pages/retail/index'
+export const DEALER_SHARE = '/subPackages/share/pages/dealer/index'
+export const DEALER_SHARE_GENERATE = '/subPackages/share/pages/dealer-generate/index'
+export const DEALER_SHARE_RECORDS = '/subPackages/share/pages/dealer-records/index'
+
 // ==================== 已注册完整列表 ====================
 
 export const REGISTERED_ROUTES = Object.freeze([
-  STARTUP, HOME,
+  STARTUP, HOME, PUBLIC_STOCK, PUBLIC_STOCK_SEARCH, SHARE_RETAIL_SEARCH, PUBLIC_STOCK_DETAIL, DEALER_SHARE, DEALER_SHARE_GENERATE, DEALER_SHARE_RECORDS, SHARE_RETAIL,
   LOGIN, APPLY_SIGN, AGREEMENT, ACCOUNT_STATUS,
   HOME_SECTION, ANNOUNCEMENTS, ANNOUNCEMENT_DETAIL, PRODUCT_LIST, PRODUCT_DETAIL, PRODUCT_VARIANTS, CART, CHECKOUT,
   ORDER_LIST, ORDER_DETAIL, PAY_PAGE, FULFILLMENT_SPLIT, APPLY_AFTER_SALE, APPLY_INVENTORY_AFTER_SALE, AFTER_SALE_LIST, AFTER_SALE_DETAIL, CANCEL_ORDER,
@@ -163,6 +174,16 @@ export const ROUTE_META = Object.freeze({
     allowFrozen: true,
     owner: null,
   },
+
+  // ===== 独立分享公共页 =====
+  [DEALER_SHARE]: { title: '分享中心', requireAuth: true, requireSign: false, allowFrozen: false, owner: null, surface: 'dealer' },
+  [DEALER_SHARE_GENERATE]: { title: '零售下单分享', requireAuth: true, requireSign: false, allowFrozen: false, owner: null, surface: 'dealer' },
+  [DEALER_SHARE_RECORDS]: { title: '分享记录', requireAuth: true, requireSign: false, allowFrozen: false, owner: null, surface: 'dealer' },
+  [SHARE_RETAIL_SEARCH]: { title: '商品查询', requireAuth: false, requireSign: false, allowFrozen: true, owner: null, surface: 'share' },
+  [PUBLIC_STOCK_SEARCH]: { title: '库存查询', requireAuth: false, requireSign: false, allowFrozen: true, owner: null, surface: 'share' },
+  [SHARE_RETAIL]: { title: '分享选购', requireAuth: false, requireSign: false, allowFrozen: true, owner: null, surface: 'share' },
+  [PUBLIC_STOCK]: { title: '公开库存', requireAuth: false, requireSign: false, allowFrozen: true, owner: null, surface: 'share' },
+  [PUBLIC_STOCK_DETAIL]: { title: '规格库存', requireAuth: false, requireSign: false, allowFrozen: true, owner: null, surface: 'share' },
 
   // ===== commerce 分包 =====
   [HOME_SECTION]: { title: '商品专区', requireAuth: true, requireSign: false, allowFrozen: false, owner: null },
@@ -632,7 +653,46 @@ function withQuery(base, params) {
   return `${base}?${qs}`
 }
 
+/** 库存查询路由只传受保护访问凭据和原到期时间，不携带经销商身份。 */
+function publicStockQuery({ access, expires } = {}) {
+  if (!access) return {}
+  if (typeof access !== 'string' || !/^[A-Za-z0-9_-]{40,2048}$/.test(access)
+    || (expires && !/^\d{10}$/.test(String(expires)))) throw new TypeError('Invalid stock link')
+  return { access, ...(expires ? { expires: String(expires) } : {}) }
+}
+
 export const routes = {
+  share: {
+    /** 原码从不作为内部路由参数，只接受公开上下文和非敏感草稿定位。 */
+    retail: ({ entry, contextId, draftId } = {}) => {
+      const draft = value => typeof value === 'string' && /^[a-f0-9]{32}$/.test(value)
+      if (entry !== undefined) {
+        if (!draft(entry) || contextId !== undefined || draftId !== undefined) throw new TypeError('Invalid share entry')
+        return withQuery(SHARE_RETAIL, { entry })
+      }
+      if (contextId === undefined && draftId === undefined) return SHARE_RETAIL
+      if (typeof contextId !== 'string' || !/^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$/.test(contextId) || !draft(draftId)) throw new TypeError('Invalid share context')
+      return withQuery(SHARE_RETAIL, { contextId, draftId })
+    },
+    home: () => DEALER_SHARE,
+    generate: () => DEALER_SHARE_GENERATE,
+    records: () => DEALER_SHARE_RECORDS,
+    /** 查询页只携带公开上下文定位，仍须Cookie授权。 */
+    retailSearch: (access, categoryId) => {
+      if (!access?.contextId || !access?.draftId || access.entry !== undefined) throw new TypeError('Invalid share search')
+      const base = routes.share.retail(access).replace(SHARE_RETAIL, SHARE_RETAIL_SEARCH)
+      return categoryId == null ? base : base + '&' + buildQuery({ categoryId: assertValidId(categoryId, 'share.retailSearch') })
+    },
+    /** 库存查询沿用原链接凭据。 */
+    publicStockSearch: (access = {}, categoryId) => withQuery(PUBLIC_STOCK_SEARCH, { ...publicStockQuery(access), ...(categoryId == null ? {} : { categoryId: assertValidId(categoryId, 'share.publicStockSearch') }) }),
+    publicStock: (access = {}) => withQuery(PUBLIC_STOCK, publicStockQuery(access)),
+    publicStockDetail: (productId, access = {}) => {
+      if (typeof productId === 'number' && !Number.isSafeInteger(productId)) throw new TypeError('Invalid share product ID')
+      const id = String(assertValidId(productId, 'share.publicStockDetail'))
+      if (!/^[1-9]\d{0,18}$/.test(id) || (id.length === 19 && id > '9223372036854775807')) throw new TypeError('Invalid share product ID')
+      return withQuery(PUBLIC_STOCK_DETAIL, { productId: id, ...publicStockQuery(access) })
+    },
+  },
   startup: () => STARTUP,
   home: () => HOME,
 
@@ -788,7 +848,7 @@ export function normalizeRoutePath(url) {
   cleaned = cleaned.split('?')[0]
   // 确保以 / 开头
   if (!cleaned.startsWith('/')) cleaned = `/${cleaned}`
-  return cleaned
+  return internalSharePath(cleaned)
 }
 
 /**

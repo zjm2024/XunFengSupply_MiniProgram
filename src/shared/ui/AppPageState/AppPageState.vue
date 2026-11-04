@@ -743,4 +743,6 @@ export default {
     }
   }
 }
+/* 列表空状态使用紧凑操作，页面主表单仍保持原尺寸。 */
+.app-page-state.is-compact .action-btn{width:auto;min-width:var(--list-action-min-width,72px);max-width:100%;height:auto;min-height:var(--list-tool-height,36px);padding:7px 12px;font-size:13px;line-height:20px;border-radius:var(--list-action-radius,8px);}
 </style>

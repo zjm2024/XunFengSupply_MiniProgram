@@ -116,6 +116,7 @@
 </template>
 
 <script setup>
+import { SEARCH_RECOMMENDATIONS } from '../../model/productSearchRecommendations.js'
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/commerce/i18n/register.js'
 import { ref, computed, watch, onMounted } from 'vue'
@@ -151,17 +152,7 @@ const STOCK_FILTER_LABELS = Object.freeze({
 
 const SEARCH_HISTORY_KEY = 'commerce.product.search.history'
 const SEARCH_HISTORY_LIMIT = 10
-const SEARCH_RECOMMENDATIONS = Object.freeze([
-  '羽毛球拍',
-  '比赛羽毛球',
-  '运动服套装',
-  '羽毛球鞋',
-  '训练用球',
-  '球拍线',
-  '羽毛球包',
-  '运动护具',
-  '团队采购',
-])
+
 
 const { cartStore, loadCart } = useCart()
 

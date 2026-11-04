@@ -123,6 +123,8 @@ const isReadOnly = computed(() => userStore.isFrozen)
 // 判断是否为编辑模式
 const isEdit = ref(false)
 const editingAccountId = ref(null)
+const editingVersion = ref(null)
+const editingShareVersion = ref(null)
 
 const formData = reactive({
   username: '',
@@ -140,6 +142,10 @@ const permissionOptions = computed(() => [
   { code: 'INVENTORY_VIEW', name: t('account.permissions.viewInventory'), description: t('account.permissions.viewInventoryHint') },
   { code: 'SUB_ACCOUNT_MANAGE', name: t('account.permissions.manageAccounts'), description: t('account.permissions.manageAccountsHint') },
   { code: 'COMBINATION_PAY_PARTICIPATE', name: t('account.permissions.combinedPayment'), description: t('account.permissions.combinedPaymentHint') },
+  { code: 'PUBLIC_STOCK_SHARE', name: t('account.permissions.publicStockShare'), description: t('account.permissions.publicStockShareHint') },
+  { code: 'RETAIL_SHARE_CREATE', name: t('account.permissions.retailShareCreate'), description: t('account.permissions.retailShareCreateHint') },
+  { code: 'RETAIL_SHARE_VIEW', name: t('account.permissions.retailShareView'), description: t('account.permissions.retailShareViewHint') },
+  { code: 'RETAIL_SHARE_REVOKE', name: t('account.permissions.retailShareRevoke'), description: t('account.permissions.retailShareRevokeHint') },
 ])
 
 let initialStatus = 'active'
@@ -148,7 +154,9 @@ onLoad((params = {}) => {
   // 检查是否有传入的编辑数据
   if (params.accountId) {
     isEdit.value = true
-    editingAccountId.value = Number(params.accountId)
+    editingAccountId.value = String(params.accountId)
+    editingVersion.value = /^\d{1,10}$/.test(String(params.version ?? '')) ? String(params.version) : null
+    editingShareVersion.value = /^[a-f0-9]{64}$/.test(String(params.shareVersion ?? '')) ? String(params.shareVersion) : null
     formData.username = params.username || ''
     formData.realName = params.realName || ''
     formData.mobile = params.mobile || ''
@@ -202,6 +210,11 @@ async function submitForm() {
     return
   }
 
+  if (formData.permissions.some(code => ['RETAIL_SHARE_CREATE', 'RETAIL_SHARE_REVOKE'].includes(code)) && !formData.permissions.includes('RETAIL_SHARE_VIEW')) {
+    uni.showToast({ title: t('account.permissions.shareViewRequired'), icon: 'none' })
+    return
+  }
+
   submitting.value = true
   try {
     if (isEdit.value) {
@@ -214,6 +227,8 @@ async function submitForm() {
       if (formData.status === 'active') {
         await updateSubAccount({
           subAccountId: editingAccountId.value,
+          expectedVersion: editingVersion.value,
+          expectedShareVersion: editingShareVersion.value,
           realName: formData.realName.trim() || null,
           mobile: formData.mobile.trim() || null,
           permissions: formData.permissions,

@@ -22,6 +22,7 @@
 import { getBootstrapContext, checkAppVersion } from './bootstrapApi.js'
 import { useUserStore } from '../../shared/session/userStore.js'
 import { LOGIN, HOME, ACCOUNT_STATUS } from '../config/routes.js'
+import { APP_SURFACE } from '../config/shareSurface.js'
 import { AppError, ErrorKind } from '../../shared/api/appError.js'
 import { initializeAppLocale } from '../i18n/localePersistence.js'
 
@@ -263,7 +264,9 @@ function _resolveTarget(userInfo) {
 
   return {
     status: 'ready',
-    targetUrl: userStore.isFrozen ? ACCOUNT_STATUS : (_getSafeDeepLink() || HOME),
+    targetUrl: APP_SURFACE.mode === 'share-h5'
+      ? APP_SURFACE.entry
+      : (userStore.isFrozen ? ACCOUNT_STATUS : (_getSafeDeepLink() || HOME)),
     reason: userStore.isFrozen ? 'authenticated_frozen' : 'authenticated',
     restoredSession: true
   }
@@ -340,7 +343,7 @@ function _normalizeLanguage() {
  */
 function _getSafeLoginUrl() {
   // 这里可以加入深链恢复逻辑
-  return LOGIN
+  return APP_SURFACE.mode === 'share-h5' ? APP_SURFACE.entry : LOGIN
 }
 
 /**

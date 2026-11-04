@@ -25,16 +25,19 @@ const LOGOUT_CLEAR_KEYS = [...AUTH_KEYS, ...USER_KEYS, ...BUSINESS_KEYS]
 
 class Storage {
   /**
-   * 设置缓存
+   * 设置缓存，返回是否成功以支持业务层内存降级
    * @param {string} key - 键名
    * @param {*} value - 值
+   * @returns {boolean} 是否成功写入
    */
   set(key, value) {
     try {
       const data = typeof value === 'object' ? JSON.stringify(value) : value
       uni.setStorageSync(STORAGE_PREFIX + key, data)
+      return true
     } catch (e) {
       console.error('[Storage] set error:', e)
+      return false
     }
   }
 
@@ -67,8 +70,10 @@ class Storage {
   remove(key) {
     try {
       uni.removeStorageSync(STORAGE_PREFIX + key)
+      return true
     } catch (e) {
       console.error('[Storage] remove error:', e)
+      return false
     }
   }
 

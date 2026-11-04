@@ -135,6 +135,8 @@ import AppStatusBarSpacer from '../AppStatusBarSpacer/AppStatusBarSpacer.vue'
 import AppIcon from '../AppIcon/AppIcon.vue'
 
 const props = defineProps({
+  /** 当前页自行处理返回，例如同链接内的详情/视图切换。 */
+  customBack: { type: Boolean, default: false },
   /** 页面标题 */
   title: {
     type: String,
@@ -305,6 +307,7 @@ const navBarStyle = computed(() => ({
 // ==================== 事件处理 ====================
 
 async function handleBack() {
+  if (props.customBack) { emit('back'); return }
   // 优先执行统一返回：页面栈足够则返回上一页，否则按用户状态兜底
   try {
     const navigated = await navigator.back()

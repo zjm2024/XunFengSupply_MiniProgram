@@ -10,7 +10,6 @@ const ACTION_BUTTONS = Object.freeze({
   cancel: { key: 'cancel', labelKey: 'order.actions.cancel', type: 'secondary', priority: 9 },
   viewLogistics: { key: 'viewLogistics', labelKey: 'order.actions.viewLogistics', type: 'secondary', priority: 3 },
   confirmReceipt: { key: 'confirmReceipt', labelKey: 'order.actions.confirmReceipt', type: 'primary', priority: 0 },
-  afterSale: { key: 'afterSale', labelKey: 'order.actions.afterSale', type: 'secondary', priority: 1 },
 })
 
 /**

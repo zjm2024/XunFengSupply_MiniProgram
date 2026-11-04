@@ -14,6 +14,8 @@
     "placeholder": "商品名称 / SKU / 69码"
   },
   "startup": {
+    "invalidShareTitle": "分享链接无效",
+    "invalidShareDescription": "请通过有效的库存查询或下单分享链接访问。直接访问域名、缺少凭据或混用链接无法进入，请联系经销商获取正确链接。",
     "title": "正在加载采购工作台",
     "tip": "正在同步账户与采购数据",
     "newVersion": "发现新版本",
@@ -74,6 +76,8 @@
     "processing": "{count} 条处理中",
     "help": "帮助中心",
     "helpDescription": "采购与售后帮助",
+    "share": "分享中心",
+    "shareDescription": "公共库存分享与散客链接管理",
     "invoice": "发票中心",
     "invoiceDescription": "企业抬头与开票记录",
     "identity": "客户编号 {code}",

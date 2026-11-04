@@ -308,7 +308,7 @@ function onExchangeEnter() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 28px; /* 稳定 px */
+  min-height:var(--list-action-height,32px);
   padding: 0 12px;
   margin-top: 8px;
   background: white;
@@ -316,7 +316,7 @@ function onExchangeEnter() {
   font-size: 12px;
   font-weight: 600;
   border: none;
-  border-radius: 14px;
+  border-radius:var(--list-action-radius,8px);
 
   &:active {
     opacity: 0.9;

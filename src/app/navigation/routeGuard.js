@@ -9,7 +9,7 @@
  *   { allowed: false, path, reason, redirectUrl }
  *
  * reason 取值：
- *   NOT_REGISTERED | NOT_LOGGED_IN | ACCOUNT_FROZEN | MAIN_ACCOUNT_ONLY | PERMISSION_DENIED
+ *   NOT_REGISTERED | NOT_LOGGED_IN | ACCOUNT_FROZEN | MAIN_ACCOUNT_ONLY | PERMISSION_DENIED | SURFACE_MISMATCH
  */
 
 import {
@@ -18,7 +18,10 @@ import {
   PUBLIC_ROUTES,
   FROZEN_ALLOWED_ROUTES,
   ROUTE_META,
+  STARTUP,
 } from '../config/routes.js'
+import { APP_SURFACE } from '../config/shareSurface.js'
+import { shareEntryGate } from './shareEntryGate.js'
 
 /**
  * 根据标准化 path 和用户快照判断是否允许访问。
@@ -45,6 +48,19 @@ export function canAccess(toUrl, userSnapshot = null) {
   // 如果 meta 未定义但 path 已注册（防卫性）
   if (!meta) {
     return { allowed: true, path }
+  }
+
+  // 两种构建表面严格隔离：分享站只允许分享页，正常 APP 只允许经销商页。
+  const routeSurface = meta.surface || 'dealer'
+  const expectedSurface = APP_SURFACE.mode === 'share-h5' ? 'share' : 'dealer'
+  if ((path !== STARTUP && routeSurface !== expectedSurface)
+    || (APP_SURFACE.mode === 'share-h5' && !shareEntryGate.allows(toUrl))) {
+    return {
+      allowed: false,
+      path,
+      reason: 'SURFACE_MISMATCH',
+      redirectUrl: APP_SURFACE.entry,
+    }
   }
 
   // 4. 公开页面直接放行
@@ -108,6 +124,16 @@ export function canAccess(toUrl, userSnapshot = null) {
 export function isPublicRoute(path) {
   const normalized = normalizeRoutePath(path)
   return PUBLIC_ROUTES.has(normalized)
+}
+
+/** 判断当前路由是否属于当前构建表面，供 App 全局深链拦截使用。 */
+export function isSurfaceRouteAllowed(path, surface = APP_SURFACE) {
+  const normalized = normalizeRoutePath(path)
+  if (!normalized) return false
+  if (normalized === STARTUP) return true
+  const meta = ROUTE_META[normalized]
+  if (!meta) return false
+  return (meta.surface || 'dealer') === (surface.mode === 'share-h5' ? 'share' : 'dealer')
 }
 
 /**

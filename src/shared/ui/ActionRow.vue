@@ -18,8 +18,8 @@ const emit = defineEmits(['select', 'overflow'])
 const instance = getCurrentInstance()
 const width = ref(0), widths = ref([]), moreWidth = ref(60)
 let generation = 0, alive = true
-const signature = computed(() => JSON.stringify([props.moreText, props.actions.map(action => [action.key, action.label, action.type])]))
-const layout = computed(() => fitActionRow(props.actions, width.value || 240, widths.value, moreWidth.value))
+const signature = computed(() => JSON.stringify([props.compact, props.moreText, props.actions.map(action => [action.key, action.label, action.type])]))
+const layout = computed(() => fitActionRow(props.actions, width.value || 240, widths.value, moreWidth.value, 8, props.compact ? 72 : 112))
 
 /** 读取容器和文字实宽，字体、语言或屏幕变化后重新安排，绝不触发业务操作。 */
 async function measure() {
@@ -33,7 +33,7 @@ async function measure() {
   query.exec(result => {
     if (!alive || revision !== generation || !result?.[0]?.width) return
     width.value = result[0].width
-    widths.value = (result[1] || []).map(rect => Math.ceil(rect.width) + 28)
+    widths.value = (result[1] || []).map(rect => Math.ceil(rect.width) + (props.compact ? 22 : 28))
     moreWidth.value = Math.max(60, Math.ceil(result[2]?.width || 0) + 12)
   })
 }
@@ -60,7 +60,11 @@ onBeforeUnmount(() => { alive = false; generation++; uni.offWindowResize?.(measu
 .row-button.primary { border-color: #d7192d; background: #d7192d; color: #fff; }
 .row-button:disabled { color: #969aa3; background: #eceef2; border-color: #eceef2; }
 .action-row-control.is-compact { justify-content: flex-end; }
-.is-compact .row-button { flex: 0 1 auto; min-width: min(112px, 100%); max-width: 200px; }
+.is-compact .row-button { position:relative;flex:0 1 auto;min-width:min(var(--list-action-min-width,72px),100%);max-width:200px;min-height:var(--list-action-height,32px);padding:5px 10px;border-radius:var(--list-action-radius,8px);font-size:var(--list-action-font-size,12px);line-height:20px; }
+.is-compact {min-height:44px;align-items:center;}
+.is-compact .row-button::before{content:'';position:absolute;left:0;right:0;top:-6px;bottom:-6px;}
+.is-compact .row-more{min-height:44px;padding:6px;font-size:12px;}
+.is-compact .action-measure,.is-compact .more-measure{font-size:12px;}
 .is-compact .row-more { margin-right: auto; }
 .row-more { display: flex; flex: 0 0 auto; min-width: 60px; min-height: 44px; align-items: center; justify-content: center; gap: 5px; margin: 0; padding: 10px 6px; border: 0; background: transparent; color: #626974; font-size: 13px; line-height: 20px; }
 .action-measures { position: absolute; top: 0; left: 0; display: flex; width: 0; height: 0; overflow: hidden; visibility: hidden; pointer-events: none; white-space: nowrap; }

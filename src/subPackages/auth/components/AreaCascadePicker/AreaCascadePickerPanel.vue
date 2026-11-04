@@ -63,6 +63,8 @@ const EMPTY_VALUE = {
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
+  // 分享传入访客专用地区读取，默认调用保留原经销商接口。
+  loadChildren: { type: Function, default: null },
   modelValue: {
     type: Object,
     default: () => ({ provinceCode: '', province: '', cityCode: '', city: '', districtCode: '', district: '' }),
@@ -140,7 +142,7 @@ async function loadOptions(level, parentCode) {
   loading.value = true
   loadError.value = null
   try {
-    const list = await getAreaChildren(parentCode)
+    const list = props.loadChildren ? await props.loadChildren(parentCode, level + 1) : await getAreaChildren(parentCode)
     if (version !== requestVersion.value) return
     if (level === 0) options.provinces = list
     if (level === 1) options.cities = list

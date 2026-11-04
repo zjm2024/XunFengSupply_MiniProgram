@@ -74,6 +74,7 @@ import StartupLoading from './components/StartupLoading.vue'
 import StartupError from './components/StartupError.vue'
 import { bootstrapOnce, resetBootstrapState } from '../../app/bootstrap/appBootstrap.js'
 import { STARTUP_CONFIG } from '../../app/config/startupConfig.js'
+import { APP_SURFACE } from '../../app/config/shareSurface.js'
 import { sanitizeRedirect, isRegisteredRoute, HOME } from '../../app/config/routes.js'
 import { navigator } from '../../app/navigation/navigator.js'
 
@@ -164,6 +165,15 @@ function closeNativeSplashOnce() {
 // ==================== 生命周期 ====================
 
 onLoad(() => {
+  // 分享H5根入口不启动经销商自动登录/采购首页初始化。
+  if (APP_SURFACE.mode === 'share-h5') {
+    currentScene.value = 'error'
+    errorTitle.value = { key: 'main.startup.invalidShareTitle' }
+    errorDesc.value = { key: 'main.startup.invalidShareDescription' }
+    errorShowPrimary.value = false
+    errorShowSecondary.value = false
+    return
+  }
   log(`setup mode=${startupConfig.mode}`)
   log('page loaded')
 
@@ -172,6 +182,10 @@ onLoad(() => {
 })
 
 onReady(() => {
+  // 页面就绪后统一导航；直接公开深链不会进入startup。
+  if (APP_SURFACE.mode === 'share-h5') {
+    return
+  }
   log('page ready')
 
   // 关闭原生 Splash

@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿<template>
+﻿﻿﻿<template>
   <AppPageShell>
     <template #header>
       <AppHeader :title="t('account.center.title')" :show-back="true" :show-message="true" @message="goToMessages" />
@@ -184,7 +184,6 @@ function goToRecharge() { navigator.navigateTo(routes.account.recharge()) }
 function goToBill() { navigator.navigateTo(routes.account.billList()) }
 function goToFundFlow() { navigator.navigateTo(routes.account.fundFlow()) }
 function goToCreditFlow() { navigator.navigateTo(routes.account.creditFlow()) }
-function goToAfterSales() { navigator.navigateTo(routes.order.afterSaleList()) }
 function goToInvoice() { navigator.navigateTo(routes.account.invoice()) }
 function goToAddress() { navigator.navigateTo(routes.account.address()) }
 function goToVoucher() { navigator.navigateTo(routes.account.voucher()) }
@@ -211,14 +210,6 @@ const businessEntries = computed(() => [
     tone: 'inventory',
     action: goToInventory,
   }] : []),
-  {
-    label: t('account.center.afterSales'),
-    value: t('account.center.trackable'),
-    help: t('account.center.afterSalesHint'),
-    icon: 'after-sales',
-    tone: 'service',
-    action: goToAfterSales,
-  },
   {
     label: t('account.center.invoice'),
     value: t('account.center.companyInvoice'),

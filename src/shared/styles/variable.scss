@@ -243,3 +243,6 @@ $border-color: tokens.$color-border-default;     // 废弃：用 $color-border-d
 $radius-sm: tokens.$radius-tag;                  // 废弃：用 $radius-tag
 $radius-base: tokens.$radius-card;              // 废弃：用 $radius-card
 $radius-lg: tokens.$radius-feature;             // 废弃：用 $radius-feature
+
+/* 列表操作密度：独立于结算/表单主按钮。 */
+:root, page { --list-action-height:32px; --list-action-min-width:72px; --list-action-radius:8px; --list-action-font-size:12px; --list-tool-height:36px; }

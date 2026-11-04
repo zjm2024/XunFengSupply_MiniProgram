@@ -20,13 +20,6 @@
   <view class="app-content" :class="[`content-${layout.breakpoint}`]">
     <!-- 内容居中容器（平板端生效） -->
     <view class="content-inner" :style="containerStyle">
-      <view
-        v-if="refresherEnabled && refresherTriggered"
-        class="app-refresher-indicator"
-        aria-label="刷新中"
-      >
-        <AppIcon name="refresh" :size="20" color="#737A84" />
-      </view>
       <scroll-view
         class="content-scroll"
         scroll-y
@@ -38,7 +31,8 @@
         :refresher-enabled="refresherEnabled"
         :refresher-triggered="refresherTriggered"
         :refresher-background="refresherBackground"
-        refresher-default-style="none"
+        :refresher-default-style="refreshIndicatorStyle"
+        :refresher-threshold="48"
         @scroll="handleScroll"
         @scrolltolower="emit('scrolltolower')"
         @refresherrefresh="emit('refresherrefresh')"
@@ -46,6 +40,9 @@
         @refresherabort="emit('refresherabort')"
         ref="scrollViewRef"
       >
+        <!-- #ifdef H5 -->
+          <template #refresher><view class="compact-refresher"><view class="compact-refresher-icon" :class="{ 'is-refreshing': refresherTriggered }"><AppIcon name="refresh" :size="20" color="#737A84" /></view></view></template>
+          <!-- #endif -->
         <view class="content-body" :style="{ padding: padding }">
           <view v-if="widthMode === 'standard' && !noMaxWidth" class="page-content-frame"><slot></slot></view>
           <slot v-else></slot>
@@ -56,6 +53,11 @@
 </template>
 
 <script setup>
+/** H5自定义刷新头，原生App/小程序使用原生指示器以兼容编译。 */
+let refreshIndicatorStyle = 'black'
+// #ifdef H5
+refreshIndicatorStyle = 'none'
+// #endif
 import { computed } from 'vue'
 import { useResponsive } from '../../composables/useResponsive.js'
 import AppIcon from '../AppIcon/AppIcon.vue'
@@ -94,7 +96,7 @@ const props = defineProps({
   },
   refresherBackground: {
     type: String,
-    default: 'var(--surface-page, #F4F5F8)',
+    default: 'transparent',
   },
 })
 
@@ -189,4 +191,11 @@ function handleScroll(e) {
 .content-expanded .content-inner {
   // iPad 横屏：可以更宽的布局
 }
+
+/* 原生H5刷新头按拖动距离设置内联高度，限制占位避免大幅下拉推走页面。 */
+:deep(.uni-scroll-view-refresher){max-height:56px!important;overflow:hidden;background:transparent!important}
+.compact-refresher{height:48px;display:flex;align-items:center;justify-content:center;background:transparent;pointer-events:none}
+.compact-refresher-icon{display:flex;align-items:center;justify-content:center;width:28px;height:28px;color:#737a84}
+.compact-refresher-icon.is-refreshing{animation:compact-refresher-spin .9s linear infinite}
+@keyframes compact-refresher-spin{to{transform:rotate(360deg)}}
 </style>

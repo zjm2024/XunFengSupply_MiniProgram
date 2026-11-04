@@ -1,0 +1,8 @@
+const KEY='share.wechat.return.v1'
+let returned=null
+/** OAuth跳转前只记当前标签页公开定位路由和短期state，不存CSRF/OpenID/金额。 */
+export function rememberWechatReturn(win,authorizationUrl){const url=new URL(authorizationUrl);const state=url.searchParams.get('state');if(url.origin!=='https://open.weixin.qq.com'||url.pathname!=='/connect/oauth2/authorize'||!state||!/^#\/shop(?:\/search)?\?/.test(win.location.hash))throw Error('微信授权入口无效');const query=new URLSearchParams(win.location.hash.split('?')[1]||'');const contextId=query.get('contextId'),draftId=query.get('draftId');if(!/^[A-Za-z0-9_-]{43}$/.test(contextId||'')||!/^([a-f0-9]{32})$/.test(draftId||''))throw Error('订单恢复入口无效');win.sessionStorage.setItem(KEY,JSON.stringify({route:win.location.pathname+'#/shop?contextId='+contextId+'&draftId='+draftId,state,until:Date.now()+300000}))}
+/** 必须先于Uni路由守卫处理：立即清掉URL中的code，恢复原订单定位；授权码只留内存一次。 */
+export function captureWechatReturn(win){const query=new URLSearchParams(win.location.search);if(query.get('share_wx')!=='1')return false;let value;try{value=JSON.parse(win.sessionStorage.getItem(KEY));win.sessionStorage.removeItem(KEY)}catch{}const valid=value&&value.until>Date.now()&&value.until<=Date.now()+300000&&value.state===query.get('state')&&/^\/[^?#]*#\/shop\?contextId=[A-Za-z0-9_-]+&draftId=[a-f0-9]{32}$/.test(value.route);returned=valid&&query.get('code')?{code:query.get('code'),state:query.get('state')}:null;win.history.replaceState(win.history.state,'',valid?value.route:win.location.pathname+'#/shop');return true}
+/** 单次交给恢复后的原访客付款编排，其他组件不可重放。 */
+export function takeWechatReturn(){const value=returned;returned=null;return value}

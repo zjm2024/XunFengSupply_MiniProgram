@@ -50,6 +50,8 @@ function normalizeSubAccount(item = {}) {
     status,
     createdAt: createdAt ? String(createdAt).slice(0, 10) : '',
     permissions: item.permissions ?? item.Permissions ?? [],
+    version: item.version ?? item.Version ?? null,
+    shareVersion: item.shareVersion ?? item.ShareVersion ?? null,
   }
 }
 
@@ -72,9 +74,12 @@ export function createSubAccount(params = {}) {
   })
 }
 
+/** 完整权限编辑携带读取版本，后端阻止过时页面覆盖管理端新授权。 */
 export function updateSubAccount(params = {}) {
   return dispatch('MallDealer', 'Mini.SubAccountController', 'Update', {
     SubAccountId: params.subAccountId ?? params.id ?? 0,
+    ExpectedVersion: params.expectedVersion ?? null,
+    ExpectedShareVersion: params.expectedShareVersion ?? null,
     RealName: params.realName ?? null,
     Mobile: params.mobile ?? null,
     Permissions: params.permissions || [],

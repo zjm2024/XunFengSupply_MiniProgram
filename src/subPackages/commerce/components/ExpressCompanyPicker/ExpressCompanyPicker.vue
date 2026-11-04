@@ -6,7 +6,7 @@
         <view class="express-picker__header-action express-picker__header-action--cancel" @tap="handleCancel">{{ t('commerce.carrier.cancel') }}</view>
         <view class="express-picker__heading">
           <text class="express-picker__title">{{ t('commerce.carrier.title') }}</text>
-          <text class="express-picker__subtitle">{{ t('commerce.carrier.hint') }}</text>
+          <text v-if="showHint" class="express-picker__subtitle">{{ t('commerce.carrier.hint') }}</text>
         </view>
         <view class="express-picker__header-action express-picker__header-action--confirm" @tap="handleConfirm">{{ t('commerce.carrier.confirm') }}</view>
       </view>
@@ -46,6 +46,7 @@ import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 
 const props = defineProps({
   visible: { type: Boolean, default: false },
+  showHint: {type:Boolean,default:true},
   options: { type: Array, default: () => [] },
   modelValue: { type: String, default: '' },
 })
