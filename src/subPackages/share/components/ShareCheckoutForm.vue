@@ -1,5 +1,5 @@
 <template>
-  <view class="checkout-page share-checkout"><view v-if="!wechatBrowser" class="preview-notice" role="status">请在微信中打开后付款</view><view v-if="state.error" class="preview-notice" role="alert">{{ t('share.checkout.errors.' + state.error) }}</view><view class="checkout-grid"><view class="checkout-main">
+  <view class="checkout-page share-checkout"><view class="checkout-grid"><view class="checkout-main">
     <view class="section-card fulfillment-card"><view class="section-heading"><view class="heading-icon"><AppIcon name="location" :size="20" /></view><view class="heading-copy"><text class="section-title">收货信息</text></view></view>
     <button class="address-entry" :class="{empty:!hasAddress}" :disabled="state.locked" @click="addressEditing=!addressEditing"><view v-if="hasAddress" class="contact-block"><view class="contact-line"><text class="contact-name">{{ form.contactName }}</text><text class="contact-phone">{{ form.contactPhone }}</text></view><text class="contact-address">{{ receiverSummary }}</text></view><view v-else class="contact-block"><text class="contact-name">添加收货信息</text></view><view class="address-action"><text>{{ addressEditing ? '收起' : hasAddress ? '修改' : '填写' }}</text><AppIcon name="chevron-right" :size="18" /></view></button>
     <view v-show="addressEditing" class="fields">
@@ -27,7 +27,7 @@
   <ShareOverlayPortal :visible="areaVisible"><AreaCascadePickerPanel v-model:visible="areaVisible" v-model="region" :load-children="loadRegionChildren" @confirm="regionConfirmed" /></ShareOverlayPortal>
   <ShareOverlayPortal :visible="carrierVisible"><ExpressCompanyPicker v-model:visible="carrierVisible" v-model="carrier" :options="state.carriers" :show-hint="false" @confirm="edited" /></ShareOverlayPortal>
 </template><script setup>
-import { computed, nextTick, onBeforeUnmount, reactive, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import AreaCascadePicker from '@/subPackages/auth/components/AreaCascadePicker/AreaCascadePicker.vue'
 import AreaCascadePickerPanel from '@/subPackages/auth/components/AreaCascadePicker/AreaCascadePickerPanel.vue'
 import ExpressCompanyPicker from '@/subPackages/commerce/components/ExpressCompanyPicker/ExpressCompanyPicker.vue'
@@ -41,7 +41,9 @@ import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import { readReceiverDraft, saveReceiverDraft, clearReceiverDraft, receiverError } from '../model/shareReceiverDraft.js'
 import { t } from '@/shared/i18n/index.js'
 const props = defineProps({ state: { type: Object, required: true }, loadAreas: { type: Function, required: true }, items: { type:Array, default:()=>[] }, requestPreview:{type:Function,default:null} })
-const wechatBrowser=computed(()=>typeof window==='undefined'||/MicroMessenger/i.test(window.navigator?.userAgent||''))
+/** 短时操作反馈统一Toast，后端错误码仍由既有词条展示。 */
+function toast(message){if(typeof uni!=='undefined'&&uni.showToast)uni.showToast({title:message,icon:'none',duration:2200})}
+watch(()=>props.state.error,error=>{if(error)toast(t('share.checkout.errors.'+error))},{immediate:true})
 const addressEditing=ref(true)
 const collapsedCheckoutGroupKeys=ref({})
 const checkoutItems=computed(()=>props.state.preview?.items || props.items)
@@ -72,12 +74,12 @@ async function refreshAmount(){clearTimeout(refreshTimer);if(!alive||props.state
 /** 保存只收起有效地址；用户无需手动核价。 */
 function saveAddress(){validationError.value=receiverError(form);invalid.value=!!validationError.value;if(invalid.value)return;persistAddress();addressEditing.value=false}
 /** 一个付款入口完成必要预览和建单，失败不进入下一步，未知提交沿用原票据。 */
-async function pay(){if(!wechatBrowser.value){validationError.value='请在微信中打开后付款';invalid.value=true;return false}if(paying.value)return false;if(props.state.locked){if(!props.state.busy)emit('create');return false}if(!hasAddress.value||!carrier.value){validationError.value=receiverError(form)||'请选择承运商';invalid.value=true;addressEditing.value=!hasAddress.value;if(hasAddress.value)carrierVisible.value=true;return false}paying.value=true;try{clearTimeout(refreshTimer);const stamp=revision;if(pendingRefresh)await pendingRefresh;if(!alive||stamp!==revision)return false;if(!props.state.preview&&!await refreshAmount())return false;await nextTick();if(!alive||stamp!==revision||!props.state.preview||props.state.busy)return false;emit('create');return true}finally{paying.value=false}}
+async function pay(){if(paying.value)return false;if(props.state.locked){if(!props.state.busy)emit('create');return false}if(!hasAddress.value||!carrier.value){validationError.value=receiverError(form)||'请选择承运商';invalid.value=true;toast(validationError.value);addressEditing.value=!hasAddress.value;if(hasAddress.value)carrierVisible.value=true;return false}paying.value=true;try{clearTimeout(refreshTimer);const stamp=revision;if(pendingRefresh)await pendingRefresh;if(!alive||stamp!==revision)return false;if(!props.state.preview&&!await refreshAmount())return false;await nextTick();if(!alive||stamp!==revision||!props.state.preview||props.state.busy)return false;emit('create');return true}finally{paying.value=false}}
 /** 兼容旧调用方的表单入口，同样走自动更新流程。 */
 function review(){return pay()}
 defineExpose({pay,review})
 /** 仅保存白名单收件字段，存储失败不影响下单但明确显示失败。 */
-function persistAddress(){draftSaved.value=saveReceiverDraft(form,region.value);if(!draftSaved.value){invalid.value=true;validationError.value='地址保存失败，请重试'}}
+function persistAddress(){draftSaved.value=saveReceiverDraft(form,region.value);if(!draftSaved.value)toast('地址保存失败，请重试')}
 /** 主动清除本机草稿及当前输入，废弃旧报价。 */
 function clearAddress(){if(props.state.locked)return;clearTimeout(saveTimer);clearTimeout(refreshTimer);clearReceiverDraft();for(const key of Object.keys(form))form[key]='';region.value={provinceCode:'',province:'',cityCode:'',city:'',districtCode:'',district:''};draftSaved.value=false;invalid.value=false;validationError.value='';revision++;emit('changed')}
 const savedReceiver=readReceiverDraft();if(savedReceiver){Object.assign(form,savedReceiver.address);region.value=savedReceiver.region;draftSaved.value=true;addressEditing.value=!hasAddress.value}

@@ -81,6 +81,7 @@
     "actionFailed": "Action failed. Try again.",
     "invalidResponse": "Sharing data is invalid. Please contact your administrator.",
     "pullToRetry": "Unable to load. Pull down to retry.",
+    "accountInvalid": "Please sign in again before creating a share link",
     "permissionHint": "Ask your main account to enable sharing records access.",
     "empty": "No sharing records",
     "untitled": "Retail sharing",
@@ -152,9 +153,10 @@
       "retry": "Unable to load. Please try again shortly.",
       "limited": "Too many requests. Please try again shortly.",
       "quantity": "Use quantities 1–9999, with up to 100 specifications.",
-      "closed": "This sharing link is no longer valid. Its cart is closed.",
-      "session": "Your access session has expired. Scan the sharing link again.",
-      "surface": "Open this link in the sharing H5 site."
+      "closed": "This sharing link has expired or was revoked. Contact the person who shared it.",
+      "session": "This visit has ended. Open the sharing link again.",
+      "surface": "Open this link in the sharing H5 site.",
+      "cancel": "The order status has changed. Refresh the order before cancelling."
     },
     "priceFrom": "From ¥{price}"
   },

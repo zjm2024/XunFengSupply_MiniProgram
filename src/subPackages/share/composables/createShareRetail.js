@@ -1,6 +1,6 @@
 import { createSharePayment } from './createSharePayment.js'
 import { createShareCheckout } from './createShareCheckout.js'
-import { prepareShareOrder, createShareOrder, getCurrentShareOrder } from '../api/shareOrderApi.js'
+import { prepareShareOrder, createShareOrder, getCurrentShareOrder, cancelCurrentShareOrder } from '../api/shareOrderApi.js'
 import { getShareCheckoutAreas, getShareCheckoutCarriers, previewShareCheckout } from '../api/shareCheckoutApi.js'
 import { exchangeShareAccess, resolveShareAccess } from '../api/shareAccessApi.js'
 import { getShareCatalogCategories, getShareCatalogList, getShareCatalogDetail, quoteShareCatalogSelection } from '../api/shareCatalogApi.js'
@@ -8,11 +8,11 @@ import { createShareLocalCart } from '../model/shareLocalCart.js'
 const CODE = /^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$/
 const DRAFT = /^[a-f0-9]{32}$/
 /** 单页访客编排；所有凭据只在实例闭包，状态不包含原码/CSRF、经销商身份或收件信息。 */
-export function createShareRetail({ landing, enabled, queryOnly = false, checkoutEnabled = true, onChange, api = { exchangeShareAccess, resolveShareAccess, getShareCatalogCategories, getShareCatalogList, getShareCatalogDetail, quoteShareCatalogSelection, getShareCheckoutAreas, getShareCheckoutCarriers, previewShareCheckout, prepareShareOrder, createShareOrder, getCurrentShareOrder }, cartFactory = createShareLocalCart, schedule = setTimeout, cancel = clearTimeout }) {
+export function createShareRetail({ landing, enabled, queryOnly = false, checkoutEnabled = true, onChange, api = { exchangeShareAccess, resolveShareAccess, getShareCatalogCategories, getShareCatalogList, getShareCatalogDetail, quoteShareCatalogSelection, getShareCheckoutAreas, getShareCheckoutCarriers, previewShareCheckout, prepareShareOrder, createShareOrder, getCurrentShareOrder, cancelCurrentShareOrder }, cartFactory = createShareLocalCart, schedule = setTimeout, cancel = clearTimeout }) {
   let access = null, original = null, locator = null, cart = null, unsubscribe = null, timer = null
   let draftIdentity = null, opening = null
   let generation = 0, active = true, expired = false, entryKey = '', disposed = false
-  const state = { phase: 'loading', view: 'catalog', busy: false, error: '', categories: [], products: [], total: 0, page: 1,
+  const state = { phase: 'loading', view: 'entry', busy: false, error: '', categories: [], products: [], total: 0, page: 1,
     query: { keyword: '', categoryId: null }, detail: null, cart: null, quotes: [], order: null, isOwner: false }
   const paymentModel = createSharePayment({getAccess:()=>active&&!expired?access:null,schedule,cancel,onPaid:()=>resume(),onChange:value=>{state.payment=value;emit()}})
   const checkoutModel = createShareCheckout({ getAccess: () => active && !expired ? access : null, getDraft: () => cart?.getSnapshot(),
@@ -36,8 +36,8 @@ export function createShareRetail({ landing, enabled, queryOnly = false, checkou
     const status = error?.httpStatus
     if ([401, 403, 410].includes(status)) {
       releaseCart(status === 410); access = null; state.cart = null
-      state.phase = 'unavailable'; state.error = status === 410 ? 'closed' : 'session'
-    } else { state.error = status === 429 ? 'limited' : 'retry'; if (!access) state.phase = 'unavailable' }
+      state.phase = 'unavailable'; state.view = 'entry'; state.error = status === 410 ? 'closed' : 'session'
+    } else { state.error = status === 429 ? 'limited' : 'retry'; state.phase = 'unavailable'; state.view = 'entry' }
     emit()
   }
   /** 不自动重试写入/换访问键；调用者通过明确按钮重试原始交换。 */
@@ -49,20 +49,33 @@ export function createShareRetail({ landing, enabled, queryOnly = false, checkou
   }
   /** 建立或恢复当前访客，同一文档并发恢复共用一个请求，隐藏后允许新一轮。 */
   async function openCore(query) {
-    if (disposed || !enabled) { state.phase = 'unavailable'; state.error = 'surface'; emit(); return false }
-    const version = ++generation; active = true; state.busy = true; state.error = ''; clearVisible(); state.busy = true; state.phase = 'loading'; emit()
+    if (disposed || !enabled) { state.phase = 'unavailable'; state.view = 'entry'; state.error = 'surface'; emit(); return false }
+    const version = ++generation; active = true; state.busy = true; state.error = ''; clearVisible(); state.busy = true; state.phase = 'loading'; state.view = 'entry'; emit()
     if (!locator && !original) {
       if (/^[1-9]\d{0,18}$/.test(String(query?.categoryId || ''))) state.query = { keyword: '', categoryId: String(query.categoryId) }
       if (typeof query?.entry === 'string' && DRAFT.test(query.entry)) { entryKey = query.entry; original = landing?.take(entryKey) }
       else if (CODE.test(query?.contextId || '') && DRAFT.test(query?.draftId || '')) locator = { contextId: query.contextId, draftId: query.draftId }
     }
     try {
-      const result = original ? await api.exchangeShareAccess(original) : locator ? await api.resolveShareAccess(locator) : null
+      let result = null
+      if (original) {
+        const ownerLocator = await landing?.restore?.(original.token)
+        if (!current(version)) return false
+        if (ownerLocator && api.resolveShareAccess) {
+          try { result = await api.resolveShareAccess(ownerLocator); locator = ownerLocator }
+          catch (error) {
+            if (![401, 403].includes(error?.httpStatus)) throw error
+            result = null
+          }
+        }
+        if (!result) result = await api.exchangeShareAccess(original)
+      } else if (locator) result = await api.resolveShareAccess(locator)
       if (!current(version)) return false
       if (!result) throw Object.assign(new Error('Invalid sharing entry'), { httpStatus: 401 })
       if (original) {
-        locator = { contextId: result.contextId, draftId: original.draftId }
+        locator = { contextId: result.contextId, draftId: locator?.draftId || original.draftId }
         if (!landing?.accepted(entryKey, locator.contextId, locator.draftId)) throw Object.assign(new Error('Entry replaced'), { httpStatus: 401 })
+        await landing?.remember?.(original.token, locator, result.state.expiresAtUtc)
         original = null
       }
       access = { contextId: result.contextId, csrfToken: result.csrfToken }
@@ -72,7 +85,7 @@ export function createShareRetail({ landing, enabled, queryOnly = false, checkou
       if (result.state.mode === 2) {
         const detail = result.state.isOwner && api.getCurrentShareOrder ? await api.getCurrentShareOrder(access) : null
         if (!current(version)) return false
-        state.phase = 'bound'; state.view = 'order'; state.cart = null; state.order = detail; state.busy = false
+        state.phase = 'bound'; state.view = detail ? 'order' : 'entry'; state.cart = null; state.order = detail; state.busy = false
         armExpiry(Math.max(0, Date.parse(result.state.sessionExpiresAtUtc) - Date.parse(result.state.serverNowUtc)), version)
         emit(); await paymentModel.resume(); return true
       }
@@ -94,7 +107,7 @@ export function createShareRetail({ landing, enabled, queryOnly = false, checkou
     timer = schedule(() => {
       if (!current(version)) return
       if (remaining > chunk) { armExpiry(remaining - chunk, version); return }
-      expired = true; hide(); state.phase = 'unavailable'; state.error = 'session'; emit()
+      expired = true; hide(); state.phase = 'unavailable'; state.view = 'entry'; state.error = 'session'; emit()
     }, chunk)
   }
   /** 每次进入或语言切换重新读取当前分类与报价，不信任本地价格。 */
@@ -183,5 +196,12 @@ export function createShareRetail({ landing, enabled, queryOnly = false, checkou
   emit()
   /** 正式提交入口只复用独立结算编排，不调用采购或支付。 */
   function checkoutSubmit() { return checkoutModel.submit() }
-  return { pay:()=>paymentModel.start(), paymentQuery:()=>paymentModel.query(), checkoutSubmit, preview, location, open, resume, catalog, detail, add, basket, checkout, checkoutChanged, checkoutAreas, checkoutPreview, edit, remove, back, hide, dispose }
+  /** 取消未知时保留当前订单，重试仍作用于原订单，不发送采购取消。 */
+  async function cancelOrder() {
+    if(!active||!access||!state.isOwner||state.busy)return false
+    const version=generation;state.busy=true;state.error='';emit()
+    try { await (api.cancelCurrentShareOrder || cancelCurrentShareOrder)(access);if(!current(version))return false;return await resume() }
+    catch(error){if(current(version)){state.busy=false;state.error=[401,403].includes(error?.httpStatus)?'session':error?.httpStatus>=400&&error?.httpStatus<500?'cancel':'retry';emit()}return false}
+  }
+  return { cancelOrder, pay:()=>paymentModel.start(), paymentQuery:()=>paymentModel.query(), checkoutSubmit, preview, location, open, resume, catalog, detail, add, basket, checkout, checkoutChanged, checkoutAreas, checkoutPreview, edit, remove, back, hide, dispose }
 }

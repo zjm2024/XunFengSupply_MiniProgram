@@ -1,5 +1,5 @@
 <template>
-  <AppPageShell>
+  <AppPageShell class="share-issuer-page" :class="{ 'share-overlay-open': !!state.qr }">
     <template #header><AppHeader :title="t('share.dealer.title')" :show-back="true" /></template>
     <template #content>
       <AppContent padding="16px var(--page-padding-x, 16px) 28px" :refresher-enabled="true" :refresher-triggered="isRefreshing" @refresherrefresh="handleRefresh" @refresherrestore="handleRefresherRestore" @refresherabort="handleRefresherRestore">
@@ -71,7 +71,8 @@ async function copyPublicLink() { await controller.publicStock(); if (!state.act
 /** 二维码失败只清当前页数据，不保存无效图。 */
 function invalidQr() { state.qr = null; state.actionFailed = true }
 </script>
-<style scoped>
+<style scoped lang="scss">
+@import "../../styles/dealerSharingScroll.scss";
 .share-center{--glass-card-shadow:none}
 .share-center{display:flex;flex-direction:column;gap:16px;width:100%;max-width:1120px;margin:0 auto}.share-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;text-align:center}.stat-value,.stat-label{display:block}.stat-value{color:var(--text-primary);font-size: var(--type-heading-size, 24px);font-weight: var(--font-weight-bold, 700);line-height: 32px;font-variant-numeric:tabular-nums}.stat-label{margin-top:4px;color:var(--text-secondary);font-size:var(--font-size-caption,12px);line-height: 20px}.share-entry-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}.share-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:4px 16px 16px}.share-actions :deep(.app-button){min-width:0;width:100%;padding:0 8px}.retail-body{padding:4px 16px 16px}.quota-line{display:flex;justify-content:space-between;gap:12px;color:var(--text-secondary);font-size:var(--font-size-caption,12px);line-height: 24px}.quota-used{color:var(--text-primary);font-size: var(--type-card-title-size, 16px);font-weight: var(--font-weight-semibold, 600)}.quota-track{height:4px;overflow:hidden;margin:8px 0 16px;border-radius: 4px;background:var(--divider-color)}.quota-track>view{height:100%;background:var(--primary-color)}@media(min-width:600px){.share-entry-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>

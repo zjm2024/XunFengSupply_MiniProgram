@@ -1,15 +1,30 @@
 <template>
   <AppPageShell>
     <template #header>
+      <template v-if="state.phase === 'catalog' && state.view === 'catalog'">
       <view v-if="!isSearchPage && state.view === 'catalog'"><AppStatusBarSpacer /><HomeTopBar active-tab="category" @search="openSearchPage()" /></view>
       <AppCatalogHeader v-else-if="state.view === 'catalog'" v-model:keyword="keyword" :search-entry="!isSearchPage" @search-entry="openSearchPage()" :keyword-committed="browseMode === 'results' && !!state.query.keyword" :auto-focus="isSearchPage && browseMode === 'search'" :show-tools="isSearchPage && browseMode === 'results'" :show-result-count="true" :total="state.total" :show-sort="false" :filter-count="Number(!!state.query.categoryId)+Number(!!state.query.hasImage)" @filter="filterVisible=true" :show-cart="isSearchPage" :cart-count="itemCount" :placeholder="t('share.retail.search')" @edit-keyword="browseMode = 'search'" @search="search" @clear-keyword="clearSearch" @back="leave" @cart="controller.basket()" />
-      <AppHeader v-else show-back custom-back :title="state.view === 'cart' ? '购物车' : state.view === 'checkout' ? '确认订单' : state.view === 'order' ? '订单详情' : '商品详情'" :show-cart="false" :cart-count="itemCount" :show-language="false" @back="leave" @cart="controller.basket()" />
+      </template>
+      <AppHeader v-else-if="(state.phase === 'bound' && !!state.order) || (state.phase === 'catalog' && ['cart','checkout','detail'].includes(state.view))" show-back custom-back :title="state.view === 'cart' ? '购物车' : state.view === 'checkout' ? '确认订单' : state.view === 'order' ? '订单详情' : '商品详情'" :show-cart="false" :cart-count="itemCount" :show-language="false" @back="leave" @cart="controller.basket()" />
     </template>
     <template #content>
-      <ShareCatalogBrowser v-if="['catalog','loading'].includes(state.phase) && state.view === 'catalog'" :mode="browseMode" :categories="state.categories" :products="state.products" :total="state.total" :category-id="state.query.categoryId" :keyword="state.query.keyword" :has-image="!!state.query.hasImage" :loading="state.busy" :refreshing="refreshing" :has-more="state.products.length < state.total" :failed="!!state.error" show-price :load-products="loadPreviews" @product="controller.detail" @more="more" @refresh="refresh" @search="suggestedSearch" @results="openSearchPage($event)" />
+      <view v-if="state.phase === 'loading' || state.phase === 'unavailable'" class="share-entry-state">
+        <image class="share-entry-logo" src="/static/images/logo-v.png" mode="aspectFit" />
+        <text v-if="state.phase === 'loading'" class="share-entry-title">正在打开</text>
+        <template v-else>
+          <text class="share-entry-title">{{ state.error ? t('share.retail.errors.' + state.error) : t('share.retail.unavailable') }}</text>
+          <text v-if="state.error === 'closed'" class="share-entry-description">请联系分享人获取新链接</text>
+          <AppButton v-if="state.error === 'retry'" variant="secondary" @tap="controller.resume()">重试</AppButton>
+        </template>
+      </view>
+      <view v-else-if="state.phase === 'bound' && !state.order" class="share-entry-state">
+        <text class="share-entry-title">该链接已生成订单，请在原下单设备查看</text>
+        
+      </view>
+      <ShareCatalogBrowser v-else-if="state.phase === 'catalog' && state.view === 'catalog'" :mode="browseMode" :categories="state.categories" :products="state.products" :total="state.total" :category-id="state.query.categoryId" :keyword="state.query.keyword" :has-image="!!state.query.hasImage" :loading="state.busy" :refreshing="refreshing" :has-more="state.products.length < state.total" :failed="!!state.error" show-price :load-products="loadPreviews" @product="controller.detail" @more="more" @refresh="refresh" @search="suggestedSearch" @results="openSearchPage($event)" />
       <AppContent v-else :padding="['cart','checkout'].includes(state.view) ? '16px var(--page-padding-x,16px) 24px' : '0'" no-max-width :refresher-enabled="state.view !== 'checkout'" :refresher-triggered="refreshing" @refresherrefresh="refresh" @scrolltolower="more">
         <AppPageState :state="pageStatus" :title="state.error ? t('share.retail.errors.' + state.error) : t('share.retail.unavailable')" :action-text="['retry','limited'].includes(state.error) ? t('share.retail.retry') : ''" @retry="controller.resume()">
-          <ShareOrderDetail v-if="state.phase === 'bound' && state.order" :detail="state.order" :busy="state.busy" :payment="state.payment" @pay="controller.pay()" @query="controller.paymentQuery()" @refresh="controller.resume()" />
+          <ShareOrderDetail v-if="state.phase === 'bound' && state.order" :detail="state.order" :busy="state.busy" :payment="state.payment" @pay="controller.pay()" @query="controller.paymentQuery()" @refresh="controller.resume()" @cancel="controller.cancelOrder()" />
           <view v-else-if="state.phase === 'bound'" class="share-cart"><AppPageState state="empty" title="该分享已生成订单" description="仅原下单浏览器可查看订单详情" /></view>
           <ShareCheckoutForm ref="checkoutForm" v-else-if="state.view === 'checkout'" :state="state.checkout" :load-areas="controller.checkoutAreas" :items="checkoutItems" :request-preview="controller.checkoutPreview" @preview="controller.checkoutPreview" @create="controller.checkoutSubmit" @changed="controller.checkoutChanged" @back="controller.back()" />
           <ShareProductDetail v-else-if="state.view === 'detail' && state.detail" :product="state.detail.product" :skus="state.detail.skus.items" :total="state.detail.skus.totalCount" :loading="state.busy" :has-more="state.detail.skus.items.length < state.detail.skus.totalCount" :description="state.detail.description" :size-recommendation="state.detail.sizeRecommendation" :unit="state.detail.unit" show-price purchasable :selected-sku-id="initialSkuId" :category-name="detailCategoryName" @select="chooseSku" @more="more" @preview="previewImages" />
@@ -78,7 +93,7 @@ const viewerVisible = ref(false), viewerImages = ref([]), viewerIndex = ref(0)
 /** 图片预览复用经销商查看器，在页面覆盖层承载。 */
 function previewImages(value) { viewerImages.value = value.images; viewerIndex.value = value.index; viewerVisible.value = true }
 const checkoutForm=ref(null)
-const state = shallowRef({ phase: 'loading', view: 'catalog', query: {}, products: [], categories: [], quotes: [] })
+const state = shallowRef({ phase: 'loading', view: 'entry', query: {}, products: [], categories: [], quotes: [] })
 const isSearchPage = ref(false), sheetVisible = ref(false), initialSkuId = ref(null)
 const refreshing = ref(false), browseMode = ref('categories')
 const keyword = ref(''), filterVisible=ref(false)
@@ -173,6 +188,8 @@ onUnload(() => {
 })
 </script>
 <style scoped>
+.share-entry-logo{width:96px;height:64px}
+.share-entry-state{min-height:min(60vh,520px);padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;box-sizing:border-box}.share-entry-title{font-size:16px;font-weight:600;color:var(--text-primary,#20242b)}.share-entry-description{font-size:13px;color:var(--text-secondary,#737a84)}
 .floating-cart{position:absolute;right:20px;bottom:calc(24px + env(safe-area-inset-bottom));z-index:1;pointer-events:auto}.floating-cart.above-footer{bottom:calc(96px + env(safe-area-inset-bottom))}
 .share-cart{max-width:960px;margin:auto;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px}.cart-item{margin-bottom:12px;box-sizing:border-box}.cart-row{display:flex;align-items:center;gap:12px}.cart-image{width:86px;height:86px;flex:0 0 86px}.cart-copy{flex:1;min-width:0}.cart-name{display:block;font-size: var(--type-label-size, 15px);font-weight: var(--font-weight-semibold, 600);line-height:1.5}.cart-spec{display:block;margin:6px 0;font-size: var(--type-caption-size, 12px);color:var(--text-secondary,#737a84)}.cart-price{font-size: var(--type-section-title-size, 18px);color:var(--primary-color,#d7192d)}.cart-controls{display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:12px}.check-button{display:flex;padding:6px;background:transparent;margin:0;flex:0 0 30px;justify-content:center}.check-button::after{display:none}.check{display:flex;width:20px;height:20px;border-radius:50%;border:1px solid var(--border-color,#d9dce2);align-items:center;justify-content:center;font-size: var(--type-caption-size, 12px)}.check.checked{color:white;border-color:var(--primary-color,#d7192d);background:var(--primary-color,#d7192d)}.add-button{flex:1}.cart-selection{flex:1;text-align:right;font-size: var(--type-body-size, 14px);color:var(--text-secondary,#737a84)}
 </style>

@@ -14,7 +14,7 @@ export function useDealerSharePage(options = {}) {
   const { state } = controller
   const capabilitiesErrorMessage = computed(() => dealerShareErrorMessage(state.capabilitiesError))
   const historyErrorMessage = computed(() => dealerShareErrorMessage(state.historyError))
-  const actionErrorMessage = computed(() => dealerShareErrorMessage(state.actionError))
+  const actionErrorMessage = computed(() => dealerShareErrorMessage(state.actionError, 'share.dealer.actionFailed'))
   /** 下拉刷新沿用项目动画，操作中不伪造刷新成功。 */
   async function handleRefresh() {
     if (isRefreshing.value || state.busy || state.loading) return

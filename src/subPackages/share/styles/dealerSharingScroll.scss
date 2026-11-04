@@ -1,0 +1,38 @@
+/* #ifdef H5 */
+/* 发行分享页仅由内容scroll-view滚动，底栏和标题不参与滚动高度。 */
+.share-issuer-page {
+  min-width: 0;
+  min-height: 0;
+  overscroll-behavior: none;
+}
+.share-issuer-page :deep(.content-inner) {
+  min-height: 0;
+  min-width: 0;
+}
+.share-issuer-page :deep(.content-scroll) {
+  flex: 1 1 0;
+  height: 0;
+  min-height: 0;
+  min-width: 0;
+}
+.share-issuer-page :deep(.content-scroll .uni-scroll-view) {
+  overflow-x: hidden !important;
+  overscroll-behavior-y: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.share-issuer-page :deep(.status-tab-bar .uni-scroll-view) {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.share-issuer-page :deep(.content-scroll .uni-scroll-view::-webkit-scrollbar),
+.share-issuer-page :deep(.status-tab-bar .uni-scroll-view::-webkit-scrollbar) {
+  display: none;
+  width: 0;
+  height: 0;
+}
+/* 二维码弹框在body根层，弹框内滚动不传递给列表背景。 */
+.share-issuer-page.share-overlay-open :deep(.content-scroll .uni-scroll-view) {
+  overflow-y: hidden !important;
+}
+/* #endif */

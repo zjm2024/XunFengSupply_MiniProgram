@@ -122,8 +122,17 @@ export const useUserStore = defineStore('user', {
       if (this.tokenExpiresIn) storage.set('tokenExpiresIn', this.tokenExpiresIn)
 
       if (!info || typeof info !== 'object') return
-      this.userId = info.customerId ?? info.adminUserId ?? this.userId
-      this.dealerId = info.dealerId ?? this.dealerId ?? this.userId
+      const accountId = info.customerId ?? info.adminUserId ?? this.userId
+      const accountChanged = String(accountId) !== String(this.userId)
+      this.userId = accountId
+      // 只有明确的主账号可用自身ID作为主体，子账号等待服务端主体上下文。
+      if (info.dealerId !== undefined && info.dealerId !== null && info.dealerId !== '') {
+        this.dealerId = info.dealerId
+      } else if (info.isMaster === true) {
+        this.dealerId = this.userId
+      } else if (accountChanged) {
+        this.dealerId = ''
+      }
       this.username = info.username ?? this.username
       this.realName = info.realName ?? this.realName
       this.nickname = info.nickname ?? this.nickname

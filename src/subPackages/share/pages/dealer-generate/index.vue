@@ -1,5 +1,5 @@
 <template>
-  <AppPageShell>
+  <AppPageShell class="share-issuer-page">
     <template #header><AppHeader :title="t('share.dealer.generateTitle')" :show-back="true" /></template>
     <template #content>
       <AppContent padding="16px var(--page-padding-x, 16px) 28px" :refresher-enabled="true" :refresher-triggered="isRefreshing" @refresherrefresh="handleRefresh" @refresherrestore="handleRefresherRestore" @refresherabort="handleRefresherRestore">
@@ -50,7 +50,8 @@ function openRecords() { navigator.navigateTo(routes.share.records()) }
 /** 编码失败清除敏感内容，保留服务端实际创建事实。 */
 function invalidQr() { state.qr = null; state.actionFailed = true }
 </script>
-<style scoped>
+<style scoped lang="scss">
+@import "../../styles/dealerSharingScroll.scss";
 .generate-page{--glass-card-shadow:none}
 .generate-page{display:flex;flex-direction:column;gap:16px;width:100%;max-width:720px;margin:0 auto}.quota-summary{display:flex;align-items:center;justify-content:space-between;gap:16px;color:var(--text-primary);font-size:var(--font-size-body,14px);line-height: 28px}.quota-value{font-size: var(--type-heading-size, 24px);font-weight: var(--font-weight-bold, 700);font-variant-numeric:tabular-nums}.quota-total{font-size: var(--type-body-size, 14px);font-weight: var(--font-weight-regular, 400);color:var(--text-secondary)}.remaining{display:block;margin-top:4px;color:var(--text-secondary);font-size:var(--font-size-caption,12px);line-height: 20px}.title-field{padding:16px}.field-heading,.field-meta{display:flex;justify-content:space-between;gap:12px}.field-heading{margin-bottom:12px;color:var(--text-primary);font-size:var(--font-size-body,14px);line-height: 24px}.field-optional,.field-meta{color:var(--text-tertiary);font-size:var(--font-size-caption,12px);line-height: 20px}.title-input{box-sizing:border-box;width:100%;height:48px;padding:0 12px;border:1px solid var(--border-color);border-radius:var(--radius-control,10px);background:var(--surface-subtle);color:var(--text-primary);font-size:var(--font-size-body,14px)}.field-meta{margin-top:8px}
 </style>

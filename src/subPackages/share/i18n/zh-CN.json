@@ -81,6 +81,7 @@
     "actionFailed": "操作失败，请重试",
     "invalidResponse": "分享数据返回异常，请联系管理员",
     "pullToRetry": "暂时无法读取，请下拉重试",
+    "accountInvalid": "登录信息不完整，请重新登录后生成",
     "permissionHint": "请联系主账号开通分享记录权限",
     "empty": "暂无分享记录",
     "untitled": "零售分享",
@@ -149,12 +150,13 @@
     "emptyCart": "购物车还是空的",
     "memoryOnly": "当前浏览器无法保存购物车，关闭页面后选购内容可能丢失。",
     "errors": {
-      "retry": "暂时无法读取，请稍后重试。",
+      "retry": "暂时无法连接",
       "limited": "请求较频繁，请稍后重试。",
       "quantity": "数量须为1—9999整数，最多100个规格。",
-      "closed": "此分享已失效，购物车已停止使用。",
-      "session": "访问会话已失效，请重新扫描分享链接。",
-      "surface": "请在分享H5入口打开此链接。"
+      "closed": "链接已失效",
+      "session": "访问已结束，请重新打开分享链接。",
+      "surface": "请在分享H5入口打开此链接。",
+      "cancel": "订单状态已变化，暂时无法取消，请刷新订单查看。"
     },
     "priceFrom": "¥{price} 起"
   },

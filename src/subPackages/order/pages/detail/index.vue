@@ -37,7 +37,7 @@
           </view>
 
           <!-- 收货地址 -->
-          <view v-if="detail.orderSource !== 'ERP_MANUAL' && !detail.fulfillmentSplits?.length" class="address-card">
+          <view v-if="detail.salesScene !== 1 && detail.orderSource !== 'ERP_MANUAL' && !detail.fulfillmentSplits?.length" class="address-card">
             <view class="address-icon-wrap">
               <AppIcon name="address" :size="20" color="#C41E3A" />
             </view>
@@ -445,7 +445,7 @@ const actionButtons = computed(() => {
     priority: 2,
   }
 
-  const actions = [reorderAction, ...getOrderActionButtons(detail.value.allowedActions)]
+  const actions = [...(detail.value.salesScene === 1 ? [] : [reorderAction]), ...getOrderActionButtons(detail.value.allowedActions)]
   const priority = { reorder: 0, pay: 1, cancel: 2, confirmReceipt: 3, viewLogistics: 4 }
   return actions.sort((left, right) => (priority[left.key] ?? 99) - (priority[right.key] ?? 99))
 })

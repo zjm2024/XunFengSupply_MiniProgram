@@ -52,6 +52,9 @@ class Storage {
       const value = uni.getStorageSync(STORAGE_PREFIX + key)
       if (value === '') return defaultValue
 
+      // 身份字段使用精确十进制字符串，避免缓存恢复将Int64舍入为Number。
+      if ((key === 'userId' || key === 'dealerId') && typeof value === 'string' && /^\d+$/.test(value)) return value
+
       // 尝试JSON解析
       try {
         return JSON.parse(value)

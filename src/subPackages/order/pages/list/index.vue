@@ -75,6 +75,7 @@
                 <view class="order-identify">
                   <view class="order-no-line">
                     <text class="order-no"><text class="order-no-label">{{ t('order.list.orderNo') }}</text>{{ order.orderNo }}</text>
+                    <text v-if="order.salesScene === 1" class="manual-order-tag">散客订单</text>
                     <text v-if="order.orderSource === 'ERP_MANUAL'" class="manual-order-tag">线下订单</text>
                     <text v-if="order.splitOrderCount > 1" class="split-order-tag">
                       {{ order.parentOrderId ? t('order.list.splitChild') : t('order.list.splitSummary', { count: order.splitOrderCount }) }}
@@ -374,7 +375,7 @@ function formatMoney(value) {
 /** 订单列表只展示服务端允许的动作，并把本地再来一单置于首屏。 */
 function getOrderActions(order) {
   const actions = getOrderActionButtons(order?.allowedActions)
-  if (Number(order?.itemCount || 0) > 0) {
+  if (order?.salesScene !== 1 && Number(order?.itemCount || 0) > 0) {
     actions.push({
       key: 'reorder',
       label: reorderingOrderId.value === order.orderId ? t('order.list.reordering') : t('order.list.reorder'),

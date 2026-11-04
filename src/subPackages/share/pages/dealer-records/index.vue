@@ -1,8 +1,8 @@
 <template>
-  <AppPageShell>
+  <AppPageShell class="share-issuer-page" :class="{ 'share-overlay-open': !!state.qr }">
     <template #header><AppHeader :title="t('share.dealer.recordsTitle')" :show-back="true" /><view class="record-tabs"><StatusTabBar v-model="activeTab" :items="tabs" max-width="100%" /></view></template>
     <template #content>
-      <AppContent padding="16px var(--page-padding-x, 16px) 28px" :refresher-enabled="true" :refresher-triggered="isRefreshing" @refresherrefresh="handleRefresh" @refresherrestore="handleRefresherRestore" @refresherabort="handleRefresherRestore" @scrolltolower="handleLoadMore" @scroll="actionMenu = null">
+      <AppContent padding="10px var(--page-padding-x, 16px) 28px" :refresher-enabled="true" :refresher-triggered="isRefreshing" @refresherrefresh="handleRefresh" @refresherrestore="handleRefresherRestore" @refresherabort="handleRefresherRestore" @scrolltolower="handleLoadMore" @scroll="actionMenu = null">
         <view class="records-page">
           <AppPageState v-if="!user.hasPermission('RETAIL_SHARE_VIEW')" state="empty" :title="t('share.dealer.reasons.NO_PERMISSION')" :description="t('share.dealer.permissionHint')" compact />
           <AppPageState v-else-if="state.loading && !state.records.length" state="loading" compact />
@@ -52,7 +52,8 @@ async function selectAction(key, row) {
 /** 编码失败关闭当前预览，由统一错误反馈承接。 */
 function invalidQr() { state.qr = null; state.actionFailed = true }
 </script>
-<style scoped>
+<style scoped lang="scss">
+@import "../../styles/dealerSharingScroll.scss";
 .records-page{--glass-card-shadow:none}.record-grid{align-items:start}
-.record-tabs{max-width:1120px;margin:0 auto;padding:0 var(--page-padding-x,16px);border-bottom:1px solid var(--divider-color)}.records-page{max-width:1120px;margin:0 auto;width:100%}.record-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}.records-page :deep(.state-empty),.records-page :deep(.state-error){min-height:280px}@media(min-width:840px){.record-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.record-tabs{max-width:1120px;margin:0 auto;padding:0 var(--page-padding-x,16px);padding-bottom:2px}.records-page{max-width:1120px;margin:0 auto;width:100%}.record-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:14px}.records-page :deep(.state-empty),.records-page :deep(.state-error){min-height:280px}@media(min-width:840px){.record-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>

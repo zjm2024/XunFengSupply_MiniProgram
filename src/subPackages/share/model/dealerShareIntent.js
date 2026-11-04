@@ -1,4 +1,5 @@
 import storage from '@/shared/utils/storage.js'
+import { AppError, ErrorKind } from '@/shared/api/appError.js'
 import { shareId } from './dealerShareValues.js'
 /** 创建幂等标识不是访问凭证；浏览器无crypto时也不用于签名或授权。 */
 export function newShareRequestId() {
@@ -7,7 +8,7 @@ export function newShareRequestId() {
 /** 仅持久化所属账号的待确认写请求，不保存URL、Token、价格或收件资料。 */
 export function createShareIntentStore(identity, cache = storage) {
   const dealerId = shareId(identity?.dealerId), userId = shareId(identity?.userId)
-  if (!dealerId || !userId) throw new Error('Invalid sharing account')
+  if (!dealerId || !userId) throw new AppError('', ErrorKind.BUSINESS, { errorCode:'DEALER_SHARE_ACCOUNT_INVALID', messageKey:'share.dealer.accountInvalid', retryable:false })
   const key = 'dealer_share_intent:' + dealerId + ':' + userId
   let memory = null, completedKey = null
   /** 缓存不可信，丢弃额外字段并在24小时后放弃自动恢复。 */

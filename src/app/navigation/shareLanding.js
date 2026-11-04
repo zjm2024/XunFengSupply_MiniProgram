@@ -3,6 +3,7 @@ import { SHARE_RETAIL, routes } from '../config/routes.js'
 const CODE = /^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$/
 const DRAFT = /^[a-f0-9]{32}$/
 const PENDING_PREFIX = 'share.pending.'
+const OWNER_PREFIX = 'share.owner.v1.'
 /** 早于Uni路由取出fragment原码；原码不放URL或日志，待兑换记录仅在标签页暂存60秒。 */
 export function createShareLanding(win, enabled) {
   const pending = new Map(), taken = new Set()
@@ -51,6 +52,33 @@ export function createShareLanding(win, enabled) {
     stored(entry, true)
     replace(routes.share.retail({ contextId, draftId })); return true
   }
+  /** 用公开链接摘要在当前标签页保存无凭据订单定位，避免重开链接时创建新访客。 */
+  async function linkKey(token) {
+    if (!CODE.test(token) || !win.crypto?.subtle || !win.TextEncoder) return ''
+    const digest = await win.crypto.subtle.digest('SHA-256', new win.TextEncoder().encode(token))
+    return OWNER_PREFIX + [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('')
+  }
+  /** 同一浏览器恢复已有公开定位；服务端HttpOnly Cookie仍是订单访问凭据。 */
+  async function restore(token) {
+    const key = await linkKey(token)
+    if (!key) return null
+    try {
+      const value = JSON.parse(win.localStorage?.getItem(key) || 'null')
+      if (!value || !CODE.test(value.contextId) || !DRAFT.test(value.draftId)
+        || !Number.isFinite(value.expiresAt) || value.expiresAt <= Date.now()) {
+        win.localStorage?.removeItem(key)
+        return null
+      }
+      return { contextId: value.contextId, draftId: value.draftId }
+    } catch { return null }
+  }
+  /** 将原访客的公开定位符绑定到浏览器，不存原分享码、CSRF或订单数据。 */
+  async function remember(token, locator, expiresAtUtc) {
+    const key = await linkKey(token)
+    const expiresAt = Math.max(Date.parse(expiresAtUtc), Date.now() + 365 * 86400000)
+    if (!key || !CODE.test(locator?.contextId) || !DRAFT.test(locator?.draftId) || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) return false
+    try { win.localStorage?.setItem(key, JSON.stringify({ ...locator, expiresAt })); return true } catch { return false }
+  }
   /** 已加载文档再次收到扫码fragment时重新启动，避免Uni复用旧页面实例和旧访客。 */
   function hashChanged(event) {
     if (!win.location.hash.startsWith('#/s/')) return
@@ -86,5 +114,5 @@ export function createShareLanding(win, enabled) {
   function dispose() {
     clear(); win.removeEventListener('hashchange', hashChanged, true); win.removeEventListener('pagehide', clear); installed = false
   }
-  return { capture, take, accepted, install, clear, dispose }
+  return { capture, take, accepted, restore, remember, install, clear, dispose }
 }
