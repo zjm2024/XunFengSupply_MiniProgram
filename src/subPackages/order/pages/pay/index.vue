@@ -50,7 +50,7 @@
               :disabled="method.disabled || paying || paymentExpired || !orderPayable"
               @click="selectPaymentMode(method)"
             >
-              <view class="mode-icon"><AppIcon :name="method.icon" :size="23" use-original-color /></view>
+              <view class="mode-icon"><AppIcon :name="method.icon" :size="24" use-original-color /></view>
               <view class="mode-copy">
                 <text>{{ method.label }}</text>
                 <text>{{ method.description }}</text>
@@ -70,7 +70,7 @@
               :disabled="paying || paymentExpired || !orderPayable"
               @click="payType = channel.key"
             >
-              <view class="mode-icon"><AppIcon :name="channel.icon" :size="23" use-original-color /></view>
+              <view class="mode-icon"><AppIcon :name="channel.icon" :size="24" use-original-color /></view>
               <view class="mode-copy">
                 <text>{{ channel.label }}</text>
                 <text>{{ channel.description }}</text>

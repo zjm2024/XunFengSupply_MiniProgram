@@ -121,13 +121,13 @@ function handleConfirm() {
   flex-shrink: 0;
   white-space: nowrap;
   color: #667085;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   text-align: center;
 }
 
 .express-picker__header-action--confirm {
   color: #d91e36;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .express-picker__heading {
@@ -141,13 +141,13 @@ function handleConfirm() {
 
 .express-picker__title {
   color: #111216;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .express-picker__subtitle {
   color: #98a2b3;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .express-picker__list {
@@ -164,7 +164,7 @@ function handleConfirm() {
   margin-bottom: 10px;
   padding: 0 14px;
   border: 1px solid #eaecf0;
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   background: #fff;
   box-sizing: border-box;
 }
@@ -180,7 +180,7 @@ function handleConfirm() {
   height: 34px;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: var(--radius-control, 10px);
   background: #f2f4f7;
 }
 
@@ -199,8 +199,8 @@ function handleConfirm() {
 .express-picker__option-name {
   overflow: hidden;
   color: #111216;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--type-body-size, 14px);
+  font-weight: var(--font-weight-semibold, 600);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -208,7 +208,7 @@ function handleConfirm() {
 .express-picker__option-code {
   overflow: hidden;
   color: #98a2b3;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -232,7 +232,7 @@ function handleConfirm() {
 .express-picker__empty {
   padding: 36px 0;
   color: #98a2b3;
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   text-align: center;
 }
 

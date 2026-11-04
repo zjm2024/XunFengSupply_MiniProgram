@@ -134,14 +134,14 @@ function goBack() {
   }
   
   .frozen-title {
-    font-size: 20px;
-    font-weight: 700;
+    font-size: var(--type-page-title-size, 20px);
+    font-weight: var(--font-weight-bold, 700);
     color: var(--text-primary);
     margin-bottom: 20rpx;
   }
   
   .frozen-reason {
-    font-size: 14px;
+    font-size: var(--type-body-size, 14px);
     color: var(--text-secondary);
     max-width: 600rpx;
     text-align: center;
@@ -161,15 +161,15 @@ function goBack() {
     
     .tips-title {
       display: block;
-      font-size: 13px;
+      font-size: var(--type-card-title-size, 16px);
       color: var(--text-primary);
-      font-weight: 600;
+      font-weight: var(--font-weight-semibold, 600);
       margin-bottom: 16rpx;
     }
     
     .tips-item {
       display: block;
-      font-size: 13px;
+      font-size: var(--type-body-small-size, 13px);
       color: var(--text-secondary);
       line-height: 2;
     }
@@ -193,7 +193,7 @@ function goBack() {
       align-items: center;
       justify-content: center;
       border-radius: 42rpx;
-      font-size: 15px;
+      font-size: var(--type-label-size, 15px);
       border: none;
     }
     

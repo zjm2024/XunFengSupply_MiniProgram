@@ -382,8 +382,8 @@ async function toggleStatus(account) {
 .stats-card,
 .section-card {
   background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: var(--radius-card, 14px);
+  padding: var(--module-padding, 16px);
   margin-bottom: 12px;
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
   -webkit-backdrop-filter: blur(16px);
@@ -392,8 +392,8 @@ async function toggleStatus(account) {
 
 .stats-title,
 .section-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-semibold, 600);
   color: #111216;
   display: block;
   margin-bottom: 12px;
@@ -407,21 +407,21 @@ async function toggleStatus(account) {
 
 .stat-item {
   background: #F7F7F8;
-  border-radius: 8px;
+  border-radius: var(--radius-small, 8px);
   padding: 12px;
   text-align: center;
 }
 
 .stat-value {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: var(--type-heading-size, 24px);
+  font-weight: var(--font-weight-bold, 700);
   color: #D7192D;
   display: block;
   line-height: 1.2;
 }
 
 .stat-label {
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   color: #5E626B;
   display: block;
   margin-top: 4px;
@@ -455,8 +455,8 @@ async function toggleStatus(account) {
 }
 
 .avatar-text {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-semibold, 600);
   color: white;
 }
 
@@ -465,14 +465,14 @@ async function toggleStatus(account) {
 }
 
 .account-name {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--type-label-size, 15px);
+  font-weight: var(--font-weight-semibold, 600);
   color: #111216;
   display: block;
 }
 
 .account-role {
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   color: #5E626B;
   display: block;
   margin-top: 2px;
@@ -496,13 +496,13 @@ async function toggleStatus(account) {
   width: 80px;
   padding-right: 8px;
   box-sizing: border-box;
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   color: #5E626B;
   flex-shrink: 0;
 }
 
 .detail-value {
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   color: #111216;
 }
 
@@ -516,7 +516,7 @@ async function toggleStatus(account) {
   padding: 2px 7px;
   background: #FEF3F4;
   color: #D7192D;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
   border-radius: 4px;
 }
 
@@ -539,7 +539,7 @@ async function toggleStatus(account) {
   background: transparent;
   border: none;
   color: #5E626B;
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
 
   &.warning { color: #F59E0B; }
   &.success { color: #059669; }
@@ -557,7 +557,7 @@ async function toggleStatus(account) {
   display: block;
   margin: 14px 4px 0;
   color: #B76500;
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   line-height: 18px;
 }
 
@@ -574,7 +574,7 @@ async function toggleStatus(account) {
   border: 1px dashed #DEDFE3;
   border-radius: 8px;
   color: #5E626B;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
 
   &:active {
     background: rgba(0, 0, 0, 0.02);
@@ -582,8 +582,8 @@ async function toggleStatus(account) {
 }
 
 .add-icon {
-  font-size: 18px;
-  font-weight: 300;
+  font-size: var(--type-section-title-size, 18px);
+  font-weight: var(--font-weight-regular, 400);
 }
 
 .bottom-spacer {
@@ -596,5 +596,14 @@ async function toggleStatus(account) {
 .balance-values .amount-text { font-size: inherit; }
 
 /* 列表行内操作统一尺寸，底栏/表单主操作不应用此规则。 */
-.action-btn,.empty-action{min-width:var(--list-action-min-width,72px);height:var(--list-action-height,32px);min-height:var(--list-action-height,32px);padding:0 10px;border-radius:var(--list-action-radius,8px);font-size:var(--list-action-font-size,12px);line-height:20px;box-sizing:border-box;}
+.action-btn,.empty-action{min-width:var(--list-action-min-width,72px);height:var(--list-action-height,32px);min-height:var(--list-action-height,32px);padding:0 10px;border-radius:var(--list-action-radius,8px);font-size:var(--list-action-font-size,12px);line-height: 20px;box-sizing:border-box;}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.stats-card, .section-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}
 </style>

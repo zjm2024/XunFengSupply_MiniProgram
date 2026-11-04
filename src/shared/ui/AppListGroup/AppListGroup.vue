@@ -39,7 +39,7 @@ defineProps({
 .section-description {
   color: var(--text-tertiary, #969AA3);
   font-size: var(--font-size-micro, 11px);
-  line-height: 16px;
+  line-height: 18px;
   text-align: right;
 }
 

@@ -111,5 +111,12 @@
     "announcements": "Announcements",
     "announcement": "Announcement",
     "notFound": "This content is unavailable"
+  },
+  "monthPicker": {
+    "title": "Statement month",
+    "year": "{year}",
+    "month": "{month}",
+    "previousYear": "Previous year",
+    "nextYear": "Next year"
   }
 }

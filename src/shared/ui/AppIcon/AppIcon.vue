@@ -138,9 +138,12 @@ const svgMaskImage = computed(() => {
 
   return `url("data:image/svg+xml,${encodeURIComponent(svgMarkup)}")`
 })
+/** 标准图标尺寸使用集中token，自定义尺寸继续按调用值呈现。 */
 const normalizedSize = computed(() => {
   if (typeof props.size === 'number' || /^\d+(\.\d+)?$/.test(String(props.size))) {
-    return `${props.size}px`
+    const size = Number(props.size)
+    const role = { 14: 'xs', 16: 'sm', 18: 'body', 20: 'md', 24: 'lg', 28: 'xl', 40: 'feature', 48: 'state' }[size]
+    return role ? `var(--icon-size-${role}, ${size}px)` : `${size}px`
   }
   return String(props.size)
 })

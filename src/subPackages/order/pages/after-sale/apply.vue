@@ -41,7 +41,7 @@
                     <text class="type-name">{{ t('order.afterSale.returnRefund') }}</text>
                     <text class="section-note">{{ t('order.afterSale.returnRefundDescription') }}</text>
                   </view>
-                  <AppIcon name="check" :size="17" color="#D7192D" />
+                  <AppIcon name="check" :size="18" color="#D7192D" />
                 </view>
               </view>
               <view class="section-card">
@@ -198,32 +198,41 @@ async function handleSubmit() {
 
 <style lang="scss" scoped>
 .apply-after-sale-page { min-width: 0; }
-.order-context { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; padding: 13px 16px; border: 1px solid #F0E1E3; border-radius: 14px; background: #FFF9FA; color: #777D86; font-size: 12px; }
-.order-number { min-width: 0; overflow-wrap: anywhere; color: #30363E; font-weight: 650; text-align: right; }
-.section-card { padding: 16px; margin-bottom: 12px; border-radius: 16px; background: var(--surface-card, #fff); }
+.order-context { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; padding: 13px 16px; border: 1px solid #F0E1E3; border-radius: var(--radius-card, 14px); background: #FFF9FA; color: #777D86; font-size: var(--type-caption-size, 12px); }
+.order-number { min-width: 0; overflow-wrap: anywhere; color: #30363E; font-weight: var(--font-weight-semibold, 600); text-align: right; }
+.section-card { padding: var(--module-padding, 16px); margin-bottom: 12px; border-radius: var(--radius-feature, 18px); background: var(--surface-card, #fff); }
 .section-heading, .selection-summary, .refund-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.section-label { display: block; min-width: 0; font-size: 15px; font-weight: 650; line-height: 1.5; }
-.section-note { display: block; margin-top: 5px; color: var(--text-secondary, #737A84); font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
-.text-button { flex-shrink: 0; margin: 0; padding: 6px 0 6px 8px; background: transparent; color: #D7192D; font-size: 12px; line-height: 1.5; }
+.section-label { display: block; min-width: 0; font-size: var(--type-label-size, 15px); font-weight: var(--font-weight-semibold, 600); line-height: 1.5; }
+.section-note { display: block; margin-top: 5px; color: var(--text-secondary, #737A84); font-size: var(--type-caption-size, 12px); line-height: 1.6; overflow-wrap: anywhere; }
+.text-button { flex-shrink: 0; margin: 0; padding: 6px 0 6px 8px; background: transparent; color: #D7192D; font-size: var(--type-caption-size, 12px); line-height: 1.5; }
 button::after { border: 0; }
-.selection-summary { margin-top: 12px; padding-top: 10px; border-top: 1px solid #EEF0F2; font-size: 12px; color: #737A84; }
+.selection-summary { margin-top: 12px; padding-top: 10px; border-top: 1px solid #EEF0F2; font-size: var(--type-caption-size, 12px); color: #737A84; }
 .goods-row { display: flex; gap: 10px; align-items: flex-start; padding: 16px 0; border-bottom: 1px solid #EEF0F2; }
 .goods-row:last-child { border-bottom: 0; padding-bottom: 0; }
 .check-button { display: flex; flex: 0 0 24px; width: 24px; height: 24px; align-items: center; justify-content: center; margin: 17px 0 0; padding: 0; border: 1px solid #DDE0E4; border-radius: 50%; background: #fff; }
 .check-button.checked { background: #D7192D; border-color: #D7192D; }
-.goods-image { flex: 0 0 64px; width: 64px; height: 64px; border-radius: 10px; overflow: hidden; }
+.goods-image { flex: 0 0 64px; width: 64px; height: 64px; border-radius: var(--radius-control, 10px); overflow: hidden; }
 .goods-info { min-width: 0; flex: 1; }
-.goods-name { display: block; font-size: 14px; font-weight: 600; line-height: 1.5; overflow-wrap: anywhere; }
-.sku-name { display: block; margin-top: 4px; font-size: 12px; color: #737A84; overflow-wrap: anywhere; }
+.goods-name { display: block; font-size: var(--type-body-size, 14px); font-weight: var(--font-weight-semibold, 600); line-height: 1.5; overflow-wrap: anywhere; }
+.sku-name { display: block; margin-top: 4px; font-size: var(--type-caption-size, 12px); color: #737A84; overflow-wrap: anywhere; }
 .goods-info .quantity-stepper { margin-top: 10px; }
-.type-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 12px; border: 1px solid #F0D9DD; border-radius: 12px; background: #FFF8F9; line-height: 1.5; }
+.type-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; padding: 12px; border: 1px solid #F0D9DD; border-radius: var(--radius-card, 14px); background: #FFF8F9; line-height: 1.5; }
 .type-copy { min-width: 0; flex: 1; }
-.type-name { font-size: 14px; font-weight: 600; }
-.reason-input { display: block; width: 100%; min-height: 100px; margin-top: 12px; padding: 12px; box-sizing: border-box; border-radius: 10px; background: #F6F7F9; font-size: 14px; line-height: 1.6; }
-.character-count { display: block; margin-top: 6px; text-align: right; color: #969AA3; font-size: 11px; }
-.refund-row { font-size: 14px; }
-.refund-value { min-width: 0; color: #D7192D; font-size: 22px; font-weight: 700; }
-.submit-btn { display: flex; min-height: 46px; width: 100%; margin: 0; padding: 11px 16px; align-items: center; justify-content: center; border-radius: 12px; background: #D7192D; color: #fff; font-size: 15px; font-weight: 600; line-height: 1.5; white-space: normal; }
+.type-name { font-size: var(--type-body-size, 14px); font-weight: var(--font-weight-semibold, 600); }
+.reason-input { display: block; width: 100%; min-height: 100px; margin-top: 12px; padding: 12px; box-sizing: border-box; border-radius: var(--radius-control, 10px); background: #F6F7F9; font-size: var(--type-body-size, 14px); line-height: 1.6; }
+.character-count { display: block; margin-top: 6px; text-align: right; color: #969AA3; font-size: var(--type-caption-size, 12px); }
+.refund-row { font-size: var(--type-body-size, 14px); }
+.refund-value { min-width: 0; color: #D7192D; font-size: var(--type-page-title-size, 20px); font-weight: var(--font-weight-bold, 700); }
+.submit-btn { display: flex; min-height: 46px; width: 100%; margin: 0; padding: 11px 16px; align-items: center; justify-content: center; border-radius: var(--radius-card, 14px); background: #D7192D; color: #fff; font-size: var(--type-label-size, 15px); font-weight: var(--font-weight-semibold, 600); line-height: 1.5; white-space: normal; }
 .submit-btn[disabled] { background: #E9EAED; color: #969AA3; }
-.express-input { width:100%; height:44px; margin-top:12px; padding:0 12px; box-sizing:border-box; border-radius:10px; background:#F6F8FA; color:#3F4C5C; font-size:14px; }
+.express-input { width:100%; height:44px; margin-top:12px; padding:0 12px; box-sizing:border-box; border-radius: var(--radius-control, 10px); background:#F6F8FA; color:#3F4C5C; font-size: var(--type-body-size, 14px); }
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.section-card, .express-card, .refund-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}
 </style>

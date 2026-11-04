@@ -31,7 +31,7 @@ const tagClass = computed(() => `tag-${props.type}`)
   padding: 2px 8px;
   border-radius: var(--radius-xs, 6px);
   font-size: var(--font-size-xs, 11px);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold, 600);
   line-height: 1;
 }
 

@@ -9,9 +9,9 @@
           <view v-if="profileError" class="settings-card feedback error"><text>{{ profileError }}</text><button class="secondary-button" @tap="loadProfile">{{ t('common.retry') }}</button></view>
           <view v-if="profileReady && !editing" class="settings-card">
             <text class="section-title">{{ t('account.security.account') }}</text>
-            <button class="row-action" :disabled="busy" @tap="startEdit('password')"><view class="action-copy"><text>{{ t('account.security.password') }}</text><text>{{ t('account.security.passwordRule') }}</text></view><AppIcon name="chevron-right" :size="17" /></button>
-            <button class="row-action" :disabled="busy" @tap="startEdit('mobile')"><view class="action-copy"><text>{{ t('account.security.contactPhone') }}</text><text>{{ profile.mobile || t('account.security.notProvided') }}</text></view><AppIcon name="chevron-right" :size="17" /></button>
-            <button class="row-action" :disabled="busy" @tap="startEdit('email')"><view class="action-copy"><text>{{ t('account.security.contactEmail') }}</text><text>{{ profile.email || t('account.security.notProvided') }}</text></view><AppIcon name="chevron-right" :size="17" /></button>
+            <button class="row-action" :disabled="busy" @tap="startEdit('password')"><view class="action-copy"><text>{{ t('account.security.password') }}</text><text>{{ t('account.security.passwordRule') }}</text></view><AppIcon name="chevron-right" :size="18" /></button>
+            <button class="row-action" :disabled="busy" @tap="startEdit('mobile')"><view class="action-copy"><text>{{ t('account.security.contactPhone') }}</text><text>{{ profile.mobile || t('account.security.notProvided') }}</text></view><AppIcon name="chevron-right" :size="18" /></button>
+            <button class="row-action" :disabled="busy" @tap="startEdit('email')"><view class="action-copy"><text>{{ t('account.security.contactEmail') }}</text><text>{{ profile.email || t('account.security.notProvided') }}</text></view><AppIcon name="chevron-right" :size="18" /></button>
           </view>
           <view v-if="editing" class="settings-card editor-card">
             <text class="section-title">{{ editorTitle }}</text>
@@ -184,4 +184,13 @@ async function handleLogout() {
 
 <style scoped lang="scss">
 @use '../../styles/accountSettings.scss';
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.settings-card, .editor-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}
 </style>

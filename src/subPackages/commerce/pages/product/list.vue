@@ -99,7 +99,7 @@
       hover-class="back-to-top--pressed"
       @click="scrollToTop"
     >
-      <AppIcon name="chevron-up" :size="19" :stroke-width="2.2" />
+      <AppIcon name="chevron-up" :size="20" :stroke-width="2.2" />
       <text class="back-to-top-label">{{ t('commerce.catalog.top') }}</text>
     </view>
 
@@ -615,8 +615,8 @@ function goToDetail(item) {
 
 .back-to-top-label {
   margin-top: 1px;
-  font-size: 9px;
-  line-height: 11px;
+  font-size: var(--type-caption-size, 12px);
+  line-height: 18px;
 }
 
 .search-nav,
@@ -673,10 +673,10 @@ function goToDetail(item) {
   box-sizing: border-box;
   place-items: center;
   border: 2px solid #f4f5f7;
-  border-radius: 9px;
+  border-radius: var(--radius-small, 8px);
   color: #fff;
-  font-size: 8px;
-  font-weight: 700;
+  font-size: var(--badge-font-size, 11px);
+  font-weight: var(--font-weight-bold, 700);
   background: #d7192d;
 }
 
@@ -707,7 +707,7 @@ function goToDetail(item) {
     height: 100%;
     border: none;
     background: transparent;
-    font-size: 13px;
+    font-size: var(--type-body-small-size, 13px);
     color: #111216;
 
     &::placeholder {
@@ -733,8 +733,8 @@ function goToDetail(item) {
   padding: 0 15px;
   border-left: 1px solid rgba(77, 81, 89, .1);
   color: #24272c;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: var(--type-body-small-size, 13px);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .search-submit--pressed,
@@ -755,12 +755,12 @@ function goToDetail(item) {
   justify-content: center;
   gap: 3px;
   color: #656a72;
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
 }
 
 .quick-sort-item.is-active {
   color: #17191d;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold, 700);
 }
 
 .quick-sort-item.is-active::after {
@@ -778,7 +778,7 @@ function goToDetail(item) {
 .sort-direction {
   flex-direction: column;
   color: #afb2b8;
-  font-size: 6px;
+  font-size: var(--sort-glyph-size, 6px);
   line-height: 7px;
 }
 
@@ -801,10 +801,10 @@ function goToDetail(item) {
   padding: 0 4px;
   box-sizing: border-box;
   place-items: center;
-  border-radius: 8px;
+  border-radius: var(--radius-small, 8px);
   color: #fff;
-  font-size: 8px;
-  font-weight: 700;
+  font-size: var(--badge-font-size, 11px);
+  font-weight: var(--font-weight-bold, 700);
   background: #d7192d;
 }
 
@@ -829,8 +829,8 @@ function goToDetail(item) {
 .active-filter-tag {
   min-height: 32px;
   box-sizing: border-box;
-  border-radius: 17px;
-  font-size: 11px;
+  border-radius: var(--radius-feature, 18px);
+  font-size: var(--type-caption-size, 12px);
   background: #e7e8eb;
 }
 
@@ -859,13 +859,13 @@ function goToDetail(item) {
   min-height: 32px;
   padding: 0 5px;
   color: #858a93;
-  font-size: 10px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .result-count {
   flex-shrink: 0;
   color: #969aa2;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
   white-space: nowrap;
 }
 
@@ -896,7 +896,7 @@ function goToDetail(item) {
 
   .quick-sort-item {
     min-width: 48px;
-    font-size: 12px;
+    font-size: var(--type-caption-size, 12px);
   }
 }
 
@@ -935,7 +935,7 @@ function goToDetail(item) {
 
 .loading-text {
   margin-top: 12px;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   color: #7b8089;
 }
 
@@ -946,7 +946,7 @@ function goToDetail(item) {
   margin: 24px auto 0;
   padding: 42px 28px;
   box-sizing: border-box;
-  border-radius: 24px;
+  border-radius: var(--radius-feature, 18px);
   text-align: center;
   background: transparent;
 }
@@ -956,16 +956,16 @@ function goToDetail(item) {
 }
 
 .empty-text {
-  font-size: 16px;
+  font-size: var(--type-card-title-size, 16px);
   line-height: 24px;
   color: #555a63;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .empty-subtext {
   margin-top: 6px;
   padding: 0 24px;
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   line-height: 20px;
   color: #a2a6ad;
 }
@@ -980,7 +980,7 @@ function goToDetail(item) {
 
 .load-more-text,
 .no-more-text {
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   color: #a4a8af;
 }
 
@@ -1018,7 +1018,7 @@ function goToDetail(item) {
     border-radius: 25px;
 
     .search-input {
-      font-size: 15px;
+      font-size: var(--type-label-size, 15px);
     }
   }
 
@@ -1034,7 +1034,7 @@ function goToDetail(item) {
 
   .quick-sort-item {
     min-width: 92px;
-    font-size: 14px;
+    font-size: var(--type-body-size, 14px);
   }
 
   .product-grid {

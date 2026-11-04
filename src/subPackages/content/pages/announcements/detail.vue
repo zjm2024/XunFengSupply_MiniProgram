@@ -16,4 +16,4 @@ onLoad(options=>{id=String(options?.announcementId||'');load()})
 watch(getLocale,load)
 onBeforeUnmount(()=>{disposed=true;epoch++})
 </script>
-<style scoped>.article{max-width:900px;margin:16px auto;padding:24px;background:var(--surface-card,#fff);border-radius:12px;box-sizing:border-box;line-height:1.8;overflow:hidden;word-break:break-word}.title{display:block;font-size:23px;font-weight:650;margin-bottom:24px}.state{text-align:center;font-size:13px;color:var(--color-text-tertiary,#929ba6);padding:28px}</style>
+<style scoped>.article{max-width:900px;margin:16px auto;padding:24px;background:var(--surface-card,#fff);border-radius: var(--radius-card, 14px);box-sizing:border-box;line-height:1.8;overflow:hidden;word-break:break-word}.title{display:block;font-size: var(--type-heading-size, 24px);font-weight: var(--font-weight-semibold, 600);margin-bottom:24px}.state{text-align:center;font-size: var(--type-body-small-size, 13px);color:var(--color-text-tertiary,#929ba6);padding:28px}</style>

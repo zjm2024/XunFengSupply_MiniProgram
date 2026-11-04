@@ -23,5 +23,14 @@ const statusDescription = computed(() => props.detail.order.orderStatus === 90 ?
 </script>
 <style scoped lang="scss">
 @import '../../order/pages/detail/presentation.scss';
-.address-card,.goods-card{margin:12px 0;padding:20px;border-radius:14px}.goods-image{width:72px;height:72px;flex:0 0 72px}.goods-item{gap:14px;padding:16px 0}.goods-card .card-title{margin-bottom:16px}.spu-order-name,.spu-order-meta{display:block}.spu-order-header{padding:12px 0}.address-card{display:flex;gap:14px}.contact-row{display:flex;gap:12px}.order-detail-page{padding:16px;box-sizing:border-box}.detail-side-column{min-width:0}.share-info-row{display:flex;justify-content:space-between;gap:16px;padding:12px 0;color:var(--text-secondary);font-size:13px}.share-value{overflow-wrap:anywhere;text-align:right}.goods-item{min-width:0}.spu-order-header{cursor:default}@media(min-width:960px){.detail-columns{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px}.detail-side-column{position:sticky;top:16px;align-self:start}}
+.address-card,.goods-card{margin:12px 0;padding:20px;border-radius:14px}.goods-image{width:72px;height:72px;flex:0 0 72px}.goods-item{gap:14px;padding:16px 0}.goods-card .card-title{margin-bottom:16px}.spu-order-name,.spu-order-meta{display:block}.spu-order-header{padding:12px 0}.address-card{display:flex;gap:14px}.contact-row{display:flex;gap:12px}.order-detail-page{padding:16px;box-sizing:border-box}.detail-side-column{min-width:0}.share-info-row{display:flex;justify-content:space-between;gap:16px;padding:12px 0;color:var(--text-secondary);font-size: var(--type-body-small-size, 13px)}.share-value{overflow-wrap:anywhere;text-align:right}.goods-item{min-width:0}.spu-order-header{cursor:default}@media(min-width:960px){.detail-columns{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:18px}.detail-side-column{position:sticky;top:16px;align-self:start}}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.address-card, .goods-card, .spu-order-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}
 </style>

@@ -160,7 +160,7 @@ function viewTerms() {
 /* 品牌卡片 */
 .brand-card {
   background: linear-gradient(135deg, #D7192D, #E8384F);
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   padding: 24px 16px;
   text-align: center;
   margin-bottom: 12px;
@@ -179,20 +179,20 @@ function viewTerms() {
 }
 
 .logo-text {
-  font-size: 26px;
-  font-weight: 800;
+  font-size: var(--type-heading-size, 24px);
+  font-weight: var(--font-weight-bold, 700);
   letter-spacing: -2px;
 }
 
 .brand-name {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: var(--type-page-title-size, 20px);
+  font-weight: var(--font-weight-bold, 700);
   display: block;
   margin-bottom: 4px;
 }
 
 .brand-slogan {
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   opacity: 0.9;
   display: block;
   margin-bottom: 14px;
@@ -204,24 +204,24 @@ function viewTerms() {
   gap: 6px;
   background: rgba(255, 255, 255, 0.15);
   padding: 6px 14px;
-  border-radius: 15px;
+  border-radius: var(--radius-card, 14px);
 }
 
 .version-label {
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   opacity: 0.85;
 }
 
 .version-value {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--type-body-small-size, 13px);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 /* 信息卡片 */
 .info-card, .link-card {
   background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: var(--radius-card, 14px);
+  padding: var(--module-padding, 16px);
   margin-bottom: 12px;
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
   -webkit-backdrop-filter: blur(16px);
@@ -229,15 +229,15 @@ function viewTerms() {
 }
 
 .card-title {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-semibold, 600);
   color: #111216;
   display: block;
   margin-bottom: 10px;
 }
 
 .card-text {
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   color: #5E626B;
   line-height: 1.75;
   display: block;
@@ -260,7 +260,7 @@ function viewTerms() {
 }
 
 .contact-icon {
-  font-size: 18px;
+  font-size: var(--type-section-title-size, 18px);
   margin-top: 2px;
 }
 
@@ -269,14 +269,14 @@ function viewTerms() {
 }
 
 .contact-label {
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   color: #989BA5;
   display: block;
   margin-bottom: 2px;
 }
 
 .contact-value {
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   color: #111216;
   line-height: 1.5;
   display: block;
@@ -308,12 +308,12 @@ function viewTerms() {
 }
 
 .link-name {
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   color: #111216;
 }
 
 .link-arrow {
-  font-size: 16px;
+  font-size: var(--type-card-title-size, 16px);
   color: #989BA5;
 }
 
@@ -330,7 +330,7 @@ function viewTerms() {
   background: transparent;
   border: none;
   color: #5E626B;
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
 
   &:active {
     color: #D7192D;
@@ -339,7 +339,7 @@ function viewTerms() {
 
 .divider {
   color: #DEDFE3;
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
 }
 
 /* 版权信息 */
@@ -349,13 +349,13 @@ function viewTerms() {
 }
 
 .copyright-text {
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   color: #989BA5;
   display: block;
 }
 
 .copyright-sub {
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
   color: #C4C6CC;
   display: block;
   margin-top: 2px;
@@ -363,5 +363,14 @@ function viewTerms() {
 
 .bottom-spacer {
   height: 24px;
+}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.brand-card, .info-card, .link-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
 }
 </style>

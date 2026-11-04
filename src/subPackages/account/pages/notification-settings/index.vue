@@ -144,7 +144,7 @@ function toggle(key, event) {
   align-items: center;
   gap: 14px;
   padding: 18px;
-  border-radius: 20px;
+  border-radius: var(--radius-feature, 18px);
   background: linear-gradient(145deg, rgba(255,255,255,.82), rgba(255,244,246,.68));
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
   -webkit-backdrop-filter: blur(16px);
@@ -157,25 +157,25 @@ function toggle(key, event) {
   height: 48px;
   flex: 0 0 48px;
   place-items: center;
-  border-radius: 15px;
+  border-radius: var(--radius-card, 14px);
   color: #D7192D;
   background: rgba(215,25,45,.1);
 }
 
 .hero-copy { min-width: 0; }
-.hero-title { display: block; color: #1B1F24; font-size: 17px; font-weight: 750; }
-.hero-desc { display: block; margin-top: 5px; color: #747B85; font-size: 12px; line-height: 18px; }
+.hero-title { display: block; color: #1B1F24; font-size: var(--type-section-title-size, 18px); font-weight: var(--font-weight-bold, 700); }
+.hero-desc { display: block; margin-top: 5px; color: #747B85; font-size: var(--type-caption-size, 12px); line-height: 18px; }
 
 .notification-note {
   display: flex;
   align-items: flex-start;
   gap: 7px;
   padding: 12px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   color: #7A6470;
   background: rgba(255,248,249,.7);
-  font-size: 11px;
-  line-height: 17px;
+  font-size: var(--type-caption-size, 12px);
+  line-height: 18px;
 }
 
 .notification-note :deep(svg) { flex: 0 0 auto; margin-top: 1px; color: #D7192D; }

@@ -19,7 +19,7 @@
           <AppBackButton plain :transparent="transparent" :theme="theme" @click="$emit('back')" />
 
           <view class="search-box" @click="handleSearchBoxClick">
-            <AppIcon class="search-icon" name="search" :size="19" />
+            <AppIcon class="search-icon" name="search" :size="20" />
             <view
               v-if="keywordCommitted && keyword"
               class="search-keyword-chip"
@@ -28,7 +28,7 @@
             >
               <text class="search-keyword-text">{{ keyword }}</text>
               <view class="search-keyword-close" @click.stop="$emit('clear-keyword')">
-                <AppIcon name="close" :size="12" :stroke-width="2" />
+                <AppIcon name="close" :size="14" :stroke-width="2" />
               </view>
             </view>
             <input
@@ -52,7 +52,7 @@
           </view>
 
           <view v-if="showCart" class="catalog-cart-button" hover-class="header-button--pressed" @click="$emit('cart')">
-            <AppIcon name="cart" :size="21" />
+            <AppIcon name="cart" :size="20" />
             <text v-if="cartCount" class="cart-count-badge">{{ cartCount > 99 ? '99+' : cartCount }}</text>
           </view>
         </view>
@@ -81,7 +81,7 @@
             @click="$emit('filter')"
           >
             <text>{{ t('common.search.filter') }}</text>
-            <AppIcon name="filter" :size="15" />
+            <AppIcon name="filter" :size="16" />
             <text v-if="filterCount" class="filter-count">{{ filterCount }}</text>
           </view>
         </view>
@@ -278,10 +278,10 @@ watch(() => props.theme, applyStatusBarStyle)
   justify-content: center;
   overflow: hidden;
   border: 1.5px solid #fff;
-  border-radius: 9px;
+  border-radius: var(--radius-small, 8px);
   color: #fff;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: var(--badge-font-size, 11px);
+  font-weight: var(--font-weight-bold, 700);
   line-height: 1;
   white-space: nowrap;
   text-overflow: ellipsis;
@@ -299,7 +299,7 @@ watch(() => props.theme, applyStatusBarStyle)
   padding: 0 12px;
   overflow: hidden;
   border: 1px solid #e2e5e8;
-  border-radius: 20px;
+  border-radius: var(--radius-feature, 18px);
   background: #ffffff;
 }
 
@@ -314,15 +314,18 @@ watch(() => props.theme, applyStatusBarStyle)
   flex: 1;
   border: none;
   color: #252a31;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   background: transparent;
 }
 
 .search-entry-placeholder {
-  display: flex;
-  align-items: center;
+  display: block;
+  height: auto;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   color: #a2a7ae;
-  font-weight: 400;
+  font-weight: var(--font-weight-regular, 400);
   line-height: 20px;
 }
 
@@ -339,9 +342,9 @@ watch(() => props.theme, applyStatusBarStyle)
   gap: 5px;
   padding: 0 8px;
   box-sizing: border-box;
-  border-radius: 15px;
+  border-radius: var(--radius-card, 14px);
   color: #34373d;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   background: var(--surface-subtle, #fcfcfd);
 }
 
@@ -386,8 +389,8 @@ watch(() => props.theme, applyStatusBarStyle)
   box-sizing: border-box;
   border-left: 1px solid #dde0e4;
   color: #25272b;
-  font-size: 13px;
-  font-weight: 650;
+  font-size: var(--type-body-small-size, 13px);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .search-submit--pressed,
@@ -409,12 +412,12 @@ watch(() => props.theme, applyStatusBarStyle)
   justify-content: center;
   gap: 3px;
   color: #686d75;
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
 }
 
 .quick-sort-item.is-active {
   color: #1d1f23;
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .quick-sort-item.is-active::after {
@@ -432,7 +435,7 @@ watch(() => props.theme, applyStatusBarStyle)
 .sort-direction {
   flex-direction: column;
   color: #b7bac0;
-  font-size: 6px;
+  font-size: var(--sort-glyph-size, 6px);
   line-height: 7px;
 }
 
@@ -456,10 +459,10 @@ watch(() => props.theme, applyStatusBarStyle)
   box-sizing: border-box;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: var(--radius-small, 8px);
   color: #fff;
-  font-size: 8px;
-  font-weight: 700;
+  font-size: var(--badge-font-size, 11px);
+  font-weight: var(--font-weight-bold, 700);
   background: #d7192d;
   line-height: 1;
 }
@@ -485,8 +488,8 @@ watch(() => props.theme, applyStatusBarStyle)
 .active-filter-tag {
   min-height: 32px;
   box-sizing: border-box;
-  border-radius: 17px;
-  font-size: 11px;
+  border-radius: var(--radius-feature, 18px);
+  font-size: var(--type-caption-size, 12px);
   background: #e7e8eb;
 }
 
@@ -519,13 +522,13 @@ watch(() => props.theme, applyStatusBarStyle)
 .clear-filter-button {
   padding: 6px 4px;
   color: #858a93;
-  font-size: 10px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .result-count {
   flex-shrink: 0;
   color: #757a83;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
   white-space: nowrap;
 }
 
@@ -554,7 +557,7 @@ watch(() => props.theme, applyStatusBarStyle)
 
   .quick-sort-item {
     min-width: 48px;
-    font-size: 12px;
+    font-size: var(--type-caption-size, 12px);
   }
 }
 
@@ -565,7 +568,7 @@ watch(() => props.theme, applyStatusBarStyle)
 
   .search-box {
     height: 40px;
-    border-radius: 20px;
+    border-radius: var(--radius-feature, 18px);
     padding: 0 12px;
   }
 
@@ -587,7 +590,7 @@ watch(() => props.theme, applyStatusBarStyle)
 
   .quick-sort-item {
     min-width: 92px;
-    font-size: 14px;
+    font-size: var(--type-body-size, 14px);
   }
 }
 
@@ -597,4 +600,4 @@ watch(() => props.theme, applyStatusBarStyle)
     padding-left: 36px;
   }
 }
-.has-result-count{justify-content:space-between}.catalog-result-count{margin-right:auto;font-size:12px;line-height:20px;color:var(--text-secondary,#737a84)}.has-result-count .filter-entry{flex:none;margin-left:16px}</style>
+.has-result-count{justify-content:space-between}.catalog-result-count{margin-right:auto;font-size: var(--type-caption-size, 12px);line-height: 20px;color:var(--text-secondary,#737a84)}.has-result-count .filter-entry{flex:none;margin-left:16px}</style>

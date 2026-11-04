@@ -68,7 +68,7 @@
             </movable-area>
 
             <view v-else class="hv-fallback">
-              <AppIcon name="image" :size="44" color="#6D6E73" />
+              <AppIcon name="image" :size="48" color="#6D6E73" />
               <text class="hv-fallback-text">图片暂时无法显示</text>
             </view>
           </view>
@@ -472,10 +472,10 @@ watch(
 
 .hv-counter {
   padding: 6px 14px;
-  border-radius: 16px;
+  border-radius: var(--radius-feature, 18px);
   color: #fff;
   background: rgba(255, 255, 255, 0.14);
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   line-height: 1.4;
   letter-spacing: 0.02em;
 }
@@ -563,7 +563,7 @@ watch(
 
 .hv-fallback-text {
   color: #8b8c91;
-  font-size: 13.5px;
+  font-size: var(--type-body-size, 14px);
 }
 
 /* ================================================================
@@ -592,7 +592,7 @@ watch(
   flex: 0 0 auto;
   width: 44px;
   height: 44px;
-  border-radius: 7px;
+  border-radius: var(--radius-small, 8px);
   overflow: hidden;
   background: rgba(255, 255, 255, 0.08);
   border: 1.5px solid transparent;
@@ -625,7 +625,7 @@ watch(
   left: 50%;
   transform: translateX(-50%);
   color: rgba(255, 255, 255, 0.42);
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   line-height: 1.5;
   pointer-events: none;
   white-space: nowrap;

@@ -112,7 +112,7 @@ const stockText = computed(() => {
   min-width: 0;
   box-sizing: border-box;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   background: var(--glass-card-background, rgba(255, 255, 255, 0.74));
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55, 65, 80, 0.07));
   -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
@@ -129,7 +129,7 @@ const stockText = computed(() => {
 .app-product-card--row {
   display: flex;
   min-height: 154px;
-  border-radius: 14px;
+  border-radius: var(--radius-card, 14px);
   box-shadow: none;
 }
 
@@ -186,7 +186,7 @@ const stockText = computed(() => {
   object-position: center;
 }
 
-.app-product-card--row .app-product-card__image { border-radius: 9px; }
+.app-product-card--row .app-product-card__image { border-radius: var(--radius-small, 8px); }
 
 .app-product-card__body {
   display: flex;
@@ -211,25 +211,25 @@ const stockText = computed(() => {
   display: -webkit-box;
   overflow: hidden;
   color: #202226;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold, 600);
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
 .app-product-card--row .app-product-card__name {
-  font-size: 15px;
+  font-size: var(--type-label-size, 15px);
   line-height: 21px;
 }
 
 .app-product-card--tile .app-product-card__name {
-  min-height: 36px;
-  font-size: var(--type-caption-size, 12px);
-  line-height: var(--type-caption-line-height, 18px);
+  min-height: 44px;
+  font-size: var(--type-body-size, 14px);
+  line-height: var(--type-body-line-height, 22px);
 }
 
 .app-product-card--compact .app-product-card__name {
-  font-size: var(--type-caption-size, 12px);
-  line-height: var(--type-caption-line-height, 18px);
+  font-size: var(--type-body-size, 14px);
+  line-height: var(--type-body-line-height, 22px);
   -webkit-line-clamp: 2;
 }
 
@@ -238,8 +238,8 @@ const stockText = computed(() => {
   margin-top: 5px;
   overflow: hidden;
   color: #9b9fa6;
-  font-size: 12px;
-  line-height: 17px;
+  font-size: var(--type-caption-size, 12px);
+  line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -260,8 +260,8 @@ const stockText = computed(() => {
 
 .app-product-card__price {
   color: var(--color-brand, #d7192d);
-  font-size: 19px;
-  font-weight: 700;
+  font-size: var(--type-page-title-size, 20px);
+  font-weight: var(--font-weight-bold, 700);
   line-height: 24px;
   letter-spacing: -0.2px;
 }
@@ -269,7 +269,7 @@ const stockText = computed(() => {
 .app-product-card__unit {
   margin-left: 3px;
   color: #7d8188;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .app-product-card--tile .app-product-card__price-row {
@@ -277,7 +277,7 @@ const stockText = computed(() => {
 }
 
 .app-product-card--tile .app-product-card__price {
-  font-size: 16px;
+  font-size: var(--type-card-title-size, 16px);
   line-height: 22px;
 }
 
@@ -287,7 +287,7 @@ const stockText = computed(() => {
 
 .app-product-card--compact .app-product-card__price {
   color: #1f2126;
-  font-size: 15px;
+  font-size: var(--type-label-size, 15px);
   line-height: 20px;
 }
 
@@ -295,7 +295,7 @@ const stockText = computed(() => {
   top: 2px;
   right: 2px;
   padding: 3px 5px;
-  font-size: 7px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .app-product-card--tile .app-product-card__unit {
@@ -308,7 +308,7 @@ const stockText = computed(() => {
   margin-top: 4px;
   overflow: hidden;
   color: #92969d;
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   line-height: 18px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -344,7 +344,7 @@ const stockText = computed(() => {
     height: auto;
     min-height: 172px;
     aspect-ratio: 2.2 / 1;
-    border-radius: 16px;
+    border-radius: var(--radius-feature, 18px);
   }
 
   .app-product-card--row .app-product-card__image-wrap {
@@ -372,7 +372,16 @@ const stockText = computed(() => {
 /* 金额按实际可用宽度缩字，父布局允许收缩。 */
 .app-product-card__price-row { min-width: 0; flex-wrap: wrap; column-gap: 7px; row-gap: 2px; }
 .app-product-card__current-price { display: flex; align-items: baseline; min-width: 0; max-width: 100%; }
-.app-product-card__list-price { max-width: 100%; color: var(--color-text-secondary, #7d8188); font-size: 11px; line-height: 18px; }
+.app-product-card__list-price { max-width: 100%; color: var(--color-text-secondary, #7d8188); font-size: var(--type-caption-size, 12px); line-height: 18px; }
 .app-product-card__list-price--strike :deep(.amount-text__value) { text-decoration: line-through; }
 .app-product-card__unit { flex: none; }
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.app-product-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}
 </style>

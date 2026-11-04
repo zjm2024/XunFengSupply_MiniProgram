@@ -14,7 +14,7 @@
           <view v-if="applicationState" class="application-status-card" :class="`status-${applicationState.status}`">
             <view class="status-hero">
               <view class="application-status-badge">
-                <AppIcon :name="applicationState.status === 'approved' ? 'shield-check' : applicationState.status === 'rejected' ? 'info' : 'clock'" :size="30" color="currentColor" />
+                <AppIcon :name="applicationState.status === 'approved' ? 'shield-check' : applicationState.status === 'rejected' ? 'info' : 'clock'" :size="28" color="currentColor" />
               </view>
               <text class="status-eyebrow">{{ t('auth.apply.eyebrow') }}</text>
               <text class="application-status-title">{{ applicationStatusTitle }}</text>
@@ -863,17 +863,17 @@ function displayError(value) {
   margin: 12px auto 0;
   overflow: hidden;
   background: #fff;
-  border-radius: 22px;
+  border-radius: var(--radius-feature, 18px);
   box-shadow: 0 8px 32px rgba(33, 39, 50, .05);
 }
 .status-hero { display: flex; flex-direction: column; align-items: center; padding: 32px 24px 24px; text-align: center; background: linear-gradient(180deg, #fff5f0, #fff); }
-.application-status-badge { width: 68px; height: 68px; display: flex; align-items: center; justify-content: center; border-radius: 22px; color: #b76a23; background: #fff0df; }
+.application-status-badge { width: 68px; height: 68px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-feature, 18px); color: #b76a23; background: #fff0df; }
 .status-approved .application-status-badge { color: #287852; background: #eaf6ef; }
 .status-rejected .application-status-badge { color: #d7192d; background: #fff0f2; }
 .status-eyebrow { margin-top: 20px; color: #9b7c6a; font-size: var(--type-caption-size, 12px); letter-spacing: 2px; }
-.application-status-title { display: block; margin-top: 8px; color: $color-text-primary; font-size: var(--type-page-title-size, 20px); line-height: 32px; font-weight: 700; }
+.application-status-title { display: block; margin-top: 8px; color: $color-text-primary; font-size: var(--type-page-title-size, 20px); line-height: 32px; font-weight: var(--font-weight-bold, 700); }
 .application-status-description { max-width: 360px; margin-top: 12px; color: $color-text-secondary; font-size: var(--type-body-size, 14px); line-height: 24px; }
-.application-receipt { margin: 0 20px; padding: 16px; border-radius: 14px; background: #f7f8fa; }
+.application-receipt { margin: 0 20px; padding: 16px; border-radius: var(--radius-card, 14px); background: #f7f8fa; }
 .receipt-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .receipt-row + .receipt-row { margin-top: 12px; }
 .receipt-label { flex: 0 0 auto; color: #8a8e98; font-size: var(--type-body-small-size, 13px); line-height: 22px; }
@@ -882,14 +882,14 @@ function displayError(value) {
 .timeline-step { position: relative; display: flex; align-items: flex-start; gap: 14px; padding-bottom: 24px; }
 .timeline-step:first-child::after { content: ''; position: absolute; top: 32px; left: 13px; bottom: 4px; width: 2px; background: #eceef2; }
 .timeline-step:last-child { padding-bottom: 0; }
-.timeline-dot { flex: 0 0 28px; height: 28px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: 50%; background: #f0f1f4; color: #9096a1; font-size: 12px; line-height: 18px; }
+.timeline-dot { flex: 0 0 28px; height: 28px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; border-radius: 50%; background: #f0f1f4; color: #9096a1; font-size: var(--type-caption-size, 12px); line-height: 18px; }
 .timeline-step.completed .timeline-dot { background: #d7192d; color: #fff; }
 .timeline-step.current .timeline-dot { color: #a9682e; background: #fff0df; }
 .timeline-title, .timeline-copy { display: block; }
-.timeline-title { color: #343944; font-size: var(--type-body-size, 14px); line-height: 24px; font-weight: 600; }
+.timeline-title { color: #343944; font-size: var(--type-body-size, 14px); line-height: 24px; font-weight: var(--font-weight-semibold, 600); }
 .timeline-copy { color: #9196a0; font-size: var(--type-caption-size, 12px); line-height: 20px; }
 .status-actions { display: flex; flex-direction: column; gap: 10px; padding: 0 24px 24px; }
-.status-action { width: 100%; min-height: 46px; margin: 0; padding: 12px 16px; color: $color-gray-0; background: $color-action-primary; border: 0; border-radius: 12px; font-size: 14px; line-height: 20px; }
+.status-action { width: 100%; min-height: 46px; margin: 0; padding: 12px 16px; color: $color-gray-0; background: $color-action-primary; border: 0; border-radius: var(--radius-card, 14px); font-size: var(--type-body-size, 14px); line-height: 20px; }
 .status-action::after { border: 0; }
 .status-action.secondary { color: $color-text-secondary; background: $color-gray-100; }
 .progress-card,
@@ -1231,5 +1231,14 @@ function displayError(value) {
   .submit-button {
     max-width: 720px;
   }
+}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.application-status-card, .progress-card, .form-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
 }
 </style>

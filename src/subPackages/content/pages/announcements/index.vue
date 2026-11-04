@@ -20,4 +20,4 @@ watch(getLocale,()=>{epoch++;items.value=[];page=1;more.value=true;loading.value
 onMounted(load)
 onBeforeUnmount(()=>{disposed=true;epoch++})
 </script>
-<style scoped>.announcements{max-width:900px;margin:auto;padding:18px}.notice{background:var(--surface-card,#fff);border-radius:12px;padding:20px;margin-bottom:12px;display:flex;flex-direction:column;gap:12px;font-size:15px;line-height:1.6}.date,.state{font-size:12px;color:var(--color-text-tertiary,#929ba6)}.state{text-align:center;padding:25px}</style>
+<style scoped>.announcements{max-width:900px;margin:auto;padding:18px}.notice{background:var(--surface-card,#fff);border-radius: var(--radius-card, 14px);padding:20px;margin-bottom:12px;display:flex;flex-direction:column;gap:12px;font-size: var(--type-label-size, 15px);line-height:1.6}.date,.state{font-size: var(--type-caption-size, 12px);color:var(--color-text-tertiary,#929ba6)}.state{text-align:center;padding:25px}</style>

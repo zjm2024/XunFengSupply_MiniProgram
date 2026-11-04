@@ -5,7 +5,7 @@
       <AppPageState :state="busy && !rows.length ? 'loading' : !rows.length ? 'empty' : 'content'" title="购物车暂无商品" icon-type="cart">
         <view class="spu-list"><view v-for="group in groups" :key="group.key" class="spu-card">
           <CartSpuHeader :name="group.name" :meta="group.items.length + ' 个规格 · ' + group.quantity + ' 件'" :amount="groupAmount(group)" :selected="groupSelected(group)" :partial="groupPartial(group)" :collapsed="isGroupCollapsed(group.key)" :disabled="busy" @select="selectGroup(group)" @product="emit('product',group.items[0]?.quote?.productId)" @toggle="toggleGroup(group.key)" />
-          <view v-show="!isGroupCollapsed(group.key)" class="sku-list"><view v-for="item in group.items" :key="item.skuId" class="sku-action-shell" :class="{'action-open':activeItem===item.skuId}"><button class="sku-delete-action button-center" :disabled="busy" @tap.stop="emit('remove',item.skuId)"><AppIcon name="trash" :size="19" /><text>删除</text></button><view class="sku-row" @touchstart="startSwipe($event,item.skuId)" @touchend="endSwipe($event,item.skuId)" @contextmenu.prevent="activeItem=item.skuId">
+          <view v-show="!isGroupCollapsed(group.key)" class="sku-list"><view v-for="item in group.items" :key="item.skuId" class="sku-action-shell" :class="{'action-open':activeItem===item.skuId}"><button class="sku-delete-action button-center" :disabled="busy" @tap.stop="emit('remove',item.skuId)"><AppIcon name="trash" :size="20" /><text>删除</text></button><view class="sku-row" @touchstart="startSwipe($event,item.skuId)" @touchend="endSwipe($event,item.skuId)" @contextmenu.prevent="activeItem=item.skuId">
             <label class="check-wrap" :aria-label="item.selected ? '取消选择' : '选择商品'" :disabled="busy || !item.quote" @tap.stop="!busy && item.quote && emit('edit', item.skuId,item.quantity,!item.selected)"><view class="check" :class="{ checked: item.selected }"><text v-if="item.selected">✓</text></view></label>
             <AppProductImage class="product-image" :src="item.quote?.imageUrl || ''" :show-stock-badge="false" @click="emit('product',item.quote?.productId)" />
             <view class="product-info"><text class="sku-title">{{ item.quote?.specDesc || group.name }}</text><text class="product-code">SKU：{{ item.quote?.skuCode || item.skuId }}</text><view class="price-line"><AmountText v-if="item.quote" class="price" :text="'¥' + item.quote.unitPrice" /><StatusTag v-else type="warning" text="商品已失效" /></view>
@@ -59,4 +59,13 @@ const amount = computed(() => selectionAmount(props.rows))
 <style scoped lang="scss">
 @import '../../commerce/pages/cart/presentation.scss';
 
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.spu-card, .summary-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}
 </style>

@@ -7,7 +7,7 @@
     <template #content>
       <AppContent padding="16px var(--page-padding-x,16px) 28px" :refresher-enabled="true" :refresher-triggered="isRefreshing" @refresherrefresh="handleRefresh" @refresherrestore="handleRefresherRestore" @refresherabort="handleRefresherRestore" @scrolltolower="loadMore">
         <view class="inventory-wrap">
-          <view class="inventory-tools"><button @tap="openOverview"><AppIcon name="box" :size="17" />{{ t('account.inventory.overview') }}</button><button @tap="openLedger"><AppIcon name="receipt" :size="17" />{{ t('account.inventory.ledger') }}</button></view>
+          <view class="inventory-tools"><button @tap="openOverview"><AppIcon name="box" :size="18" />{{ t('account.inventory.overview') }}</button><button @tap="openLedger"><AppIcon name="receipt" :size="18" />{{ t('account.inventory.ledger') }}</button></view>
           <view class="result-head"><text>{{ t('account.inventory.productTotalLabel', { count: totalCount }) }}</text><text class="link-text batch-toggle" @tap="toggleSelecting">{{ t(selecting ? 'account.inventory.finishSelection' : 'account.inventory.batchReturn') }}</text></view>
           <text v-if="selecting" class="selection-hint">{{ t('account.inventory.selectHint') }}</text>
           <AppPageState :state="pageState" :title="t('account.inventory.empty')" :description="pageState === PageStatus.ERROR ? loadError : t('account.inventory.emptyHint')" @retry="reload" @action="reload">
@@ -18,14 +18,14 @@
                   <view class="stock-copy"><text class="spu-name">{{ product.productName || t('account.inventory.unnamed') }}</text><text class="sku-code">{{ t('account.inventory.variantCount', { count: product.skuCount }) }}</text><text v-if="selectedFor(product.productId)" class="selected-mark">{{ t('account.inventory.selected') }} {{ selectedFor(product.productId) }}</text></view>
                   <view class="spu-quantity"><text>{{ t('account.inventory.availableReturn') }}</text><text>{{ formatQty(product.availableQuantity) }}</text><text>{{ product.unit }}</text></view>
                 </view>
-                <view class="spu-bottom" @tap="toggleProduct(product)"><text>{{ t('account.inventory.physicalStock') }} {{ formatQty(product.onHandQuantity) }} · {{ t('account.inventory.returnReserved') }} {{ formatQty(product.reservedQuantity) }}</text><view><text>{{ t(variants[product.productId]?.expanded ? 'account.inventory.collapse' : 'account.inventory.expand') }}</text><AppIcon :name="variants[product.productId]?.expanded ? 'chevron-up' : 'chevron-down'" :size="13" /></view></view>
+                <view class="spu-bottom" @tap="toggleProduct(product)"><text>{{ t('account.inventory.physicalStock') }} {{ formatQty(product.onHandQuantity) }} · {{ t('account.inventory.returnReserved') }} {{ formatQty(product.reservedQuantity) }}</text><view><text>{{ t(variants[product.productId]?.expanded ? 'account.inventory.collapse' : 'account.inventory.expand') }}</text><AppIcon :name="variants[product.productId]?.expanded ? 'chevron-up' : 'chevron-down'" :size="14" /></view></view>
                 <view v-if="variants[product.productId]?.expanded" class="sku-panel">
                   <view v-for="sku in variants[product.productId].items" :key="sku.skuId" class="variant-row" :class="{ 'variant-selected': isSelected(sku.skuId) }">
                     <view class="variant-main" @tap="selecting ? toggleSku(sku) : openDetail(sku.skuId)">
                       <view v-if="selecting" class="select-circle" :class="{ checked: isSelected(sku.skuId), disabled: sku.availableQuantity <= 0 }"><AppIcon v-if="isSelected(sku.skuId)" name="check" :size="14" color="#fff" /></view>
                       <view class="variant-copy"><text class="variant-name">{{ [sku.colorName, sku.sizeName].filter(Boolean).join(' / ') || sku.skuName }}</text><text class="sku-code">{{ sku.skuCode || ('SKU ' + sku.skuId) }}</text></view>
                       <view class="variant-stock"><text>{{ t('account.inventory.availableReturn') }}</text><text>{{ formatQty(sku.availableQuantity) }} {{ sku.unit }}</text></view>
-                      <AppIcon v-if="!selecting" name="chevron-right" :size="13" color="#9BA3AE" />
+                      <AppIcon v-if="!selecting" name="chevron-right" :size="14" color="#9BA3AE" />
                     </view>
                     <view v-if="selecting && isSelected(sku.skuId)" class="variant-edit"><text>{{ t('account.inventory.returnQuantity') }}</text><view class="quantity-control"><button class="step-button" :disabled="draft.state.pendingIntent || selectedQuantity(sku.skuId) <= 1" @tap="setQuantity(sku, selectedQuantity(sku.skuId)-1)">−</button><input type="number" class="quantity-input" :disabled="Boolean(draft.state.pendingIntent)" :value="selectedQuantity(sku.skuId)" @input="setQuantity(sku, $event.detail.value)" /><button class="step-button" :disabled="selectedQuantity(sku.skuId) >= sku.availableQuantity" @tap="setQuantity(sku, selectedQuantity(sku.skuId)+1)">＋</button></view></view>
                   </view>
@@ -154,34 +154,43 @@ function formatQty(value){return Number(value||0).toLocaleString('zh-CN')}
 @import './inventory.scss';
 .filter-panel{padding:6px var(--page-padding-x,16px) 12px;}
 .spu-list{display:flex;flex-direction:column;gap:14px;}
-.spu-card{overflow:hidden;border-radius:16px;background:#fff;}
+.spu-card{overflow:hidden;border-radius: var(--radius-feature, 18px);background:#fff;}
 .spu-main{display:grid;grid-template-columns:60px minmax(0,1fr) auto;align-items:center;gap:12px;padding:18px 14px 14px;}
-.spu-image{width:60px;height:70px;border-radius:9px;}
-.spu-name{display:block;color:#29313B;font-size:15px;font-weight:650;line-height:1.5;overflow-wrap:anywhere;}
+.spu-image{width:60px;height:70px;border-radius: var(--radius-small, 8px);}
+.spu-name{display:block;color:#29313B;font-size: var(--type-label-size, 15px);font-weight: var(--font-weight-semibold, 600);line-height:1.5;overflow-wrap:anywhere;}
 .spu-quantity{text-align:right;min-width:58px;}
-.spu-quantity text{display:block;color:#98A0AA;font-size:10px;line-height:1.5;}
-.spu-quantity text:nth-child(2){margin:4px 0;color:#D7192D;font-size:23px;font-weight:700;}
-.spu-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-top:1px solid #F3F4F6;color:#929AA5;font-size:10px;line-height:1.6;}
+.spu-quantity text{display:block;color:#98A0AA;font-size: var(--type-caption-size, 12px);line-height:1.5;}
+.spu-quantity text:nth-child(2){margin:4px 0;color:#D7192D;font-size: var(--type-heading-size, 24px);font-weight: var(--font-weight-bold, 700);}
+.spu-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;border-top:1px solid #F3F4F6;color:#929AA5;font-size: var(--type-caption-size, 12px);line-height:1.6;}
 .spu-bottom>view{display:flex;align-items:center;gap:4px;color:#596777;flex-shrink:0;}
 .sku-panel{padding:0 14px 6px;background:#FCFCFD;border-top:1px solid #F0F2F5;}
 .variant-row{padding:14px 0;border-bottom:1px solid #ECEFF3;}
 .variant-row:last-child{border-bottom:0;}
 .variant-main{display:flex;gap:9px;align-items:center;min-height:42px;}
 .variant-copy{min-width:0;flex:1;}
-.variant-name{display:block;color:#394450;font-size:13px;font-weight:600;line-height:1.5;}
+.variant-name{display:block;color:#394450;font-size: var(--type-body-small-size, 13px);font-weight: var(--font-weight-semibold, 600);line-height:1.5;}
 .variant-stock{text-align:right;flex-shrink:0;}
-.variant-stock text{display:block;color:#9AA2AE;font-size:10px;}
-.variant-stock text+text{margin-top:5px;color:#424E5B;font-size:14px;font-weight:650;}
-.select-circle{display:flex;align-items:center;justify-content:center;flex:0 0 21px;width:21px;height:21px;border:1px solid #CFD5DD;border-radius:6px;box-sizing:border-box;}
+.variant-stock text{display:block;color:#9AA2AE;font-size: var(--type-caption-size, 12px);}
+.variant-stock text+text{margin-top:5px;color:#424E5B;font-size: var(--type-body-size, 14px);font-weight: var(--font-weight-semibold, 600);}
+.select-circle{display:flex;align-items:center;justify-content:center;flex:0 0 21px;width:21px;height:21px;border:1px solid #CFD5DD;border-radius: var(--radius-xs, 6px);box-sizing:border-box;}
 .select-circle.checked{background:#D7192D;border-color:#D7192D;}.select-circle.disabled{background:#EBEEF2;border-color:#E1E5EA;}
-.variant-edit{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding-left:30px;color:#87919D;font-size:11px;}
-.quantity-control{display:flex;height:34px;width:132px;border:1px solid #E3E7ED;border-radius:8px;overflow:hidden;}
-.step-button{width:36px;height:34px;padding:0;margin:0;border-radius:0;background:#F2F4F7;color:#44515F;font-size:17px;line-height:34px;}
-.step-button[disabled]{color:#BCC3CC;}.quantity-input{min-width:0;flex:1;height:34px;text-align:center;font-size:13px;background:#fff;}
-.selection-hint{display:block;margin:0 2px 13px;color:#959DA8;font-size:12px;line-height:1.6;}
-.selected-mark{display:inline-block;margin-top:5px;padding:3px 7px;border-radius:5px;color:#D7192D;background:#FFF0F2;font-size:10px;}
-.more-variants{margin:6px 0;padding:8px;background:transparent;color:#7F8996;font-size:12px;}
-.selection-total{min-width:0;flex:1;color:#4C5866;font-size:12px;line-height:1.6;}.selection-total text{display:block;}.selection-total .link-text{margin-top:3px;font-size:11px;}
-.review-selection{flex:0 1 auto;max-width:50%;font-size:13px;}
+.variant-edit{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;padding-left:30px;color:#87919D;font-size: var(--type-caption-size, 12px);}
+.quantity-control{display:flex;height:34px;width:132px;border:1px solid #E3E7ED;border-radius: var(--radius-small, 8px);overflow:hidden;}
+.step-button{width:36px;height:34px;padding:0;margin:0;border-radius:0;background:#F2F4F7;color:#44515F;font-size: var(--type-section-title-size, 18px);line-height: 34px;}
+.step-button[disabled]{color:#BCC3CC;}.quantity-input{min-width:0;flex:1;height:34px;text-align:center;font-size: var(--type-body-small-size, 13px);background:#fff;}
+.selection-hint{display:block;margin:0 2px 13px;color:#959DA8;font-size: var(--type-caption-size, 12px);line-height:1.6;}
+.selected-mark{display:inline-block;margin-top:5px;padding:3px 7px;border-radius: 5px;color:#D7192D;background:#FFF0F2;font-size: var(--type-caption-size, 12px);}
+.more-variants{margin:6px 0;padding:8px;background:transparent;color:#7F8996;font-size: var(--type-caption-size, 12px);}
+.selection-total{min-width:0;flex:1;color:#4C5866;font-size: var(--type-caption-size, 12px);line-height:1.6;}.selection-total text{display:block;}.selection-total .link-text{margin-top:3px;font-size: var(--type-caption-size, 12px);}
+.review-selection{flex:0 1 auto;max-width:50%;font-size: var(--type-body-small-size, 13px);}
 @media(min-width:720px){.spu-main{grid-template-columns:76px minmax(0,1fr) auto;padding:22px;gap:18px;}.spu-image{width:76px;height:84px;}.spu-bottom{padding:12px 22px;}.sku-panel{padding:0 22px 8px;}.variant-edit{justify-content:flex-end;}.spu-quantity{min-width:90px;}}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.spu-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}
 </style>

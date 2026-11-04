@@ -16,12 +16,12 @@
         >
           <view class="checkout-page">
             <view v-if="hasPriceChanged" class="price-notice">
-              <AppIcon name="info" :size="17" color="#B76500" />
+              <AppIcon name="info" :size="18" color="#B76500" />
               <text>{{ t('commerce.checkout.priceChanged') }}</text>
             </view>
 
             <view v-if="previewError" class="preview-notice">
-              <AppIcon name="alert" :size="17" color="#B42318" />
+              <AppIcon name="alert" :size="18" color="#B42318" />
               <text>{{ previewError }}</text>
               <button class="notice-action button-center" @click="refreshPreview()">{{ t('commerce.checkout.reprice') }}</button>
             </view>
@@ -51,7 +51,7 @@
                       </view>
                       <view class="address-action">
                         <text>{{ t('commerce.checkout.change') }}</text>
-                        <AppIcon name="chevron-right" :size="17" color="#90939A" />
+                        <AppIcon name="chevron-right" :size="18" color="#90939A" />
                       </view>
                     </template>
                     <template v-else>
@@ -143,7 +143,7 @@
                   </view>
                   <view class="delivery-fixed">
                     <view class="choice-icon active-icon">
-                      <AppIcon name="truck" :size="19" />
+                      <AppIcon name="truck" :size="20" />
                     </view>
                     <view class="choice-copy">
                       <text class="choice-title">{{ t('commerce.checkout.logistics') }}</text>
@@ -162,7 +162,7 @@
                     </view>
                   </view>
                   <view v-if="carrierError" class="preview-notice carrier-notice">
-                    <AppIcon name="alert" :size="17" color="#B42318" />
+                    <AppIcon name="alert" :size="18" color="#B42318" />
                     <text>{{ carrierError }}</text>
                   </view>
                 </view>
@@ -235,7 +235,7 @@
                   <text v-if="submitDisabledReason" class="submit-hint">{{ submitDisabledReason }}</text>
 
                   <view class="secure-tip">
-                    <AppIcon name="shield-check" :size="15" color="#168A52" />
+                    <AppIcon name="shield-check" :size="16" color="#168A52" />
                     <text>{{ t('commerce.checkout.progressHint') }}</text>
                   </view>
                 </view>
@@ -780,4 +780,13 @@ function copyDisplayError(source, fallbackKey) {
 
 <style lang="scss" scoped>
 @import "./presentation.scss";
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.section-card, .fulfillment-card, .products-card, .options-card, .detail-card, .summary-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}
 </style>

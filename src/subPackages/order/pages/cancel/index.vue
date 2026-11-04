@@ -170,17 +170,17 @@ async function handleSubmit() {
   margin: 0 24rpx 28rpx;
 
   .order-no {
-    font-size: 14px;
+    font-size: var(--type-body-size, 14px);
     color: #fff;
-    font-weight: 500;
+    font-weight: var(--font-weight-medium, 500);
     letter-spacing: 0.5rpx;
   }
 }
 
 .hint-text {
   display: block;
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--type-label-size, 15px);
+  font-weight: var(--font-weight-semibold, 600);
   color: var(--text-primary);
   margin: 0 32rpx 20rpx;
 }
@@ -219,7 +219,7 @@ async function handleSubmit() {
 }
 
 .reason-text {
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   color: var(--text-primary);
   flex: 1;
   line-height: 1.5;
@@ -267,14 +267,14 @@ async function handleSubmit() {
 
 .required-mark {
   color: #F56C6C;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   margin-right: 6rpx;
 }
 
 .label-text {
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium, 500);
 }
 
 .reason-textarea {
@@ -284,7 +284,7 @@ async function handleSubmit() {
   padding: 16rpx 18rpx;
   background: #f7f8fa;
   border-radius: 8rpx;
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   color: var(--text-primary);
   line-height: 1.6;
   border: 1rpx solid var(--border-color);
@@ -293,12 +293,12 @@ async function handleSubmit() {
 
 .reason-placeholder {
   color: var(--text-placeholder);
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
 }
 
 .char-count {
   display: block;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
   color: var(--text-placeholder);
   text-align: right;
   margin-top: 8rpx;
@@ -312,7 +312,7 @@ async function handleSubmit() {
   width: 100%;
   height: 80rpx;
   border-radius: 12rpx;
-  font-size: 15px;
+  font-size: var(--type-label-size, 15px);
   font-weight: 600;
   border: none;
   background: var(--primary-color);
@@ -352,5 +352,14 @@ async function handleSubmit() {
     margin-left: 8rpx;
     margin-right: 8rpx;
   }
+}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.order-summary {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
 }
 </style>

@@ -88,15 +88,24 @@ function deltaClass(value) { return value > 0 ? 'positive' : value < 0 ? 'negati
 </script>
 <style lang="scss" scoped>
 @import './inventory.scss';
-.hero-card { display: grid; grid-template-columns: 88px minmax(0,1fr); align-items: center; gap: 15px; padding: 18px 16px; border-radius: 16px; background: #fff; }
+.hero-card { display: grid; grid-template-columns: 88px minmax(0,1fr); align-items: center; gap: 15px; padding: 18px 16px; border-radius: var(--radius-feature, 18px); background: #fff; }
 .hero-card .product-name { white-space: normal; overflow-wrap: anywhere; }
-.hero-image { width: 88px; height: 96px; border-radius: 10px; }
-.quantity-card { margin-top: 14px; padding: 20px 18px; border-radius: 16px; background: #fff; }
-.quantity-primary > text { display: block; font-size: 12px; color: #8C939E; }
-.quantity-primary > text + text { margin-top: 8px; font-size: 34px; color: #D7192D; font-weight: 700; }
-.quantity-primary text text { color: #8C939E; font-size: 13px; font-weight: 400; }
+.hero-image { width: 88px; height: 96px; border-radius: var(--radius-control, 10px); }
+.quantity-card { margin-top: 14px; padding: 20px 18px; border-radius: var(--radius-feature, 18px); background: #fff; }
+.quantity-primary > text { display: block; font-size: var(--type-caption-size, 12px); color: #8C939E; }
+.quantity-primary > text + text { margin-top: 8px; font-size: var(--type-display-size, 28px); color: #D7192D; font-weight: var(--font-weight-bold, 700); }
+.quantity-primary text text { color: #8C939E; font-size: var(--type-body-small-size, 13px); font-weight: var(--font-weight-regular, 400); }
 .quantity-secondary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; margin-top: 20px; padding-top: 18px; border-top: 1px solid #F0F2F5; }
-.quantity-secondary text { display: block; font-size: 11px; color: #9299A3; }
+.quantity-secondary text { display: block; font-size: var(--type-caption-size, 12px); color: #9299A3; }
 .quantity-secondary view > text:first-child { min-height: 32px; line-height: 1.45; }
-.quantity-secondary text + text { margin-top: 5px; font-size: 19px; color: #3C4551; font-weight: 650; }
+.quantity-secondary text + text { margin-top: 5px; font-size: var(--type-page-title-size, 20px); color: #3C4551; font-weight: var(--font-weight-semibold, 600); }
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.hero-card, .quantity-card, .section-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}
 </style>

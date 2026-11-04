@@ -22,7 +22,7 @@
         </view>
 
         <button v-if="detail.fileUrl" class="download-button" @tap="openFile">
-          <AppIcon name="download" :size="17" />
+          <AppIcon name="download" :size="18" />
           <text>{{ t('content.manual.openPdf') }}</text>
         </button>
         <text v-else class="empty-content">{{ t('content.manual.emptyAttachment') }}</text>
@@ -126,20 +126,20 @@ function goBack() { navigator.back() }
 <style lang="scss" scoped>
 .page { display: flex; height: 100vh; height: 100dvh; overflow: hidden; flex-direction: column; background: #F4F5F7; }
 .page-scroll { flex: 1; min-height: 0; }
-.content { min-height: calc(100% - 24px); margin: 12px; padding: 26px 22px calc(52px + env(safe-area-inset-bottom)); box-sizing: border-box; border-radius: 20px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-.cover { display: block; width: 100%; height: 360px; margin-bottom: 22px; border-radius: 14px; background: #EEF0F3; }
-.manual-title { display: block; color: #17191E; font-size: 24px; font-weight: 800; line-height: 1.4; }
-.manual-meta { display: block; margin-top: 9px; color: #8A919C; font-size: 12px; }
-.article-body { margin-top: 24px; color: #292C33; font-size: 15px; line-height: 1.9; word-break: break-word; }
-.article-body-state { display: flex; min-height: 180px; margin-top: 24px; align-items: center; justify-content: center; gap: 10px; color: #969AA3; font-size: 14px; }
+.content { min-height: calc(100% - 24px); margin: 12px; padding: 26px 22px calc(52px + env(safe-area-inset-bottom)); box-sizing: border-box; border-radius: var(--radius-feature, 18px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.cover { display: block; width: 100%; height: 360px; margin-bottom: 22px; border-radius: var(--radius-card, 14px); background: #EEF0F3; }
+.manual-title { display: block; color: #17191E; font-size: var(--type-heading-size, 24px); font-weight: var(--font-weight-bold, 700); line-height: 1.4; }
+.manual-meta { display: block; margin-top: 9px; color: #8A919C; font-size: var(--type-caption-size, 12px); }
+.article-body { margin-top: 24px; color: #292C33; font-size: var(--type-label-size, 15px); line-height: 1.9; word-break: break-word; }
+.article-body-state { display: flex; min-height: 180px; margin-top: 24px; align-items: center; justify-content: center; gap: 10px; color: #969AA3; font-size: var(--type-body-size, 14px); }
 .article-body-spinner { width: 18px; height: 18px; border: 2px solid #E5E7EB; border-top-color: #D7192D; border-radius: 50%; animation: manual-body-spin .8s linear infinite; }
 @keyframes manual-body-spin { to { transform: rotate(360deg); } }
-.article-body :deep(img) { display: block; width: 100%; height: auto; margin: 18px 0; border-radius: 10px; }
+.article-body :deep(img) { display: block; width: 100%; height: auto; margin: 18px 0; border-radius: var(--radius-control, 10px); }
 .article-body :deep(p) { margin: 0 0 14px; line-height: 1.9; }
-.article-body :deep(h1), .article-body :deep(h2), .article-body :deep(h3) { margin: 22px 0 12px; color: #17191E; font-weight: 800; line-height: 1.45; }
-.empty-content { display: block; color: #94979F; font-size: 13px; text-align: center; }
-.download-button { display: flex; min-height: 46px; align-items: center; justify-content: center; gap: 8px; margin-top: 28px; border: 0; border-radius: 12px; color: #FFF; background: #D7192D; font-size: 14px; font-weight: 700; }
+.article-body :deep(h1), .article-body :deep(h2), .article-body :deep(h3) { margin: 22px 0 12px; color: #17191E; font-weight: var(--font-weight-bold, 700); line-height: 1.45; }
+.empty-content { display: block; color: #94979F; font-size: var(--type-body-small-size, 13px); text-align: center; }
+.download-button { display: flex; min-height: 46px; align-items: center; justify-content: center; gap: 8px; margin-top: 28px; border: 0; border-radius: var(--radius-card, 14px); color: #FFF; background: #D7192D; font-size: var(--type-body-size, 14px); font-weight: var(--font-weight-bold, 700); }
 .download-button::after { border: 0; }
-.state-box { display: flex; min-height: 70vh; align-items: center; justify-content: center; flex-direction: column; gap: 9px; color: #94979F; font-size: 13px; text-align: center; }
-.state-title { color: #454850; font-size: 16px; font-weight: 700; }
+.state-box { display: flex; min-height: 70vh; align-items: center; justify-content: center; flex-direction: column; gap: 9px; color: #94979F; font-size: var(--type-body-small-size, 13px); text-align: center; }
+.state-title { color: #454850; font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-bold, 700); }
 </style>

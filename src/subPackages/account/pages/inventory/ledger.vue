@@ -3,7 +3,7 @@
     <template #header>
       <AppHeader :title="t('account.inventory.ledger')" :show-back="true" :searchable="true" :search-value="keywordInput" :search-placeholder="t('account.inventory.ledgerSearch')" @update:search-value="keywordInput = $event" @search="applySearch" @clear-search="clearSearch" />
       <view class="ledger-filters inventory-wrap">
-        <picker :range="typeOptions" range-key="label" :value="typeIndex" @change="changeType"><view class="filter-value">{{ typeOptions[typeIndex].label }} <AppIcon name="chevron-down" :size="12" /></view></picker>
+        <picker :range="typeOptions" range-key="label" :value="typeIndex" @change="changeType"><view class="filter-value">{{ typeOptions[typeIndex].label }} <AppIcon name="chevron-down" :size="14" /></view></picker>
         <picker mode="date" :value="startDate" @change="changeStart"><view class="filter-value">{{ startDate || t('account.inventory.startDate') }}</view></picker>
         <picker mode="date" :value="endDate" @change="changeEnd"><view class="filter-value">{{ endDate || t('account.inventory.endDate') }}</view></picker>
       </view>
@@ -19,7 +19,7 @@
                 <view class="flow-heading"><text class="flow-title">{{ businessTypeText(item.businessType) }}</text><text class="muted">{{ formatDateTime(item.occurredAt) }}</text></view>
                 <view class="ledger-product" @tap="openSku(item)"><AppProductImage class="ledger-image" :src="item.imageUrl" mode="aspectFit" /><view class="stock-copy"><text class="product-name">{{ item.productName || t('account.inventory.unnamed') }}</text><text class="spec-line">{{ [item.colorName, item.sizeName].filter(Boolean).join(' / ') || item.skuName }}</text><text class="sku-code">{{ item.skuCode || ('SKU ' + item.skuId) }}</text></view><AppIcon name="chevron-right" :size="14" color="#ABB1BB" /></view>
                 <view class="flow-deltas"><text>{{ t('account.inventory.physicalChange') }}<text :class="deltaClass(item.quantityDelta)">{{ signed(item.quantityDelta) }} {{ item.unit }}</text></text><text v-if="item.reservedDelta">{{ t('account.inventory.reservedChange') }}<text>{{ signed(item.reservedDelta) }}</text></text></view>
-                <view class="source-line" @tap="openSource(item)"><text :class="{ 'link-text': canOpenSource(item) }">{{ item.sourceNo || '—' }}</text><AppIcon v-if="canOpenSource(item)" name="chevron-right" :size="12" color="#ABB1BB" /></view>
+                <view class="source-line" @tap="openSource(item)"><text :class="{ 'link-text': canOpenSource(item) }">{{ item.sourceNo || '—' }}</text><AppIcon v-if="canOpenSource(item)" name="chevron-right" :size="14" color="#ABB1BB" /></view>
               </view>
             </view>
           </AppPageState>
@@ -133,14 +133,14 @@ function deltaClass(value) { return value > 0 ? 'positive' : value < 0 ? 'negati
 <style lang="scss" scoped>
 @import './inventory.scss';
 .ledger-filters { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 8px; padding: 6px var(--page-padding-x,16px) 12px; }
-.filter-value { display: flex; align-items: center; justify-content: center; min-height: 36px; padding: 6px; border-radius: 9px; background: #fff; color: #657080; font-size: 11px; overflow-wrap: anywhere; }
+.filter-value { display: flex; align-items: center; justify-content: center; min-height: 36px; padding: 6px; border-radius: var(--radius-small, 8px); background: #fff; color: #657080; font-size: var(--type-caption-size, 12px); overflow-wrap: anywhere; }
 .ledger-list { padding: 0 16px; }
 .ledger-list .flow-row { padding: 18px 0; }
-.flow-heading .muted { text-align: right; font-size: 10px; }
+.flow-heading .muted { text-align: right; font-size: var(--type-caption-size, 12px); }
 .ledger-product { display: grid; grid-template-columns: 48px minmax(0,1fr) 14px; align-items: center; gap: 10px; margin: 12px 0; }
-.ledger-image { width: 48px; height: 56px; border-radius: 7px; }
-.ledger-product .product-name { font-size: 13px; }
-.ledger-product .spec-line { font-size: 11px; }
-.source-line,.sku-scope { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; color: #989FAA; font-size: 11px; overflow-wrap: anywhere; }
-.sku-scope { margin: 0 0 12px; padding: 10px 12px; border-radius: 9px; background: #FCEEEF; }
+.ledger-image { width: 48px; height: 56px; border-radius: var(--radius-small, 8px); }
+.ledger-product .product-name { font-size: var(--type-body-small-size, 13px); }
+.ledger-product .spec-line { font-size: var(--type-caption-size, 12px); }
+.source-line,.sku-scope { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; color: #989FAA; font-size: var(--type-caption-size, 12px); overflow-wrap: anywhere; }
+.sku-scope { margin: 0 0 12px; padding: 10px 12px; border-radius: var(--radius-small, 8px); background: #FCEEEF; }
 </style>

@@ -64,7 +64,7 @@
                    >
                      <AppIcon
                        :name="showPassword ? 'eye-off' : 'eye'"
-                       :size="22"
+                       :size="24"
                        color="#26282D"
                      />
                    </view>
@@ -800,5 +800,14 @@ function goToApplySign() {
     padding-left: $page-padding-tablet;
     padding-right: $page-padding-tablet;
   }
+}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.login-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
 }
 </style>

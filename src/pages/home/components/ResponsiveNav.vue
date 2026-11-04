@@ -15,7 +15,7 @@
           <AppIcon
             class="nav-svg-icon"
             :name="getItemIcon(item)"
-            :size="mode === 'sidebar' ? 24 : 22"
+            :size="24"
             :stroke-width="1.8"
           />
           <text v-if="item.key === 'cart' && normalizedCartCount" class="cart-badge">
@@ -96,7 +96,7 @@ function getItemIcon(item) {
 
 .nav-label {
   font-size: var(--type-nav-size, 11px);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold, 600);
   line-height: var(--type-nav-line-height, 16px);
 }
 
@@ -120,10 +120,10 @@ function getItemIcon(item) {
   padding: 0 4px;
   box-sizing: border-box;
   border: 2px solid #fff;
-  border-radius: 10px;
+  border-radius: var(--radius-control, 10px);
   color: #fff;
-  font-size: 9px;
-  font-weight: 700;
+  font-size: var(--badge-font-size, 11px);
+  font-weight: var(--font-weight-bold, 700);
   line-height: 1;
   background: var(--color-brand, #d7192d);
 }
@@ -217,7 +217,7 @@ function getItemIcon(item) {
   height: 58px;
   margin: 0 auto;
   border: 1px solid rgba(215, 25, 45, 0.08);
-  border-radius: 19px;
+  border-radius: var(--radius-feature, 18px);
   background: rgba(255, 255, 255, 0.72);
   box-shadow: 0 12px 28px rgba(215, 25, 45, 0.09);
 }

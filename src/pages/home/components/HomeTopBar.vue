@@ -51,7 +51,7 @@
         :aria-label="t('main.nav.settings')"
         @click="$emit('settings')"
       >
-        <AppIcon name="settings" :size="21" :stroke-width="1.8" />
+        <AppIcon name="settings" :size="20" :stroke-width="1.8" />
       </view>
       <view
         class="header-action glass-btn"
@@ -60,7 +60,7 @@
         :aria-label="t('main.nav.messages')"
         @click="$emit('messages')"
       >
-        <view class="message-icon-anchor"><AppIcon name="bell" :size="21" :stroke-width="1.8" />
+        <view class="message-icon-anchor"><AppIcon name="bell" :size="20" :stroke-width="1.8" />
         <view v-if="hasUnread" class="unread-dot" /></view>
       </view>
     </view>
@@ -144,7 +144,7 @@ const currentTitle = computed(() => tabTitles[props.activeTab] ? t(tabTitles[pro
   padding: 0 12px;
   box-sizing: border-box;
   overflow: hidden;
-  border-radius: 18px;
+  border-radius: var(--radius-feature, 18px);
   background: #eff0f2;
 }
 
@@ -158,7 +158,7 @@ const currentTitle = computed(() => tabTitles[props.activeTab] ? t(tabTitles[pro
   flex: 1;
   overflow: hidden;
   color: #a8adb5;
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -198,8 +198,8 @@ const currentTitle = computed(() => tabTitles[props.activeTab] ? t(tabTitles[pro
 .brand-title {
   overflow: hidden;
   color: var(--color-text-primary, #1b1c20);
-  font-size: 18px;
-  font-weight: 750;
+  font-size: var(--type-section-title-size, 18px);
+  font-weight: var(--font-weight-bold, 700);
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -220,8 +220,8 @@ const currentTitle = computed(() => tabTitles[props.activeTab] ? t(tabTitles[pro
 
 .page-title {
   color: var(--color-text-primary, #1b1c20);
-  font-size: 21px;
-  font-weight: 760;
+  font-size: var(--type-page-title-size, 20px);
+  font-weight: var(--font-weight-bold, 700);
   line-height: 1.2;
 }
 
@@ -298,11 +298,11 @@ const currentTitle = computed(() => tabTitles[props.activeTab] ? t(tabTitles[pro
   }
 
   .brand-title {
-    font-size: 20px;
+    font-size: var(--type-page-title-size, 20px);
   }
 
   .page-title {
-    font-size: 24px;
+    font-size: var(--type-heading-size, 24px);
   }
 
   .glass-btn {
@@ -318,14 +318,14 @@ const currentTitle = computed(() => tabTitles[props.activeTab] ? t(tabTitles[pro
     justify-content: flex-start;
     gap: 9px;
     box-sizing: border-box;
-    border-radius: 22px;
+    border-radius: var(--radius-feature, 18px);
     color: #737780;
   }
 
   .home-search-box-text {
     display: block;
     overflow: hidden;
-    font-size: 12px;
+    font-size: var(--type-caption-size, 12px);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -337,14 +337,14 @@ const currentTitle = computed(() => tabTitles[props.activeTab] ? t(tabTitles[pro
     justify-content: flex-start;
     gap: 9px;
     box-sizing: border-box;
-    border-radius: 22px;
+    border-radius: var(--radius-feature, 18px);
     color: #737780;
   }
 
   .category-search-text {
     display: block;
     overflow: hidden;
-    font-size: 12px;
+    font-size: var(--type-caption-size, 12px);
     text-overflow: ellipsis;
     white-space: nowrap;
   }
@@ -374,7 +374,7 @@ const currentTitle = computed(() => tabTitles[props.activeTab] ? t(tabTitles[pro
   }
 
   .brand-title {
-    font-size: 16px;
+    font-size: var(--type-card-title-size, 16px);
   }
 
   .glass-btn {

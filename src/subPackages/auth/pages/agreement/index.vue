@@ -160,7 +160,7 @@ function getSignAgreementContent() {
   .content {
     min-height: calc(100% - 24px);
     padding: 0 0 60rpx;
-    border-radius: 20px;
+    border-radius: var(--radius-feature, 18px);
     overflow: hidden;
     background: var(--glass-card-background, rgba(255,255,255,.74));
     box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));

@@ -63,7 +63,7 @@
 
       <!-- 列表页顶部搜索：与状态栏、导航栏组成一个紧凑头部。 -->
       <view v-if="searchable" class="nav-search">
-        <AppIcon class="nav-search-icon" name="search" :size="17" :stroke-width="1.8" />
+        <AppIcon class="nav-search-icon" name="search" :size="18" :stroke-width="1.8" />
         <input
           class="nav-search-input"
           :value="searchValue"
@@ -94,7 +94,7 @@
       <view class="nav-right" :style="rightAreaStyle">
         <!-- 消息入口 -->
         <view v-if="showMessage" class="icon-btn" hover-class="header-button--pressed" :hover-start-time="0" :hover-stay-time="80" @tap="handleMessage">
-          <view class="message-icon-anchor"><AppIcon name="bell" :size="21" />
+          <view class="message-icon-anchor"><AppIcon name="bell" :size="20" />
           <view v-if="unreadCount > 0" class="unread-dot" /></view>
         </view>
         <!-- 供应商入口 -->
@@ -107,7 +107,7 @@
         </view>
         <!-- 购物车 -->
         <view v-if="showCart && cartCount > 0" class="icon-btn cart-btn" hover-class="header-button--pressed" :hover-start-time="0" :hover-stay-time="80" @tap="handleCart">
-          <AppIcon name="cart" :size="21" />
+          <AppIcon name="cart" :size="20" />
           <text class="cart-count-badge">{{ cartCount > 99 ? '99+' : cartCount }}</text>
         </view>
         <button
@@ -454,7 +454,7 @@ onUnmounted(() => {
   margin: 0 auto;
   padding: 0 12px;
   border: 1px solid #e2e5e8;
-  border-radius: 20px;
+  border-radius: var(--radius-feature, 18px);
   background: #ffffff;
   box-sizing: border-box;
   transform: translateY(-50%);
@@ -471,7 +471,7 @@ onUnmounted(() => {
   height: 100%;
   flex: 1;
   color: #252a31;
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
 }
 
 .nav-search-placeholder {
@@ -504,7 +504,7 @@ onUnmounted(() => {
 
 .logo-text {
   font-size: var(--type-section-title-size, 18px);
-  font-weight: 800;
+  font-weight: var(--font-weight-bold, 700);
   color: var(--primary-color, #D7192D);
   letter-spacing: -1px;
 }
@@ -524,7 +524,7 @@ onUnmounted(() => {
 .title-text {
   display: block;
   font-size: var(--type-header-title-size, 17px);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold, 600);
   line-height: var(--type-header-title-line-height, 24px);
   color: var(--text-primary, #1B1C20);
   text-align: center;
@@ -573,7 +573,7 @@ onUnmounted(() => {
 
 .supplier-text {
   font-size: var(--type-body-small-size, 13px);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium, 500);
   color: #4f545c;
 }
 
@@ -581,7 +581,7 @@ onUnmounted(() => {
 
 .lang-text {
   font-size: var(--type-body-small-size, 13px);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold, 600);
   color: #4f545c;
 }
 
@@ -605,10 +605,10 @@ onUnmounted(() => {
   justify-content: center;
   overflow: hidden;
   border: 1.5px solid #f7f8fa;
-  border-radius: 9px;
+  border-radius: var(--radius-small, 8px);
   color: #fff;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: var(--badge-font-size, 11px);
+  font-weight: var(--font-weight-bold, 700);
   line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -622,11 +622,11 @@ onUnmounted(() => {
   margin: 0;
   padding: 0 8px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--radius-control, 10px);
   color: var(--color-text-primary, #1B1C20);
   background: transparent;
   font-size: var(--type-body-size, 14px);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .header-action[disabled] {
@@ -647,7 +647,7 @@ onUnmounted(() => {
 
   .supplier-text,
   .lang-text {
-    font-size: 12px;
+    font-size: var(--type-caption-size, 12px);
   }
 }
 
@@ -664,7 +664,7 @@ onUnmounted(() => {
 
   .nav-search {
     padding: 0 16px;
-    border-radius: 20px;
+    border-radius: var(--radius-feature, 18px);
   }
 }
 

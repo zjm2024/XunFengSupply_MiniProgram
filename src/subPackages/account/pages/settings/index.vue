@@ -175,10 +175,10 @@ async function handleLogout() {
   height: 48px;
   background: var(--surface-card, #FFFFFF);
   border: 1px solid var(--divider-color, #ECEEF2);
-  border-radius: 14px;
+  border-radius: var(--radius-card, 14px);
   color: var(--danger-color, #B42318);
-  font-size: 15px;
-  font-weight: 600;
+  font-size: var(--type-label-size, 15px);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .logout-btn:active {

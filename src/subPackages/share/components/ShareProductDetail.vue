@@ -8,7 +8,7 @@
       <view class="info-card">
         <text class="product-name">{{ product.productName }}</text><text class="product-code">{{ t('commerce.product.article', { code: product.productCode || '-' }) }}</text>
         <view v-if="showPrice" class="price-row"><AmountText class="price" :text="'¥' + selectedPrice" /><text class="price-unit">/ {{ unit || '件' }}</text></view>
-        <button v-if="purchasable && displaySku" class="price-variant" @tap="$emit('select', displaySku.skuId)"><text>{{ t('commerce.product.currentVariant', { name: selectedName }) }}</text><AppIcon name="chevron-right" :size="13" /></button>
+        <button v-if="purchasable && displaySku" class="price-variant" @tap="$emit('select', displaySku.skuId)"><text>{{ t('commerce.product.currentVariant', { name: selectedName }) }}</text><AppIcon name="chevron-right" :size="14" /></button>
         <view class="facts"><text v-if="purchasable">{{ t('commerce.product.minimum', { count: 1, unit: unit || '件' }) }}</text><text v-if="purchasable" class="fact-dot">·</text><StatusTag :type="stockType(selectedStock)" :text="t('share.stock.' + selectedStock)" /><template v-if="categoryName"><text class="fact-dot">·</text><text>{{ categoryName }}</text></template></view>
       </view>
       <view v-if="sizeHtml" class="size-recommendation-card"><view class="section-title">{{ t('commerce.product.sizeRecommendation') }}</view><rich-text class="size-recommendation-rich-text" :nodes="sizeHtml" /></view>
@@ -57,5 +57,14 @@ function stockType(state) { return state === 'IN_STOCK' ? 'success' : state === 
 </script>
 <style scoped lang="scss">
 @import '@/shared/styles/productDetail.scss';
-.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.section-count{font-size:12px;color:var(--text-secondary,#737a84)}.spec-row{display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid var(--border-color,#eceef2)}.spec-copy{flex:1;min-width:0;font-size:14px}.spec-state{display:flex;flex-direction:column;align-items:flex-end;gap:6px}.sku-popup{display:flex;flex-direction:column;gap:12px}.sku-popup :deep(.status-tag){align-self:flex-start;flex:none;width:auto;max-width:100%;min-height:22px;line-height:18px}.sku-image{width:120px;height:120px;align-self:center}
+.section-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.section-count{font-size: var(--type-caption-size, 12px);color:var(--text-secondary,#737a84)}.spec-row{display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid var(--border-color,#eceef2)}.spec-copy{flex:1;min-width:0;font-size: var(--type-body-size, 14px)}.spec-state{display:flex;flex-direction:column;align-items:flex-end;gap:6px}.sku-popup{display:flex;flex-direction:column;gap:12px}.sku-popup :deep(.status-tag){align-self:flex-start;flex:none;width:auto;max-width:100%;min-height:22px;line-height:18px}.sku-image{width:120px;height:120px;align-self:center}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.media-card, .info-card, .size-recommendation-card, .section-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}
 </style>

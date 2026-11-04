@@ -14,13 +14,13 @@
           <text class="entry-description">{{ t('main.home.purchaseDescription') }}</text>
           <view class="entry-action entry-action--primary">
             <text>{{ t('main.home.shop') }}</text>
-            <AppIcon name="arrow-right" :size="17" />
+            <AppIcon name="arrow-right" :size="18" />
           </view>
         </view>
         <view class="entry-visual order-visual">
           <view class="visual-ring visual-ring--large"></view>
           <view class="visual-ring visual-ring--small"></view>
-          <view class="visual-icon"><AppIcon name="product" :size="54" /></view>
+          <view class="visual-icon"><AppIcon name="product" :size="48" /></view>
         </view>
       </view>
 
@@ -31,13 +31,13 @@
           <text class="entry-description">{{ t('main.home.newsDescription') }}</text>
           <view class="entry-action entry-action--secondary">
             <text>{{ t('main.home.readNews') }}</text>
-            <AppIcon name="arrow-right" :size="17" />
+            <AppIcon name="arrow-right" :size="18" />
           </view>
         </view>
         <view class="entry-visual news-visual">
           <view class="visual-ring visual-ring--large"></view>
           <view class="visual-ring visual-ring--small"></view>
-          <view class="visual-icon"><AppIcon name="news" :size="54" /></view>
+          <view class="visual-icon"><AppIcon name="news" :size="48" /></view>
         </view>
       </view>
 
@@ -48,13 +48,13 @@
           <text class="entry-description">{{ t('main.home.manualDescription') }}</text>
           <view class="entry-action entry-action--manual">
             <text>{{ t('main.home.readManual') }}</text>
-            <AppIcon name="arrow-right" :size="17" />
+            <AppIcon name="arrow-right" :size="18" />
           </view>
         </view>
         <view class="entry-visual manual-visual">
           <view class="visual-ring visual-ring--large"></view>
           <view class="visual-ring visual-ring--small"></view>
-          <view class="visual-icon"><AppIcon name="invoice" :size="54" /></view>
+          <view class="visual-icon"><AppIcon name="invoice" :size="48" /></view>
         </view>
       </view>
     </view>
@@ -124,7 +124,7 @@ async function openManualList() {
   justify-content: space-between;
   gap: 16px;
   box-sizing: border-box;
-  border-radius: 24px;
+  border-radius: var(--radius-feature, 18px);
   transition: transform 160ms ease, opacity 160ms ease;
 }
 
@@ -150,16 +150,16 @@ async function openManualList() {
   flex-direction: column;
 }
 
-.entry-kicker { margin-bottom: 7px; color: var(--color-brand, #d7192d); font-size: 10px; font-weight: 800; letter-spacing: 1.6px; }
+.entry-kicker { margin-bottom: 7px; color: var(--color-brand, #d7192d); font-size: var(--type-caption-size, 12px); font-weight: var(--font-weight-bold, 700); letter-spacing: 1.6px; }
 .entry-kicker--muted { color: #747984; }
 .entry-kicker--manual { color: #2C63B6; }
-.entry-title { font-size: 23px; font-weight: 780; line-height: 1.2; }
-.entry-description { margin-top: 10px; color: var(--color-text-secondary, #666a73); font-size: 13px; line-height: 1.7; }
+.entry-title { font-size: var(--type-heading-size, 24px); font-weight: var(--font-weight-bold, 700); line-height: 1.2; }
+.entry-description { margin-top: 10px; color: var(--color-text-secondary, #666a73); font-size: var(--type-body-small-size, 13px); line-height: 1.7; }
 
 .entry-action,
 .feature-item { display: flex; align-items: center; }
 
-.entry-action { min-height: 40px; margin-top: 18px; padding: 0 18px; gap: 8px; border-radius: 13px; font-size: 13px; font-weight: 700; }
+.entry-action { min-height: 40px; margin-top: 18px; padding: 0 18px; gap: 8px; border-radius: var(--radius-card, 14px); font-size: var(--type-body-small-size, 13px); font-weight: var(--font-weight-bold, 700); }
 .entry-action--primary { color: #fff; background: linear-gradient(100deg, #f04a59, #d7192d 66%, #bd1325); box-shadow: 0 10px 22px rgba(215, 25, 45, 0.2); }
 .entry-action--secondary { color: var(--color-brand, #d7192d); border: 1px solid rgba(215, 25, 45, 0.24); background: rgba(255, 255, 255, 0.62); }
 .entry-action--manual { color: #2C63B6; border: 1px solid rgba(44, 99, 182, 0.25); background: rgba(255, 255, 255, 0.68); }
@@ -172,7 +172,7 @@ async function openManualList() {
   height: 132px;
   flex-shrink: 0;
   overflow: hidden;
-  border-radius: 28px;
+  border-radius: var(--radius-feature, 18px);
 }
 
 .order-visual { color: #fff; background: linear-gradient(145deg, rgba(255, 255, 255, 0.82), rgba(255, 207, 214, 0.78)); }
@@ -186,7 +186,7 @@ async function openManualList() {
   place-items: center;
   width: 82px;
   height: 82px;
-  border-radius: 25px;
+  border-radius: var(--radius-feature, 18px);
   background: rgba(255, 255, 255, 0.88);
   box-shadow: 0 14px 28px rgba(31, 33, 40, 0.1);
 }
@@ -197,11 +197,11 @@ async function openManualList() {
 .visual-ring--large { top: -34px; right: -36px; width: 112px; height: 112px; }
 .visual-ring--small { bottom: -20px; left: -18px; width: 58px; height: 58px; }
 
-.feature-strip { display: none; margin-bottom: 18px; padding: 12px 18px; justify-content: space-around; border-radius: 18px; }
-.feature-item { gap: 8px; color: #676b74; font-size: 12px; }
+.feature-strip { display: none; margin-bottom: 18px; padding: 12px 18px; justify-content: space-around; border-radius: var(--radius-feature, 18px); }
+.feature-item { gap: 8px; color: #676b74; font-size: var(--type-caption-size, 12px); }
 .feature-item :deep(.app-icon) { color: var(--color-brand, #d7192d); }
 
-.copyright { padding: 26px 0 2px; color: #a1a2a8; font-size: 11px; text-align: center; }
+.copyright { padding: 26px 0 2px; color: #a1a2a8; font-size: var(--type-caption-size, 12px); text-align: center; }
 .card--pressed { opacity: 0.9; transform: scale(0.985); }
 
 @media screen and (min-width: 768px) {
@@ -227,9 +227,18 @@ async function openManualList() {
 
 @media screen and (max-width: 374px) {
   .entry-card { min-height: 196px; padding: 17px 14px; }
-  .entry-title { font-size: 20px; }
-  .entry-description { font-size: 11px; }
+  .entry-title { font-size: var(--type-page-title-size, 20px); }
+  .entry-description { font-size: var(--type-caption-size, 12px); }
   .entry-visual { width: 88px; height: 116px; }
   .visual-icon { width: 64px; height: 64px; }
+}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.entry-card, .order-card, .news-card, .manual-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
 }
 </style>

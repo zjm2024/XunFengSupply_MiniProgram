@@ -34,8 +34,8 @@ function choose(action) {
 
 <style scoped>
 .action-menu-overlay { position: fixed; inset: 0; z-index: 220; pointer-events: auto; background: rgba(17,18,22,.08); }
-.action-menu-panel { position: absolute; padding: 4px 8px; border: 1px solid #e8eaee; border-radius: 14px; background: #fff; box-shadow: 0 10px 32px rgba(25,31,40,.18); box-sizing: border-box; }
-.overflow-action { display: flex; width: 100%; min-height: 44px; align-items: center; margin: 0; padding: 10px; border: 0; border-bottom: 1px solid #f0f1f4; border-radius: 0; background: #fff; color: #363c45; font-size: 13px; line-height: 20px; white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.action-menu-panel { position: absolute; padding: 4px 8px; border: 1px solid #e8eaee; border-radius: var(--radius-card, 14px); background: #fff; box-shadow: 0 10px 32px rgba(25,31,40,.18); box-sizing: border-box; }
+.overflow-action { display: flex; width: 100%; min-height: 44px; align-items: center; margin: 0; padding: 10px; border: 0; border-bottom: 1px solid #f0f1f4; border-radius: 0; background: #fff; color: #363c45; font-size: var(--type-body-small-size, 13px); line-height: 20px; white-space: normal; text-align: left; overflow-wrap: anywhere; }
 .overflow-action:last-child { border-bottom: 0; }
 .overflow-action:disabled { color: #a0a6ae; }
 button::after { border: 0; }

@@ -1,5 +1,5 @@
 <template>
-  <button class="checkout-spu-header" :aria-expanded="!collapsed" :aria-label="(collapsed ? '展开' : '收起') + name" @tap="emit('toggle')"><view class="checkout-spu-copy"><text class="checkout-spu-name">{{ name }}</text><text class="checkout-spu-meta">{{ meta }}</text></view><AmountText class="checkout-spu-total" :text="amount" /><AppIcon name="chevron-right" :size="17" class="checkout-collapse-icon" :class="{ expanded:!collapsed }" /></button>
+  <button class="checkout-spu-header" :aria-expanded="!collapsed" :aria-label="(collapsed ? '展开' : '收起') + name" @tap="emit('toggle')"><view class="checkout-spu-copy"><text class="checkout-spu-name">{{ name }}</text><text class="checkout-spu-meta">{{ meta }}</text></view><AmountText class="checkout-spu-total" :text="amount" /><AppIcon name="chevron-right" :size="18" class="checkout-collapse-icon" :class="{ expanded:!collapsed }" /></button>
 </template>
 <script setup>
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'

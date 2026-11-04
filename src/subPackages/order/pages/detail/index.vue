@@ -693,11 +693,11 @@ function splitItemQuantityText(split, item) {
 <style lang="scss" scoped>
 /* 成品页覆盖层：统一使用项目字体与间距 token，并保持 390px/800px 两档布局。 */
 .order-detail-page { width: 100%; max-width: var(--content-max-width, 1120px); min-height: 0; margin: 0 auto; padding: 0; box-sizing: border-box; background: transparent; }
-.logistics-card, .address-card, .goods-card, .split-card, .info-card, .price-card { margin: 0 0 10px; padding: 14px; border-radius: var(--radius-card, 14px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-sizing: border-box; }
+.logistics-card, .address-card, .goods-card, .split-card, .info-card, .price-card { margin: 0 0 10px; padding: var(--module-padding, 16px); border-radius: var(--radius-card, 14px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); box-sizing: border-box; }
 .logistics-card:active { opacity: .72; }
 .logistics-info { min-height: 42px; }
 .logistics-info .logistics-text { margin-left: 12px; }
-.logistics-info .logistics-text .logistics-company { color: var(--type-title-color); font-size: var(--type-body-size, 14px); font-weight: 650; }
+.logistics-info .logistics-text .logistics-company { color: var(--type-title-color); font-size: var(--type-body-size, 14px); font-weight: var(--font-weight-semibold, 600); }
 .logistics-info .logistics-text .tracking-no { margin-top: 3px; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
 .address-card { gap: 11px; }
 .address-card .address-icon-wrap { margin: 0; padding-top: 1px; }
@@ -708,14 +708,14 @@ function splitItemQuantityText(split, item) {
 .goods-card .card-title, .info-card .card-title { display: flex; margin-bottom: 10px; align-items: center; gap: 8px; color: var(--type-title-color); font-size: var(--type-card-title-size, 16px); line-height: var(--type-card-title-line-height, 24px); }
 .goods-card .card-title::before, .info-card .card-title::before { width: 3px; height: 16px; flex: 0 0 3px; border-radius: 2px; background: var(--color-brand, #D7192D); content: ''; }
 .spu-order-list { display: flex; flex-direction: column; gap: 8px; }
-.spu-order-card { overflow: hidden; border-radius: 12px; background: rgba(255,255,255,.34); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.spu-order-card { overflow: hidden; border-radius: var(--radius-card, 14px); background: rgba(255,255,255,.34); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
 .spu-order-header { display: grid; grid-template-columns: 52px minmax(0, 1fr) minmax(0, .7fr) 28px; align-items: center; gap: 10px; min-height: 68px; padding: 8px; box-sizing: border-box; }
-.spu-image-link { width: 52px; height: 52px; overflow: hidden; border-radius: 9px; background: #FFF; }
+.spu-image-link { width: 52px; height: 52px; overflow: hidden; border-radius: var(--radius-small, 8px); background: #FFF; }
 .spu-image { width: 100%; height: 100%; }
 .spu-order-copy { min-width: 0; }
-.spu-order-name { display: block; overflow: hidden; color: var(--type-title-color); font-size: var(--type-body-size, 14px); font-weight: 650; line-height: 20px; text-overflow: ellipsis; white-space: nowrap; }
+.spu-order-name { display: block; overflow: hidden; color: var(--type-title-color); font-size: var(--type-body-size, 14px); font-weight: var(--font-weight-semibold, 600); line-height: 20px; text-overflow: ellipsis; white-space: nowrap; }
 .spu-order-meta { display: block; margin-top: 3px; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
-.spu-order-total { color: var(--type-title-color); font-size: var(--type-body-small-size, 13px); font-weight: 650; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.spu-order-total { color: var(--type-title-color); font-size: var(--type-body-small-size, 13px); font-weight: var(--font-weight-semibold, 600); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .spu-collapse-button { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 50%; color: var(--type-secondary-color); background: #FFF; }
 .spu-collapse-icon { transition: transform 180ms ease; }
 .spu-collapse-icon.expanded { transform: rotate(90deg); }
@@ -741,9 +741,9 @@ function splitItemQuantityText(split, item) {
 .timeline-dot { position: relative; z-index: 1; width: 11px; height: 11px; flex: 0 0 11px; margin-top: 5px; border: 3px solid #FFE3E7; border-radius: 50%; background: var(--color-brand, #D7192D); box-sizing: border-box; }
 .timeline-copy { min-width: 0; flex: 1; }
 .timeline-title, .timeline-time { display: block; }
-.timeline-title { color: var(--type-title-color); font-size: var(--type-body-small-size, 13px); font-weight: 650; }
+.timeline-title { color: var(--type-title-color); font-size: var(--type-body-small-size, 13px); font-weight: var(--font-weight-semibold, 600); }
 .timeline-time { margin-top: 2px; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
-.action-btn { display: flex; min-width: 0; height: 44px; flex: 1 1 0; align-items: center; justify-content: center; margin: 0; padding: 0 10px; border: 1px solid var(--color-border, #DDE0E4); border-radius: var(--radius-control, 10px); box-sizing: border-box; color: var(--type-title-color); background: #FFF; font-size: var(--type-button-size, 14px); font-weight: 650; line-height: 1; white-space: nowrap; }
+.action-btn { display: flex; min-width: 0; height: 44px; flex: 1 1 0; align-items: center; justify-content: center; margin: 0; padding: 0 10px; border: 1px solid var(--color-border, #DDE0E4); border-radius: var(--radius-control, 10px); box-sizing: border-box; color: var(--type-title-color); background: #FFF; font-size: var(--type-button-size, 14px); font-weight: var(--font-weight-semibold, 600); line-height: 1; white-space: nowrap; }
 .action-btn.primary { border-color: var(--color-brand, #D7192D); color: #FFF; background: var(--color-brand, #D7192D); }
 .action-btn.default { border-color: var(--color-border, #DDE0E4); color: var(--type-title-color); background: #FFF; }
 .action-btn.disabled { color: #A8ABB2; background: #ECEEF2; }
@@ -769,11 +769,19 @@ function splitItemQuantityText(split, item) {
   .logistics-card, .address-card, .goods-card, .split-card, .info-card, .price-card { padding: 12px; }
   .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) minmax(0, .7fr) 26px; gap: 8px; min-height: 62px; }
   .spu-image-link { width: 48px; height: 48px; }
-  .spu-order-total { font-size: 12px; }
+  .spu-order-total { font-size: var(--type-caption-size, 12px); }
   .goods-item .goods-image { width: 64px; height: 64px; }
   .goods-item .goods-info { margin-left: 10px; }
-  .goods-item .goods-info .goods-name { font-size: 13px; line-height: 18px; }
-  .goods-item .goods-info .price-row .price { font-size: 14px; }
+  .goods-item .goods-info .goods-name { font-size: var(--type-body-small-size, 13px); line-height: 18px; }
+  .goods-item .goods-info .price-row .price { font-size: var(--type-body-size, 14px); }
+}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.logistics-card, .address-card, .goods-card, .spu-order-card, .split-card, .split-product-card, .info-card, .price-card, .order-info-card, .cancellation-card, .timeline-card, .summary-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
 }
 </style>
-

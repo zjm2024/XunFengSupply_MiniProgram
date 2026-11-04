@@ -8,7 +8,7 @@
       <AppContent width-mode="standard" padding="16px var(--page-padding-x, 16px) 30px">
         <view class="form-page">
           <view class="intro-card">
-            <view class="intro-icon"><AppIcon name="location" :size="21" /></view>
+            <view class="intro-icon"><AppIcon name="location" :size="20" /></view>
             <view>
               <text class="intro-title">{{ t('account.addressForm.intro') }}</text>
               <text class="intro-desc">{{ t('account.addressForm.introHint') }}</text>
@@ -243,14 +243,14 @@ async function saveAddress() {
 .intro-card { display: flex; align-items: center; gap: 13px; margin-bottom: 14px; padding: 15px 16px; border-radius: var(--radius-card); background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 .intro-icon { display: grid; width: 42px; height: 42px; flex: 0 0 42px; place-items: center; border-radius: var(--radius-control); color: var(--type-secondary-color); background: var(--surface-card); }
 .intro-title, .intro-desc { display: block; }
-.intro-title { color: var(--type-title-color); font-size: var(--type-label-size); font-weight: 700; }
+.intro-title { color: var(--type-title-color); font-size: var(--type-label-size); font-weight: var(--font-weight-bold, 700); }
 .intro-desc { margin-top: 4px; color: var(--type-secondary-color); font-size: var(--type-body-small-size); line-height: 18px; }
 .loading-card, .form-card { border-radius: var(--radius-card); background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
 .loading-card { padding: 48px 20px; color: var(--type-secondary-color); font-size: var(--type-body-size); text-align: center; }
 .form-card { display: flex; flex-direction: column; gap: 18px; padding: 18px 16px; }
 .field-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .field-item { display: block; }
-.field-label { display: block; margin-bottom: 8px; color: var(--type-body-color); font-size: var(--type-body-small-size); font-weight: 650; }
+.field-label { display: block; margin-bottom: 8px; color: var(--type-body-color); font-size: var(--type-body-small-size); font-weight: var(--font-weight-semibold, 600); }
 .field-input, .detail-input { width: 100%; border: 1px solid var(--color-border); border-radius: var(--radius-control); color: var(--type-body-color); background: var(--surface-subtle); box-sizing: border-box; font-size: var(--type-body-size); }
 .field-input { height: 48px; padding: 0 13px; }
 .detail-input { height: 112px; padding: 12px 13px; line-height: 21px; }
@@ -258,15 +258,24 @@ async function saveAddress() {
 .default-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 14px; border-radius: var(--radius-control); background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .default-copy { min-width: 0; }
 .default-title, .default-desc { display: block; }
-.default-title { color: var(--type-body-color); font-size: var(--type-body-size); font-weight: 650; }
+.default-title { color: var(--type-body-color); font-size: var(--type-body-size); font-weight: var(--font-weight-semibold, 600); }
 .default-desc { margin-top: 4px; color: var(--type-muted-color); font-size: var(--type-micro-size); }
 .form-error { display: flex; align-items: flex-start; gap: 7px; padding: 11px 12px; border: 1px solid var(--danger-light); border-radius: var(--radius-control); color: var(--danger-color); background: var(--danger-light); font-size: var(--type-body-small-size); line-height: 18px; }
-.save-btn { display: flex; width: min(100%, 460px); height: 48px; align-items: center; justify-content: center; margin: 0 auto; border: 0; border-radius: var(--radius-card); color: #FFFFFF; background: var(--color-brand); font-size: var(--type-button-size); font-weight: 700; }
+.save-btn { display: flex; width: min(100%, 460px); height: 48px; align-items: center; justify-content: center; margin: 0 auto; border: 0; border-radius: var(--radius-card); color: #FFFFFF; background: var(--color-brand); font-size: var(--type-button-size); font-weight: var(--font-weight-bold, 700); }
 .save-btn::after { border: 0; }
 .save-btn[disabled] { color: var(--text-disabled); background: var(--surface-subtle); }
 @media screen and (min-width: 700px) {
   .form-card { padding: 24px; gap: 22px; }
   .field-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
   .detail-input { height: 132px; }
+}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.intro-card, .loading-card, .form-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
 }
 </style>

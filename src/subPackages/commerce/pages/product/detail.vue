@@ -56,7 +56,7 @@
                 </view>
                 <button v-if="selectedSku" class="price-variant" @tap="openPurchaseSheet">
                   <text>{{ t('commerce.product.currentVariant', { name: selectedSku.specName || selectedSku.skuCode || t('commerce.product.defaultVariant') }) }}</text>
-                  <AppIcon name="chevron-right" :size="13" />
+                  <AppIcon name="chevron-right" :size="14" />
                 </button>
                 <view class="facts">
                   <text>{{ t('commerce.product.minimum', { count: selectedMinOrderQty, unit: product.unit }) }}</text>
@@ -72,7 +72,7 @@
               <view v-if="product.promotions?.length" class="promotion-card">
                 <view class="promotion-heading">
                   <view class="promotion-title-row">
-                    <AppIcon name="gift" :size="19" color="#D7192D" />
+                    <AppIcon name="gift" :size="20" color="#D7192D" />
                     <text class="promotion-title">{{ t('commerce.product.promotions') }}</text>
                   </view>
                   <text class="promotion-count">{{ t('commerce.product.promotionsCount', { count: product.promotions.length }) }}</text>
@@ -184,7 +184,7 @@
       <fixed-action-bar v-if="pageState === PageStatus.CONTENT">
         <button class="cart-entry" @click="goToCart">
           <view class="cart-icon-wrap">
-            <AppIcon name="cart" :size="26" />
+            <AppIcon name="cart" :size="24" />
             <text v-if="cartStore.cartBadgeCount" class="cart-badge">{{ cartStore.cartBadgeDisplay }}</text>
           </view>
           <text>{{ t('commerce.product.cart') }}</text>
@@ -440,4 +440,13 @@ function localError(messageKey) {
 
 <style lang="scss" scoped>
 @import '@/shared/styles/productDetail.scss';
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.media-card, .info-card, .promotion-card, .size-recommendation-card, .section-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}
 </style>

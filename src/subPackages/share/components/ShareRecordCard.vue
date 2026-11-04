@@ -35,7 +35,7 @@ function date(value) { return formatDateTime(value, 'YYYY-MM-DD HH:mm') }
   display: block;
   color: var(--text-primary);
   font-size: var(--font-size-md, 16px);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold, 600);
   line-height: 24px;
   overflow-wrap: anywhere;
 }

@@ -98,7 +98,7 @@ onBeforeUnmount(() => {
   align-items: baseline;
   vertical-align: baseline;
   font-size: var(--type-money-size, 18px);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold, 700);
   font-variant-numeric: tabular-nums;
   white-space: nowrap !important;
   word-break: keep-all !important;

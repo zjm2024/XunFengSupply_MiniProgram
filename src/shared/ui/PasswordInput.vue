@@ -2,7 +2,7 @@
   <view class="password-control" :class="{ 'is-disabled': disabled }">
     <input :id="inputName" class="password-input" :value="modelValue" :type="visible ? 'text' : 'password'" :password="!visible" :disabled="disabled" :aria-label="label" :name="inputName" :maxlength="64" :placeholder="placeholder" autocomplete="off" text-content-type="none" autocapitalize="off" autocorrect="off" :spellcheck="false" data-lpignore="true" data-1p-ignore="true" confirm-type="done" @input="updateValue" @confirm="emit('confirm')" />
     <button class="password-eye" :disabled="disabled" :aria-label="(visible ? hideText : showText) + ' · ' + label" :aria-pressed="visible" @tap="visible = !visible">
-      <AppIcon :name="visible ? 'eye-off' : 'eye'" :size="21" color="#747b86" />
+      <AppIcon :name="visible ? 'eye-off' : 'eye'" :size="20" color="#747b86" />
     </button>
   </view>
 </template>
@@ -34,9 +34,9 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.password-control { display: flex; width: 100%; min-width: 0; min-height: 48px; align-items: center; border: 1px solid #dfe2e7; border-radius: 11px; background: #fafbfc; box-sizing: border-box; overflow: hidden; }
+.password-control { display: flex; width: 100%; min-width: 0; min-height: 48px; align-items: center; border: 1px solid #dfe2e7; border-radius: var(--radius-control, 10px); background: #fafbfc; box-sizing: border-box; overflow: hidden; }
 .password-control:focus-within { border-color: #a1a7b0; background: #fff; }
-.password-input { flex: 1; width: 0; min-width: 0; height: 48px; padding: 0 0 0 13px; border: 0; outline: 0; background: transparent; color: #24282f; font-size: 16px; }
+.password-input { flex: 1; width: 0; min-width: 0; height: 48px; padding: 0 0 0 13px; border: 0; outline: 0; background: transparent; color: #24282f; font-size: var(--type-card-title-size, 16px); }
 .password-eye { display: flex; flex: 0 0 48px; width: 48px; min-height: 48px; align-items: center; justify-content: center; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; }
 .password-eye::after { border: 0; }
 .password-eye:disabled { opacity: .45; }

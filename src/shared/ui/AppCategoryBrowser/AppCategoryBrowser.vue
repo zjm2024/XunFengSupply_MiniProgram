@@ -88,7 +88,7 @@
             </view>
 
             <!-- <view class="deep-category-hint">
-              <AppIcon name="filter" :size="17" />
+              <AppIcon name="filter" :size="18" />
               <text>分类页展示前三层，更深层级请在商品列表筛选</text>
             </view> -->
           </view>
@@ -312,9 +312,9 @@ onBeforeUnmount(() => { generation++ })
   min-height: 32px;
   padding: 0 13px;
   justify-content: center;
-  border-radius: 17px;
+  border-radius: var(--radius-feature, 18px);
   color: #676b73;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
   background: rgba(255,255,255,.68);
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
@@ -322,7 +322,7 @@ onBeforeUnmount(() => { generation++ })
 
 .secondary-tab.is-active {
   color: #fff;
-  font-weight: 680;
+  font-weight: var(--font-weight-semibold, 600);
   background: #292b30;
 }
 
@@ -339,7 +339,7 @@ onBeforeUnmount(() => { generation++ })
 .category-group {
   margin-bottom: 10px;
   padding: 14px 12px 12px;
-  border-radius: 17px;
+  border-radius: var(--radius-feature, 18px);
   background: var(--glass-card-background, rgba(255,255,255,.74));
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
   -webkit-backdrop-filter: blur(16px);
@@ -362,8 +362,8 @@ onBeforeUnmount(() => { generation++ })
 .group-title {
   overflow: hidden;
   color: #25272d;
-  font-size: 15px;
-  font-weight: 760;
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-bold, 700);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -371,7 +371,7 @@ onBeforeUnmount(() => { generation++ })
 .group-subtitle {
   margin-top: 3px;
   color: #a0a3aa;
-  font-size: 8px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .product-preview-grid {
@@ -392,7 +392,7 @@ onBeforeUnmount(() => { generation++ })
   width: 72px;
   height: 72px;
   flex: 0 0 72px;
-  border-radius: 14px;
+  border-radius: var(--radius-card, 14px);
   background: #f0f1f3;
 }
 
@@ -424,7 +424,7 @@ onBeforeUnmount(() => { generation++ })
   margin-top: 10px;
   padding: 0 12px;
   gap: 10px;
-  border-radius: 14px;
+  border-radius: var(--radius-card, 14px);
   color: #9b9ea5;
   background: #f7f8f9;
 }
@@ -438,13 +438,13 @@ onBeforeUnmount(() => { generation++ })
 
 .product-empty-title {
   color: #555860;
-  font-size: 11px;
-  font-weight: 650;
+  font-size: var(--type-caption-size, 12px);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .product-empty-description {
   margin-top: 4px;
-  font-size: 8px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .deeper-entry {
@@ -453,9 +453,9 @@ onBeforeUnmount(() => { generation++ })
   padding: 0 10px;
   justify-content: center;
   gap: 5px;
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   color: #8e929a;
-  font-size: 8px;
+  font-size: var(--type-caption-size, 12px);
   background: #f7f8f9;
 }
 
@@ -464,9 +464,9 @@ onBeforeUnmount(() => { generation++ })
   padding: 0 14px;
   justify-content: center;
   gap: 7px;
-  border-radius: 15px;
+  border-radius: var(--radius-card, 14px);
   color: #8b8e96;
-  font-size: 9px;
+  font-size: var(--type-caption-size, 12px);
   background: rgba(255, 255, 255, 0.62);
 }
 
@@ -478,7 +478,7 @@ onBeforeUnmount(() => { generation++ })
   flex-direction: column;
   gap: 8px;
   color: #92959d;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .state-box--loading {
@@ -491,8 +491,8 @@ onBeforeUnmount(() => { generation++ })
 
 .state-title {
   color: #454850;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-bold, 700);
 }
 
 .state-description {
@@ -505,10 +505,10 @@ onBeforeUnmount(() => { generation++ })
   padding: 0 16px;
   justify-content: center;
   gap: 6px;
-  border-radius: 20px;
+  border-radius: var(--radius-feature, 18px);
   color: #fff;
-  font-size: 11px;
-  font-weight: 680;
+  font-size: var(--type-caption-size, 12px);
+  font-weight: var(--font-weight-semibold, 600);
   background: var(--color-brand, #d7192d);
 }
 
@@ -567,8 +567,8 @@ onBeforeUnmount(() => { generation++ })
   .secondary-tab {
     min-height: 36px;
     padding: 0 16px;
-    border-radius: 19px;
-    font-size: 12px;
+    border-radius: var(--radius-feature, 18px);
+    font-size: var(--type-caption-size, 12px);
   }
 
   .category-groups {
@@ -578,15 +578,15 @@ onBeforeUnmount(() => { generation++ })
   .category-group {
     margin-bottom: 14px;
     padding: 20px 18px 18px;
-    border-radius: 21px;
+    border-radius: var(--radius-feature, 18px);
   }
 
   .group-title {
-    font-size: 18px;
+    font-size: var(--type-card-title-size, 16px);
   }
 
   .group-subtitle {
-    font-size: 10px;
+    font-size: var(--type-caption-size, 12px);
   }
 
   .product-preview-grid {
@@ -601,4 +601,13 @@ onBeforeUnmount(() => { generation++ })
 .compact-refresher-icon{display:flex;align-items:center;justify-content:center;width:28px;height:28px;color:#737a84}
 .compact-refresher-icon.is-refreshing{animation:compact-refresher-spin .9s linear infinite}
 @keyframes compact-refresher-spin{to{transform:rotate(360deg)}}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.category-group {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}
 </style>

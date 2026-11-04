@@ -111,5 +111,12 @@
     "announcements": "平台公告",
     "announcement": "公告详情",
     "notFound": "内容已下架或不存在"
+  },
+  "monthPicker": {
+    "title": "选择账期",
+    "year": "{year}年",
+    "month": "{month}月",
+    "previousYear": "上一年",
+    "nextYear": "下一年"
   }
 }

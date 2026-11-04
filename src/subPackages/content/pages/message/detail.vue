@@ -20,7 +20,7 @@
           <view v-else-if="detail" class="message-detail-card">
             <view class="detail-topline">
               <view class="detail-type" :class="`tone-${getTypeMeta(detail.type).tone}`">
-                <AppIcon :name="getTypeMeta(detail.type).icon" :size="19" :stroke-width="1.8" />
+                <AppIcon :name="getTypeMeta(detail.type).icon" :size="20" :stroke-width="1.8" />
                 <text>{{ getTypeMeta(detail.type).label }}</text>
               </view>
               <view class="read-status" :class="{ unread: !detail.isRead }">
@@ -43,7 +43,7 @@
                 <text class="related-entry-title">{{ relatedAction.title }}</text>
                 <text class="related-entry-desc">{{ t('content.messages.relatedHint') }}</text>
               </view>
-              <AppIcon name="chevron-right" :size="17" color="#9AA1AA" />
+              <AppIcon name="chevron-right" :size="18" color="#9AA1AA" />
             </view>
 
             <view class="read-hint">
@@ -193,29 +193,38 @@ function openRelatedBusiness() {
 .message-detail-page { width: 100%; min-height: 100%; padding-bottom: env(safe-area-inset-bottom); box-sizing: border-box; }
 .message-detail-card { padding: 20px; border-radius: var(--radius-feature, 18px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .detail-topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.detail-type { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 650; }
+.detail-type { display: inline-flex; align-items: center; gap: 7px; font-size: var(--type-caption-size, 12px); font-weight: var(--font-weight-semibold, 600); }
 .tone-order { color: #496f9b; }
 .tone-audit { color: #168a52; }
 .tone-bill { color: #9a6b22; }
 .tone-system { color: var(--primary-color, #d7192d); }
 .tone-default { color: var(--icon-secondary, #62666f); }
-.read-status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; color: #7d858f; background: rgba(125,133,143,.1); font-size: 11px; line-height: 16px; }
+.read-status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; color: #7d858f; background: rgba(125,133,143,.1); font-size: var(--type-caption-size, 12px); line-height: 18px; }
 .read-status.unread { color: var(--primary-color, #d7192d); background: rgba(215,25,45,.1); }
 .read-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.detail-title { display: block; margin-top: 18px; color: var(--type-title-color, #1b1c20); font-size: 20px; font-weight: 750; line-height: 28px; }
-.detail-time { display: block; margin-top: 8px; color: var(--type-muted-color, #969aa3); font-size: 12px; line-height: 18px; }
+.detail-title { display: block; margin-top: 18px; color: var(--type-title-color, #1b1c20); font-size: var(--type-page-title-size, 20px); font-weight: var(--font-weight-bold, 700); line-height: 28px; }
+.detail-time { display: block; margin-top: 8px; color: var(--type-muted-color, #969aa3); font-size: var(--type-caption-size, 12px); line-height: 18px; }
 .detail-divider { height: 1px; margin: 18px 0; background: rgba(130,138,148,.16); }
-.detail-content { display: block; color: var(--type-body-color, #1b1c20); font-size: 15px; line-height: 26px; white-space: pre-wrap; word-break: break-word; }
-.related-entry { display: flex; min-height: 58px; align-items: center; gap: 11px; margin-top: 24px; padding: 12px 13px; border-radius: 14px; background: rgba(215,25,45,.06); }
+.detail-content { display: block; color: var(--type-body-color, #1b1c20); font-size: var(--type-label-size, 15px); line-height: 26px; white-space: pre-wrap; word-break: break-word; }
+.related-entry { display: flex; min-height: 58px; align-items: center; gap: 11px; margin-top: 24px; padding: 12px 13px; border-radius: var(--radius-card, 14px); background: rgba(215,25,45,.06); }
 .related-entry--pressed { opacity: .66; }
-.related-entry-icon { display: grid; width: 34px; height: 34px; flex: none; place-items: center; border-radius: 11px; color: var(--primary-color, #d7192d); background: rgba(215,25,45,.1); }
+.related-entry-icon { display: grid; width: 34px; height: 34px; flex: none; place-items: center; border-radius: var(--radius-control, 10px); color: var(--primary-color, #d7192d); background: rgba(215,25,45,.1); }
 .related-entry-copy { min-width: 0; flex: 1; }
-.related-entry-title { display: block; color: var(--type-title-color, #1b1c20); font-size: 13px; font-weight: 650; line-height: 20px; }
-.related-entry-desc { display: block; margin-top: 2px; color: var(--type-muted-color, #969aa3); font-size: 11px; line-height: 16px; }
-.read-hint { display: flex; align-items: center; gap: 5px; margin-top: 24px; color: var(--type-muted-color, #969aa3); font-size: 11px; line-height: 16px; }
-.detail-state { display: flex; min-height: 220px; align-items: center; justify-content: center; gap: 9px; color: var(--type-muted-color, #969aa3); font-size: 13px; }
+.related-entry-title { display: block; color: var(--type-title-color, #1b1c20); font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-semibold, 600); line-height: 20px; }
+.related-entry-desc { display: block; margin-top: 2px; color: var(--type-muted-color, #969aa3); font-size: var(--type-caption-size, 12px); line-height: 18px; }
+.read-hint { display: flex; align-items: center; gap: 5px; margin-top: 24px; color: var(--type-muted-color, #969aa3); font-size: var(--type-caption-size, 12px); line-height: 18px; }
+.detail-state { display: flex; min-height: 220px; align-items: center; justify-content: center; gap: 9px; color: var(--type-muted-color, #969aa3); font-size: var(--type-body-small-size, 13px); }
 .detail-state--error { flex-direction: column; color: var(--primary-color, #d7192d); }
 .detail-retry { color: var(--type-muted-color, #969aa3); }
 .detail-spinner { width: 17px; height: 17px; border: 2px solid #e3e6ea; border-top-color: var(--primary-color, #d7192d); border-radius: 50%; animation: detail-spin .8s linear infinite; }
 @keyframes detail-spin { to { transform: rotate(360deg); } }
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.message-detail-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}
 </style>

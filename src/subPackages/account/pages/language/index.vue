@@ -101,14 +101,14 @@ async function selectLanguage(lang) {
 /* 当前语言卡片 */
 .current-card {
   background: linear-gradient(135deg, #D7192D, #E8384F);
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   padding: 20px 16px;
   margin-bottom: 12px;
   color: white;
 }
 
 .current-label {
-  font-size: 13px; /* 稳定 px */
+  font-size: var(--type-body-small-size, 13px); /* 稳定 px */
   opacity: 0.9;
   display: block;
   margin-bottom: 6px;
@@ -121,19 +121,19 @@ async function selectLanguage(lang) {
 }
 
 .current-text {
-  font-size: 20px; /* 稳定 px */
-  font-weight: 700;
+  font-size: var(--type-page-title-size, 20px); /* 稳定 px */
+  font-weight: var(--font-weight-bold, 700);
 }
 
 .current-native {
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   opacity: 0.85;
 }
 
 /* 语言列表 */
 .lang-list {
   background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   overflow: hidden;
   margin-bottom: 12px;
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
@@ -157,7 +157,7 @@ async function selectLanguage(lang) {
 
     .lang-name {
       color: #D7192D;
-      font-weight: 600;
+      font-weight: var(--font-weight-semibold, 600);
     }
   }
 
@@ -173,12 +173,12 @@ async function selectLanguage(lang) {
 }
 
 .lang-name {
-  font-size: 15px;
+  font-size: var(--type-label-size, 15px);
   color: #111216;
 }
 
 .lang-native {
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   color: #989BA5;
 }
 
@@ -193,24 +193,24 @@ async function selectLanguage(lang) {
 
   text {
     color: white;
-    font-size: 14px;
-    font-weight: 700;
+    font-size: var(--type-body-size, 14px);
+    font-weight: var(--font-weight-bold, 700);
   }
 }
 
 /* 提示卡片 */
 .tips-card {
   background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: var(--radius-card, 14px);
+  padding: var(--module-padding, 16px);
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
 }
 
 .tips-title {
-  font-size: 14px; /* 稳定 px */
-  font-weight: 600;
+  font-size: var(--type-card-title-size, 16px); /* 稳定 px */
+  font-weight: var(--font-weight-semibold, 600);
   color: #111216;
   display: block;
   margin-bottom: 10px;
@@ -229,12 +229,12 @@ async function selectLanguage(lang) {
 
 .tip-dot {
   color: #989BA5;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   line-height: 1.6;
 }
 
 .tip-text {
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   color: #5E626B;
   line-height: 1.6;
   flex: 1;
@@ -242,5 +242,14 @@ async function selectLanguage(lang) {
 
 .bottom-spacer {
   height: 24px;
+}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.current-card, .tips-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
 }
 </style>

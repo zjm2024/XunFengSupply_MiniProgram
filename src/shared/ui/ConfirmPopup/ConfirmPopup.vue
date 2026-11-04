@@ -1,16 +1,17 @@
 <template>
-  <view v-if="visible" class="popup-overlay" @click="handleOverlayClick">
+  <view v-if="visible" class="popup-overlay" :class="{ 'is-action-sheet': presentation === 'action-sheet' }" @click="handleOverlayClick">
     <view class="popup-sheet" :class="{ 'is-show': visible }" @click.stop>
       <!-- 关闭按钮 -->
       <button class="popup-close" :disabled="dismissDisabled" :aria-label="t('common.close')" @click="handleClose">
         <text class="close-text">×</text>
       </button>
       
+      <view v-if="title" class="popup-header">
+        <text class="popup-title">{{ title }}</text>
+      </view>
+
       <!-- 内容区域 -->
       <view class="popup-content">
-        <!-- 标题 -->
-        <text v-if="title" class="popup-title">{{ title }}</text>
-        
         <!-- 描述 -->
         <text v-if="description" class="popup-desc">{{ description }}</text>
         
@@ -24,7 +25,7 @@
       </view>
       
       <!-- 操作按钮 -->
-      <view class="popup-actions" :class="{ 'is-single': !showCancel }">
+      <view v-if="showCancel || showConfirm" class="popup-actions" :class="{ 'is-single': !showCancel || !showConfirm }">
         <button 
           v-if="showCancel" 
           class="action-btn btn-cancel" 
@@ -34,6 +35,7 @@
           {{ cancelText ?? t('common.cancel') }}
         </button>
         <button 
+          v-if="showConfirm"
           class="action-btn btn-confirm" 
           :class="{ 'is-danger': danger }"
           :disabled="confirmDisabled"
@@ -43,8 +45,6 @@
         </button>
       </view>
       
-      <!-- 安全区 -->
-      <view class="safe-area-bottom"></view>
     </view>
   </view>
 </template>
@@ -89,6 +89,10 @@ const props = defineProps({
     type: Boolean,
     default: true
   },
+  // 操作菜单可仅保留中性的取消按钮。
+  showConfirm: { type: Boolean, default: true },
+  // 手机操作菜单从底部展开，确认和表单弹框保持居中。
+  presentation: { type: String, default: 'dialog' },
   // 确认按钮是否为危险操作（红色）
   danger: {
     type: Boolean,
@@ -116,6 +120,7 @@ watch(() => props.modelValue, (val) => {
   visible.value = val
 })
 
+/** 关闭弹框并通知宿主页同步可见状态。 */
 function handleClose() {
   if (props.dismissDisabled) return
   visible.value = false
@@ -123,17 +128,20 @@ function handleClose() {
   emit('close')
 }
 
+/** 取消操作并遵守提交期间的关闭保护。 */
 function handleCancel() {
   if (props.dismissDisabled) return
   handleClose()
   emit('cancel')
 }
 
+/** 确认只通知调用方，由业务决定完成和关闭时机。 */
 function handleConfirm() {
   if (props.confirmDisabled) return
   emit('confirm')
 }
 
+/** 按调用方配置处理遮罩点击。 */
 function handleOverlayClick() {
   if (props.closeOnOverlay) {
     handleClose()
@@ -151,6 +159,7 @@ function handleOverlayClick() {
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
   padding: 20px;
   animation: xf-popup-fade-in 180ms ease-out both;
 }
@@ -162,11 +171,12 @@ function handleOverlayClick() {
   box-sizing: border-box;
   width: min(100%, 520px);
   max-width: 560px;
-  max-height: 88vh;
+  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
   overflow: hidden;
   background: var(--modal-surface, #FFFFFF);
-  border-radius: 18px;
-  padding: 24px 20px calc(18px + env(safe-area-inset-bottom));
+  border-radius: var(--radius-feature, 18px);
+  padding: 20px;
   box-shadow: var(--shadow-lg, 0 12px 32px rgba(17, 18, 22, 0.12));
   transform-origin: center bottom;
   animation: xf-popup-sheet-in 260ms cubic-bezier(.2, .8, .2, 1) both;
@@ -191,7 +201,8 @@ function handleOverlayClick() {
 .popup-close {
   position: absolute;
   right: 12px;
-  top: 10px;
+  top: 8px;
+  z-index: 1;
   width: 44px;
   height: 44px;
   margin: 0;
@@ -208,24 +219,32 @@ function handleOverlayClick() {
 }
 
 .close-text {
-  font-size: 25px;
+  font-size: var(--type-heading-size, 24px);
   color: var(--icon-muted, #969AA3);
   line-height: 1;
+}
+
+.popup-header {
+  flex: 0 0 auto;
+  margin-bottom: 14px;
+  padding-right: 36px;
 }
 
 .popup-content {
   min-height: 0;
   overflow-y: auto;
-  margin-bottom: 18px;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  overflow-wrap: anywhere;
+  margin-bottom: 16px;
 }
 
 .popup-title {
   display: block;
-  font-size: var(--font-size-xl, 20px);
-  font-weight: 600;
+  font-size: var(--type-section-title-size, 18px);
+  font-weight: var(--font-weight-semibold, 600);
   color: var(--text-primary, #1B1C20);
-  margin-bottom: 8px;
-  padding-right: 28px;
+
   overflow-wrap: anywhere;
   line-height: 1.4;
 }
@@ -252,14 +271,14 @@ function handleOverlayClick() {
   margin: 4px 0 14px;
   padding: 0 13px;
   border: 1px solid #d9dce2;
-  border-radius: 10px;
+  border-radius: var(--radius-control, 10px);
   color: var(--text-primary, #1b1c20);
   background: #f8f9fa;
-  font-size: 15px;
+  font-size: var(--type-label-size, 15px);
 }
 
 .preview-text {
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   color: var(--text-secondary, #62666F);
   line-height: 1.6;
 }
@@ -280,14 +299,15 @@ function handleOverlayClick() {
   /* 视觉最小宽度与触控高度分开控制，避免短文字按钮缩成小红块。 */
   min-width: 112px;
   width: 100%;
-  min-height: var(--control-height, 48px);
+  box-sizing: border-box;
+  min-height: 44px;
   height: auto;
-  padding: 12px 10px;
+  padding: 10px 12px;
   line-height: 20px;
   white-space: normal;
   border-radius: var(--radius-control, 10px);
-  font-size: 15px;
-  font-weight: 650;
+  font-size: var(--type-body-size, 14px);
+  font-weight: 600;
   border: none;
   display: flex;
   align-items: center;
@@ -300,12 +320,11 @@ function handleOverlayClick() {
 }
 
 .btn-cancel {
-  background: var(--modal-surface, #FFFFFF);
-  color: var(--primary-color, #D7192D);
-  border: 1px solid var(--primary-color, #D7192D);
+  background: var(--surface-page, #F4F5F8);
+  color: var(--text-primary, #1B1C20);
   
   &:active {
-    background: var(--color-brand-50, #FFF1F2);
+    background: #E9EBEF;
   }
 }
 
@@ -326,8 +345,22 @@ function handleOverlayClick() {
   }
 }
 
-.safe-area-bottom {
-  height: env(safe-area-inset-bottom);
+.popup-close::after, .action-btn::after { border: 0; }
+
+@media screen and (max-width: 599px) {
+  .popup-overlay.is-action-sheet {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .is-action-sheet .popup-sheet {
+    width: 100%;
+    max-width: 100%;
+    max-height: calc(100vh - 20px);
+    max-height: calc(100dvh - 20px);
+    border-radius: 20px 20px 0 0;
+    padding: 20px 20px calc(12px + env(safe-area-inset-bottom));
+  }
+  .is-action-sheet .popup-actions.is-single { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media screen and (min-width: 600px) {

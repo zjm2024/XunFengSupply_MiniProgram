@@ -262,8 +262,8 @@ async function submitForm() {
 
 .form-card {
   background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: var(--radius-card, 14px);
+  padding: var(--module-padding, 16px);
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
@@ -279,10 +279,10 @@ async function submitForm() {
 
 .form-label {
   display: block;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   color: #111216;
   margin-bottom: 8px;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium, 500);
 }
 
 .required {
@@ -294,7 +294,7 @@ async function submitForm() {
   padding: 0 12px;
   border: 1px solid #DEDFE3;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   background: white;
 
   &:focus {
@@ -338,12 +338,12 @@ async function submitForm() {
   display: block;
 }
 
-.permission-name { color: #111216; font-size: 14px; }
-.permission-description { margin-top: 2px; color: #777A82; font-size: 12px; }
-.frozen-tip { display: block; margin-top: 8px; color: #B76500; font-size: 12px; }
+.permission-name { color: #111216; font-size: var(--type-body-size, 14px); }
+.permission-description { margin-top: 2px; color: #777A82; font-size: var(--type-caption-size, 12px); }
+.frozen-tip { display: block; margin-top: 8px; color: #B76500; font-size: var(--type-caption-size, 12px); }
 
 .toggle-text {
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   color: #5E626B;
 
   &.active {
@@ -365,7 +365,7 @@ async function submitForm() {
   background: #D7192D;
   border-radius: 12px;
   color: white;
-  font-size: 16px;
+  font-size: var(--type-card-title-size, 16px);
   font-weight: 600;
   border: none;
 
@@ -376,5 +376,14 @@ async function submitForm() {
   &:active:not([disabled]) {
     opacity: 0.85;
   }
+}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.form-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
 }
 </style>

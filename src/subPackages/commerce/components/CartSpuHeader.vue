@@ -3,7 +3,7 @@
     <label class="check-wrap group-check" :aria-label="selectLabel" @tap.stop="!disabled && emit('select')"><view class="check" :class="{ checked:selected, indeterminate:partial }"><text v-if="selected">✓</text><text v-else-if="partial">—</text></view></label>
     <view class="spu-copy" @tap="emit('product')"><text class="spu-name">{{ name }}</text><text class="spu-meta">{{ meta }}</text></view>
     <AmountText class="spu-total" :text="amount" />
-    <button class="collapse-btn button-center" :aria-label="collapsed ? expandLabel : collapseLabel" :aria-expanded="!collapsed" @tap.stop="emit('toggle')"><AppIcon name="chevron-right" :size="17" class="collapse-icon" :class="{ expanded:!collapsed }" /></button>
+    <button class="collapse-btn button-center" :aria-label="collapsed ? expandLabel : collapseLabel" :aria-expanded="!collapsed" @tap.stop="emit('toggle')"><AppIcon name="chevron-right" :size="18" class="collapse-icon" :class="{ expanded:!collapsed }" /></button>
   </view>
 </template>
 <script setup>

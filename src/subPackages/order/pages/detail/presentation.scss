@@ -1,12 +1,12 @@
 @use "@/uni.scss" as tokens;
-.spu-shipping-summary { display:block; margin-top:5px; color:#7D8997; font-size:11px; line-height:1.5; }
+.spu-shipping-summary { display:block; margin-top:5px; color:#7D8997; font-size: var(--type-caption-size, 12px); line-height:1.5; }
 .item-shipment { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin-top:10px; }
-.item-shipment-status { padding:3px 7px; border-radius:5px; background:#F0F2F5; color:#87929F; font-size:11px; line-height:1.5; }
+.item-shipment-status { padding:3px 7px; border-radius: 5px; background:#F0F2F5; color:#87929F; font-size: var(--type-caption-size, 12px); line-height:1.5; }
 .item-shipment.is-shipped .item-shipment-status { color:#287251; background:#EDF7F1; }
 .item-shipment.is-partial .item-shipment-status { color:#B47C24; background:#FFF6E7; }
-.item-shipment-quantities { display:flex; flex-wrap:wrap; gap:5px 12px; color:#7D8997; font-size:11px; line-height:1.6; }
+.item-shipment-quantities { display:flex; flex-wrap:wrap; gap:5px 12px; color:#7D8997; font-size: var(--type-caption-size, 12px); line-height:1.6; }
 
-.list-price { color: var(--color-text-tertiary, #94969c); font-size: 12px; font-weight: 400; }
+.list-price { color: var(--color-text-tertiary, #94969c); font-size: var(--type-caption-size, 12px); font-weight: var(--font-weight-regular, 400); }
 .list-price--strike :deep(.amount-text__value) { text-decoration: line-through; }
 .order-detail-page {
   min-height: 100%;
@@ -25,8 +25,8 @@
   backdrop-filter: blur(16px);
 
   .card-title {
-    font-size: 15px;
-    font-weight: 600;
+    font-size: var(--type-card-title-size, 16px);
+    font-weight: var(--font-weight-semibold, 600);
     color: var(--text-primary);
     margin-bottom: 20rpx;
   }
@@ -46,7 +46,7 @@
   margin: 0;
   padding: 0 12px;
   border: 0;
-  border-radius: 9px;
+  border-radius: var(--radius-small, 8px);
   color: #fff;
   background: var(--color-brand, #D7192D);
   font-size: var(--type-button-size, 13px);
@@ -56,7 +56,7 @@
   display: block;
   margin-top: 10px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   line-height: 1.5;
 }
 .split-batch-group { margin-top: 8px; }
@@ -64,8 +64,8 @@
   display: block;
   margin: 16px 0 4px;
   color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-semibold, 600);
 }
 .split-block {
   padding: 14px 0;
@@ -83,14 +83,14 @@
   min-width: 0;
   flex: 1 1 120px;
   color: var(--text-primary);
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--type-body-size, 14px);
+  font-weight: var(--font-weight-semibold, 600);
   overflow-wrap: anywhere;
 }
 .split-status {
   flex: 0 1 auto;
   max-width: 60%;
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   text-align: right;
 }
 .split-status.is-success { color: var(--success-color, #67c23a); }
@@ -99,12 +99,12 @@
 .split-status.is-info { color: var(--info-color, #2678c8); }
 .split-status.is-error { color: var(--error-color, #d7192d); }
 .split-status.is-default { color: var(--text-secondary); }
-.refund-description { display: block; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+.refund-description { display: block; color: var(--text-secondary); font-size: var(--type-caption-size, 12px); line-height: 1.5; }
 .split-address {
   display: block;
   margin-top: 6px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -112,13 +112,13 @@
   display: block;
   margin-top: 6px;
   color: var(--text-placeholder);
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
 }
 .split-notice {
   display: block;
   margin-top: 8px;
   color: var(--error-color, #d7192d);
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   line-height: 1.5;
 }
 .split-items-toggle, .split-history-toggle {
@@ -126,20 +126,20 @@
   align-items: center;
   gap: 3px;
   color: var(--color-brand, #D7192D);
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   line-height: 24px;
 }
 .split-items-toggle { margin-top: 8px; }
 .split-history-toggle { justify-content: center; margin-top: 10px; padding-top: 10px; border-top: 1rpx solid var(--border-color); }
 .split-toggle-icon { transition: transform .2s ease; }
 .split-toggle-icon.expanded { transform: rotate(90deg); }
-.split-product-card { margin-top:10px; padding:10px; background:#fff; border-radius:8px; }
+.split-product-card { margin-top:10px; padding:10px; background:#fff; border-radius: var(--radius-small, 8px); }
 .split-product-header { display:flex; align-items:center; gap:10px; margin-bottom:8px; min-width:0; }
-.split-product-image { flex:0 0 40px; width:40px; height:40px; border-radius:6px; overflow:hidden; }
-.split-product-name { flex:1; min-width:0; font-weight:600; font-size:13px; line-height:1.5; overflow-wrap:anywhere; }
-.split-items-detail { margin-top: 8px; padding: 10px; border-radius: 8px; background: #f7f8fa; }
-.split-no { display: block; margin-bottom: 8px; color: var(--text-placeholder); font-size: 11px; overflow-wrap: anywhere; }
-.split-item { display: flex; justify-content: space-between; gap: 12px; margin-top: 7px; color: var(--text-secondary); font-size: 12px; }
+.split-product-image { flex:0 0 40px; width:40px; height:40px; border-radius: var(--radius-xs, 6px); overflow:hidden; }
+.split-product-name { flex:1; min-width:0; font-weight: var(--font-weight-semibold, 600); font-size: var(--type-body-small-size, 13px); line-height:1.5; overflow-wrap:anywhere; }
+.split-items-detail { margin-top: 8px; padding: 10px; border-radius: var(--radius-small, 8px); background: #f7f8fa; }
+.split-no { display: block; margin-bottom: 8px; color: var(--text-placeholder); font-size: var(--type-caption-size, 12px); overflow-wrap: anywhere; }
+.split-item { display: flex; justify-content: space-between; gap: 12px; margin-top: 7px; color: var(--text-secondary); font-size: var(--type-caption-size, 12px); }
 .split-item-name { min-width: 0; flex: 1; overflow-wrap: anywhere; }
 .split-item-qty { flex: 0 0 auto; }
 .logistics-info {
@@ -152,13 +152,13 @@
 
     .logistics-company {
       display: block;
-      font-size: 14px;
+      font-size: var(--type-body-size, 14px);
       color: var(--text-primary);
     }
 
     .tracking-no {
       display: block;
-      font-size: 12px;
+      font-size: var(--type-caption-size, 12px);
       color: var(--text-placeholder);
       margin-top: 6rpx;
     }
@@ -181,20 +181,20 @@
       margin-bottom: 8rpx;
 
       .name {
-        font-size: 15px;
-        font-weight: 600;
+        font-size: var(--type-label-size, 15px);
+        font-weight: var(--font-weight-semibold, 600);
         color: var(--text-primary);
         margin-right: 20rpx;
       }
 
       .phone {
-        font-size: 14px;
+        font-size: var(--type-body-size, 14px);
         color: var(--text-secondary);
       }
     }
 
     .address-text {
-      font-size: 13px;
+      font-size: var(--type-body-small-size, 13px);
       color: var(--text-secondary);
       line-height: 1.5;
     }
@@ -229,7 +229,7 @@
     margin-left: 20rpx;
 
     .goods-name {
-      font-size: 14px;
+      font-size: var(--type-body-size, 14px);
       color: var(--text-primary);
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -239,7 +239,7 @@
 
     .sku-name {
       display: block;
-      font-size: 12px;
+      font-size: var(--type-caption-size, 12px);
       color: var(--text-placeholder);
       margin-top: 8rpx;
     }
@@ -252,13 +252,13 @@
       padding-top: 12rpx;
 
       .price {
-        font-size: 15px;
-        font-weight: 700;
+        font-size: var(--type-label-size, 15px);
+        font-weight: var(--font-weight-bold, 700);
         color: var(--primary-color);
       }
 
       .qty {
-        font-size: 13px;
+        font-size: var(--type-body-small-size, 13px);
         color: var(--text-secondary);
       }
     }
@@ -271,12 +271,12 @@
   padding: 14rpx 0;
 
   .info-label {
-    font-size: 13px;
+    font-size: var(--type-body-small-size, 13px);
     color: var(--text-secondary);
   }
 
   .info-value {
-    font-size: 13px;
+    font-size: var(--type-body-small-size, 13px);
     color: var(--text-primary);
 
     &.copyable {
@@ -294,13 +294,13 @@
   &:last-child { border-bottom: none; }
 
   .log-time {
-    font-size: 11px;
+    font-size: var(--type-caption-size, 12px);
     color: var(--text-placeholder);
     margin-bottom: 6rpx;
   }
 
   .log-text {
-    font-size: 13px;
+    font-size: var(--type-body-small-size, 13px);
     color: var(--text-secondary);
   }
 }
@@ -311,17 +311,17 @@
   padding: 12rpx 0;
 
   .price-label {
-    font-size: 13px;
+    font-size: var(--type-body-small-size, 13px);
     color: var(--text-secondary);
   }
 
   .price-value {
-    font-size: 13px;
+    font-size: var(--type-body-small-size, 13px);
     color: var(--text-primary);
 
     &.highlight {
-      font-size: 17px;
-      font-weight: 700;
+      font-size: var(--type-section-title-size, 18px);
+      font-weight: var(--font-weight-bold, 700);
       color: var(--primary-color);
     }
   }
@@ -340,7 +340,7 @@
   align-items: center;
   justify-content: center;
   line-height: 1.2;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   border-radius: 34rpx;
   border: none;
   padding: 0 24rpx;
@@ -360,3 +360,12 @@
 /* 金额按实际可用宽度缩字，父布局允许收缩。 */
 .goods-item .price-row { min-width: 0; flex-wrap: wrap; gap: 4px; }
 .price-row > .price-value { flex-shrink: 1; }
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.logistics-card, .address-card, .goods-card, .split-card, .info-card, .price-card, .split-product-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}

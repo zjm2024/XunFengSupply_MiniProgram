@@ -13,7 +13,10 @@ page, view, text, image, scroll-view, swiper, swiper-item {
 
 /* ==================== 页面基础 ==================== */
 
-page {
+page,
+body {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   font-family: var(--font-family-sans, -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif);
   font-size: var(--type-body-size, 14px);
   line-height: var(--type-body-line-height, 22px);

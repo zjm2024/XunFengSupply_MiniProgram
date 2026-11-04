@@ -185,21 +185,21 @@ async function preview(item) {
 .manual-page { width: 100%; max-width: 1120px; padding: 12px 16px calc(30px + env(safe-area-inset-bottom)); box-sizing: border-box; }
 .category-tabs { width: 100%; margin-bottom: 14px; white-space: nowrap; }
 .category-tabs-inner { display: flex; gap: 8px; width: max-content; }
-.category-btn { min-height:var(--list-action-height,32px);padding:0 12px;border:1px solid #E5E6EB;border-radius:var(--list-action-radius,8px); color: #666A73; background: #FFF; font-size:var(--list-action-font-size,12px);line-height:30px; }
+.category-btn { min-height:var(--list-action-height,32px);padding:0 12px;border:1px solid #E5E6EB;border-radius:var(--list-action-radius,8px); color: #666A73; background: #FFF; font-size:var(--list-action-font-size,12px);line-height: 30px; }
 .category-btn::after { border: 0; }
-.category-btn.is-active { border-color: #D7192D; color: #FFF; background: #D7192D; font-weight: 700; }
+.category-btn.is-active { border-color: #D7192D; color: #FFF; background: #D7192D; font-weight: var(--font-weight-bold, 700); }
 .manual-list { display: grid; gap: 12px; }
-.manual-item { display: flex; min-height: 92px; align-items: center; gap: 12px; padding: 12px; border-radius: 16px; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-.manual-cover { width: 70px; height: 82px; flex: 0 0 70px; border-radius: 10px; background: #F1F3F6; }
+.manual-item { display: flex; min-height: 92px; align-items: center; gap: 12px; padding: 12px; border-radius: var(--radius-feature, 18px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.manual-cover { width: 70px; height: 82px; flex: 0 0 70px; border-radius: var(--radius-control, 10px); background: #F1F3F6; }
 .manual-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; }
-.manual-title { overflow: hidden; color: #17191E; font-size: 15px; font-weight: 750; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
-.manual-meta, .manual-file-hint { margin-top: 7px; color: #9699A1; font-size: 11px; }
+.manual-title { overflow: hidden; color: #17191E; font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-bold, 700); line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.manual-meta, .manual-file-hint { margin-top: 7px; color: #9699A1; font-size: var(--type-caption-size, 12px); }
 .manual-file-hint { color: #D7192D; }
 .manual-arrow { flex: 0 0 auto; color: #A0A3AA; }
-.list-status { padding: 8px 0; color: #9A9CA3; font-size: 11px; text-align: center; }
-.state-box { display: flex; min-height: 300px; align-items: center; justify-content: center; flex-direction: column; gap: 9px; color: #94979F; font-size: 12px; }
-.state-title { color: #454850; font-size: 15px; font-weight: 700; }
-.manual-skeleton { height: 106px; border-radius: 16px; background: linear-gradient(90deg, #F7F7F8 25%, #EFEFF1 50%, #F7F7F8 75%); background-size: 200% 100%; animation: manual-skeleton-shimmer 1.5s infinite; }
+.list-status { padding: 8px 0; color: #9A9CA3; font-size: var(--type-caption-size, 12px); text-align: center; }
+.state-box { display: flex; min-height: 300px; align-items: center; justify-content: center; flex-direction: column; gap: 9px; color: #94979F; font-size: var(--type-caption-size, 12px); }
+.state-title { color: #454850; font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-bold, 700); }
+.manual-skeleton { height: 106px; border-radius: var(--radius-feature, 18px); background: linear-gradient(90deg, #F7F7F8 25%, #EFEFF1 50%, #F7F7F8 75%); background-size: 200% 100%; animation: manual-skeleton-shimmer 1.5s infinite; }
 .card--pressed { opacity: .9; transform: scale(.985); }
 @keyframes manual-skeleton-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 </style>

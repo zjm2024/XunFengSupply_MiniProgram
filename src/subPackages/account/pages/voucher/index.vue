@@ -179,12 +179,12 @@ function onExchangeEnter() {
   border: none;
   background: transparent;
   color: #5E626B;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
 
   &.is-active {
     color: #D7192D;
     border-bottom: 2px solid #D7192D;
-    font-weight: 650;
+    font-weight: var(--font-weight-semibold, 600);
   }
 }
 
@@ -221,18 +221,18 @@ function onExchangeEnter() {
 }
 
 .currency {
-  font-size: 14px; /* 稳定 px */
-  font-weight: 600;
+  font-size: var(--type-body-size, 14px); /* 稳定 px */
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .amount {
-  font-size: 32px; /* 稳定 px */
-  font-weight: 700;
+  font-size: var(--type-display-size, 28px); /* 稳定 px */
+  font-weight: var(--font-weight-bold, 700);
   line-height: 1;
 }
 
 .condition {
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
   margin-top: 4px;
   opacity: 0.9;
 }
@@ -284,20 +284,20 @@ function onExchangeEnter() {
 }
 
 .voucher-name {
-  font-size: 15px; /* 稳定 px */
-  font-weight: 600;
+  font-size: var(--type-label-size, 15px); /* 稳定 px */
+  font-weight: var(--font-weight-semibold, 600);
   display: block;
 }
 
 .voucher-time {
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
   opacity: 0.85;
   margin-top: 4px;
   display: block;
 }
 
 .voucher-scope {
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
   opacity: 0.75;
   margin-top: 2px;
   display: block;
@@ -313,7 +313,7 @@ function onExchangeEnter() {
   margin-top: 8px;
   background: white;
   color: #D7192D;
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   font-weight: 600;
   border: none;
   border-radius:var(--list-action-radius,8px);
@@ -330,16 +330,16 @@ function onExchangeEnter() {
 
 .exchange-card {
   background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: var(--radius-card, 14px);
+  padding: var(--module-padding, 16px);
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
   -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
 }
 
 .exchange-title {
-  font-size: 15px; /* 稳定 px */
-  font-weight: 600;
+  font-size: var(--type-card-title-size, 16px); /* 稳定 px */
+  font-weight: var(--font-weight-semibold, 600);
   color: #111216;
   display: block;
   margin-bottom: 12px;
@@ -357,7 +357,7 @@ function onExchangeEnter() {
   background: #F7F7F8;
   border: 1px solid #EFEFF1;
   border-radius: 7px;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   color: #111216;
 
   &:focus {
@@ -377,7 +377,7 @@ function onExchangeEnter() {
   height: 40px;
   background: #D7192D;
   color: white;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   font-weight: 600;
   border: none;
   border-radius: 7px;
@@ -395,7 +395,7 @@ function onExchangeEnter() {
 }
 .exchange-tip {
   margin-top: 8px;
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   color: #5E626B;
   display: block;
 }
@@ -408,4 +408,13 @@ function onExchangeEnter() {
 
 /* 金额按实际可用宽度缩字，父布局允许收缩。 */
 .voucher-left, .amount-wrapper { min-width: 0; }
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.voucher-card, .exchange-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}
 </style>

@@ -154,14 +154,14 @@ const displayDesc = computed(() => {
 }
 
 .error-title {
-  font-size: 18px;
+  font-size: var(--type-section-title-size, 18px);
   font-weight: $font-weight-semibold;
   color: $color-gray-950;
   margin-bottom: 16rpx;
 }
 
 .error-desc {
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   color: $color-gray-400;
   line-height: 1.5;
   margin-bottom: 60rpx;

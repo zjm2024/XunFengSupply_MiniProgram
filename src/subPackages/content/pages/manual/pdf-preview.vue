@@ -232,6 +232,6 @@ onUnload(() => {
 <style lang="scss" scoped>
 .pdf-page { display: flex; width: 100%; height: 100%; min-height: 0; overflow: hidden; flex-direction: column; background: #f3f4f6; }
 .pdf-viewer { flex: 1; width: 100%; min-height: 0; }
-.state-box { display: flex; min-height: 100%; align-items: center; justify-content: center; flex-direction: column; gap: 10px; padding: 24px; box-sizing: border-box; color: #8b919b; font-size: 13px; text-align: center; }
-.state-title { color: #25282e; font-size: 16px; font-weight: 700; }
+.state-box { display: flex; min-height: 100%; align-items: center; justify-content: center; flex-direction: column; gap: 10px; padding: 24px; box-sizing: border-box; color: #8b919b; font-size: var(--type-body-small-size, 13px); text-align: center; }
+.state-title { color: #25282e; font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-bold, 700); }
 </style>

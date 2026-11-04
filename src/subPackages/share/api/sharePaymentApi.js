@@ -1,6 +1,6 @@
 import {dispatch} from '@/shared/api/dispatchClient.js'
 import {shareAccessCode} from './shareAccessApi.js'
-const states=new Set(['authorization','ready','pending','paid','closed','refunding','refunded'])
+const states=new Set(['idle','authorization','ready','pending','paid','closed','refunding','refunded'])
 /** 仅分享Cookie/CSRF运输，不接收订单、金额或OpenID。 */
 async function request(access,method,params={}){if(!shareAccessCode(access?.contextId)||!shareAccessCode(access?.csrfToken))throw TypeError('Invalid share payment access');const row=await dispatch('Finance','Mini.SharePaymentController',method,params,{shareSession:true,anonymous:true,authStrategy:'passive',timeout:20000,header:{'X-Share-Context':access.contextId,'X-Share-CSRF':access.csrfToken}});if(!states.has(row?.status))throw TypeError('Invalid share payment response');if(row.authorizationUrl){const url=new URL(row.authorizationUrl);if(url.origin!=='https://open.weixin.qq.com'||url.pathname!=='/connect/oauth2/authorize')throw TypeError('Invalid WeChat authorization URL')}return {status:row.status,authorizationUrl:row.authorizationUrl||null,clientPayload:row.clientPayload||null}}
 /** 申请本次公众号网页授权。 */

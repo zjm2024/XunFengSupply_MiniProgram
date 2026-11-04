@@ -125,6 +125,11 @@ page,
   --font-size-xxl: #{tokens.$font-size-h1};
   --font-size-display: #{tokens.$font-size-display};
 
+  /* 旧变量名指向同一字号，避免未定义别名退回历史小字号。 */
+  --font-size-body: var(--type-body-size);
+  --font-size-caption: var(--type-caption-size);
+  --font-size-micro: var(--type-micro-size);
+
   /* 语义排版：双端正文与控件保持稳定，仅大屏页面标题轻微增强 */
   --type-display-size: #{tokens.$font-size-display};
   --type-display-line-height: #{tokens.$line-height-display};
@@ -158,6 +163,24 @@ page,
   --type-body-color: #{tokens.$color-text-primary};
   --type-secondary-color: #{tokens.$color-text-secondary};
   --type-muted-color: #{tokens.$color-gray-400};
+
+  /* 统一尺寸：图标与内容模块在手机、iPad、桌面保持同一阅读尺度。 */
+  --type-heading-size: 24px;
+  --badge-font-size: 11px;
+  --sort-glyph-size: 6px;
+  --icon-size-xs: 14px;
+  --icon-size-sm: 16px;
+  --icon-size-body: 18px;
+  --icon-size-md: 20px;
+  --icon-size-lg: 24px;
+  --icon-size-xl: 28px;
+  --icon-size-feature: 40px;
+  --icon-size-state: 48px;
+  --radius-small: 8px;
+  --module-padding: 16px;
+  --module-gap: 12px;
+  --module-icon-box: 36px;
+  --module-row-min-height: 56px;
 
   /* 字重 */
   --font-weight-regular: #{tokens.$font-weight-regular};
@@ -210,7 +233,6 @@ page,
 @media screen and (min-width: 840px) {
   page,
   :root {
-    --type-page-title-size: #{tokens.$font-size-h1};
     --page-container-max-width: #{tokens.$content-max-width};
   }
 }

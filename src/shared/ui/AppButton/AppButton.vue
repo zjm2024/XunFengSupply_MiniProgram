@@ -39,13 +39,13 @@ defineEmits(['tap'])
   padding: 0 18px;
   border: 1px solid transparent;
   border-radius: var(--radius-control, 10px);
-  font-size: 15px;
+  font-size: var(--type-label-size, 15px);
   font-weight: var(--font-weight-semibold, 600);
   transition: opacity var(--transition-fast, 120ms) ease;
 }
 
 .app-button::after { display: none; }
-.app-button.size-sm { min-width:var(--list-action-min-width,72px);height:var(--list-tool-height,36px);padding:0 12px;border-radius:var(--list-action-radius,8px);font-size:13px;line-height:20px; }
+.app-button.size-sm { min-width:var(--list-action-min-width,72px);height:var(--list-tool-height,36px);padding:0 12px;border-radius:var(--list-action-radius,8px);font-size: var(--type-body-small-size, 13px);line-height: 20px; }
 .app-button.size-md { height: var(--control-height, 48px); }
 .app-button.block { width: 100%; }
 .app-button:active:not([disabled]) { opacity: 0.82; }

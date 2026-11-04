@@ -19,13 +19,13 @@
             <view class="toolbar-copy">
               <text class="toolbar-label">{{ t('account.billing.period') }}</text>
             </view>
-            <picker class="month-picker" mode="date" fields="month" :value="currentMonth" @change="onMonthChange">
+            <button class="month-picker" aria-haspopup="dialog" :aria-expanded="monthPickerVisible" @tap="monthPickerVisible = true">
               <view class="month-trigger">
-                <AppIcon name="calendar" :size="17" />
+                <AppIcon name="calendar" :size="18" />
                 <text class="month-value">{{ formatMonthDisplay(currentMonth, monthDisplayLabel) }}</text>
                 <AppIcon name="chevron-down" :size="14" />
               </view>
-            </picker>
+            </button>
           </view>
 
           <view class="overview-card">
@@ -84,7 +84,7 @@
 
                   <view class="bill-foot">
                     <text>{{ t('account.billing.generated', { date: formatDate(bill.generatedAt) }) }}</text>
-                    <view><text>{{ t('account.billing.details') }}</text><AppIcon name="chevron-right" :size="15" /></view>
+                    <view><text>{{ t('account.billing.details') }}</text><AppIcon name="chevron-right" :size="16" /></view>
                   </view>
                 </view>
               </view>
@@ -99,6 +99,9 @@
         </view>
       </AppContent>
     </template>
+    <template #overlay>
+      <AppMonthPicker v-model="monthPickerVisible" :value="currentMonth" @change="onMonthChange" />
+    </template>
   </AppPageShell>
 </template>
 
@@ -106,6 +109,7 @@
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/account/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
+import AppMonthPicker from '@/shared/ui/AppMonthPicker/AppMonthPicker.vue'
 import { computed, reactive, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getBillList } from '../../api/settlement.js'
@@ -126,6 +130,7 @@ import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimati
 
 const now = new Date()
 const currentMonth = ref(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`)
+const monthPickerVisible = ref(false)
 const bills = ref([])
 const totalCount = ref(0)
 const activeStatus = ref('all')
@@ -229,8 +234,11 @@ function handleRefresherRestore() {
   if (pageState.value !== PageStatus.LOADING) isRefreshing.value = false
 }
 
+/** 只在有效新账期确认后刷新；取消与重复选择不发送查询。 */
 function onMonthChange(event) {
-  currentMonth.value = event.detail.value
+  const value = String(event?.detail?.value || '')
+  if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(value) || value === currentMonth.value) return
+  currentMonth.value = value
   activeStatus.value = 'all'
   loadBillList()
 }
@@ -256,17 +264,17 @@ function statusType(status) { return ({ 0: 'warning', 1: 'success', 2: 'info' })
 .bill-page { width: 100%; max-width: 1100px; margin: 0 auto; }
 .toolbar-card, .overview-card, .bill-card { background: var(--glass-card-background, rgba(255,255,255,.9)); box-shadow: var(--glass-card-shadow, 0 8px 24px rgba(55,65,80,.05)); }
 /* 账期选择保持完整；大字号下整块换行，不挤压年月。 */
-.toolbar-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 12px; margin-bottom: 14px; padding: 14px 16px; border-radius: 16px; }
+.toolbar-card { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 12px; margin-bottom: 14px; padding: 14px 16px; border-radius: var(--radius-feature, 18px); }
 .toolbar-copy { flex: 1 1 8em; min-width: 0; font-size: var(--type-body-small-size, 13px); }
-.toolbar-label { display: block; color: #282D34; font-size: var(--type-body-size, 14px); line-height: 1.5; font-weight: 650; }
+.toolbar-label { display: block; color: #282D34; font-size: var(--type-body-size, 14px); line-height: 1.5; font-weight: var(--font-weight-semibold, 600); }
 .month-picker { flex: 0 0 auto; max-width: 100%; }
-.month-trigger { display: flex; min-height: 44px; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #DFE2E6; border-radius: 10px; color: #30353D; background: #F8F9FA; font-size: var(--type-body-small-size, 13px); line-height: 1.5; box-sizing: border-box; }
+.month-trigger { display: flex; min-height: 44px; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid #DFE2E6; border-radius: var(--radius-control, 10px); color: #30353D; background: #F8F9FA; font-size: var(--type-body-small-size, 13px); line-height: 1.5; box-sizing: border-box; }
 .month-value { flex: 0 0 auto; white-space: nowrap; word-break: keep-all; font-variant-numeric: tabular-nums; }
 .month-trigger :deep(.app-icon) { flex-shrink: 0; }
-.overview-card { overflow: hidden; border-radius: 18px; color: #20242A; }
+.overview-card { overflow: hidden; border-radius: var(--radius-feature, 18px); color: #20242A; }
 .overview-main { min-width: 0; padding: 18px 18px 16px; }
 .overview-label, .overview-period { display: block; color: #62666F; font-size: var(--type-caption-size, 12px); line-height: 1.5; }
-.overview-amount { display: block; margin-top: 7px; font-size: var(--type-bill-total-size, 28px); font-weight: 750; font-variant-numeric: tabular-nums; }
+.overview-amount { display: block; margin-top: 7px; font-size: var(--type-bill-total-size, 28px); font-weight: var(--font-weight-bold, 700); font-variant-numeric: tabular-nums; }
 .overview-period { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 6px; }
 .overview-period > text { display: block; white-space: nowrap; }
 /* 金额区根据文字尺寸减列，让标签完整换行，数值保留统一对齐。 */
@@ -274,22 +282,22 @@ function statusType(status) { return ({ 0: 'warning', 1: 'success', 2: 'info' })
 .overview-metrics { padding: 14px 18px; border-top: 1px solid #ECEEF1; background: #F8F9FB; }
 .overview-metrics > view, .bill-amount-row > view { display: flex; min-width: 0; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 6px; }
 .overview-metrics > view > text, .amount-label, .outstanding-copy > text { display: block; color: #62666F; font-size: var(--type-caption-size, 12px); line-height: 1.5; overflow-wrap: anywhere; }
-.overview-metrics .amount-text, .outstanding-copy > .amount-text { color: #62666F; font-size: var(--type-label-size, 15px); font-weight: 650; }
+.overview-metrics .amount-text, .outstanding-copy > .amount-text { color: #62666F; font-size: var(--type-label-size, 15px); font-weight: var(--font-weight-semibold, 600); }
 .overview-metrics .outstanding, .outstanding-copy > .outstanding { color: #D7192D; }
 .filter-tabs { min-width: 0; margin: 14px 0 12px; overflow: hidden; }
 .bill-grid { display: grid; grid-template-columns: minmax(0,1fr); gap: 12px; }
-.bill-card { min-width: 0; overflow: hidden; padding: 16px; border-radius: 16px; }
+.bill-card { min-width: 0; overflow: hidden; padding: var(--module-padding, 16px); border-radius: var(--radius-feature, 18px); }
 .bill-card--pressed { opacity: .72; }
 .bill-card-head { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 8px 12px; }
 .bill-identity { flex: 1 1 10em; min-width: 0; font-size: var(--type-body-size, 14px); }
 .bill-identity-copy { min-width: 0; }
 .bill-period, .bill-no { display: block; }
-.bill-period { color: #23272E; font-size: var(--type-body-size, 14px); line-height: 1.5; font-weight: 650; overflow-wrap: anywhere; }
+.bill-period { color: #23272E; font-size: var(--type-body-size, 14px); line-height: 1.5; font-weight: var(--font-weight-semibold, 600); overflow-wrap: anywhere; }
 .bill-no { margin-top: 4px; overflow: hidden; color: #757A83; font-size: var(--type-micro-size, 11px); line-height: 1.5; text-overflow: ellipsis; white-space: nowrap; }
 .bill-status { flex: 0 0 auto; margin-top: 2px; }
 .bill-page :deep(.bill-status) { font-size: var(--type-micro-size, 11px); }
 .bill-amount-row { margin-top: 14px; padding: 14px 0; border-top: 1px solid #ECEEF1; border-bottom: 1px solid #ECEEF1; }
-.bill-amount { display: block; color: #1F2329; font-size: var(--type-bill-amount-size, 22px); font-weight: 700; font-variant-numeric: tabular-nums; }
+.bill-amount { display: block; color: #1F2329; font-size: var(--type-bill-amount-size, 22px); font-weight: var(--font-weight-bold, 700); font-variant-numeric: tabular-nums; }
 .bill-foot, .bill-foot > view { display: flex; align-items: center; }
 .bill-foot { flex-wrap: wrap; justify-content: space-between; gap: 10px 12px; padding-top: 12px; color: #757A83; font-size: var(--type-caption-size, 12px); line-height: 1.5; }
 .bill-foot > text { min-width: 0; overflow-wrap: anywhere; }
@@ -298,6 +306,28 @@ function statusType(status) { return ({ 0: 'warning', 1: 'success', 2: 'info' })
 .filter-empty-illustration { width: 128px; height: 128px; }
 @media screen and (min-width: 720px) {
   .bill-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 16px; }
-  .bill-card { padding: 18px; }
+  .bill-card { padding: var(--module-padding, 16px); }
+}
+/* 日期选择使用页面级浮层，避免滚动区域及毛玻璃卡片改变定位与裁切。 */
+.month-picker { margin: 0; padding: 0; border: 0; border-radius: var(--radius-control, 10px); background: transparent; }
+.month-picker::after { border: 0; }
+.toolbar-card { padding: 12px 16px; border-radius: var(--radius-card, 14px); background: var(--modal-surface, #FFFFFF); box-shadow: none; }
+.month-trigger { color: var(--type-body-color, #1B1C20); font-size: var(--type-body-size, 14px); }
+.overview-card { border: 1px solid var(--border-color, #ECEEF1); background: var(--modal-surface, #FFFFFF); box-shadow: none; }
+.bill-card { border: 1px solid var(--border-color, #ECEEF1); border-radius: var(--radius-card, 14px); box-shadow: none; }
+@media screen and (min-width: 760px) {
+  .overview-card { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: stretch; }
+  .overview-main { padding: 24px; }
+  .overview-metrics { align-items: center; padding: 24px; border-top: 0; border-left: 1px solid var(--border-color, #ECEEF1); background: transparent; }
+  .overview-metrics > view { gap: 10px; }
+}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.toolbar-card, .overview-card, .bill-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
 }
 </style>

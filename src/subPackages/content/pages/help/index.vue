@@ -253,7 +253,7 @@ function openGuide(guide) {
   align-items: center;
   gap: 8px;
   background: rgba(255,255,255,.68);
-  border-radius: 10px;
+  border-radius: var(--radius-control, 10px);
   padding: 10px 14px;
   margin-bottom: 16px;
   -webkit-backdrop-filter: blur(12px);
@@ -261,12 +261,12 @@ function openGuide(guide) {
 }
 
 .search-icon {
-  font-size: 16px;
+  font-size: var(--type-card-title-size, 16px);
 }
 
 .search-input {
   flex: 1;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   color: #111216;
 }
 
@@ -287,7 +287,7 @@ function openGuide(guide) {
 }
 
 .section-title {
-  font-size: 16px; /* 稳定 px */
+  font-size: var(--type-card-title-size, 16px); /* 稳定 px */
   font-weight: 600;
   color: #111216;
   display: block;
@@ -302,7 +302,7 @@ function openGuide(guide) {
   background: transparent;
   border: none;
   color: #D7192D;
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
 
   &:active {
     opacity: 0.7;
@@ -329,20 +329,20 @@ function openGuide(guide) {
 }
 
 .cat-icon {
-  font-size: 24px;
+  font-size: var(--type-heading-size, 24px);
   display: block;
   margin-bottom: 6px;
 }
 
 .cat-name {
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   color: #111216;
   display: block;
   margin-bottom: 2px;
 }
 
 .cat-count {
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
   color: #989BA5;
   display: block;
 }
@@ -350,7 +350,7 @@ function openGuide(guide) {
 /* 热门问题 */
 .question-list {
   background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   overflow: hidden;
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
   -webkit-backdrop-filter: blur(16px);
@@ -378,14 +378,14 @@ function openGuide(guide) {
 }
 
 .q-title {
-  font-size: 15px;
-  font-weight: 500;
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-medium, 500);
   color: #111216;
   flex: 1;
 }
 
 .q-summary {
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   color: #5E626B;
   line-height: 1.5;
   display: block;
@@ -399,19 +399,19 @@ function openGuide(guide) {
 }
 
 .q-views {
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   color: #989BA5;
 }
 
 .q-arrow {
-  font-size: 16px;
+  font-size: var(--type-card-title-size, 16px);
   color: #989BA5;
 }
 
 /* 联系客服 */
 .contact-card {
   background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   overflow: hidden;
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
   -webkit-backdrop-filter: blur(16px);
@@ -435,7 +435,7 @@ function openGuide(guide) {
 }
 
 .contact-icon {
-  font-size: 20px;
+  font-size: var(--type-page-title-size, 20px);
 }
 
 .contact-info {
@@ -443,20 +443,20 @@ function openGuide(guide) {
 }
 
 .contact-label {
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   color: #111216;
   display: block;
 }
 
 .contact-value {
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   color: #5E626B;
   display: block;
   margin-top: 2px;
 }
 
 .contact-arrow {
-  font-size: 16px;
+  font-size: var(--type-card-title-size, 16px);
   color: #989BA5;
 }
 
@@ -484,7 +484,7 @@ function openGuide(guide) {
 .guide-cover {
   width: 60px; /* 稳定 px */
   height: 45px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs, 6px);
   object-fit: cover;
   background: #F5F5F6;
 }
@@ -494,25 +494,34 @@ function openGuide(guide) {
 }
 
 .guide-name {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: var(--type-body-size, 14px);
+  font-weight: var(--font-weight-medium, 500);
   color: #111216;
   display: block;
 }
 
 .guide-desc {
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   color: #5E626B;
   display: block;
   margin-top: 2px;
 }
 
 .guide-arrow {
-  font-size: 16px;
+  font-size: var(--type-card-title-size, 16px);
   color: #989BA5;
 }
 
 .bottom-spacer {
   height: 24px;
+}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.contact-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
 }
 </style>

@@ -9,7 +9,7 @@
   >
     <view v-if="icon || $slots.icon" class="item-icon" aria-hidden="true">
       <slot name="icon">
-        <AppIcon :name="icon" :size="22" :stroke-width="1.8" />
+        <AppIcon :name="icon" :size="24" :stroke-width="1.8" />
       </slot>
     </view>
 
@@ -60,9 +60,9 @@ function handleTap(event) {
   position: relative;
   display: flex;
   align-items: center;
-  min-height: var(--list-item-height, 56px);
+  min-height: var(--module-row-min-height, 56px);
   padding: 10px 16px;
-  gap: 12px;
+  gap: var(--module-gap, 12px);
   background: transparent;
 }
 

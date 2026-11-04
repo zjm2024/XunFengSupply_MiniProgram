@@ -104,24 +104,24 @@ function handleBlur(event) {
 
   &.is-disabled { opacity: .45; }
   &.size-sm {
-    .stepper-button { width: 32px; height: 32px; border-radius: 8px; }
-    .stepper-symbol { font-size: 16px; }
-    .stepper-value { width: 40px; height: 32px; font-size: 13px; }
+    .stepper-button { width: 32px; height: 32px; border-radius: var(--radius-small, 8px); }
+    .stepper-symbol { font-size: var(--type-card-title-size, 16px); }
+    .stepper-value { width: 40px; height: 32px; font-size: var(--type-body-small-size, 13px); }
   }
   &.size-md {
     .stepper-button { width: 40px; height: 40px; border-radius: var(--radius-control, 10px); }
-    .stepper-symbol { font-size: 20px; }
-    .stepper-value { width: 48px; height: 40px; font-size: 14px; }
+    .stepper-symbol { font-size: var(--type-page-title-size, 20px); }
+    .stepper-value { width: 48px; height: 40px; font-size: var(--type-body-size, 14px); }
   }
   &.size-lg {
     .stepper-button { width: 44px; height: 44px; border-radius: var(--radius-control, 10px); }
-    .stepper-symbol { font-size: 22px; }
-    .stepper-value { width: 56px; height: 44px; font-size: 16px; }
+    .stepper-symbol { font-size: var(--type-page-title-size, 20px); }
+    .stepper-value { width: 56px; height: 44px; font-size: var(--type-card-title-size, 16px); }
   }
   &.size-compact {
-    .stepper-button { width: 44px; height: 44px; flex: 0 0 44px; background: transparent; border-radius: 8px; }
-    .stepper-symbol { display: flex; width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: 7px; background: var(--surface-page, #f4f5f8); font-size: 16px; }
-    .stepper-value { width: 36px; height: 44px; flex: 0 0 36px; border: 0; font-size: 14px; }
+    .stepper-button { width: 44px; height: 44px; flex: 0 0 44px; background: transparent; border-radius: var(--radius-small, 8px); }
+    .stepper-symbol { display: flex; width: 28px; height: 28px; align-items: center; justify-content: center; border-radius: var(--radius-small, 8px); background: var(--surface-page, #f4f5f8); font-size: var(--type-card-title-size, 16px); }
+    .stepper-value { width: 36px; height: 44px; flex: 0 0 36px; border: 0; font-size: var(--type-body-size, 14px); }
   }
 }
 
@@ -156,7 +156,7 @@ function handleBlur(event) {
   color: var(--text-primary, #1b1c20);
   background: transparent;
   font-variant-numeric: tabular-nums;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold, 600);
   text-align: center;
 }
 </style>

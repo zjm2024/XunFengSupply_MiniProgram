@@ -82,8 +82,8 @@ defineEmits(['search', 'clear-history'])
 
 .section-title {
   color: #17191d;
-  font-size: 19px;
-  font-weight: 750;
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-bold, 700);
   line-height: 28px;
 }
 
@@ -110,9 +110,9 @@ defineEmits(['search', 'clear-history'])
   align-items: center;
   padding: 0 15px;
   box-sizing: border-box;
-  border-radius: 18px;
+  border-radius: var(--radius-feature, 18px);
   color: #3c4047;
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
   background: #e9eaec;
 }
 
@@ -138,7 +138,7 @@ defineEmits(['search', 'clear-history'])
   gap: 12px;
   border-bottom: 1px solid rgba(42, 44, 51, .07);
   color: #30333a;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
 }
 
 .recommendation-item :deep(.app-icon) {
@@ -170,7 +170,7 @@ defineEmits(['search', 'clear-history'])
   }
 
   .section-title {
-    font-size: 20px;
+    font-size: var(--type-card-title-size, 16px);
   }
 
   .recommendation-grid {
@@ -180,7 +180,7 @@ defineEmits(['search', 'clear-history'])
 
   .recommendation-item {
     min-height: 62px;
-    font-size: 15px;
+    font-size: var(--type-label-size, 15px);
   }
 }
 </style>

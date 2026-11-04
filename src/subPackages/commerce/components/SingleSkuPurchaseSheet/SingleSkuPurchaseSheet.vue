@@ -273,7 +273,7 @@ function formatMoney(value) {
 .sheet-title {
   color: var(--color-text-primary, #1B1C20);
   font-size: var(--type-section-title-size, 18px);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold, 700);
 }
 
 .sheet-close {
@@ -285,8 +285,8 @@ function formatMoney(value) {
   border-radius: 50%;
   color: var(--color-text-secondary, #5F646C);
   background: var(--surface-subtle, #F4F5F7);
-  font-size: 24px;
-  font-weight: 300;
+  font-size: var(--type-heading-size, 24px);
+  font-weight: var(--font-weight-regular, 400);
 }
 
 .product-summary {
@@ -294,7 +294,7 @@ function formatMoney(value) {
   gap: 14px;
   margin: 6px 0 14px;
   padding: 12px;
-  border-radius: 16px;
+  border-radius: var(--radius-feature, 18px);
   background: #F7F8FA;
 }
 
@@ -302,7 +302,7 @@ function formatMoney(value) {
   width: 88px;
   height: 88px;
   flex: 0 0 88px;
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   background: #FFFFFF;
 }
 
@@ -316,14 +316,14 @@ function formatMoney(value) {
 
 .summary-price {
   color: var(--color-brand, #D7192D);
-  font-size: 24px;
-  font-weight: 750;
+  font-size: var(--type-heading-size, 24px);
+  font-weight: var(--font-weight-bold, 700);
   font-variant-numeric: tabular-nums;
 }
 
-.price-symbol { font-size: 14px; }
+.price-symbol { font-size: var(--type-body-size, 14px); }
 .summary-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; min-width: 0; }
-.list-price { max-width: 100%; color: var(--color-text-secondary); font-size: 13px; }
+.list-price { max-width: 100%; color: var(--color-text-secondary); font-size: var(--type-body-small-size, 13px); }
 .list-price--strike :deep(.amount-text__value) { text-decoration: line-through; }
 .summary-stock { margin-top: 4px; color: var(--success-color, #168A52); font-size: var(--type-caption-size, 12px); }
 .summary-stock.empty { color: var(--danger-color, #B42318); }
@@ -353,14 +353,14 @@ function formatMoney(value) {
 
 .selected-color {
   color: var(--color-text-tertiary, #8B9098);
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .section-label {
   display: block;
   color: var(--color-text-primary, #1B1C20);
   font-size: var(--type-label-size, 15px);
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .sku-options {
@@ -379,7 +379,7 @@ function formatMoney(value) {
   margin: 0;
   padding: 8px 14px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: var(--radius-control, 10px);
   color: var(--color-text-primary, #1B1C20);
   background: var(--surface-subtle, #F4F5F7);
   font-size: var(--type-body-small-size, 13px);
@@ -390,7 +390,7 @@ function formatMoney(value) {
   width: 28px;
   height: 28px;
   flex: 0 0 28px;
-  border-radius: 6px;
+  border-radius: var(--radius-xs, 6px);
   background: var(--surface-muted, #ECEEF2);
 }
 
@@ -431,9 +431,9 @@ function formatMoney(value) {
   height: 48px;
   margin: 0;
   border: 0;
-  border-radius: 14px;
+  border-radius: var(--radius-card, 14px);
   font-size: var(--type-button-size, 14px);
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .batch-button { border: 1px solid rgba(215, 25, 45, 0.42); color: var(--color-brand, #D7192D); background: #FFFFFF; }
@@ -444,7 +444,7 @@ function formatMoney(value) {
   .sku-sheet {
     max-width: 560px;
     margin-bottom: 28px;
-    border-radius: 22px;
+    border-radius: var(--radius-feature, 18px);
     transform-origin: center;
     animation-name: xf-sku-dialog-in;
   }

@@ -41,16 +41,16 @@ import { t } from '@/shared/i18n/index.js'
 
 .brand-name {
   margin-top: 36rpx;
-  font-size: 34px;
+  font-size: var(--type-display-size, 28px);
   line-height: 1;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold, 700);
   letter-spacing: 0.08em;
   color: $color-gray-950;
 }
 
 .brand-subtitle {
   margin-top: 24rpx;
-  font-size: 16px;
+  font-size: var(--type-card-title-size, 16px);
   color: $color-gray-400;
   letter-spacing: 0.04em;
 }
@@ -62,11 +62,11 @@ import { t } from '@/shared/i18n/index.js'
     height: 140rpx;
   }
   .brand-name {
-    font-size: 28px;
+    font-size: var(--type-display-size, 28px);
     margin-top: 24rpx;
   }
   .brand-subtitle {
-    font-size: 14px;
+    font-size: var(--type-body-size, 14px);
     margin-top: 16rpx;
   }
 }

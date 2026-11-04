@@ -16,7 +16,7 @@
       >
         <view class="address-page">
           <view v-if="selectMode" class="select-notice">
-            <AppIcon name="location" :size="17" color="#4F6475" />
+            <AppIcon name="location" :size="18" color="#4F6475" />
             <text>{{ t('account.address.selectionHint') }}</text>
           </view>
 
@@ -44,7 +44,7 @@
                   @tap="selectAddress(item)"
                 >
                   <view class="address-marker">
-                    <AppIcon name="location" :size="21" />
+                    <AppIcon name="location" :size="20" />
                   </view>
                   <view class="card-main">
                     <view class="card-header">
@@ -71,14 +71,23 @@
       <ConfirmPopup
         v-model="manageVisible"
         :title="t('account.address.manage')"
-        :show-cancel="false"
-        :confirm-text="t('common.cancel')"
-        @confirm="manageVisible = false"
+        presentation="action-sheet"
+        :show-confirm="false"
       >
+        <view v-if="managedAddress" class="managed-address">
+          <view class="managed-contact">
+            <text class="managed-name">{{ managedAddress.name }}</text>
+            <text>{{ managedAddress.phone }}</text>
+          </view>
+          <text class="managed-detail">{{ managedAddress.fullAddress }}</text>
+        </view>
         <view class="address-actions">
           <button v-for="action in addressActions" :key="action.key"
             class="address-action" :class="{ 'is-danger': action.key === 'delete' }"
-            @tap="selectAddressAction(action.key)">{{ action.label }}</button>
+            @tap="selectAddressAction(action.key)">
+            <text class="address-action-label">{{ action.label }}</text>
+            <AppIcon name="chevron-right" :size="16" :color="action.key === 'delete' ? '#D7192D' : '#969AA3'" />
+          </button>
         </view>
       </ConfirmPopup>
     </template>
@@ -277,7 +286,8 @@ async function setDefault(item) {
 /** 用户确认后删除原地址 ID，取消时不提交。 */
 async function removeAddress(item) {
   if (!await openAppDialog({
-    confirmText: t('common.confirm'),
+    danger: true,
+    confirmText: t('account.address.delete'),
     cancelText: t('common.cancel'),
     title: t('account.address.deleteTitle'),
     description: t('account.address.deleteContent', { name: item.name }),
@@ -296,25 +306,41 @@ async function removeAddress(item) {
 .address-page { width: 100%; max-width: var(--content-max-width, 1120px); margin: 0 auto; }
 .select-notice { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; padding: 12px 14px; border-radius: var(--radius-card); color: var(--type-secondary-color); background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); font-size: var(--type-body-small-size); }
 .address-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.address-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) 38px; gap: 13px; align-items: center; min-height: 94px; padding: 16px; border-radius: var(--radius-card); background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-sizing: border-box; }
+.address-card { display: grid; grid-template-columns: 44px minmax(0, 1fr) 38px; gap: 13px; align-items: center; min-height: 94px; padding: var(--module-padding, 16px); border-radius: var(--radius-card); background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-sizing: border-box; }
 .address-card.is-default { background: rgba(255, 255, 255, 0.85); }
 .address-card.is-selectable { grid-template-columns: 44px minmax(0, 1fr) 18px; }
 .address-card--pressed { opacity: .76; transform: scale(.994); }
 .address-marker { display: flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: var(--radius-control); color: var(--type-secondary-color); background: var(--surface-subtle); }
 .card-main { min-width: 0; }
 .card-header { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.contact-name { color: var(--type-title-color); font-size: var(--type-label-size); font-weight: 700; }
+.contact-name { color: var(--type-title-color); font-size: var(--type-label-size); font-weight: var(--font-weight-bold, 700); }
 .contact-phone { color: var(--type-secondary-color); font-size: var(--type-body-small-size); }
 .default-tag { padding: 2px 8px; border-radius: var(--radius-full); color: var(--type-secondary-color); background: var(--surface-subtle); font-size: var(--type-micro-size); }
 .address-detail { display: block; margin-top: 8px; color: var(--type-secondary-color); font-size: var(--type-body-small-size); line-height: 20px; }
 .manage-btn { display: flex; width: 38px; height: 38px; align-items: center; justify-content: center; margin: 0; padding: 0; border: 0; border-radius: 50%; background: var(--surface-subtle); }
 .manage-btn::after, .add-address-btn::after { border: 0; }
-.add-address-btn { display: flex; width: min(100%, 460px); height: 48px; align-items: center; justify-content: center; gap: 8px; margin: 0 auto; border: 0; border-radius: var(--radius-card); color: #FFFFFF; background: var(--color-brand); font-size: var(--type-button-size); font-weight: 700; }
-.address-actions { display: grid; gap: 10px; }
-.address-action { width: 100%; margin: 0; padding: 12px; border-radius: var(--radius-control); background: var(--surface-subtle); color: var(--type-body-color); font-size: var(--type-body-size); line-height: 1.5; }
+.add-address-btn { display: flex; width: min(100%, 460px); height: 48px; align-items: center; justify-content: center; gap: 8px; margin: 0 auto; border: 0; border-radius: var(--radius-card); color: #FFFFFF; background: var(--color-brand); font-size: var(--type-button-size); font-weight: var(--font-weight-bold, 700); }
+.managed-address { padding: 0 0 16px; border-bottom: 1px solid var(--border-color, #EEF0F3); }
+.managed-contact { display: flex; flex-wrap: wrap; gap: 6px 10px; color: var(--type-secondary-color, #62666F); font-size: var(--type-body-small-size, 13px); line-height: 22px; }
+.managed-name { color: var(--type-title-color, #1B1C20); font-size: var(--type-body-size, 14px); font-weight: var(--font-weight-semibold, 600); }
+.managed-detail { display: block; margin-top: 4px; color: var(--type-secondary-color, #62666F); font-size: var(--type-body-small-size, 13px); line-height: 20px; overflow-wrap: anywhere; }
+.address-actions { display: grid; }
+.address-action { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 50px; margin: 0; padding: 12px 0; border: 0; border-radius: 0; background: transparent; color: var(--type-body-color, #1B1C20); font-size: var(--type-body-size, 14px); line-height: 22px; text-align: left; }
+.address-action + .address-action { border-top: 1px solid var(--border-color, #EEF0F3); }
+.address-action:active { background: var(--surface-subtle, #F4F5F8); }
+.address-action-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .address-action::after { border: 0; }
-.address-action.is-danger { color: var(--danger-color); }
+.address-action.is-danger { color: var(--danger-color, #D7192D); }
 @media screen and (min-width: 760px) {
   .address-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.address-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
 }
 </style>

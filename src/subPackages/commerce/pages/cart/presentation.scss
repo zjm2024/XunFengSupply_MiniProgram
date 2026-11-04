@@ -24,7 +24,7 @@
   gap: 12px;
   margin-bottom: 12px;
   padding: 14px 15px;
-  border-radius: 14px;
+  border-radius: var(--radius-card, 14px);
   background: tokens.$color-bg-card;
   box-shadow: 0 5px 18px rgba(17, 18, 22, 0.045);
 }
@@ -37,7 +37,7 @@
 .toolbar-title {
   color: tokens.$color-text-primary;
   font-size: var(--type-card-title-size, 16px);
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .toolbar-desc {
@@ -52,8 +52,8 @@
   color: tokens.$color-brand-500;
   background: tokens.$color-bg-card;
   border: 1px solid tokens.$color-brand-500;
-  border-radius: 9px;
-  font-size: 13px;
+  border-radius: var(--radius-small, 8px);
+  font-size: var(--type-body-small-size, 13px);
   flex-shrink: 0;
 }
 
@@ -91,12 +91,12 @@
 
 .sync-text {
   color: tokens.$color-brand-700;
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .retry-link {
   color: tokens.$color-brand-500;
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   background: transparent;
   border: none;
   padding: 0 4px;
@@ -117,13 +117,13 @@
 
 .invalid-title {
   color: tokens.$color-warning;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-medium, 500);
 }
 
 .link-btn {
   color: tokens.$color-brand-500;
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   background: transparent;
   border: none;
   padding: 4px 8px;
@@ -170,7 +170,7 @@
   overflow: hidden;
   color: tokens.$color-text-primary;
   font-size: var(--type-label-size, 15px);
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold, 600);
   line-height: 21px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -185,8 +185,8 @@
 
 .spu-total {
   color: tokens.$color-text-secondary;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--type-body-small-size, 13px);
+  font-weight: var(--font-weight-medium, 500);
   font-variant-numeric: tabular-nums;
 }
 
@@ -229,7 +229,7 @@
 .sku-action-shell {
   position: relative;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   background: transparent;
 }
 
@@ -254,7 +254,7 @@
   border-radius: 0;
   color: #FFFFFF;
   background: tokens.$color-brand-500;
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   visibility: hidden;
 }
 
@@ -270,7 +270,7 @@
   gap: 12px;
   min-height: 122px;
   padding: 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   background: tokens.$color-bg-subtle;
   box-sizing: border-box;
   transition: transform 180ms ease;
@@ -295,7 +295,7 @@
   overflow: hidden;
   color: tokens.$color-text-primary;
   font-size: var(--type-body-size, 14px);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold, 600);
   line-height: 20px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -306,14 +306,14 @@
   display: block;
   margin-top: 3px;
   color: tokens.$color-text-secondary;
-  font-size: 11px;
-  font-weight: 400;
-  line-height: 17px;
+  font-size: var(--type-caption-size, 12px);
+  font-weight: var(--font-weight-regular, 400);
+  line-height: 18px;
 }
 .sku-subtotal {
   color: tokens.$color-gray-800;
   font-size: var(--type-caption-size, 12px);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium, 500);
   font-variant-numeric: tabular-nums;
 }
 
@@ -347,15 +347,15 @@
   color: tokens.$color-warning;
   background: tokens.$color-warning-bg;
   border-radius: 4px;
-  font-size: 10px;
-  font-weight: 600;
+  font-size: var(--type-caption-size, 12px);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .invalid-reason {
   display: block;
   margin-top: 4px;
   color: tokens.$color-warning;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .check-wrap {
@@ -372,7 +372,7 @@
   background: white;
   border: 1px solid tokens.$color-gray-300;
   border-radius: 50%;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .check.checked {
@@ -384,7 +384,7 @@
   width: 84px;
   height: 84px;
   background: tokens.$color-bg-subtle;
-  border-radius: 9px;
+  border-radius: var(--radius-small, 8px);
 }
 
 .product-info {
@@ -396,8 +396,8 @@
   display: -webkit-box;
   overflow: hidden;
   color: tokens.$color-text-primary;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: var(--type-body-size, 14px);
+  font-weight: var(--font-weight-semibold, 600);
   line-height: 1.45;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -407,14 +407,14 @@
   display: block;
   margin-top: 3px;
   color: tokens.$color-gray-400;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .sku-spec {
   display: block;
   margin-top: 3px;
   color: tokens.$color-text-secondary;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .price-line {
@@ -427,14 +427,14 @@
 
 .price {
   color: tokens.$color-brand-500;
-  font-size: 16px;
-  font-weight: 700;
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-bold, 700);
 }
 
 .price-line .list-price {
   color: #7B818C;
-  font-size: 12px;
-  font-weight: 400;
+  font-size: var(--type-caption-size, 12px);
+  font-weight: var(--font-weight-regular, 400);
 }
 
 .list-price--strike :deep(.amount-text__value) { text-decoration: line-through; }
@@ -442,7 +442,7 @@
 .unit {
   margin-left: 3px;
   color: tokens.$color-gray-400;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 // ==================== 数量行 ====================
@@ -461,8 +461,8 @@
   color: tokens.$color-text-secondary;
   background: tokens.$color-bg-subtle;
   border: 1px solid tokens.$color-border-default;
-  border-radius: 6px;
-  font-size: 11px;
+  border-radius: var(--radius-xs, 6px);
+  font-size: var(--type-caption-size, 12px);
 }
 
 // ==================== 小计 ====================
@@ -474,20 +474,20 @@
   align-items: baseline;
   gap: 4px;
   color: tokens.$color-text-primary;
-  font-size: 14px;
-  font-weight: 700;
+  font-size: var(--type-body-size, 14px);
+  font-weight: var(--font-weight-bold, 700);
   font-variant-numeric: tabular-nums;
 }
 
 .subtotal-label {
   color: tokens.$color-gray-400;
-  font-size: 10px;
-  font-weight: 400;
+  font-size: var(--type-caption-size, 12px);
+  font-weight: var(--font-weight-regular, 400);
 }
 
 // ==================== 汇总卡 ====================
 .summary-card {
-  padding: 18px;
+  padding: var(--module-padding, 16px);
   background: var(--glass-card-background, rgba(255,255,255,.74));
   border-radius: tokens.$radius-card;
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
@@ -506,15 +506,15 @@
 .summary-title {
   display: block;
   color: tokens.$color-text-primary;
-  font-size: 15px;
-  font-weight: 650;
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .summary-subtitle {
   display: block;
   margin-top: 4px;
   color: tokens.$color-gray-400;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .summary-badge {
@@ -522,8 +522,8 @@
   border-radius: 999px;
   color: tokens.$color-brand-500;
   background: tokens.$color-brand-50;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--type-caption-size, 12px);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .summary-row {
@@ -531,24 +531,24 @@
   justify-content: space-between;
   margin-top: 9px;
   color: tokens.$color-text-secondary;
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
 
   &.total {
     color: tokens.$color-text-primary;
-    font-weight: 650;
+    font-weight: var(--font-weight-semibold, 600);
   }
 }
 
 .total-amount {
   color: tokens.$color-text-primary;
-  font-size: 16px;
-  font-weight: 650;
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .discount-summary .discount-amount {
   color: tokens.$color-text-secondary;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--type-body-small-size, 13px);
+  font-weight: var(--font-weight-medium, 500);
 }
 
 .summary-divider {
@@ -561,16 +561,16 @@
   margin-top: 8px;
   padding: 6px 10px;
   background: tokens.$color-brand-50;
-  border-radius: 6px;
+  border-radius: var(--radius-xs, 6px);
   color: tokens.$color-brand-700;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .risk-text {
   display: block;
   margin-top: 10px;
   color: tokens.$color-error;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
   line-height: 1.5;
 }
 
@@ -590,7 +590,7 @@
   align-items: center;
   gap: 6px;
   color: tokens.$color-text-primary;
-  font-size: 13px;
+  font-size: var(--type-body-small-size, 13px);
 }
 
 .footer-total {
@@ -603,13 +603,13 @@
 
 .footer-label {
   color: tokens.$color-gray-400;
-  font-size: 10px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .footer-amount {
   color: tokens.$color-brand-500;
   font-size: var(--type-money-size, 18px);
-  font-weight: 700;
+  font-weight: var(--font-weight-bold, 700);
 }
 
 .checkout-btn {
@@ -620,7 +620,7 @@
   background: tokens.$color-brand-500;
   border: 0;
   border-radius: tokens.$radius-control;
-  font-size: 14px;
+  font-size: var(--type-body-size, 14px);
   font-weight: 650;
 
   &[disabled] {
@@ -639,9 +639,9 @@
   margin: 0;
   padding: 0 16px;
   border: 0;
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   font-size: var(--type-button-size, 14px);
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .clear-cart-btn {
@@ -689,7 +689,7 @@
 .sk-img {
   width: 76px;
   height: 76px;
-  border-radius: 9px;
+  border-radius: var(--radius-small, 8px);
 }
 
 .sk-info {
@@ -738,7 +738,7 @@
 
   .cart-card.is-invalid {
     grid-template-columns: 104px minmax(0, 1fr) auto;
-    padding: 16px;
+    padding: var(--module-padding, 16px);
   }
 
   .cart-layout.is-managing .cart-card.is-invalid {
@@ -808,8 +808,8 @@
 .limit-amounts { display: flex; min-width: 0; flex-wrap: wrap; align-items: baseline; gap: 3px; }
 .limit-amounts .amount-text { font-size: inherit; }
 
-.search-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 2px 10px; color:#6b7280; font-size:13px; }
-.search-selection-hint { padding:10px 12px; margin-bottom:12px; background:#fff4e9; color:#995318; border-radius:10px; font-size:12px; line-height:1.6; overflow-wrap:anywhere; }
+.search-summary { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:0 2px 10px; color:#6b7280; font-size: var(--type-body-small-size, 13px); }
+.search-selection-hint { padding:10px 12px; margin-bottom:12px; background:#fff4e9; color:#995318; border-radius: var(--radius-control, 10px); font-size: var(--type-caption-size, 12px); line-height:1.6; overflow-wrap:anywhere; }
 .search-empty { display:flex; flex-direction:column; align-items:center; gap:14px; padding:36px 16px; color:#858b96; }
 .invalid-spu-header { display:flex; flex-direction:column; gap:5px; padding:14px 16px; border-bottom:1px solid #f1f2f4; }
 .invalid-spu .cart-card { border:0; border-radius:0; box-shadow:none; }
@@ -821,4 +821,13 @@
   .invalid-spu .product-image { width:64px; height:64px; }
   .invalid-spu .delete-btn { grid-column:2; justify-self:end; }
   .cart-layout.is-managing .invalid-spu .cart-card.is-invalid { grid-template-columns:22px 64px minmax(0,1fr); }
+}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.spu-card, .cart-card, .summary-card, .sk-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
 }

@@ -32,7 +32,7 @@
       <view class="slider-progress" :style="progressStyle"></view>
       <text class="slider-label">{{ sliderLabel }}</text>
       <view class="slider-thumb" :style="thumbStyle">
-        <AppIcon :name="verified ? 'check' : 'arrow-right'" :size="22" color="#FFFFFF" />
+        <AppIcon :name="verified ? 'check' : 'arrow-right'" :size="24" color="#FFFFFF" />
       </view>
     </view>
 

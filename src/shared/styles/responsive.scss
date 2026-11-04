@@ -172,14 +172,14 @@ $content-max-width-landscape: 1120px;   // iPad 横屏/大屏
   /** 输入框更宽但字号不变 */
   .input-group .input {
     height: 54px; /* 稳定 px */
-    font-size: 17px; /* iOS 标准字号 */
+    font-size: var(--type-section-title-size, 18px); /* iOS 标准字号 */
     padding: 0 18px;
   }
 
   /** 按钮触控区域更大但字号不变 */
   .login-btn {
     height: 52px; /* 稳定 px */
-    font-size: 17px; /* iOS 标准字号 */
-    border-radius: 26px;
+    font-size: var(--type-section-title-size, 18px); /* iOS 标准字号 */
+    border-radius: var(--radius-feature, 18px);
   }
 }

@@ -156,35 +156,35 @@ async function saveLogistics() {
 </script>
 
 <style lang="scss" scoped>
-.awaiting-price { color: #A36A20; font-size: 12px; font-weight: 600; }
-.detail-body { width: 100%; box-sizing: border-box; padding: 18px 16px; border-radius: 16px; background: var(--surface-card, #fff); min-width: 0; color: var(--text-primary, #22262C); font-size: 13px; }
+.awaiting-price { color: #A36A20; font-size: var(--type-caption-size, 12px); font-weight: var(--font-weight-semibold, 600); }
+.detail-body { width: 100%; box-sizing: border-box; padding: 18px 16px; border-radius: var(--radius-feature, 18px); background: var(--surface-card, #fff); min-width: 0; color: var(--text-primary, #22262C); font-size: var(--type-body-small-size, 13px); }
 .detail-summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.status-name { font-size: 17px; font-weight: 650; overflow-wrap: anywhere; }
-.text-action { margin: 0; padding: 6px 0 6px 8px; color: #D7192D; background: transparent; font-size: 12px; }
+.status-name { font-size: var(--type-section-title-size, 18px); font-weight: var(--font-weight-semibold, 600); overflow-wrap: anywhere; }
+.text-action { margin: 0; padding: 6px 0 6px 8px; color: #D7192D; background: transparent; font-size: var(--type-caption-size, 12px); }
 button::after { border: 0; }
-.detail-number { display: block; margin: 3px 0 16px; color: #969AA3; font-size: 11px; overflow-wrap: anywhere; }
+.detail-number { display: block; margin: 3px 0 16px; color: #969AA3; font-size: var(--type-caption-size, 12px); overflow-wrap: anywhere; }
 .detail-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 7px 0; line-height: 1.5; }
 .detail-row > :first-child { flex: 0 0 34%; color: #737A84; }
 .detail-row > :last-child { min-width: 0; text-align: right; overflow-wrap: anywhere; }
-.note-block { padding: 12px; margin-top: 12px; border-radius: 10px; background: #F6F7F9; line-height: 1.6; overflow-wrap: anywhere; }
+.note-block { padding: 12px; margin-top: 12px; border-radius: var(--radius-control, 10px); background: #F6F7F9; line-height: 1.6; overflow-wrap: anywhere; }
 .note-block text { display: block; white-space: pre-wrap; }
-.note-title { display: block; margin-bottom: 6px; font-weight: 600; }
-.workflow-block { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: #F6F7F9; }
-.workflow-block .detail-row { padding: 5px 0; font-size: 12px; }
+.note-title { display: block; margin-bottom: 6px; font-weight: var(--font-weight-semibold, 600); }
+.workflow-block { margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-control, 10px); background: #F6F7F9; }
+.workflow-block .detail-row { padding: 5px 0; font-size: var(--type-caption-size, 12px); }
 .audit-note { background: #FFF8EE; }
 .detail-product { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px 12px; padding: 14px 0; border-bottom: 1px solid #EEF0F2; }
-.product-image { width: 64px; height: 64px; border-radius: 8px; overflow: hidden; }
+.product-image { width: 64px; height: 64px; border-radius: var(--radius-small, 8px); overflow: hidden; }
 .product-copy { flex: 1; min-width: 0; }
-.product-copy text { display: block; margin-bottom: 4px; color: #737A84; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
-.product-copy .product-name { color: #22262C; font-size: 13px; font-weight: 600; }
-.product-amount { grid-column: 2; min-width: 0; font-size: 12px; font-weight: 600; }
-.time-block { padding-top: 10px; font-size: 12px; }
+.product-copy text { display: block; margin-bottom: 4px; color: #737A84; font-size: var(--type-caption-size, 12px); line-height: 1.5; overflow-wrap: anywhere; }
+.product-copy .product-name { color: #22262C; font-size: var(--type-body-small-size, 13px); font-weight: var(--font-weight-semibold, 600); }
+.product-amount { grid-column: 2; min-width: 0; font-size: var(--type-caption-size, 12px); font-weight: var(--font-weight-semibold, 600); }
+.time-block { padding-top: 10px; font-size: var(--type-caption-size, 12px); }
 .return-form { margin-top: 16px; padding-top: 16px; border-top: 1px solid #EEF0F2; }
-.return-note { display: block; color: #737A84; font-size: 12px; line-height: 1.6; }
-.field-label { display: block; margin: 14px 0 8px; font-size: 13px; }
-.field-input { width: 100%; height: 44px; padding: 0 12px; box-sizing: border-box; border: 1px solid #E5E7EB; border-radius: 10px; background: #F9FAFB; font-size: 14px; }
+.return-note { display: block; color: #737A84; font-size: var(--type-caption-size, 12px); line-height: 1.6; }
+.field-label { display: block; margin: 14px 0 8px; font-size: var(--type-body-small-size, 13px); }
+.field-input { width: 100%; height: 44px; padding: 0 12px; box-sizing: border-box; border: 1px solid #E5E7EB; border-radius: var(--radius-control, 10px); background: #F9FAFB; font-size: var(--type-body-size, 14px); }
 .carrier-picker { display: flex; align-items: center; height: auto; min-height: 44px; padding-top: 10px; padding-bottom: 10px; line-height: 1.5; overflow-wrap: anywhere; }
-.return-submit { display: flex; width: 100%; min-height: 44px; align-items: center; justify-content: center; margin: 16px 0 0; padding: 10px 14px; border-radius: 10px; color: #fff; background: #D7192D; font-size: 14px; line-height: 1.5; }
+.return-submit { display: flex; width: 100%; min-height: 44px; align-items: center; justify-content: center; margin: 16px 0 0; padding: 10px 14px; border-radius: var(--radius-control, 10px); color: #fff; background: #D7192D; font-size: var(--type-body-size, 14px); line-height: 1.5; }
 .return-submit[disabled] { color: #969AA3; background: #E9EAED; }
-.save-error { display: block; color: #D7192D; margin-top: 10px; font-size: 12px; line-height: 1.5; }
+.save-error { display: block; color: #D7192D; margin-top: 10px; font-size: var(--type-caption-size, 12px); line-height: 1.5; }
 </style>

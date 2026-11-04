@@ -31,7 +31,7 @@
                 <text>{{ t('commerce.filters.allCategories') }}</text>
               </view>
               <template v-for="(category, index) in draftCategoryPath" :key="String(category.id)">
-                <AppIcon class="breadcrumb-arrow" name="chevron-right" :size="12" />
+                <AppIcon class="breadcrumb-arrow" name="chevron-right" :size="14" />
                 <view
                   class="breadcrumb-item"
                   :class="{ 'is-current': index === draftCategoryPath.length - 1 }"
@@ -51,7 +51,7 @@
               <text class="selected-category-label">{{ t('commerce.filters.current') }}</text>
               <text class="selected-category-name">{{ selectedCategoryLabel }}</text>
             </view>
-            <AppIcon class="selected-check" name="check" :size="17" />
+            <AppIcon class="selected-check" name="check" :size="18" />
           </view>
 
           <view class="category-level-heading">
@@ -77,7 +77,7 @@
               </view>
               <AppIcon
                 :name="category.children?.length ? 'chevron-right' : (isCategorySelected(category) ? 'check' : 'category')"
-                :size="17"
+                :size="18"
               />
             </view>
           </view>
@@ -124,7 +124,7 @@
             >
               <view class="choice-title-row">
                 <text class="choice-title">{{ option.label }}</text>
-                <AppIcon v-if="draftSortKey === option.value" name="check" :size="15" />
+                <AppIcon v-if="draftSortKey === option.value" name="check" :size="16" />
               </view>
               <text class="choice-description">{{ option.description }}</text>
             </view>
@@ -140,7 +140,7 @@
         </view>
         <view class="apply-button" hover-class="button--pressed" @click="applyFilters">
           <text>{{ t('commerce.filters.apply') }}</text>
-          <AppIcon name="check" :size="17" />
+          <AppIcon name="check" :size="18" />
         </view>
       </view>
     </view>
@@ -346,14 +346,14 @@ watch(() => props.visible, (visible) => {
 
 .drawer-title {
   color: #17191d;
-  font-size: 19px;
-  font-weight: 750;
+  font-size: var(--type-page-title-size, 20px);
+  font-weight: var(--font-weight-bold, 700);
 }
 
 .drawer-subtitle {
   margin-top: 4px;
   color: #92969f;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .close-button {
@@ -362,7 +362,7 @@ watch(() => props.visible, (visible) => {
   height: 36px;
   place-items: center;
   border: 1px solid #ececef;
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   color: #656a73;
   background: #fff;
 }
@@ -380,8 +380,8 @@ watch(() => props.visible, (visible) => {
 
 .filter-section {
   margin: 12px;
-  padding: 16px;
-  border-radius: 18px;
+  padding: var(--module-padding, 16px);
+  border-radius: var(--radius-feature, 18px);
   background: var(--glass-card-background, rgba(255,255,255,.74));
   box-shadow: none;
 }
@@ -393,13 +393,13 @@ watch(() => props.visible, (visible) => {
 
 .section-title {
   color: #1b1d21;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-bold, 700);
 }
 
 .section-hint {
   color: #a1a5ad;
-  font-size: 10px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .category-breadcrumb-scroll {
@@ -416,15 +416,15 @@ watch(() => props.visible, (visible) => {
 
 .breadcrumb-item {
   padding: 6px 9px;
-  border-radius: 9px;
+  border-radius: var(--radius-small, 8px);
   color: #737780;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
   background: #f5f5f7;
 }
 
 .breadcrumb-item.is-current {
   color: #d7192d;
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold, 600);
   background: rgba(215, 25, 45, .08);
 }
 
@@ -436,7 +436,7 @@ watch(() => props.visible, (visible) => {
   gap: 10px;
   margin-top: 12px;
   padding: 11px 12px;
-  border-radius: 13px;
+  border-radius: var(--radius-card, 14px);
   background: rgba(215, 25, 45, .055);
 }
 
@@ -446,7 +446,7 @@ watch(() => props.visible, (visible) => {
   height: 32px;
   flex-shrink: 0;
   place-items: center;
-  border-radius: 10px;
+  border-radius: var(--radius-control, 10px);
   color: #d7192d;
   background: #fff;
 }
@@ -463,15 +463,15 @@ watch(() => props.visible, (visible) => {
 
 .selected-category-label {
   color: #a16c73;
-  font-size: 9px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .selected-category-name {
   margin-top: 2px;
   overflow: hidden;
   color: #9f1524;
-  font-size: 12px;
-  font-weight: 650;
+  font-size: var(--type-caption-size, 12px);
+  font-weight: var(--font-weight-semibold, 600);
   white-space: nowrap;
   text-overflow: ellipsis;
 }
@@ -484,7 +484,7 @@ watch(() => props.visible, (visible) => {
   justify-content: space-between;
   margin: 15px 1px 8px;
   color: #8d919a;
-  font-size: 10px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .category-options {
@@ -500,7 +500,7 @@ watch(() => props.visible, (visible) => {
   gap: 8px;
   padding: 9px 10px;
   box-sizing: border-box;
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   color: #9a9ea6;
   background: rgba(255,255,255,.58);
 }
@@ -525,8 +525,8 @@ watch(() => props.visible, (visible) => {
 
 .category-option-name {
   color: #34373d;
-  font-size: 12px;
-  font-weight: 620;
+  font-size: var(--type-caption-size, 12px);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .category-option.is-selected .category-option-name {
@@ -536,13 +536,13 @@ watch(() => props.visible, (visible) => {
 .category-option-meta {
   margin-top: 4px;
   color: #a2a6ae;
-  font-size: 9px;
+  font-size: var(--type-caption-size, 12px);
 }
 
 .category-empty {
   padding: 20px 12px 8px;
   color: #a0a4ac;
-  font-size: 11px;
+  font-size: var(--type-caption-size, 12px);
   line-height: 18px;
   text-align: center;
 }
@@ -557,7 +557,7 @@ watch(() => props.visible, (visible) => {
 .choice-card {
   min-width: 0;
   padding: 11px;
-  border-radius: 12px;
+  border-radius: var(--radius-card, 14px);
   background: rgba(255,255,255,.58);
 }
 
@@ -579,8 +579,8 @@ watch(() => props.visible, (visible) => {
 
 .choice-title {
   color: #34373d;
-  font-size: 12px;
-  font-weight: 620;
+  font-size: var(--type-card-title-size, 16px);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .choice-card.is-selected .choice-title {
@@ -590,8 +590,8 @@ watch(() => props.visible, (visible) => {
 .choice-description {
   margin-top: 4px;
   color: #9da1aa;
-  font-size: 9px;
-  line-height: 14px;
+  font-size: var(--type-caption-size, 12px);
+  line-height: 18px;
 }
 
 .drawer-scroll-spacer {
@@ -610,9 +610,9 @@ watch(() => props.visible, (visible) => {
   height: 46px;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
-  font-size: 14px;
-  font-weight: 650;
+  border-radius: var(--radius-card, 14px);
+  font-size: var(--type-body-size, 14px);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 .reset-button {
@@ -661,7 +661,7 @@ watch(() => props.visible, (visible) => {
 
   .filter-section {
     margin: 14px;
-    padding: 18px;
+    padding: var(--module-padding, 16px);
   }
 
   .drawer-footer {
@@ -678,5 +678,14 @@ watch(() => props.visible, (visible) => {
   .drawer-layer,
   .drawer-mask,
   .drawer-panel { animation-duration: 1ms; }
+}
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.selected-category-card, .choice-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
 }
 </style>

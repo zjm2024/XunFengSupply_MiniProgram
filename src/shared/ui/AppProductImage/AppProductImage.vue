@@ -134,7 +134,7 @@ function handleImageError() {
 
 .app-product-image__loading-text {
   color: #969aa3;
-  font-size: 12px;
+  font-size: var(--type-caption-size, 12px);
   line-height: 18px;
 }
 
@@ -155,10 +155,10 @@ function handleImageError() {
   top: 6px;
   right: 6px;
   padding: 4px 7px;
-  border-radius: 10px;
+  border-radius: var(--radius-control, 10px);
   color: #fff;
-  font-size: 8px;
-  font-weight: 650;
+  font-size: var(--type-caption-size, 12px);
+  font-weight: var(--font-weight-semibold, 600);
   line-height: 1;
   background: rgba(65, 68, 75, 0.72);
 }

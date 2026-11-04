@@ -33,5 +33,5 @@ watch(() => props.entry, entry => {
 onBeforeUnmount(() => { clearInterval(expiryTimer); matrix.value = [] })
 </script>
 <style scoped>
-.qr-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.qr-title{flex:1;min-width:0;color:var(--text-primary);font-size:var(--font-size-md,16px);font-weight:600;line-height:24px;overflow-wrap:anywhere}.qr-expiry{display:block;margin:0 0 16px;color:var(--text-secondary);font-size:var(--font-size-caption,12px);line-height:20px;text-align:center}.share-qr-inline{min-width:0}
+.qr-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.qr-title{flex:1;min-width:0;color:var(--text-primary);font-size:var(--font-size-md,16px);font-weight: var(--font-weight-semibold, 600);line-height: 24px;overflow-wrap:anywhere}.qr-expiry{display:block;margin:0 0 16px;color:var(--text-secondary);font-size:var(--font-size-caption,12px);line-height: 20px;text-align:center}.share-qr-inline{min-width:0}
 </style>

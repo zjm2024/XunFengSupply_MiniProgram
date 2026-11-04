@@ -162,7 +162,7 @@ function removeFile(index) {
 
         .delete-icon {
           color: #fff;
-          font-size: 12px;
+          font-size: var(--type-caption-size, 12px);
           line-height: 1;
         }
       }
@@ -191,7 +191,7 @@ function removeFile(index) {
       }
 
       .upload-icon {
-        font-size: 24px;
+        font-size: var(--type-heading-size, 24px);
         color: var(--text-tertiary, #989BA3);
         line-height: 1;
       }
@@ -201,8 +201,8 @@ function removeFile(index) {
         padding: 0 4px;
         box-sizing: border-box;
         text-align: center;
-        line-height: 16px;
-        font-size: 11px;
+        line-height: 18px;
+        font-size: var(--type-caption-size, 12px);
         color: var(--text-secondary, #62666F);
         margin-top: 8rpx;
       }
@@ -211,7 +211,7 @@ function removeFile(index) {
 
   .tips {
     display: block;
-    font-size: 12px;
+    font-size: var(--type-caption-size, 12px);
     color: var(--text-tertiary, #989BA3);
     margin-top: 12rpx;
   }

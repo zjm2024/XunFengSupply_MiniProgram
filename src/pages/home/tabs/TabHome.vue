@@ -27,5 +27,5 @@ function openSection(component){go(routes.commerce.homeSection({homePageId:home.
 </script>
 <style scoped>
 .home-tab-container{width:100%;min-width:0;flex:1;align-self:stretch}
-.home-layout-loading{padding:18px 20px}.home-layout-loading>view{height:180px;background:var(--surface-subtle,#eceef2);border-radius:12px;margin-bottom:18px}.home-layout-loading>view:nth-child(2){height:90px}
+.home-layout-loading{padding:18px 20px}.home-layout-loading>view{height:180px;background:var(--surface-subtle,#eceef2);border-radius: var(--radius-card, 14px);margin-bottom:18px}.home-layout-loading>view:nth-child(2){height:90px}
 </style>

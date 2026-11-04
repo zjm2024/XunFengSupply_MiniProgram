@@ -140,7 +140,7 @@
                         }"
                       >
                         <button class="sku-delete-action button-center" @tap.stop="deleteOne(item.cartItemId)">
-                          <AppIcon name="trash" :size="19" color="#FFFFFF" />
+                          <AppIcon name="trash" :size="20" color="#FFFFFF" />
                           <text>{{ t('commerce.cart.delete') }}</text>
                         </button>
                         <view
@@ -252,7 +252,7 @@
             <text>{{ t(isSearching ? 'commerce.cart.selectResults' : 'commerce.cart.selectAll') }}</text>
           </label>
           <button v-if="!isSearching" class="clear-cart-btn button-center" @tap="requestClearAll">
-            <AppIcon name="trash" :size="17" />
+            <AppIcon name="trash" :size="18" />
             <text>{{ t('commerce.cart.clearAll') }}</text>
           </button>
           <button
@@ -745,4 +745,13 @@ function localError(messageKey) {
 
 <style lang="scss" scoped>
 @import "./presentation.scss";
+
+/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.sk-card, .spu-card, .cart-card, .summary-card {
+  border: 0 !important;
+  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
+  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
+  backdrop-filter: var(--glass-card-blur, blur(16px));
+}
 </style>
