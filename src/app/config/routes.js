@@ -74,6 +74,7 @@ export const FUND_FLOW = '/subPackages/account/pages/fund-flow/index'
 export const CREDIT_FLOW = '/subPackages/account/pages/credit-flow/index'
 export const BILL_LIST = '/subPackages/account/pages/bill/list'
 export const BILL_DETAIL = '/subPackages/account/pages/bill/detail'
+export const INVOICE_TITLES = '/subPackages/account/pages/invoice/titles'
 export const INVOICE = '/subPackages/account/pages/invoice/index'
 export const VOUCHER = '/subPackages/account/pages/voucher/index'
 export const SUB_ACCOUNT_FORM = '/subPackages/account/pages/sub-account/sub-account-form/index'
@@ -112,7 +113,7 @@ export const REGISTERED_ROUTES = Object.freeze([
   ORDER_LIST, ORDER_DETAIL, PAY_PAGE, FULFILLMENT_SPLIT, APPLY_AFTER_SALE, APPLY_INVENTORY_AFTER_SALE, AFTER_SALE_LIST, AFTER_SALE_DETAIL, CANCEL_ORDER,
   ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
   DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, DEALER_INVENTORY_OVERVIEW, DEALER_INVENTORY_LEDGER, SECURITY,
-  RECHARGE, RECHARGE_RECORDS, FUND_FLOW, CREDIT_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, VOUCHER, LANGUAGE, SETTINGS, NOTIFICATION_SETTINGS,
+  RECHARGE, RECHARGE_RECORDS, FUND_FLOW, CREDIT_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, INVOICE_TITLES, VOUCHER, LANGUAGE, SETTINGS, NOTIFICATION_SETTINGS,
   NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MANUAL_PDF_PREVIEW, MESSAGE, MESSAGE_DETAIL, HELP, ABOUT,
 ])
 
@@ -380,6 +381,7 @@ export const ROUTE_META = Object.freeze({
     requiredPermission: 'BALANCE_VIEW',
     owner: null,
   },
+  [INVOICE_TITLES]: { title: '发票抬头', requireAuth: true, requireSign: true, allowFrozen: false, owner: null },
   [INVOICE]: {
     title: '发票管理',
     requireAuth: true,
@@ -796,6 +798,10 @@ export const routes = {
       return withQuery(PAY_PAGE, { billId: id, source: 'bill' })
     },
     invoice: () => INVOICE,
+    invoiceTitles: (params = {}) => withQuery(INVOICE_TITLES, { selectMode: params.selectMode }),
+    invoicePdfPreview: (invoiceId) => withQuery(MANUAL_PDF_PREVIEW, {
+      invoiceId: assertValidId(invoiceId, 'account.invoicePdfPreview'),
+    }),
     voucher: () => VOUCHER,
     language: () => LANGUAGE,
     settings: () => SETTINGS,

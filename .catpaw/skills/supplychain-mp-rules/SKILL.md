@@ -79,7 +79,7 @@ npm run build:weixin
 | `MallProduct` | `Mini.CartController` | 购物车 |
 | `MallOrder` | `Mini.OrderController` | 订单操作 |
 | `MallOrder` | `Mini.AfterSaleController` | 售后申请 |
-| `MallOrder` | `Mini.InvoiceController` | 发票申请 |
+| `Finance` | `Mini.InvoiceController` | 发票金额、申请、本人抬头列表及PDF查询 |
 | `MallDealer` | `Mini.ProfileController` | 个人资料 |
 | `MallDealer` | `Mini.SubAccountController` | 子账号管理 |
 | `MallDealer` | `Mini.MessageController` | 消息通知 |
@@ -261,8 +261,8 @@ src/
 5. **在对应 api 文件中添加函数**：
    ```javascript
    export function xxxApi(params) {
-     // API 层直接透传 params，不做映射
-     return dispatch('Module', 'Mini.Controller', 'Method', params)
+     // 页面camelCase参数在这里转换为后端DTO
+     return dispatch('Module', 'Mini.Controller', 'Method', { PageNum: params.pageNum, PageSize: params.pageSize })
    }
    ```
 6. **由页面层传入 camelCase 领域参数，API 适配层转换为 PascalCase DTO**：
@@ -309,3 +309,22 @@ src/
 4. 如有错误 → 根据错误类型对照上表修复 → 回到步骤 2
 5. 确认无误 → 提交修改
 ```
+
+## 列表、按钮与资料选择（2026-11-05用户确认）
+
+- 修改页面先对照现有地址管理、资金流水等相同场景页面及工作区`功能文档/APP界面统一/最终方案/APP列表按钮尺寸规范.md`，沿用当前设计体系，不用说明文案替代业务操作。
+- 顶部工具/次要操作复用`AppButton size="sm"`：36px高、最小72px宽、13px字、左右12px、8px圆角；列表紧凑行操作按既有ActionRow的32px视觉高度及44px触摸排布。表单确认/底部主按钮保持44/48px。手机、iPad和桌面同一操作规格，不在页面媒体查询中重定义共享按钮尺寸。
+- 列表统一使用`AppContent`的下拉刷新，接入refresher-enabled、refresher-triggered、refresh/restore/abort事件，并在finally回收状态；复用`waitForRefreshAnimation`。分页使用scrolltolower和`AppLoadMore`，不另放“刷新”或“加载更多”按钮；失败态保留重试。
+- 常用资料有独立的本人列表和实际新增、编辑、删除能力，业务表单从该列表选择；资料归属由服务端登录态校验，历史单据保留提交时快照。发票抬头按经销商保存多条，禁止回退为每次重填或只覆盖一份资料。
+- 输入框与占位文字用14px正文token，金额占位不能继承展示金额的大字号。标题、按钮、弹框、图标、卡片直接复用公共组件及token。
+- 新页面同步注册pages.json、routes常量/工厂、REGISTERED_ROUTES和ROUTE_META；验证相关交互、路由审计、全量测试与三端构建，附真实页面多尺寸截图；明确区分浏览器验证与真机验收。
+
+### 财务汇总与记录布局
+
+- 发票中心按已确认参考图：汇总卡只有“去开票”主按钮，金额28px突出；申请中/已开票及抬头管理放卡脚。页签和记录合并连续面板，短红线与深色选中字，不新增另一套按钮规格。
+- 记录按金额/文字状态、抬头、已有编号/审核意见、时间/可用PDF操作排序；空状态有简短说明和实际申请入口。不得照搬截图中没有接口的撤销、邮箱发送或虚构票据字段。
+- 手机单列，平板/桌面复用AppContent标准820px内容框；面板通过flex承接剩余空间，不手写100vh和安全区高度。沿用品牌红、无描边卡面和公共按钮/弹框反馈，减少动态效果时关闭额外过渡。
+- 具体尺寸和实例见工作区APP界面统一唯一主方案，截图参考不会自动覆盖已确认的36px工具按钮、下拉刷新、多抬头服务端维护规则。
+
+- 无数据状态必须优先复用illustrationRegistry与AppSvgIllustration现有素材，不以普通AppIcon加色块/圆底临时拼装。发票申请使用no-order，抬头列表使用no-revenue。
+- 发票抬头默认状态存服务端并按主体唯一，普通新增/申请不覆盖明确默认；选择页用明确选择动作，EventChannel仅传选择结果，原页面onShow后恢复表单。取消/导航失败保留草稿，跨账号清理；兼容原生页面/$vm/组件实例的事件通道。

@@ -9,7 +9,8 @@
     "messages": "Messages",
     "newsDetail": "News details",
     "news": "News",
-    "notificationSettings": "Notification settings"
+    "notificationSettings": "Notification settings",
+    "invoicePreview": "Invoice PDF preview"
   },
   "messages": {
     "orderType": "Order notification",

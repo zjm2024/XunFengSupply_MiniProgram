@@ -325,6 +325,10 @@
                     }
                 },
                 {
+                    "path": "pages/invoice/titles",
+                    "style": { "navigationStyle": "custom", "navigationBarTitleText": "" }
+                },
+                {
                     "path": "pages/invoice/index",
                     "style": {
                         "navigationStyle": "custom",

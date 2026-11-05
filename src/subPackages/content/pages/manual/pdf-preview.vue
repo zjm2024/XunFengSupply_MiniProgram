@@ -1,7 +1,7 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader :title="t('content.titles.manualPreview')" :show-back="true" @back="goBack" />
+      <AppHeader :title="invoiceId ? t('content.titles.invoicePreview') : t('content.titles.manualPreview')" :show-back="true" @back="goBack" />
     </template>
     <template #content>
       <view class="pdf-page">
@@ -35,7 +35,9 @@ import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { useResponsive } from '@/shared/composables/useResponsive.js'
 import { getManualDetail } from '../../api/manual.js'
+import { getInvoiceDetail } from '@/shared/api/invoice.js'
 
+const invoiceId = ref('')
 const manualId = ref('')
 const loading = ref(true)
 const loadFailure = ref(null)
@@ -65,6 +67,7 @@ const headerHeight = () => {
 const bottomSafeHeight = () => Math.max(Number(safeArea.value.bottom) || 0, 8)
 
 onLoad((options = {}) => {
+  invoiceId.value = String(options.invoiceId || '')
   manualId.value = String(options.manualId || '')
   loadDetail()
 })
@@ -76,7 +79,7 @@ onReady(() => {
 
 /** 读取原 PDF 附件地址，保留原生布局与加载流程。 */
 async function loadDetail() {
-  if (!manualId.value) {
+  if (!manualId.value && !invoiceId.value) {
     loadFailure.value = { messageKey: 'content.manual.missingId' }
     loading.value = false
     return
@@ -87,8 +90,10 @@ async function loadDetail() {
   viewerUrl.value = ''
   resetNativePdfWebview()
   try {
-    const detail = await getManualDetail(manualId.value)
-    if (!detail?.fileUrl) {
+    const detail = invoiceId.value
+      ? await getInvoiceDetail(invoiceId.value)
+      : await getManualDetail(manualId.value)
+    if (!detail?.fileUrl || (invoiceId.value && detail.status !== 2)) {
       loadFailure.value = { messageKey: 'content.manual.noPdf' }
       return
     }

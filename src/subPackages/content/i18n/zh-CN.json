@@ -9,7 +9,8 @@
     "messages": "消息中心",
     "newsDetail": "新闻详情",
     "news": "新闻资讯",
-    "notificationSettings": "通知设置"
+    "notificationSettings": "通知设置",
+    "invoicePreview": "发票PDF预览"
   },
   "messages": {
     "orderType": "订单消息",

@@ -176,9 +176,7 @@ export async function getCreditUsageList(params = {}) {
   return normalizePaged(result, normalizeCreditUsage)
 }
 
-export function applyInvoice(params) {
-  return dispatch('MallOrder', 'Mini.InvoiceController', 'ApplyInvoice', params)
-}
+export { applyInvoice } from './invoice.js'
 
 function unavailable(feature) {
   return Promise.reject(new Error(`${feature}尚未开放，请联系财务人员`))
