@@ -16,7 +16,7 @@ export function createShareRetail({ landing, enabled, queryOnly = false, checkou
     query: { keyword: '', categoryId: null }, detail: null, cart: null, quotes: [], order: null, isOwner: false }
   const paymentModel = createSharePayment({getAccess:()=>active&&!expired?access:null,schedule,cancel,onPaid:()=>resume(),onChange:value=>{state.payment=value;emit()}})
   const checkoutModel = createShareCheckout({ getAccess: () => active && !expired ? access : null, getDraft: () => cart?.getSnapshot(),
-    api, schedule, cancel, onCreated: async () => {await resume();await paymentModel.start()}, onSessionError: fail, onChange: value => { state.checkout = value; emit() } })
+    api, schedule, cancel, onCreated: async () => { if (await resume() && state.order) await paymentModel.start() }, onSessionError: fail, onChange: value => { state.checkout = value; emit() } })
   /** 输出脱离引用的安全快照，凭据从不进入Vue状态/调试面板。 */
   function emit() { onChange(JSON.parse(JSON.stringify(state))) }
   /** 隐藏时清空全部价格和私密会话内存，保留合法本地购物意向。 */
@@ -58,14 +58,17 @@ export function createShareRetail({ landing, enabled, queryOnly = false, checkou
     }
     try {
       let result = null
+      let restoredDraftId = null
       if (original) {
-        const ownerLocator = await landing?.restore?.(original.token)
+        // 重开原链接始终让服务端检查期限，缓存只用于找回同一购物草稿。
+        const remembered = await landing?.restore?.(original.token)
         if (!current(version)) return false
-        if (ownerLocator && api.resolveShareAccess) {
-          try { result = await api.resolveShareAccess(ownerLocator); locator = ownerLocator }
-          catch (error) {
-            if (![401, 403].includes(error?.httpStatus)) throw error
-            result = null
+        if (remembered && remembered.draftId !== original.draftId) {
+          try {
+            result = await api.exchangeShareAccess({ ...original, clientRequestId: remembered.draftId })
+            restoredDraftId = remembered.draftId
+          } catch (error) {
+            if (error?.errorCode !== 'SHARE_ACCESS_CONFLICT') throw error
           }
         }
         if (!result) result = await api.exchangeShareAccess(original)
@@ -73,9 +76,11 @@ export function createShareRetail({ landing, enabled, queryOnly = false, checkou
       if (!current(version)) return false
       if (!result) throw Object.assign(new Error('Invalid sharing entry'), { httpStatus: 401 })
       if (original) {
-        locator = { contextId: result.contextId, draftId: locator?.draftId || original.draftId }
+        locator = { contextId: result.contextId, draftId: restoredDraftId || original.draftId }
         if (!landing?.accepted(entryKey, locator.contextId, locator.draftId)) throw Object.assign(new Error('Entry replaced'), { httpStatus: 401 })
-        await landing?.remember?.(original.token, locator, result.state.expiresAtUtc)
+        // 原下单者由服务端找回，其余访客保留兑换键以复用浏览器会话。
+        if (!result.state.isOwner) await landing?.remember?.(original.token, locator, result.state.expiresAtUtc)
+        if (!current(version)) return false
         original = null
       }
       access = { contextId: result.contextId, csrfToken: result.csrfToken }
@@ -83,7 +88,7 @@ export function createShareRetail({ landing, enabled, queryOnly = false, checkou
       releaseCart(result.state.mode === 2)
       state.isOwner = result.state.isOwner
       if (result.state.mode === 2) {
-        const detail = result.state.isOwner && api.getCurrentShareOrder ? await api.getCurrentShareOrder(access) : null
+        const detail = api.getCurrentShareOrder ? await api.getCurrentShareOrder(access) : null
         if (!current(version)) return false
         state.phase = 'bound'; state.view = detail ? 'order' : 'entry'; state.cart = null; state.order = detail; state.busy = false
         armExpiry(Math.max(0, Date.parse(result.state.sessionExpiresAtUtc) - Date.parse(result.state.serverNowUtc)), version)

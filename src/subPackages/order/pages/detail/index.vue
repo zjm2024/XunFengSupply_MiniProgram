@@ -523,7 +523,9 @@ async function handleAction(key) {
       await reorderToCart()
       break
     case 'pay':
-      navigator.navigateTo(routes.order.pay(orderId.value))
+      navigator.navigateTo(detail.value?.checkoutBatchId
+        ? routes.order.checkoutPay(detail.value.checkoutBatchId)
+        : routes.order.pay(orderId.value))
       break
     case 'cancel':
       navigator.navigateTo(routes.order.cancelOrder(orderId.value))

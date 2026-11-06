@@ -13,9 +13,24 @@
         <view class="pay-page">
           <!-- 支付金额与付款时限 -->
           <view class="amount-section">
-            <text class="pay-label">{{ payMode === PAYMENT_MODE.CASH ? t('order.pay.amountDue') : t('order.pay.creditAmount') }}</text>
+            <text class="pay-label">{{ payMode === PAYMENT_MODE.CREDIT ? t('order.pay.creditAmount') : t('order.pay.amountDue') }}</text>
             <AmountText class="amount" :text="'¥' + (Number(payAmount || 0).toFixed(2))" />
-            <text class="order-no">{{ t('order.pay.orderNo') }} {{ orderNo }}</text>
+            <view v-if="checkoutBatchId">
+              <view v-for="member in checkoutOrders" :key="member.orderId" class="checkout-member">
+                <view class="checkout-member-copy">
+                  <text class="checkout-member-number">{{ member.orderNo }}</text>
+                  <text v-if="member.warehouseCode" class="checkout-member-warehouse">{{ member.warehouseCode }}</text>
+                </view>
+                <AmountText class="checkout-member-amount" :text="'¥' + Number(member.payableAmount).toFixed(2)" />
+              </view>
+              <view v-if="!orderPayable" class="checkout-status" role="status">
+                <text>{{ t(batchStatusKey) }}</text>
+                <AppButton v-if="!batchPaid" size="sm" variant="secondary" :disabled="loadingBatch" @click="refreshCheckout">
+                  {{ t('order.pay.refreshCheckout') }}
+                </AppButton>
+              </view>
+            </view>
+            <text v-else class="order-no">{{ t('order.pay.orderNo') }} {{ orderNo }}</text>
             <view v-if="confirmationPending" class="deadline-panel">
               <view class="deadline-copy">
                 <text class="deadline-label">{{ t('order.pay.confirmationPending') }}</text>
@@ -118,9 +133,10 @@
               v-for="account in availableAccounts"
               :key="account.accountCustomerId"
               class="balance-source"
+              :class="{ 'is-unavailable': !canFundOrder(account) }"
               @tap="toggleAccount(account)"
             >
-              <checkbox :checked="isSelected(account)" color="#D7192D" />
+              <checkbox :checked="isSelected(account)" :disabled="!canFundOrder(account)" color="#D7192D" />
               <view class="source-copy">
                 <text>{{ account.isMaster ? t('order.pay.masterAccount') : (account.realName || account.username) }}</text>
                 <AmountText :text="t('order.pay.availableBalance', { amount: Number(account.availableBalance || 0).toFixed(2) })" />
@@ -135,6 +151,7 @@
                 @input="setAllocation(account, $event.detail.value)"
               />
             </view>
+            <text v-if="!hasSufficientBalance" class="balance-notice">{{ t('order.pay.noSufficientBalance') }}</text>
             <view class="allocation-summary">
               <AmountText :text="t('order.pay.allocated', { amount: allocationTotal.toFixed(2) })" />
               <AmountText :text="t('order.pay.payable', { amount: Number(payAmount || 0).toFixed(2) })" />
@@ -150,7 +167,7 @@
       <FixedActionBar>
         <button 
           class="confirm-pay-btn" 
-          :disabled="paying || !orderPayable || paymentExpired || (payMode === PAYMENT_MODE.CASH && !cashPaymentAvailable)"
+          :disabled="paying || !orderPayable || paymentExpired || (payMode === PAYMENT_MODE.CASH && !cashPaymentAvailable) || (payMode === PAYMENT_MODE.COMBINATION && !hasSufficientBalance)"
           @click="handleConfirmPay"
         >
           {{ confirmButtonText }}
@@ -165,7 +182,7 @@ import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/order/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { ref, computed, onUnmounted } from 'vue'
-import { onLoad, onShow } from '@dcloudio/uni-app'
+import { onHide, onLoad, onShow } from '@dcloudio/uni-app'
 import { getOrderDetail } from '../../api/orderApi.js'
 import { parseUtcToLocal } from '../../../../shared/utils/format.js'
 import { useUserStore } from '@/shared/session/userStore.js'
@@ -177,7 +194,7 @@ import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
-import { confirmDealerOrderPayment, getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
+import { confirmCheckoutPayment, confirmDealerOrderPayment, getCheckoutPayment, getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import { AppError, ErrorKind } from '@/shared/api/appError.js'
 import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 
@@ -185,6 +202,11 @@ const userStore = useUserStore()
 
 const orderId = ref(null)
 const orderNo = ref('')
+const checkoutBatchId = ref(null)
+const checkoutOrders = ref([])
+const batchPaid = ref(false)
+const loadingBatch = ref(false)
+const checkoutPaymentKeys = new Map()
 const payMode = ref(PAYMENT_MODE.COMBINATION)     // 默认使用单一余额账户支付
 const payAmount = ref(0)    // 单位：元（后端返回元）
 // 汇报演示默认进入网页微信扫码充值。
@@ -198,7 +220,10 @@ const cashPaymentAvailable = true
 let returningFromRecharge = false
 const selectedAccountIds = ref([])
 const allocationAmounts = ref({})
-const orderPayable = ref(true)
+const orderPayable = ref(false)
+let checkoutRefreshTimer = null
+let checkoutRefreshAttempts = 0
+let checkoutVisible = true
 let countdownTimer = null
 let expireHandled = false
 let serverTimeOffsetMs = 0
@@ -214,12 +239,21 @@ const formatRemainTime = computed(() => {
 const availableAccounts = computed(() => (finance.value.accounts || []).filter(item =>
   item.accountStatus === 1 && item.financeStatus === 1 && item.canParticipateCombinationPay,
 ))
+const hasSufficientBalance = computed(() => availableAccounts.value.some(account => canFundOrder(account)))
+const batchStatusKey = computed(() => {
+  if (batchPaid.value) return 'order.pay.paid'
+  if (checkoutOrders.value.some(order => order.isPaymentExpired)) return 'order.pay.paymentEnded'
+  if (checkoutOrders.value.some(order => order.hasActivePayment)) return 'order.pay.confirmationPending'
+  if (checkoutOrders.value.some(order => !order.erpReady && order.erpPending)) return 'order.pay.batchErpPending'
+  if (checkoutOrders.value.some(order => order.erpReady === false)) return 'order.pay.batchErpUnavailable'
+  return 'order.pay.checkoutUnavailable'
+})
 const allocationTotal = computed(() => selectedAccountIds.value.reduce(
   (sum, id) => sum + Number(allocationAmounts.value[id] || 0), 0,
 ))
 const availableCreditAmount = computed(() => Math.max(0, Number(finance.value.credit?.availableAmount || 0)))
 const paymentModeOptions = computed(() => [
-  { value: PAYMENT_MODE.CASH, label: t('order.pay.cash'), description: t('order.pay.cashDescription'), icon: 'pay-cash', disabled: false },
+  { value: PAYMENT_MODE.CASH, label: t('order.pay.cash'), description: t('order.pay.cashDescription'), icon: 'pay-cash', disabled: !cashPaymentAvailable },
   { value: PAYMENT_MODE.CREDIT, label: t('order.pay.credit'), description: t('order.pay.creditDescription'), icon: 'pay-credit', disabled: Number(finance.value.credit?.status) !== 1 },
   { value: PAYMENT_MODE.COMBINATION, label: t('order.pay.balance'), description: t('order.pay.balanceDescription'), icon: 'pay-combine', disabled: false },
 ])
@@ -236,6 +270,12 @@ const confirmButtonText = computed(() => {
 })
 onLoad(async (options) => {
   orderId.value = Number(options.orderId) || null
+  checkoutBatchId.value = Number(options.checkoutBatchId) || null
+  if (checkoutBatchId.value) {
+    await loadCheckoutInfo()
+    await loadFinanceContext()
+    return
+  }
 
   // 从订单详情获取实际金额
   if (orderId.value) {
@@ -245,7 +285,9 @@ onLoad(async (options) => {
 })
 
 onShow(() => {
-  if (orderId.value && !paying.value) loadOrderInfo()
+  checkoutVisible = true
+  if (checkoutBatchId.value && !paying.value) refreshCheckout()
+  else if (orderId.value && !paying.value) loadOrderInfo()
   if (returningFromRecharge) {
     returningFromRecharge = false
     payMode.value = PAYMENT_MODE.COMBINATION
@@ -253,7 +295,14 @@ onShow(() => {
   }
 })
 
+onHide(() => {
+  checkoutVisible = false
+  clearTimeout(checkoutRefreshTimer)
+})
+
 onUnmounted(() => {
+  checkoutVisible = false
+  clearTimeout(checkoutRefreshTimer)
   if (countdownTimer) clearInterval(countdownTimer)
 })
 
@@ -342,11 +391,71 @@ async function loadOrderInfo() {
       handlePaymentUnavailable()
       return
     }
+    orderPayable.value = true
     syncPaymentCountdown(res)
   } catch (e) {
     console.error('加载订单信息失败:', e)
     uni.showToast({ title: e.message || t('order.pay.loadOrderFailed'), icon: 'none' })
   }
+}
+
+/** 从批次快照恢复所有主单。未就绪时保持禁止支付。 */
+/** 手动刷新或重新进入页面时重启有限的批次状态检查。 */
+function refreshCheckout() {
+  checkoutRefreshAttempts = 0
+  return loadCheckoutInfo()
+}
+
+/** 只在等待 ERP 或支付确认时查询，页面离开和达到上限后停止。 */
+function scheduleCheckoutRefresh() {
+  if (!checkoutVisible || orderPayable.value || checkoutRefreshAttempts >= 12) return
+  if (!['order.pay.batchErpPending', 'order.pay.confirmationPending'].includes(batchStatusKey.value)) return
+  checkoutRefreshAttempts++
+  checkoutRefreshTimer = setTimeout(() => loadCheckoutInfo(), 5000)
+}
+
+/** 读取批次实时状态和服务端应付金额。 */
+async function loadCheckoutInfo() {
+  clearTimeout(checkoutRefreshTimer)
+  if (loadingBatch.value) return
+  loadingBatch.value = true
+  orderPayable.value = false
+  try {
+    const result = await getCheckoutPayment(checkoutBatchId.value)
+    checkoutOrders.value = (result.orders ?? result.Orders ?? []).map(order => ({
+      orderId: order.orderId ?? order.OrderId,
+      orderNo: order.orderNo ?? order.OrderNo,
+      warehouseCode: order.warehouseCode ?? order.WarehouseCode,
+      payableAmount: order.payableAmount ?? order.PayableAmount,
+      erpReady: order.erpReady ?? order.ErpReady,
+      erpPending: order.erpPending ?? order.ErpPending,
+      isPaymentExpired: order.isPaymentExpired ?? order.IsPaymentExpired,
+      hasActivePayment: order.hasActivePayment ?? order.HasActivePayment,
+    }))
+    payAmount.value = Number(result.totalPayable ?? result.TotalPayable ?? 0)
+    batchPaid.value = Boolean(result.isPaid ?? result.IsPaid)
+    orderPayable.value = Boolean(result.canPay ?? result.CanPay) && !batchPaid.value
+    if (payMode.value === PAYMENT_MODE.COMBINATION) autoAllocate()
+    scheduleCheckoutRefresh()
+  } catch (error) {
+    uni.showToast({ title: error?.message || t('order.pay.loadOrderFailed'), icon: 'none' })
+  } finally {
+    loadingBatch.value = false
+  }
+}
+
+/** 单订单仍走原入口，批次支付按同一资金来源和金额复用请求编号。 */
+function submitPayment(params) {
+  if (!checkoutBatchId.value) return confirmDealerOrderPayment(params)
+  const allocation = params.allocations[0]
+  const signature = JSON.stringify([params.paymentMode, params.fundAccountCode || null, allocation])
+  if (!checkoutPaymentKeys.has(signature)) {
+    checkoutPaymentKeys.set(signature, `checkout-${checkoutBatchId.value}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`)
+  }
+  return confirmCheckoutPayment({
+    ...params, allocation, checkoutBatchId: checkoutBatchId.value,
+    clientRequestId: checkoutPaymentKeys.get(signature),
+  })
 }
 
 async function loadFinanceContext() {
@@ -376,7 +485,7 @@ async function handleConfirmPay() {
     handlePaymentUnavailable()
     return
   }
-  if (paymentExpired.value || (!confirmationPending.value && remainTime.value <= 0)) {
+  if (paymentExpired.value || (!checkoutBatchId.value && !confirmationPending.value && remainTime.value <= 0)) {
     handlePaymentExpired()
     return
   }
@@ -385,7 +494,7 @@ async function handleConfirmPay() {
   try {
     if (payMode.value === PAYMENT_MODE.CREDIT) {
       if (Number(finance.value.credit?.status) !== 1) throw localError('creditUnavailable')
-      await confirmDealerOrderPayment({
+      await submitPayment({
         orderId: orderId.value,
         clientRequestId: `credit-pay-${orderId.value}-${Date.now()}`,
         paymentMode: PAYMENT_MODE.CREDIT,
@@ -408,10 +517,11 @@ async function handleConfirmPay() {
       if (Math.abs(allocationTotal.value - Number(payAmount.value)) >= 0.005) {
         throw localError('totalMismatch')
       }
-      await confirmDealerOrderPayment({
+      await submitPayment({
         orderId: orderId.value,
         clientRequestId: `balance-pay-${orderId.value}-${Date.now()}`,
         paymentMode: PAYMENT_MODE.COMBINATION,
+        fundAccountCode: checkoutBatchId.value ? finance.value.currentAccount?.fundAccountCode || null : null,
         allocations: selectedAccountIds.value.map(id => ({
           payMethod: 'balance',
           accountCustomerId: Number(id),
@@ -422,7 +532,8 @@ async function handleConfirmPay() {
     }
     if (payMode.value === PAYMENT_MODE.CASH) {
       returningFromRecharge = true
-      await navigator.navigateTo(routes.account.recharge({ orderId: orderId.value,
+      await navigator.navigateTo(routes.account.recharge({
+        orderId: orderId.value, checkoutBatchId: checkoutBatchId.value,
         amount: Number(payAmount.value).toFixed(2),
         channel: cashPaymentMethods.value.some(item => item.key === payType.value) ? payType.value : 'wechat_native',
         fundAccountCode: finance.value.currentAccount?.fundAccountCode || null }))
@@ -441,7 +552,12 @@ function isSelected(account) { return selectedAccountIds.value.includes(account.
 function setAllocation(account, value) {
   allocationAmounts.value = { ...allocationAmounts.value, [account.accountCustomerId]: value }
 }
+/** 单一账户必须能覆盖整笔应付金额，才可选为付款来源。 */
+function canFundOrder(account) {
+  return Number(payAmount.value) > 0 && Number(account.availableBalance || 0) >= Number(payAmount.value)
+}
 function toggleAccount(account) {
+  if (!orderPayable.value || paying.value || paymentExpired.value || !canFundOrder(account)) return
   const id = account.accountCustomerId
   if (isSelected(account)) {
     selectedAccountIds.value = selectedAccountIds.value.filter(item => item !== id)
@@ -456,15 +572,14 @@ function autoAllocate() {
   selectedAccountIds.value = []
   allocationAmounts.value = {}
   const amount = Number(payAmount.value)
-  const account = availableAccounts.value.find(item => Number(item.availableBalance || 0) >= amount)
-    || availableAccounts.value.find(item => Number(item.availableBalance || 0) > 0)
+  const account = availableAccounts.value.find(canFundOrder)
   if (!account) return
   selectedAccountIds.value = [account.accountCustomerId]
   allocationAmounts.value[account.accountCustomerId] = amount.toFixed(2)
 }
 function handlePaid() {
   uni.showToast({ title: t('order.pay.paid'), icon: 'success' })
-  setTimeout(() => navigator.redirectTo(routes.order.detail(orderId.value)), 500)
+  setTimeout(() => navigator.redirectTo(checkoutBatchId.value ? routes.order.list() : routes.order.detail(orderId.value)), 500)
 }
 
 /** 创建支付页本地校验错误，使用 messageKey 让已存在页面随语言切换重新取词。 */

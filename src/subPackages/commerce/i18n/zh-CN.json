@@ -151,6 +151,9 @@
     "insufficientSkus": "以下规格库存不足：{skus}",
     "insufficientGifts": "以下促销赠品库存不足：{skus}",
     "confirmDescription": "本单共 {count} 件，提交后请在收银台选择支付方式完成结算{giftText}。",
+    "warehousePreview": "发货仓分配预览",
+    "warehouseGroup": "仓库 {code}",
+    "warehouseAmounts": "商品 ¥{goods} · 优惠 ¥{discount} · 运费 ¥{freight} · 应付 ¥{payable}",
     "confirmAmount": "应付金额 ¥{amount}",
     "omitQuestion": "{message}。是否放弃库存不足的赠品并继续下单？"
   },

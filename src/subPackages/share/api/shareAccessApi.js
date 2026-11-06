@@ -6,7 +6,7 @@ const CONTROLLER = 'Mini.ShareAccessController'
 export function shareAccessCode(value) {
   return typeof value === 'string' && /^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$/.test(value) ? value : ''
 }
-/** 只接受公开安全状态；额外主体、价格、地址和服务端凭据不进入前端模型。 */
+/** 只接收公开安全状态；购物受链接期限约束，原订单使用服务端确认的独立凭证期限。 */
 export function normalizeShareAccessState(value) {
   const publicShareId = shareId(value?.publicShareId)
   const expiresAtUtc = shareUtc(value?.expiresAtUtc)
@@ -14,7 +14,7 @@ export function normalizeShareAccessState(value) {
   const serverNowUtc = shareUtc(value?.serverNowUtc)
   if (!publicShareId || ![1, 2].includes(value?.mode) || typeof value?.isOwner !== 'boolean'
     || (value.mode === 1 && value.isOwner) || !expiresAtUtc || !sessionExpiresAtUtc || !serverNowUtc
-    || Date.parse(sessionExpiresAtUtc) > Date.parse(expiresAtUtc)
+    || (!(value.mode === 2 && value.isOwner) && Date.parse(sessionExpiresAtUtc) > Date.parse(expiresAtUtc))
     || Date.parse(serverNowUtc) >= Date.parse(sessionExpiresAtUtc)) throw new Error('Invalid sharing access response')
   return { publicShareId, mode: value.mode, isOwner: value.isOwner, expiresAtUtc, sessionExpiresAtUtc, serverNowUtc }
 }

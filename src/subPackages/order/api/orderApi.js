@@ -55,6 +55,7 @@ function normalizeOrder(order = {}) {
     ...order,
     orderId: number(order.orderId ?? order.OrderId),
     orderNo: order.orderNo ?? order.OrderNo,
+    checkoutBatchId: number(order.checkoutBatchId ?? order.CheckoutBatchId) || null,
     salesScene: number(order.salesScene ?? order.SalesScene),
     orderSource: order.orderSource ?? order.OrderSource ?? 'MALL',
     erpOrderNo: order.erpOrderNo ?? order.ErpOrderNo ?? '',

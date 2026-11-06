@@ -7,7 +7,7 @@
     <template #content>
       <AppContent padding="16px var(--page-padding-x, 16px) 30px">
         <view class="recharge-page">
-          <view v-if="rechargeOrderId" class="service-card order-recharge-context">
+          <view v-if="rechargeOrderId || rechargeCheckoutBatchId" class="service-card order-recharge-context">
             <text class="section-title">{{ t('account.recharge.orderTopUp') }}</text>
             <text class="section-desc">{{ t('account.recharge.orderTopUpHint') }}</text>
             <button v-if="confirmedRechargeNo" class="finance-btn" @tap="continueOrderPayment">{{ t('account.recharge.continueOrder') }}</button>
@@ -210,9 +210,15 @@ const pendingRequestChannel = ref('wechat')
 const pendingOrderId = ref(null)
 const pendingRechargeStorageKey = 'finance:pending-app-recharge'
 const rechargeOrderId = ref(null)
+const rechargeCheckoutBatchId = ref(null)
 const rechargeAccountCode = ref(null)
-const pendingStorageKey = computed(() => rechargeOrderId.value
-  ? `${pendingRechargeStorageKey}:order:${rechargeOrderId.value}` : pendingRechargeStorageKey)
+const pendingStorageKey = computed(() => {
+  if (rechargeCheckoutBatchId.value) {
+    return `${pendingRechargeStorageKey}:checkout:${rechargeCheckoutBatchId.value}:${rechargeAccountCode.value || 'default'}`
+  }
+  return rechargeOrderId.value
+    ? `${pendingRechargeStorageKey}:order:${rechargeOrderId.value}` : pendingRechargeStorageKey
+})
 const nativeQrVisible = ref(false)
 const nativeQrLink = ref('')
 const nativeQrNumber = ref('')
@@ -275,16 +281,21 @@ const paymentSupportHint = computed(() => {
 /** 路由只提供本地订单ID；ERP单号由后端校验，充值成功不自动扣款。 */
 onLoad((options = {}) => {
   const id = Number(options.orderId)
-  rechargeOrderId.value = Number.isSafeInteger(id) && id > 0 ? id : null
-  rechargeAccountCode.value = rechargeOrderId.value ? String(options.fundAccountCode || '') || null : null
-  if (rechargeOrderId.value && Number(options.amount) > 0) rechargeAmount.value = Number(options.amount).toFixed(2)
+  const batchId = Number(options.checkoutBatchId)
+  rechargeCheckoutBatchId.value = Number.isSafeInteger(batchId) && batchId > 0 ? batchId : null
+  rechargeOrderId.value = !rechargeCheckoutBatchId.value && Number.isSafeInteger(id) && id > 0 ? id : null
+  if (rechargeOrderId.value || rechargeCheckoutBatchId.value) {
+    rechargeAccountCode.value = String(options.fundAccountCode || '') || null
+    if (Number(options.amount) > 0) rechargeAmount.value = Number(options.amount).toFixed(2)
+  }
   if (visiblePaymentChannels.value.some(item => item.key === options.channel && !item.disabled)) selectedChannel.value = options.channel
   else selectedChannel.value = 'wechat_native'
 })
 
 /** 继续订单收银台，扣款仍需用户确认并由后端重新检查订单状态。 */
 function continueOrderPayment() {
-  if (rechargeOrderId.value) navigator.redirectTo(routes.order.pay(rechargeOrderId.value))
+  if (rechargeCheckoutBatchId.value) navigator.redirectTo(routes.order.checkoutPay(rechargeCheckoutBatchId.value))
+  else if (rechargeOrderId.value) navigator.redirectTo(routes.order.pay(rechargeOrderId.value))
 }
 
 onShow(() => {

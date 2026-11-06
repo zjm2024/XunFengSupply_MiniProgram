@@ -169,6 +169,26 @@ export function confirmDealerOrderPayment(params = {}) {
   })
 }
 
+/** 读取合并收银台的服务端状态。 */
+export function getCheckoutPayment(checkoutBatchId) {
+  return dispatch('Finance', 'Mini.DealerFinanceController', 'GetCheckoutPayment', { CheckoutBatchId: checkoutBatchId })
+}
+
+/** 以一个资金来源确认批次付款。 */
+export function confirmCheckoutPayment({ checkoutBatchId, clientRequestId, paymentMode, fundAccountCode, allocation }) {
+  return dispatch('Finance', 'Mini.DealerFinanceController', 'ConfirmCheckoutPayment', {
+    CheckoutBatchId: checkoutBatchId,
+    ClientRequestId: clientRequestId,
+    PaymentMode: paymentMode,
+    FundAccountCode: fundAccountCode || null,
+    Allocation: {
+      PayMethod: allocation.payMethod,
+      AccountCustomerId: allocation.accountCustomerId,
+      Amount: allocation.amount,
+    },
+  })
+}
+
 export function repayDealerCreditFromBalance(params = {}) {
   return dispatch('Finance', 'Mini.DealerFinanceController', 'RepayCreditFromBalance', {
     AccountCustomerId: Number(params.accountCustomerId || 0),

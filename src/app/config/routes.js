@@ -741,6 +741,8 @@ export const routes = {
         ...(paymentChannel ? { paymentChannel } : null),
       })
     },
+    checkoutPay: (checkoutBatchId) =>
+      withQuery(PAY_PAGE, { checkoutBatchId: assertValidId(checkoutBatchId, 'order.checkoutPay') }),
     fulfillmentSplit: (orderId) => {
       const id = assertValidId(orderId, 'order.fulfillmentSplit')
       return withQuery(FULFILLMENT_SPLIT, { orderId: id })
@@ -778,7 +780,8 @@ export const routes = {
       return withQuery(DEALER_INVENTORY_DETAIL, { skuId: id })
     },
     security: () => SECURITY,
-    recharge: ({ orderId, amount, channel, fundAccountCode } = {}) => withQuery(RECHARGE, { orderId, amount, channel, fundAccountCode }),
+    recharge: ({ orderId, checkoutBatchId, amount, channel, fundAccountCode } = {}) =>
+      withQuery(RECHARGE, { orderId, checkoutBatchId, amount, channel, fundAccountCode }),
     rechargeRecords: () => RECHARGE_RECORDS,
     fundFlow: () => FUND_FLOW,
     creditFlow: () => CREDIT_FLOW,

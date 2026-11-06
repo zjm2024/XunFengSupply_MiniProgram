@@ -54,3 +54,23 @@
 .allocation-summary { flex-wrap: wrap; gap: 6px 12px; }
 .allocation-summary .amount-text { font-size: inherit; }
 .amount { margin-left: auto; margin-right: auto; }
+
+.checkout-member { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 440px; margin: 10px auto 0; padding: 9px 12px; border-radius: 10px; background: rgba(255,255,255,.12); text-align: left; }
+.checkout-member-copy { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.checkout-member-number { overflow-wrap: anywhere; font-size: 13px; line-height: 1.45; }
+.checkout-member-warehouse { color: rgba(255,255,255,.82); font-size: 12px; }
+.checkout-member-amount { flex: 0 0 auto; color: #fff; font-size: 14px; font-variant-numeric: tabular-nums; }
+.checkout-status { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px auto 0; max-width: 440px; text-align: left; color: #fff; font-size: 13px; line-height: 1.5; }
+.checkout-status > text { min-width: 0; }
+.checkout-status > :not(text, uni-text) { flex: 0 0 auto; white-space: nowrap; }
+.balance-notice { display: block; margin-top: 10px; color: #8a5200; font-size: 13px; line-height: 1.55; }
+.mode-copy > text:last-child { white-space: normal; }
+
+@media (max-width: 480px) {
+  .checkout-member { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; }
+  .checkout-member-copy { display: contents; }
+  .checkout-member-number { grid-column: 1 / -1; }
+  .checkout-member-warehouse { grid-column: 1; }
+  .checkout-member-amount { grid-column: 2; justify-self: end; }
+  .checkout-status { flex-wrap: wrap; gap: 6px 12px; }
+}

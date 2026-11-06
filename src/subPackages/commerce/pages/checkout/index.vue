@@ -124,6 +124,24 @@
                     </view>
                   </view>
 
+                  <view v-if="!previewing && !previewError && previewData?.warehouseGroups.length > 1" class="checkout-spu-list">
+                    <text class="section-title">{{ t('commerce.checkout.warehousePreview') }}</text>
+                    <view v-for="group in previewData.warehouseGroups" :key="group.code" class="checkout-spu-group">
+                      <text class="section-subtitle">{{ t('commerce.checkout.warehouseGroup', { code: group.code }) }}</text>
+                      <view v-if="group.payableAmount != null" class="product-meta">
+                        <text>{{ t('commerce.checkout.warehouseAmounts', {
+                          goods: formatMoney(group.goodsAmount), discount: formatMoney(group.discountAmount),
+                          freight: formatMoney(group.freightAmount), payable: formatMoney(group.payableAmount),
+                        }) }}</text>
+                      </view>
+                      <view v-for="item in group.items" :key="item.sourceIndex" class="product-meta">
+                        <text>{{ item.name }}</text>
+                        <text v-if="item.isGift" class="gift-tag">{{ t('commerce.checkout.gift') }}</text>
+                        <text>× {{ item.quantity }}</text>
+                      </view>
+                    </view>
+                  </view>
+
                   <view v-if="!stockAvailable" class="stock-warning">
                     <AppIcon name="alert" :size="16" color="#B42318" />
                     <text>{{ stockWarningText }}</text>
@@ -296,7 +314,7 @@ import { getPriceDisplay } from '@/shared/utils/priceDisplay.js'
 import { AppError, ErrorKind } from '@/shared/api/appError.js'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { createOrder, generateClientRequestId, getExpressCompanies, previewOrder } from '../../api/checkoutApi.js'
+import { createCheckout, createOrder, generateClientRequestId, getExpressCompanies, previewOrder } from '../../api/checkoutApi.js'
 import { getAddressList } from '../../../account/api/addressApi.js'
 import { useCart } from '@/shared/composables/useCart.js'
 import { PAYMENT_MODE, DELIVERY_TYPE } from '@/app/config/constant.js'
@@ -492,6 +510,36 @@ function buildOrderItems() {
     .filter(item => item.SkuId > 0)
 }
 
+/** 将仓内数量与报价原行关联，保留同一 SKU 的赠品与付费行。 */
+function normalizeWarehouseGroups(raw, items) {
+  const groups = valueOf(raw, 'warehouseGroups', 'WarehouseGroups')
+  if (!Array.isArray(groups)) return []
+
+  return groups.map(group => {
+    const code = valueOf(group, 'warehouseCode', 'WarehouseCode')
+    const lines = valueOf(group, 'items', 'Items')
+    if (!code || !Array.isArray(lines)) return null
+
+    const groupItems = lines.map(line => {
+      const sourceIndex = number(valueOf(line, 'sourceLineIndex', 'SourceLineIndex'), -1)
+      const source = items[sourceIndex]
+      const quantity = number(valueOf(line, 'quantity', 'Quantity'))
+      if (!source || quantity <= 0) return null
+
+      const name = source.skuName ? `${source.name} · ${source.skuName}` : source.name
+      return { sourceIndex, quantity, name, isGift: source.isGift }
+    })
+    if (!groupItems.length || !groupItems.every(Boolean)) return null
+    return {
+      code, items: groupItems,
+      goodsAmount: number(valueOf(group, 'goodsAmount', 'GoodsAmount')),
+      discountAmount: number(valueOf(group, 'discountAmount', 'DiscountAmount')),
+      freightAmount: number(valueOf(group, 'freightAmount', 'FreightAmount')),
+      payableAmount: valueOf(group, 'payableAmount', 'PayableAmount', null),
+    }
+  }).filter(Boolean)
+}
+
 function normalizePreview(raw = {}) {
   const sourceItems = valueOf(raw, 'items', 'Items', [])
   const cartItemMap = new Map(checkoutItems.value.map(item => [String(item.skuId), item]))
@@ -539,6 +587,9 @@ function normalizePreview(raw = {}) {
 
   return {
     items,
+    warehouseGroups: normalizeWarehouseGroups(raw, items),
+    warehousePreviewEvaluated: valueOf(raw, 'warehousePreviewEvaluated', 'WarehousePreviewEvaluated', false) === true,
+    warehouseQuoteFingerprint: valueOf(raw, 'warehouseQuoteFingerprint', 'WarehouseQuoteFingerprint', null),
     goodsAmount: number(valueOf(raw, 'goodsAmount', 'GoodsAmount')),
     discountAmount: number(valueOf(raw, 'discountAmount', 'DiscountAmount')),
     freightAmount: number(valueOf(raw, 'freightAmount', 'FreightAmount')),
@@ -619,7 +670,7 @@ async function loadCheckoutData() {
 }
 
 /** 沿用原预览参数、序列保护和旧预览回退，只本地化错误。 */
-async function refreshPreview({ silent = false } = {}) {
+async function refreshPreview({ silent = false, omitGifts = false } = {}) {
   if (checkoutItems.value.length === 0 || previewing.value) return null
   const requestId = ++previewSequence
   const previousPreview = previewData.value
@@ -628,6 +679,8 @@ async function refreshPreview({ silent = false } = {}) {
 
   try {
     const raw = await previewOrder({
+      IncludeWarehousePreview: true,
+      OmitUnavailableGifts: omitGifts,
       Items: buildOrderItems(),
       AddressId: addressId.value,
       DeliveryType: deliveryType.value,
@@ -637,7 +690,7 @@ async function refreshPreview({ silent = false } = {}) {
     const normalized = normalizePreview(raw)
     if (normalized.items.length === 0) throw localError('commerce.checkout.quoteEmpty')
     previewData.value = normalized
-    omitUnavailableGifts.value = false
+    omitUnavailableGifts.value = omitGifts
     return normalized
   } catch (error) {
     if (requestId === previewSequence) {
@@ -678,9 +731,19 @@ async function prepareSubmit() {
   if (result.requiresGiftOmissionConfirmation || result.giftStockAvailable === false) {
     const confirmed = await confirmGiftOmission(giftStockWarningText.value)
     if (!confirmed) return
-    omitUnavailableGifts.value = true
+    if (!await refreshPreview({ omitGifts: true })) return
   }
+  openConfirmedCheckout()
+}
+
+/** 只有完整的仓组报价才能进入确认。 */
+function openConfirmedCheckout() {
   if (!canSubmit.value) return
+  const preview = previewData.value
+  if (preview.warehousePreviewEvaluated && (!preview.warehouseQuoteFingerprint || !preview.warehouseGroups.length)) {
+    uni.showToast({ title: t('commerce.checkout.quoteFailedRetry'), icon: 'none' })
+    return
+  }
   confirmModalVisible.value = true
 }
 
@@ -697,7 +760,8 @@ async function confirmSubmit() {
   let createdOrders = []
 
   try {
-    const response = await createOrder({
+    const useCheckout = Boolean(previewData.value?.warehouseQuoteFingerprint)
+    const payload = {
       ClientRequestId: clientRequestId.value,
       CartItemIds: orderedCartIds,
       Items: buildOrderItems(),
@@ -709,7 +773,20 @@ async function confirmSubmit() {
       ExpressCompanyCode: expressCompanyCode.value || null,
       CustomerRemark: customerRemark.value.trim() || null,
       OmitUnavailableGifts: omitUnavailableGifts.value,
-    })
+    }
+    if (useCheckout) {
+      const response = await createCheckout({
+        ...payload,
+        WarehouseQuoteFingerprint: previewData.value.warehouseQuoteFingerprint,
+      })
+      const batchId = valueOf(response, 'checkoutBatchId', 'CheckoutBatchId')
+      if (!batchId) throw localError('commerce.checkout.missingCreatedId')
+      createdOrders = valueOf(response, 'orders', 'Orders', []) || []
+      cartStore.optimisticRemove(orderedCartIds)
+      await navigator.redirectTo(routes.order.checkoutPay(batchId))
+      return
+    }
+    const response = await createOrder(payload)
     const orderId = valueOf(response, 'orderId', 'OrderId')
     if (!orderId) throw localError('commerce.checkout.missingCreatedId')
 
@@ -734,10 +811,7 @@ async function confirmSubmit() {
     if (error?.errorCode === 'ORDER_GIFT_STOCK_INSUFFICIENT' && !omitUnavailableGifts.value) {
       submitting.value = false
       const confirmed = await confirmGiftOmission(error?.message || t('commerce.checkout.giftInsufficient'))
-      if (confirmed) {
-        omitUnavailableGifts.value = true
-        await confirmSubmit()
-      }
+      if (confirmed && await refreshPreview({ omitGifts: true })) openConfirmedCheckout()
       return
     }
     uni.showToast({ title: error?.message || t('commerce.checkout.submitFailed'), icon: 'none' })

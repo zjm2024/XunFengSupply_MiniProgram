@@ -425,7 +425,9 @@ async function reorderOrder(order) {
 async function handleAction(key, order) {
   switch (key) {
     case 'pay':
-      navigator.navigateTo(routes.order.pay(order.orderId))
+      navigator.navigateTo(order.checkoutBatchId
+        ? routes.order.checkoutPay(order.checkoutBatchId)
+        : routes.order.pay(order.orderId))
       break
     case 'cancel':
       navigator.navigateTo(routes.order.cancelOrder(order.orderId, { orderNo: order.orderNo || '' }))

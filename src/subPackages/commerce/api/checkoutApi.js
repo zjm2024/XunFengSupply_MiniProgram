@@ -50,3 +50,8 @@ export function getExpressCompanies() {
 export function createOrder(params) {
   return dispatch('MallOrder', 'Mini.OrderController', 'CreateOrder', params || {})
 }
+
+/** 提交经客户确认的仓组，返回完整结算批次。 */
+export function createCheckout(params) {
+  return dispatch('MallOrder', 'Mini.OrderController', 'CreateCheckout', params)
+}

@@ -151,6 +151,9 @@
     "insufficientSkus": "Insufficient stock for: {skus}",
     "insufficientGifts": "Insufficient promotional gift stock for: {skus}",
     "confirmDescription": "Order contains {count} items. After submitting, choose a payment method to complete checkout{giftText}.",
+    "warehousePreview": "Warehouse allocation preview",
+    "warehouseGroup": "Warehouse {code}",
+    "warehouseAmounts": "Items ¥{goods} · Discount ¥{discount} · Shipping ¥{freight} · Due ¥{payable}",
     "confirmAmount": "Total due ¥{amount}",
     "omitQuestion": "{message}. Omit gifts with insufficient stock and continue ordering?"
   },
