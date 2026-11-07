@@ -146,6 +146,8 @@
     "refreshCheckout": "Refresh order status",
     "batchErpPending": "Waiting for ERP confirmation. Payment will become available once confirmed.",
     "batchErpUnavailable": "ERP order creation has not succeeded. Payment is unavailable for this batch.",
+    "stockInsufficient": "Insufficient stock",
+    "stockInsufficientCancelled": "Insufficient stock. The affected orders have been cancelled.",
     "noSufficientBalance": "No account has enough balance. Top up or choose an available credit option.",
     "checkoutUnavailable": "Payment is unavailable for this checkout. Refresh the order status.",
     "paymentEnded": "Payment window ended",

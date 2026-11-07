@@ -1,14 +1,14 @@
 import { createSharePayment } from './createSharePayment.js'
 import { createShareCheckout } from './createShareCheckout.js'
 import { prepareShareOrder, createShareOrder, getCurrentShareOrder, cancelCurrentShareOrder } from '../api/shareOrderApi.js'
-import { getShareCheckoutAreas, getShareCheckoutCarriers, previewShareCheckout } from '../api/shareCheckoutApi.js'
+import { getShareCheckoutAreas, getShareCheckoutCarriers, previewShareCheckout, parseShareCheckoutAddress } from '../api/shareCheckoutApi.js'
 import { exchangeShareAccess, resolveShareAccess } from '../api/shareAccessApi.js'
 import { getShareCatalogCategories, getShareCatalogList, getShareCatalogDetail, quoteShareCatalogSelection } from '../api/shareCatalogApi.js'
 import { createShareLocalCart } from '../model/shareLocalCart.js'
 const CODE = /^[A-Za-z0-9_-]{42}[AEIMQUYcgkosw048]$/
 const DRAFT = /^[a-f0-9]{32}$/
 /** 单页访客编排；所有凭据只在实例闭包，状态不包含原码/CSRF、经销商身份或收件信息。 */
-export function createShareRetail({ landing, enabled, queryOnly = false, checkoutEnabled = true, onChange, api = { exchangeShareAccess, resolveShareAccess, getShareCatalogCategories, getShareCatalogList, getShareCatalogDetail, quoteShareCatalogSelection, getShareCheckoutAreas, getShareCheckoutCarriers, previewShareCheckout, prepareShareOrder, createShareOrder, getCurrentShareOrder, cancelCurrentShareOrder }, cartFactory = createShareLocalCart, schedule = setTimeout, cancel = clearTimeout }) {
+export function createShareRetail({ landing, enabled, queryOnly = false, checkoutEnabled = true, onChange, api = { exchangeShareAccess, resolveShareAccess, getShareCatalogCategories, getShareCatalogList, getShareCatalogDetail, quoteShareCatalogSelection, getShareCheckoutAreas, getShareCheckoutCarriers, previewShareCheckout, parseShareCheckoutAddress, prepareShareOrder, createShareOrder, getCurrentShareOrder, cancelCurrentShareOrder }, cartFactory = createShareLocalCart, schedule = setTimeout, cancel = clearTimeout }) {
   let access = null, original = null, locator = null, cart = null, unsubscribe = null, timer = null
   let draftIdentity = null, opening = null
   let generation = 0, active = true, expired = false, entryKey = '', disposed = false
@@ -172,6 +172,8 @@ export function createShareRetail({ landing, enabled, queryOnly = false, checkou
   function checkoutChanged() { if (!queryOnly && checkoutEnabled) checkoutModel.changed() }
   /** 独立级联地区请求不携带登录身份或收件人。 */
   function checkoutAreas(parent, level) { return queryOnly || !checkoutEnabled ? Promise.resolve([]) : checkoutModel.areas(parent, level) }
+  /** 解析收件原文只使用当前分享访客会话。 */
+  function checkoutParseAddress(text) { return queryOnly || !checkoutEnabled ? Promise.resolve(null) : checkoutModel.parseAddress(text) }
   /** 当前所选Items在内部即时提取，页面不提供金额/主体。 */
   function checkoutPreview(input) { return queryOnly || !checkoutEnabled ? Promise.resolve(false) : checkoutModel.preview(input) }
   /** 草稿变更不构成库存或金额承诺；下一阶段正式预览仍必须重核。 */
@@ -208,5 +210,5 @@ export function createShareRetail({ landing, enabled, queryOnly = false, checkou
     try { await (api.cancelCurrentShareOrder || cancelCurrentShareOrder)(access);if(!current(version))return false;return await resume() }
     catch(error){if(current(version)){state.busy=false;state.error=[401,403].includes(error?.httpStatus)?'session':error?.httpStatus>=400&&error?.httpStatus<500?'cancel':'retry';emit()}return false}
   }
-  return { cancelOrder, pay:()=>paymentModel.start(), paymentQuery:()=>paymentModel.query(), checkoutSubmit, preview, location, open, resume, catalog, detail, add, basket, checkout, checkoutChanged, checkoutAreas, checkoutPreview, edit, remove, back, hide, dispose }
+  return { cancelOrder, pay:()=>paymentModel.start(), paymentQuery:()=>paymentModel.query(), checkoutSubmit, preview, location, open, resume, catalog, detail, add, basket, checkout, checkoutChanged, checkoutAreas, checkoutParseAddress, checkoutPreview, edit, remove, back, hide, dispose }
 }

@@ -425,7 +425,7 @@ export const ROUTE_META = Object.freeze({
     owner: 'main',
   },
   [DEALER_INVENTORY]: {
-    title: '我的库存',
+    title: '库存列表',
     requireAuth: true,
     requireSign: true,
     allowFrozen: false,

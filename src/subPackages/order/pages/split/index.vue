@@ -58,9 +58,9 @@
                   <view class="address-controls">
                     <view class="editor-toolbar">
                       <text class="section-title">{{ t('order.split.addressesHeading', { count: addressGroups.length }) }}</text>
-                      <picker v-if="canAddAddressGroup" class="add-address-picker" :range="addressOptions()" range-key="label" :value="0" :disabled="editingLocked" @change="selectAddress(0, $event)">
-                        <view class="add-address-button" :class="{ 'is-disabled': editingLocked }">{{ t('order.split.addShort') }}</view>
-                      </picker>
+                      <AppButton v-if="canAddAddressGroup" class="address-trigger" size="sm" variant="secondary" :disabled="editingLocked" @tap="openAddressSelection()">
+                        {{ t('order.split.addShort') }}
+                      </AppButton>
                     </view>
                     <scroll-view v-if="addressGroups.length > 1" class="address-tabs" scroll-x :scroll-into-view="'allocation-address-' + activeAddressId" :show-scrollbar="false">
                       <view class="address-tab-list">
@@ -79,7 +79,7 @@
                           <text class="address-group-contact">{{ group.address?.name || t('order.split.addressFallback') }}</text>
                           <text v-if="group.address?.phone" class="address-phone">{{ group.address.phone }}</text>
                         </view>
-                        <picker class="change-address-picker" :range="addressOptions(group.addressId)" range-key="label" :value="addressOptionIndex(group.addressId)" :disabled="editingLocked" @change="selectAddress(group.addressId, $event)"><view class="change-address-button">{{ t('order.split.changeAddressShort') }}</view></picker>
+                        <button class="change-address-button" :disabled="editingLocked" @tap="openAddressSelection(group.addressId)">{{ t('order.split.changeAddressShort') }}</button>
                       </view>
                       <text v-if="group.address" class="group-address-detail">{{ group.address.fullAddress }}</text>
                     </view>
@@ -166,10 +166,19 @@
           </view>
         </view>
       </ConfirmPopup>
+      <ConfirmPopup
+        :model-value="Boolean(addressSelection)"
+        :title="t('order.split.selectAddress')"
+        :confirm-disabled="!canConfirmAddressSelection"
+        @close="addressSelection = null"
+        @confirm="confirmAddressSelection"
+      >
+        <AppOptionList v-if="addressSelection" v-model="addressSelection.selectedId" :options="availableAddressOptions.map(toAddressOption)" :disabled="editingLocked" />
+      </ConfirmPopup>
       <ConfirmPopup v-model="transferVisible" class="transfer-dialog" :title="t('order.split.transferTitle')" :description="t('order.split.transferCopy')" :confirm-text="t('order.split.transferConfirm')" :confirm-disabled="editingLocked || transferMaximum < 1" @confirm="confirmTransfer">
         <text class="transfer-variant">{{ transferItemLabel }}</text>
         <text class="transfer-label">{{ t('order.split.transferSource') }}</text>
-        <picker :range="transferSources" range-key="label" :value="transferSourceIndex" @change="chooseTransferSource"><view class="transfer-source">{{ transferSources[transferSourceIndex]?.label || t('order.split.selectAddress') }}</view></picker>
+        <AppOptionList :model-value="transferFromId" :options="transferSources.map(toAddressOption)" :disabled="editingLocked" @update:model-value="chooseTransferSource" />
         <view class="transfer-controls"><text>{{ t('order.split.transferQuantity', { count: transferMaximum }) }}</text><QuantityStepper class="split-quantity-stepper" size="compact" v-model="transferQuantity" :min="1" :max="transferMaximum" :disabled="transferMaximum < 1" :allow-input="true" /></view>
       </ConfirmPopup>
     </template>
@@ -184,10 +193,12 @@ import { onLoad, onShow } from '@dcloudio/uni-app'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppButton from '@/shared/ui/AppButton/AppButton.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppImage from '@/shared/ui/AppImage/AppImage.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import ConfirmPopup from '@/shared/ui/ConfirmPopup/ConfirmPopup.vue'
+import AppOptionList from '@/shared/ui/AppOptionList.vue'
 import QuantityStepper from '@/shared/ui/QuantityStepper/QuantityStepper.vue'
 import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 import { navigator } from '@/app/navigation/navigator.js'
@@ -231,6 +242,7 @@ const pageReady = ref(false)
 const guideExpanded = ref(false)
 const actionsExpanded = ref(false)
 const reviewVisible = ref(false)
+const addressSelection = ref(null)
 const submitFailure = ref(null)
 const loadError = ref(null)
 const submissionAccepted = ref(false)
@@ -446,43 +458,47 @@ function balanceFor(addressId, orderItemId) {
   return allocationBalance(allocationIndex.value.get(Number(orderItemId)), addressId)
 }
 
-/** 返回明确的联系人和完整地址；已被其他配送地址使用的选项不再重复出现。 */
-function addressOptions(currentAddressId = 0) {
-  return [
-    { id: 0, label: t('order.split.selectAddress') },
-    ...addresses.value
-      .filter(address => address.id === Number(currentAddressId) || !selectedAddressIds.value.includes(address.id))
-      .map(address => ({ ...address, label: `${address.name} ${address.phone} ${address.fullAddress}` })),
-  ]
+const availableAddressOptions = computed(() => addresses.value.filter(address =>
+  address.id === addressSelection.value?.sourceId || !selectedAddressIds.value.includes(address.id),
+))
+function toAddressOption(address) {
+  return {
+    value: address.id,
+    label: address.name || t('order.split.addressFallback'),
+    meta: [address.phone, address.meta].filter(Boolean).join(' · '),
+    description: address.fullAddress,
+  }
 }
 
-/** picker 的 value 是选项索引，与业务地址 ID 分开处理。 */
-function addressOptionIndex(addressId) {
-  return Math.max(0, addressOptions(addressId).findIndex(address => address.id === Number(addressId)))
+const canConfirmAddressSelection = computed(() => {
+  const selection = addressSelection.value
+  if (editingLocked.value || !selection?.selectedId || selection.selectedId === selection.sourceId) return false
+  if (selectedAddressIds.value.includes(selection.selectedId)) return false
+  if (selection.sourceId ? !selectedAddressIds.value.includes(selection.sourceId) : !canAddAddressGroup.value) return false
+  return availableAddressOptions.value.some(address => address.id === selection.selectedId)
+})
+
+/** 打开新增或更换地址，确认前只保存选中的地址 ID。 */
+function openAddressSelection(sourceId = 0) {
+  if (editingLocked.value || (sourceId ? !selectedAddressIds.value.includes(sourceId) : !canAddAddressGroup.value)) return
+  addressSelection.value = { sourceId, selectedId: sourceId }
 }
 
-/** 将 picker 返回的字符串或数字索引映射到地址 ID，再新增或整体更换配送地址。 */
-function selectAddress(currentAddressId, event) {
-  if (editingLocked.value) return
-  const rawIndex = event?.detail?.value
-  if (!/^\d+$/.test(String(rawIndex ?? ''))) return
-  const selected = addressOptions(currentAddressId)[Number(rawIndex)]
-  if (!selected?.id) return
-  const sourceId = Number(currentAddressId)
-  if (selected.id === sourceId || selectedAddressIds.value.includes(selected.id)) return
-
+/** 新增地址或整体更换地址，保留该组已分配的规格和数量。 */
+function confirmAddressSelection() {
+  if (!canConfirmAddressSelection.value) return
+  const { sourceId, selectedId } = addressSelection.value
   if (sourceId === 0) {
-    if (!canAddAddressGroup.value) return
-    selectedAddressIds.value = [...selectedAddressIds.value, selected.id]
+    selectedAddressIds.value = [...selectedAddressIds.value, selectedId]
   } else {
-    if (!selectedAddressIds.value.includes(sourceId)) return
     allocationPlan.value = allocationPlan.value.map(item => {
       const index = item.allocations.findIndex(allocation => Number(allocation.addressId) === sourceId)
-      return index < 0 ? item : changeAllocationAddress(item, index, selected.id)
+      return index < 0 ? item : changeAllocationAddress(item, index, selectedId)
     })
-    selectedAddressIds.value = selectedAddressIds.value.map(id => id === sourceId ? selected.id : id)
+    selectedAddressIds.value = selectedAddressIds.value.map(id => id === sourceId ? selectedId : id)
   }
-  activeAddressId.value = selected.id
+  activeAddressId.value = selectedId
+  addressSelection.value = null
 }
 
 /** 移除地址并释放其所有尺码数量，其他地址数量和订单总数不变。 */
@@ -603,11 +619,16 @@ const transferSources = computed(() => {
     .filter(row => row.addressId !== draft.targetId && row.quantity > 0 && selectedAddressIds.value.includes(row.addressId))
     .map(row => {
       const address = addressById(row.addressId)
-      return { id: row.addressId, quantity: row.quantity,
-        label: (address ? address.name + ' · ' + address.fullAddress : t('order.split.addressFallback')) + ' · ' + t('order.split.quantity', { count: row.quantity }) }
+      return {
+        id: row.addressId,
+        name: address?.name || t('order.split.addressFallback'),
+        phone: address?.phone,
+        fullAddress: address?.fullAddress,
+        quantity: row.quantity,
+        meta: t('order.split.quantity', { count: row.quantity }),
+      }
     })
 })
-const transferSourceIndex = computed(() => Math.max(0, transferSources.value.findIndex(row => row.id === transferFromId.value)))
 const transferMaximum = computed(() => transferSources.value.find(row => row.id === transferFromId.value)?.quantity || 0)
 const transferItemLabel = computed(() => {
   const item = sourceItems.value.find(row => itemIdOf(row) === transferDraft.value?.itemId)
@@ -623,13 +644,10 @@ function openTransfer(targetId, itemId) {
   if (!transferFromId.value) transferDraft.value = null
 }
 
-/** picker 索引显式映射到来源地址，切换来源重置数量而不立即修改方案。 */
-function chooseTransferSource(event) {
-  const raw = event?.detail?.value
-  if (!/^\d+$/.test(String(raw ?? ''))) return
-  const source = transferSources.value[Number(raw)]
-  if (!source) return
-  transferFromId.value = source.id
+/** 切换调入来源时重置数量，确认后再调整分配。 */
+function chooseTransferSource(addressId) {
+  if (editingLocked.value || !transferSources.value.some(source => source.id === addressId)) return
+  transferFromId.value = addressId
   transferQuantity.value = 1
 }
 
@@ -709,9 +727,7 @@ async function submitSplits() {
 .allocation-workspace, .address-group-list { min-width: 0; }
 .editor-toolbar { display: flex; min-height: 44px; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
 .section-title { color: #252a32; font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-semibold, 600); line-height: 22px; }
-.add-address-picker, .change-address-picker { flex: none; }
-.add-address-button { display: flex; min-height: 36px; align-items: center; justify-content: center; padding: 0 12px; border: 1px solid #e2e5ea; border-radius: var(--radius-small, 8px); background: #fff; color: #343b46; font-size: var(--type-caption-size, 12px); font-weight: var(--font-weight-semibold, 600); line-height: 20px; }
-.is-disabled { opacity: .45; }
+.address-trigger { flex: none; }
 .address-tabs { width: 100%; min-width: 0; margin-bottom: 10px; white-space: nowrap; }
 .address-tab-list { display: inline-flex; gap: 8px; padding: 1px 0 5px; }
 .address-tab { display: inline-flex; flex: none; align-items: center; gap: 10px; min-height: 44px; max-width: 210px; margin: 0; padding: 8px 12px; border: 1px solid #e2e5ea; border-radius: var(--radius-control, 10px); color: #62666f; background: #fff; line-height: 20px; }
@@ -724,7 +740,8 @@ async function submitSplits() {
 .address-group-copy { display: flex; flex: 1; min-width: 0; flex-wrap: wrap; align-items: baseline; gap: 3px 9px; }
 .address-group-contact { color: #242a33; font-size: var(--type-label-size, 15px); font-weight: var(--font-weight-semibold, 600); line-height: 22px; overflow-wrap: anywhere; }
 .address-phone { color: #747b86; font-size: var(--type-caption-size, 12px); line-height: 20px; overflow-wrap: anywhere; }
-.change-address-button { display: flex; min-height: 44px; min-width: 44px; align-items: center; justify-content: flex-end; color: #b91d31; font-size: var(--type-caption-size, 12px); line-height: 20px; }
+.change-address-button { display: flex; flex: none; min-height: 44px; min-width: 44px; align-items: center; justify-content: flex-end; margin: 0; padding: 0; border: 0; background: transparent; color: #b91d31; font-size: var(--type-caption-size, 12px); line-height: 20px; }
+.change-address-button::after { border: 0; }
 .group-address-detail { display: block; margin-top: 2px; color: #62666f; font-size: var(--type-caption-size, 12px); line-height: 19px; overflow-wrap: anywhere; }
 .items-heading { display: flex; min-height: 50px; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px; }
 .items-heading .section-title { font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-semibold, 600); }
@@ -796,7 +813,6 @@ async function submitSplits() {
 .review-quantity { flex: none; font-weight: var(--font-weight-semibold, 600); font-variant-numeric: tabular-nums; }
 .transfer-label, .transfer-variant { display: block; margin: 12px 0 7px; color: #454e5b; font-size: var(--type-body-small-size, 13px); line-height: 20px; }
 .transfer-variant { font-weight: var(--font-weight-semibold, 600); }
-.transfer-source { padding: 11px; border: 1px solid #e2e5ea; border-radius: var(--radius-small, 8px); color: #454e5b; font-size: var(--type-caption-size, 12px); line-height: 19px; overflow-wrap: anywhere; }
 .transfer-controls { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; color: #62666f; font-size: var(--type-caption-size, 12px); line-height: 20px; }
 button::after { border: 0; }
 /* 已安排配送的只读详情继续展示后端状态及实际发货数量。 */

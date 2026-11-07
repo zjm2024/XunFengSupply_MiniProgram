@@ -17,7 +17,14 @@
               </view>
               <button v-if="rows.length > visibleLimit" class="show-more" @tap="visibleLimit += 30">{{ t('order.afterSale.inventoryApply.moreSelected') }}</button>
             </view>
-            <view class="card section-card"><text class="section-title">{{ t('order.afterSale.inventoryApply.refundAccount') }}</text><picker v-if="accounts.length" :range="accounts" range-key="label" :value="selectedAccountIndex" :disabled="locked" @change="selectAccount"><view class="picker-row"><text>{{ selectedAccount?.label || t('order.afterSale.inventoryApply.chooseAccount') }}</text><AppIcon name="chevron-right" :size="14" color="#9BA3AE" /></view></picker><text v-else class="sub-title">{{ t('order.afterSale.inventoryApply.noAccount') }}</text></view>
+            <view class="card section-card">
+              <text class="section-title">{{ t('order.afterSale.inventoryApply.refundAccount') }}</text>
+              <button v-if="accounts.length" class="picker-row account-picker-trigger" :disabled="locked" @tap="accountPickerVisible = true">
+                <text>{{ selectedAccount?.label || t('order.afterSale.inventoryApply.chooseAccount') }}</text>
+                <AppIcon name="chevron-right" :size="14" color="#9BA3AE" />
+              </button>
+              <text v-else class="sub-title">{{ t('order.afterSale.inventoryApply.noAccount') }}</text>
+            </view>
             <view class="card section-card"><text class="section-title">{{ t('order.afterSale.inventoryApply.reason') }}</text><textarea v-model="form.reason" :disabled="locked" class="reason-input" maxlength="500" :placeholder="t('order.afterSale.inventoryApply.reasonPlaceholder')" /><text class="counter">{{ form.reason.length }}/500</text></view>
             <view class="card section-card express-card"><text class="section-title">{{ t('order.afterSale.expressNo') }}</text><input v-model="form.expressNo" :disabled="locked || submitted" class="express-input" maxlength="100" :placeholder="t('order.afterSale.expressNoPlaceholder')" /></view>
             <view class="refund-status"><text>{{ t('order.afterSale.inventoryApply.pendingAmount') }}</text><text>{{ t('order.afterSale.inventoryApply.notice') }}</text></view>
@@ -28,6 +35,9 @@
       </AppContent>
     </template>
     <template v-if="pageState === PageStatus.CONTENT" #footer><FixedActionBar><button class="submit-button" :disabled="!canSubmit" :loading="submitting" @tap="submit">{{ t(pending ? 'order.afterSale.inventoryApply.retrySubmit' : 'order.afterSale.inventoryApply.submit') }}</button></FixedActionBar></template>
+    <template #overlay>
+      <AppOptionPicker v-model:visible="accountPickerVisible" :model-value="form.refundAccountId" :options="accountOptions" :title="t('order.afterSale.inventoryApply.chooseAccount')" :disabled="locked" @confirm="selectAccount" />
+    </template>
   </AppPageShell>
 </template>
 <script setup>
@@ -38,6 +48,7 @@ import '@/subPackages/order/i18n/register.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppOptionPicker from '@/shared/ui/AppOptionPicker.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
@@ -55,7 +66,13 @@ const userStore=useUserStore(),draft=useInventoryReturnDraft(String(userStore.de
 const rows=ref([]),accounts=ref([]),pageState=ref(PageStatus.LOADING),loadError=ref(''),submitting=ref(false),submitted=ref(false),visibleLimit=ref(30)
 const form=reactive({refundAccountId:draft.state.refundAccountId,reason:draft.state.reason,expressNo:draft.state.expressNo||''})
 const pending=computed(()=>Boolean(draft.state.pendingIntent)),locked=computed(()=>submitting.value||pending.value)
-const selectedAccountIndex=computed(()=>Math.max(0,accounts.value.findIndex(item=>item.accountId===form.refundAccountId)))
+const accountPickerVisible = ref(false)
+const accountOptions = computed(() => accounts.value.map(item => ({ value: item.accountId, label: item.label })))
+function selectAccount(accountId) {
+  if (locked.value || !draft.owns() || !accounts.value.some(item => item.accountId === accountId)) return
+  form.refundAccountId = accountId
+  saveForm()
+}
 const selectedAccount=computed(()=>accounts.value.find(item=>item.accountId===form.refundAccountId)||null)
 const canSubmit=computed(()=>draft.owns()&&!submitting.value&&!submitted.value&&(pending.value||(rows.value.length>0&&rows.value.every(validItem)&&selectedAccount.value&&form.reason.trim())))
 const selectionSummary=computed(()=>t('order.afterSale.inventoryApply.summary',{products:new Set(rows.value.map(item=>item.productId)).size,skus:rows.value.length}))
@@ -141,4 +158,5 @@ function formatQty(value){return Number(value||0).toLocaleString('zh-CN')}
   -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
   backdrop-filter: var(--glass-card-blur, blur(16px));
 }
+.account-picker-trigger { width: 100%; padding: 0; border: 0; background: transparent; line-height: 1.5; text-align: left; }
 </style>

@@ -179,7 +179,7 @@ function formatQuantity(value) {
 function goToMessages() { navigator.navigateTo(routes.content.messages()) }
 function goToProfile() { navigator.navigateTo(routes.account.profile()) }
 function goToOrders() { navigator.navigateTo(routes.order.list()) }
-function goToInventory() { navigator.navigateTo(routes.account.inventory()) }
+function goToInventory() { navigator.navigateTo(routes.account.inventoryOverview()) }
 function goToRecharge() { navigator.navigateTo(routes.account.recharge()) }
 function goToBill() { navigator.navigateTo(routes.account.billList()) }
 function goToFundFlow() { navigator.navigateTo(routes.account.fundFlow()) }

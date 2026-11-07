@@ -105,3 +105,16 @@ export async function previewShareCheckout({ contextId, csrfToken, items: select
     Remark: text(remark, 300, false), LocalCartRevision: revision(localCartRevision) }
   return preview(await dispatch('MallOrder', CONTROLLER, 'Preview', request, options({ contextId, csrfToken })), request)
 }
+
+/** 只提交原文到访客地址解析入口，不夹带账号身份、地址ID或供应商凭据。 */
+export async function parseShareCheckoutAddress({ contextId, csrfToken, addressText } = {}) {
+  if (typeof addressText !== 'string') throw new TypeError('Invalid recipient text')
+  const input = addressText.trim().normalize('NFC')
+  if (!input || input.length > 1000 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/.test(input)) throw new TypeError('Invalid recipient text')
+  const value = await dispatch('MallOrder', CONTROLLER, 'ParseAddress', { AddressText: input },
+    { ...options({ contextId, csrfToken }), timeout: 35000 })
+  if (typeof value?.isComplete !== 'boolean') throw new TypeError('Invalid parsed address')
+  return { contactName: text(value.contactName, 50, false) || '', contactPhone: text(value.contactPhone, 30, false) || '',
+    province: text(value.province, 120, false) || '', city: text(value.city, 120, false) || '', district: text(value.district, 120, false) || '',
+    addressDetail: text(value.addressDetail, 300, false) || '', isComplete: value.isComplete }
+}

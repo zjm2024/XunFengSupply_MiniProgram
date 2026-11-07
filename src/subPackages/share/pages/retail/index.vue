@@ -5,7 +5,7 @@
       <view v-if="!isSearchPage && state.view === 'catalog'"><AppStatusBarSpacer /><HomeTopBar active-tab="category" @search="openSearchPage()" /></view>
       <AppCatalogHeader v-else-if="state.view === 'catalog'" v-model:keyword="keyword" :search-entry="!isSearchPage" @search-entry="openSearchPage()" :keyword-committed="browseMode === 'results' && !!state.query.keyword" :auto-focus="isSearchPage && browseMode === 'search'" :show-tools="isSearchPage && browseMode === 'results'" :show-result-count="true" :total="state.total" :show-sort="false" :filter-count="Number(!!state.query.categoryId)+Number(!!state.query.hasImage)" @filter="filterVisible=true" :show-cart="isSearchPage" :cart-count="itemCount" :placeholder="t('share.retail.search')" @edit-keyword="browseMode = 'search'" @search="search" @clear-keyword="clearSearch" @back="leave" @cart="controller.basket()" />
       </template>
-      <AppHeader v-else-if="(state.phase === 'bound' && !!state.order) || (state.phase === 'catalog' && ['cart','checkout','detail'].includes(state.view))" :show-back="state.view !== 'order'" custom-back :title="state.view === 'cart' ? '购物车' : state.view === 'checkout' ? '确认订单' : state.view === 'order' ? '订单详情' : '商品详情'" :show-cart="false" :cart-count="itemCount" :show-language="false" @back="leave" @cart="controller.basket()" />
+      <AppHeader v-else-if="(state.phase === 'bound' && !!state.order) || (state.phase === 'catalog' && ['cart','checkout','detail'].includes(state.view))" :show-back="state.view !== 'order'" custom-back :title="state.view === 'cart' ? '购物车' : state.view === 'checkout' ? '确认订单' : state.view === 'order' ? t('share.orderDetail.title') : '商品详情'" :show-cart="false" :cart-count="itemCount" :show-language="false" @back="leave" @cart="controller.basket()" />
     </template>
     <template #content>
       <view v-if="state.phase === 'loading' || state.phase === 'unavailable'" class="share-entry-state">
@@ -22,11 +22,11 @@
         
       </view>
       <ShareCatalogBrowser v-else-if="state.phase === 'catalog' && state.view === 'catalog'" :mode="browseMode" :categories="state.categories" :products="state.products" :total="state.total" :category-id="state.query.categoryId" :keyword="state.query.keyword" :has-image="!!state.query.hasImage" :loading="state.busy" :refreshing="refreshing" :has-more="state.products.length < state.total" :failed="!!state.error" show-price :load-products="loadPreviews" @product="controller.detail" @more="more" @refresh="refresh" @search="suggestedSearch" @results="openSearchPage($event)" />
-      <AppContent v-else :padding="['cart','checkout'].includes(state.view) ? '16px var(--page-padding-x,16px) 24px' : '0'" no-max-width :refresher-enabled="state.view !== 'checkout'" :refresher-triggered="refreshing" @refresherrefresh="refresh" @scrolltolower="more">
+      <AppContent v-else :padding="boundOrder ? '10px var(--page-padding-x,16px) 22px' : ['cart','checkout'].includes(state.view) ? '16px var(--page-padding-x,16px) 24px' : '0'" no-max-width :refresher-enabled="state.view !== 'checkout'" :refresher-triggered="refreshing" @refresherrefresh="refresh" @scrolltolower="more">
         <AppPageState :state="pageStatus" :title="state.error ? t('share.retail.errors.' + state.error) : t('share.retail.unavailable')" :action-text="['retry','limited'].includes(state.error) ? t('share.retail.retry') : ''" @retry="controller.resume()">
-          <ShareOrderDetail v-if="state.phase === 'bound' && state.order" :detail="state.order" :busy="state.busy" :payment="state.payment" @pay="controller.pay()" @query="controller.paymentQuery()" @refresh="controller.resume()" @cancel="controller.cancelOrder()" />
+          <ShareOrderDetail v-if="boundOrder" :detail="boundOrder" :payment="state.payment" :payment-state="paymentState" :countdown="paymentCountdown" />
           <view v-else-if="state.phase === 'bound'" class="share-cart"><AppPageState state="empty" title="该分享已生成订单" description="仅原下单浏览器可查看订单详情" /></view>
-          <ShareCheckoutForm ref="checkoutForm" v-else-if="state.view === 'checkout'" :state="state.checkout" :load-areas="controller.checkoutAreas" :items="checkoutItems" :request-preview="controller.checkoutPreview" @preview="controller.checkoutPreview" @create="controller.checkoutSubmit" @changed="controller.checkoutChanged" @back="controller.back()" />
+          <ShareCheckoutForm ref="checkoutForm" v-else-if="state.view === 'checkout'" :state="state.checkout" :load-areas="controller.checkoutAreas" :items="checkoutItems" :request-preview="controller.checkoutPreview" :request-address-parse="controller.checkoutParseAddress" @preview="controller.checkoutPreview" @create="controller.checkoutSubmit" @changed="controller.checkoutChanged" @back="controller.back()" />
           <ShareProductDetail v-else-if="state.view === 'detail' && state.detail" :product="state.detail.product" :skus="state.detail.skus.items" :total="state.detail.skus.totalCount" :loading="state.busy" :has-more="state.detail.skus.items.length < state.detail.skus.totalCount" :description="state.detail.description" :size-recommendation="state.detail.sizeRecommendation" :unit="state.detail.unit" show-price purchasable :selected-sku-id="initialSkuId" :category-name="detailCategoryName" @select="chooseSku" @more="more" @preview="previewImages" />
           <ShareCartPanel v-else-if="state.view === 'cart'" :rows="cartRows" :busy="state.busy" @edit="controller.edit" @remove="removeItem" @browse="controller.back()" @product="controller.detail" @checkout="controller.checkout()" />
 
@@ -35,13 +35,15 @@
     </template>
     <template v-if="hasFooter" #footer>
       <FixedActionBar>
-        <ShareCartFooter v-if="state.view === 'cart'" :rows="cartRows" :busy="state.busy" @edit="controller.edit" @checkout="controller.checkout()" />
+        <ActionRow v-if="boundOrder" :actions="orderActions" :more-text="t('share.orderDetail.more')" @select="selectOrderAction" @overflow="orderActionMenu = $event" />
+        <ShareCartFooter v-else-if="state.view === 'cart'" :rows="cartRows" :busy="state.busy" @edit="controller.edit" @checkout="controller.checkout()" />
         <ShareCheckoutFooter v-else-if="state.view === 'checkout'" :state="state.checkout" :items="checkoutItems" @pay="checkoutForm?.pay()" />
         <AppButton v-else-if="state.view === 'detail'" block class="add-button" :disabled="state.busy || !purchaseProduct?.skus.some(sku => sku.canPurchase)" @tap="chooseSku()">加入购物车</AppButton>
         <template v-else><AppButton variant="secondary" @tap="controller.back()">继续选购</AppButton><text class="cart-selection">已选 {{ selectedCount }} 件</text><AppButton :disabled="state.busy || !selectedCount" @tap="controller.checkout()">结算</AppButton></template>
       </FixedActionBar>
     </template>
     <template #overlay>
+      <ActionOverflowMenu v-if="boundOrder" :anchor="orderActionMenu?.anchor" :actions="orderOverflowActions" :title="t('share.orderDetail.more')" @close="orderActionMenu = null" @select="selectOrderAction" />
       <ShareCatalogFilters v-if="isSearchPage && state.view === 'catalog'" :visible="filterVisible" :categories="state.categories" :category-id="state.query.categoryId" :has-image="!!state.query.hasImage" @close="filterVisible=false" @apply="applyFilters" />
       <ShareOverlayPortal :visible="viewerVisible"><AppImageViewer v-model="viewerVisible" :images="viewerImages" :initial-index="viewerIndex" /></ShareOverlayPortal>
       <view v-if="showFloatingCart" class="floating-cart" :class="{ 'above-footer': hasFooter }"><AppCartButton :count="itemCount" :disabled="state.busy" @tap="controller.basket()" /></view>
@@ -86,6 +88,8 @@ import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import QuantityStepper from '@/shared/ui/QuantityStepper/QuantityStepper.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
+import ActionRow from '@/shared/ui/ActionRow.vue'
+import ActionOverflowMenu from '@/shared/ui/ActionOverflowMenu.vue'
 import SingleSkuPurchaseSheet from '@/subPackages/commerce/components/SingleSkuPurchaseSheet/SingleSkuPurchaseSheet.vue'
 import { sharePurchaseProduct } from '../../model/sharePurchasePresentation.js'
 registerShareLocales()
@@ -101,7 +105,71 @@ const keyword = ref(''), filterVisible=ref(false)
 const queryOnly = false, checkoutEnabled = true
 const controller = createShareRetail({ landing: shareLanding, enabled: APP_SURFACE.mode === 'share-h5', queryOnly, checkoutEnabled, onChange: value => { state.value = value } })
 const itemCount = computed(() => state.value.cart?.items.reduce((sum, item) => sum + item.quantity, 0) || 0)
-const hasFooter = computed(() => state.value.phase === 'catalog' && ['detail','cart','checkout'].includes(state.value.view))
+const boundOrder = computed(() => state.value.phase === 'bound' && !state.value.error ? state.value.order : null)
+const hasFooter = computed(() => Boolean(boundOrder.value) || (state.value.phase === 'catalog' && ['detail','cart','checkout'].includes(state.value.view)))
+const orderActionMenu = ref(null)
+const paymentSeconds = ref(0)
+const paymentOrder = computed(() => boundOrder.value?.order)
+watch([() => paymentOrder.value?.paymentExpiresAtUtc, () => paymentOrder.value?.serverNowUtc], ([expiresAt, serverNow], _, onCleanup) => {
+  const duration = Date.parse(expiresAt) - Date.parse(serverNow)
+  const end = Date.now() + (Number.isFinite(duration) ? duration : 0)
+  function tick() { paymentSeconds.value = Math.max(0, Math.ceil((end - Date.now()) / 1000)) }
+  tick()
+  if (!paymentSeconds.value) return
+  const timer = setInterval(() => { tick(); if (!paymentSeconds.value) clearInterval(timer) }, 1000)
+  onCleanup(() => clearInterval(timer))
+}, { immediate: true, flush: 'sync' })
+const paymentCountdown = computed(() => {
+  const minutes = String(Math.floor(paymentSeconds.value / 60)).padStart(2, '0')
+  const seconds = String(paymentSeconds.value % 60).padStart(2, '0')
+  return minutes + ':' + seconds
+})
+const paymentState = computed(() => {
+  const status = state.value.payment?.status
+  if (status === 'refunding' || status === 'refunded') return status
+  if (status === 'paid' || paymentOrder.value?.paymentStatus === 3) return 'paid'
+  if (status === 'closed' || paymentOrder.value?.orderStatus === 91) return 'closed'
+  if (paymentOrder.value?.orderStatus === 90) return 'cancelling'
+  return paymentSeconds.value ? 'payable' : 'expired'
+})
+const orderActions = computed(() => {
+  if (!boundOrder.value) return []
+  const payment = state.value.payment || {}
+  const blocked = state.value.busy || payment.busy
+  const actions = []
+  if (boundOrder.value.canCancel === true) actions.push({ key: 'cancel', label: t('share.orderDetail.cancel'), disabled: blocked, priority: 3 })
+  actions.push({ key: 'refresh', label: t('share.orderDetail.refresh'), disabled: blocked, priority: 4 })
+  if (['payable', 'expired'].includes(paymentState.value)) {
+    if (payment.codeUrl || ['pending', 'error', 'cancelled'].includes(payment.status)) {
+      actions.push({ key: 'query', label: t('share.orderDetail.query'), disabled: blocked, priority: 2 })
+    }
+    if (!payment.codeUrl && paymentState.value === 'payable') {
+      actions.push({ key: 'pay', label: t(payment.busy ? 'share.orderDetail.paying' : 'share.orderDetail.pay'), type: 'primary', disabled: blocked, priority: 1 })
+    }
+  }
+  return actions
+})
+const orderOverflowActions = computed(() => orderActions.value.filter(action => orderActionMenu.value?.keys.includes(action.key)))
+watch(() => paymentOrder.value?.orderNo, () => { orderActionMenu.value = null })
+
+/** 保留分享单自己的付款、查单和取消入口。 */
+async function selectOrderAction(key) {
+  orderActionMenu.value = null
+  const action = orderActions.value.find(item => item.key === key)
+  if (!action || action.disabled) return
+  if (key === 'pay') return controller.pay()
+  if (key === 'query') return controller.paymentQuery()
+  if (key === 'refresh') return controller.resume()
+  const orderNo = paymentOrder.value?.orderNo
+  const confirmed = await openAppDialog({
+    title: t('share.orderDetail.cancel'),
+    description: t('share.orderDetail.cancelConfirm'),
+    confirmText: t('share.orderDetail.confirmCancel'),
+    danger: true,
+  })
+  if (confirmed && orderNo === paymentOrder.value?.orderNo
+    && orderActions.value.some(item => item.key === 'cancel' && !item.disabled)) return controller.cancelOrder()
+}
 const showFloatingCart = computed(() => state.value.phase === 'catalog' && !['cart','checkout'].includes(state.value.view) && !(isSearchPage.value && state.value.view === 'catalog') && !sheetVisible.value && !viewerVisible.value)
 const detailCategoryName = computed(() => state.value.categories.find(item => item.categoryId === state.value.detail?.product.categoryId)?.name || '')
 const purchaseProduct = computed(() => sharePurchaseProduct(state.value.detail))

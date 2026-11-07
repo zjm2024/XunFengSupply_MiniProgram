@@ -35,9 +35,9 @@
         <text class="note-title">{{ t('order.afterSaleDetail.returnLogistics') }}</text>
         <text class="return-note">{{ t('order.afterSaleDetail.returnNote') }}</text>
         <text class="field-label">{{ t('order.afterSaleDetail.carrier') }}</text>
-        <picker :range="carriers" range-key="name" :disabled="saving || !carriers.length" @change="chooseCarrier">
-          <view class="field-input carrier-picker">{{ selectedCarrierName || t('order.afterSaleDetail.carrierPlaceholder') }}</view>
-        </picker>
+        <button class="field-input carrier-picker" :disabled="saving || !carriers.length" @tap="carrierPickerVisible = true">
+          {{ selectedCarrierName || t('order.afterSaleDetail.carrierPlaceholder') }}
+        </button>
         <button v-if="carrierError" class="text-action" :disabled="saving" @tap="loadCarriers">{{ t('common.retry') }} · {{ carrierError }}</button>
         <text class="field-label">{{ t('order.afterSaleDetail.trackingNo') }}</text>
         <input v-model="logistics.trackingNo" class="field-input" :disabled="saving" maxlength="100" :placeholder="t('order.afterSaleDetail.trackingPlaceholder')" />
@@ -46,6 +46,9 @@
       </view>
     </view>
       </AppContent>
+    </template>
+    <template #overlay>
+      <AppOptionPicker v-model:visible="carrierPickerVisible" :model-value="logistics.carrierCode" :options="carrierOptions" :title="t('order.afterSaleDetail.carrierPlaceholder')" :disabled="saving" @confirm="chooseCarrier" />
     </template>
   </AppPageShell>
 </template>
@@ -59,6 +62,7 @@ import { getAfterSaleDetail, getAfterSaleCarriers, submitReturnLogistics } from 
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppOptionPicker from '@/shared/ui/AppOptionPicker.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
@@ -75,6 +79,8 @@ const saveError = ref('')
 const logistics = reactive({ carrierCode: '', trackingNo: '' })
 let logisticsInitialized = false
 const carriers = ref([])
+const carrierPickerVisible = ref(false)
+const carrierOptions = computed(() => carriers.value.map(item => ({ value: item.code, label: item.name, meta: item.code })))
 const carrierError = ref('')
 const selectedCarrierName = computed(() => carriers.value.find(item => item.code === logistics.carrierCode)?.name || '')
 const canSave = computed(() => Boolean(selectedCarrierName.value) && logistics.trackingNo.trim())
@@ -130,9 +136,9 @@ async function loadCarriers() {
 }
 
 /** 保留原主数据编码用于提交，只改变界面的承运商名称。 */
-function chooseCarrier(event) {
-  if (saving.value) return
-  logistics.carrierCode = carriers.value[Number(event.detail.value)]?.code || ''
+function chooseCarrier(code) {
+  if (saving.value || !carriers.value.some(item => item.code === code)) return
+  logistics.carrierCode = code
 }
 
 /** 待退货时提交承运商编码和运单号，等待服务端状态迁移后刷新列表与详情。 */
@@ -184,6 +190,7 @@ button::after { border: 0; }
 .field-label { display: block; margin: 14px 0 8px; font-size: var(--type-body-small-size, 13px); }
 .field-input { width: 100%; height: 44px; padding: 0 12px; box-sizing: border-box; border: 1px solid #E5E7EB; border-radius: var(--radius-control, 10px); background: #F9FAFB; font-size: var(--type-body-size, 14px); }
 .carrier-picker { display: flex; align-items: center; height: auto; min-height: 44px; padding-top: 10px; padding-bottom: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+.carrier-picker::after { border: 0; }
 .return-submit { display: flex; width: 100%; min-height: 44px; align-items: center; justify-content: center; margin: 16px 0 0; padding: 10px 14px; border-radius: var(--radius-control, 10px); color: #fff; background: #D7192D; font-size: var(--type-body-size, 14px); line-height: 1.5; }
 .return-submit[disabled] { color: #969AA3; background: #E9EAED; }
 .save-error { display: block; color: #D7192D; margin-top: 10px; font-size: var(--type-caption-size, 12px); line-height: 1.5; }

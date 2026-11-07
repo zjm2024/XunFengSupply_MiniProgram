@@ -256,19 +256,34 @@ function confirmSelection() {
 .picker-panel {
   position: relative;
   width: 100%;
-  max-width: none;
+  max-width: 100%;
   box-sizing: border-box;
   height: 72vh;
-  max-height: 960rpx;
-  min-height: 520rpx;
+  height: 72dvh;
+  max-height: min(520px, 100%);
   display: flex;
   flex-direction: column;
   background: $color-bg-card;
   border-radius: $radius-feature $radius-feature 0 0;
-  padding-bottom: calc(env(safe-area-inset-bottom) + #{$space-3});
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + #{$space-3});
   overflow: hidden;
-  box-shadow: 0 -12rpx 36rpx rgba(28, 32, 38, .12);
+  box-shadow: 0 -6px 18px rgba(28, 32, 38, .12);
   animation: area-sheet-in 220ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+@media screen and (min-width: 768px) {
+  .area-picker-overlay {
+    align-items: center;
+    padding: $space-6;
+    box-sizing: border-box;
+  }
+
+  .picker-panel {
+    width: 560px;
+    height: 100%;
+    border-radius: $radius-feature;
+    padding-bottom: $space-3;
+  }
 }
 
 @keyframes area-overlay-in {
@@ -282,12 +297,13 @@ function confirmSelection() {
 }
 
 .picker-header {
-  min-height: 104rpx;
-  padding: 0 $space-2;
+  flex-shrink: 0;
+  min-height: 52px;
+  padding: 0 $space-4;
   display: grid;
-  grid-template-columns: 128rpx 1fr 128rpx;
+  grid-template-columns: minmax(64px, 1fr) auto minmax(64px, 1fr);
   align-items: center;
-  border-bottom: 2rpx solid $color-gray-100;
+  border-bottom: 1px solid $color-gray-100;
 }
 
 .picker-title {
@@ -328,10 +344,11 @@ function confirmSelection() {
 }
 
 .level-tabs {
+  flex-shrink: 0;
   display: flex;
   padding: 0 $space-4;
   gap: $space-4;
-  border-bottom: 2rpx solid $color-gray-100;
+  border-bottom: 1px solid $color-gray-100;
 }
 
 .level-tab {
@@ -359,7 +376,7 @@ function confirmSelection() {
     left: 0;
     right: 0;
     bottom: 0;
-    height: 4rpx;
+    height: 2px;
     content: '';
     background: $color-action-primary;
     border-radius: $radius-full;
@@ -372,18 +389,19 @@ function confirmSelection() {
 
 .option-list {
   flex: 1;
+  height: 0;
   min-height: 0;
 }
 
 .option-item {
-  min-height: 96rpx;
+  min-height: 48px;
   margin: 0 $space-4;
   display: flex;
   align-items: center;
   justify-content: space-between;
   color: $color-text-primary;
   font-size: $font-size-body-m;
-  border-bottom: 2rpx solid $color-gray-100;
+  border-bottom: 1px solid $color-gray-100;
 
   &.selected {
     color: $color-action-primary;
@@ -395,7 +413,7 @@ function confirmSelection() {
 .load-error,
 .empty-state {
   flex: 1;
-  min-height: 320rpx;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -409,9 +427,9 @@ function confirmSelection() {
 }
 
 .loading-spinner {
-  width: 40rpx;
-  height: 40rpx;
-  border: 4rpx solid $color-brand-100;
+  width: 20px;
+  height: 20px;
+  border: 2px solid $color-brand-100;
   border-top-color: $color-action-primary;
   border-radius: 50%;
   animation: area-spin 0.8s linear infinite;
@@ -424,8 +442,12 @@ function confirmSelection() {
   text-align: center;
 }
 
+.empty-state {
+  min-height: 120px;
+}
+
 .retry-button {
-  min-width: 160rpx;
+  min-width: 80px;
   color: $color-action-primary;
 }
 

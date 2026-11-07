@@ -146,6 +146,8 @@
     "refreshCheckout": "刷新订单状态",
     "batchErpPending": "正在等待 ERP 建单确认，确认后自动开放付款",
     "batchErpUnavailable": "ERP 建单尚未成功，当前批次暂不能付款",
+    "stockInsufficient": "库存不足",
+    "stockInsufficientCancelled": "库存不足，相关订单已取消",
     "noSufficientBalance": "没有余额足够的账户，可选择在线充值或可用的授信方式",
     "checkoutUnavailable": "当前批次暂不可付款，请刷新订单状态",
     "paymentEnded": "支付时间已结束",

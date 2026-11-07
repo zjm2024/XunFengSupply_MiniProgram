@@ -3,7 +3,9 @@
     <template #header>
       <AppHeader :title="t('account.inventory.ledger')" :show-back="true" :searchable="true" :search-value="keywordInput" :search-placeholder="t('account.inventory.ledgerSearch')" @update:search-value="keywordInput = $event" @search="applySearch" @clear-search="clearSearch" />
       <view class="ledger-filters inventory-wrap">
-        <picker :range="typeOptions" range-key="label" :value="typeIndex" @change="changeType"><view class="filter-value">{{ typeOptions[typeIndex].label }} <AppIcon name="chevron-down" :size="14" /></view></picker>
+        <button class="filter-value type-filter-trigger" @tap="typePickerVisible = true">
+          <text>{{ selectedTypeLabel }}</text><AppIcon name="chevron-down" :size="14" />
+        </button>
         <picker mode="date" :value="startDate" @change="changeStart"><view class="filter-value">{{ startDate || t('account.inventory.startDate') }}</view></picker>
         <picker mode="date" :value="endDate" @change="changeEnd"><view class="filter-value">{{ endDate || t('account.inventory.endDate') }}</view></picker>
       </view>
@@ -27,6 +29,9 @@
         </view>
       </AppContent>
     </template>
+    <template #overlay>
+      <AppOptionPicker v-model:visible="typePickerVisible" :model-value="businessType" :options="typeOptions" :title="t('account.inventory.typeFilterTitle')" @confirm="changeType" />
+    </template>
   </AppPageShell>
 </template>
 <script setup>
@@ -37,6 +42,7 @@ import '@/subPackages/account/i18n/register.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppOptionPicker from '@/shared/ui/AppOptionPicker.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
@@ -55,7 +61,8 @@ const typeOptions = computed(() => [
   { value: '', label: t('account.inventory.allTypes') },
   ...['PURCHASE_RECEIPT', 'AFTER_SALE_RESERVE', 'AFTER_SALE_RELEASE', 'RETURN_OUT'].map(value => ({ value, label: businessTypeText(value) })),
 ])
-const typeIndex = computed(() => Math.max(0, typeOptions.value.findIndex(item => item.value === businessType.value)))
+const typePickerVisible = ref(false)
+const selectedTypeLabel = computed(() => typeOptions.value.find(item => item.value === businessType.value)?.label || t('account.inventory.allTypes'))
 const hasFilters = computed(() => Boolean(keyword.value || businessType.value || startDate.value || endDate.value))
 const loadError = computed(() => loadFailure.value?.message || (loadFailure.value ? t('account.inventory.loadFailed') : ''))
 const loadMoreStatus = computed(() => moreError.value ? 'error' : loadingMore.value ? 'loading' : pageNum.value * pageSize < totalCount.value ? 'idle' : 'no-more')
@@ -101,7 +108,11 @@ function applySearch() { keyword.value = keywordInput.value.trim(); return reloa
 /** Remove only the search keyword. */
 function clearSearch() { keywordInput.value = ''; keyword.value = ''; return reload() }
 /** Change the stable business type code. */
-function changeType(event) { businessType.value = typeOptions.value[Number(event.detail.value)]?.value || ''; return reload() }
+function changeType(value) {
+  if (!typeOptions.value.some(item => item.value === value) || businessType.value === value) return
+  businessType.value = value
+  return reload()
+}
 /** Reject an inverted date range without replacing valid query results. */
 function changeDate(target, value) {
   const start = target === 'start' ? value : startDate.value, end = target === 'end' ? value : endDate.value
@@ -143,4 +154,6 @@ function deltaClass(value) { return value > 0 ? 'positive' : value < 0 ? 'negati
 .ledger-product .spec-line { font-size: var(--type-caption-size, 12px); }
 .source-line,.sku-scope { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; color: #989FAA; font-size: var(--type-caption-size, 12px); overflow-wrap: anywhere; }
 .sku-scope { margin: 0 0 12px; padding: 10px 12px; border-radius: var(--radius-small, 8px); background: #FCEEEF; }
+.type-filter-trigger { width: 100%; margin: 0; border: 0; line-height: 1.5; }
+.type-filter-trigger::after { border: 0; }
 </style>

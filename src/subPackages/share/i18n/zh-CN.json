@@ -160,6 +160,34 @@
     },
     "priceFrom": "¥{price} 起"
   },
+  "orderDetail": {
+    "title": "订单详情",
+    "products": "商品信息",
+    "productSummary": "{count} 款 · {quantity} 件",
+    "orderInfo": "订单信息",
+    "orderNo": "订单编号",
+    "deadline": "付款截止",
+    "paymentInfo": "付款信息",
+    "paidAmount": "已付金额",
+    "scanToPay": "微信扫一扫付款",
+    "cancel": "取消订单",
+    "cancelConfirm": "确认取消本单？已付款项将在仓储确认后原路退回。",
+    "confirmCancel": "确认取消",
+    "refresh": "刷新订单",
+    "query": "查询付款状态",
+    "pay": "微信支付",
+    "paying": "正在处理…",
+    "more": "更多",
+    "paymentState": {
+      "payable": "剩余付款时间",
+      "expired": "付款期限已到",
+      "paid": "已付款",
+      "closed": "订单已取消",
+      "cancelling": "取消处理中",
+      "refunding": "退款处理中",
+      "refunded": "已退款"
+    }
+  },
   "checkout": {
     "title": "结算预览",
     "notice": "预览金额不代表已提交订单，不占库存。仅支持在线微信支付。",
@@ -193,6 +221,17 @@
       "empty": "请先在本地购物车勾选商品。",
       "unavailable": "当前没有可用的配送选项，请稍后重试。",
       "area": "地区暂时无法读取，请重新选择。"
+    },
+    "addressParse": {
+      "title": "粘贴收货信息",
+      "placeholder": "粘贴姓名、电话和完整地址，自动识别后请核对",
+      "action": "智能识别",
+      "success": "已识别并填入，请核对收货信息。",
+      "partial": "部分信息未识别或配送地区未匹配，请补全并核对。",
+      "failure": "解析失败，原收货信息已保留，请重试或手动填写。",
+      "unavailable": "地址解析暂不可用，请手动填写。",
+      "limited": "解析请求较频繁，请稍后重试。",
+      "busy": "正在识别地址…"
     }
   }
 }

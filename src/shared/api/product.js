@@ -202,6 +202,12 @@ export function getCategoryList() {
     .then(list => (Array.isArray(list) ? list.map(normalizeCategory) : []))
 }
 
+/** 仅供底部导航分类页使用，权限由后端当前登录主体决定。 */
+export function getNavigationCategoryList() {
+  return dispatch('MallProduct', 'Mini.ProductController', 'GetNavigationCategoryTree', {})
+    .then(list => (Array.isArray(list) ? list.map(normalizeCategory) : []))
+}
+
 export function getGoodsList(params = {}) {
   return dispatch('MallProduct', 'Mini.ProductController', 'GetProductList', toProductListQuery(params))
     .then(result => {

@@ -237,7 +237,7 @@ function openProfile() { return navigator.navigateTo(routes.account.profile()) }
 function goToOrders(status) { return navigator.navigateTo(routes.order.list(typeof status === 'number' ? { status } : {})) }
 /** 打开经销商分享中心，页面与服务端会再次校验权限。 */
 function goToShare() { return navigator.navigateTo(routes.share.home()) }
-function goToInventory() { return navigator.navigateTo(routes.account.inventory()) }
+function goToInventory() { return navigator.navigateTo(routes.account.inventoryOverview()) }
 function goToInvoice() { return navigator.navigateTo(routes.account.invoice()) }
 function goToRecharge() { return navigator.navigateTo(routes.account.recharge()) }
 function goToBill() { return navigator.navigateTo(routes.account.billList()) }

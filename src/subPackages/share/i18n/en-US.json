@@ -160,6 +160,34 @@
     },
     "priceFrom": "From ¥{price}"
   },
+  "orderDetail": {
+    "title": "Order details",
+    "products": "Products",
+    "productSummary": "{count} products · {quantity} items",
+    "orderInfo": "Order information",
+    "orderNo": "Order number",
+    "deadline": "Payment deadline",
+    "paymentInfo": "Payment information",
+    "paidAmount": "Amount paid",
+    "scanToPay": "Scan with WeChat to pay",
+    "cancel": "Cancel order",
+    "cancelConfirm": "Cancel this order? Any payment will be refunded to the original payment method after warehouse confirmation.",
+    "confirmCancel": "Confirm cancellation",
+    "refresh": "Refresh order",
+    "query": "Check payment",
+    "pay": "Pay with WeChat",
+    "paying": "Processing…",
+    "more": "More",
+    "paymentState": {
+      "payable": "Time left to pay",
+      "expired": "Payment deadline passed",
+      "paid": "Paid",
+      "closed": "Order cancelled",
+      "cancelling": "Cancellation in progress",
+      "refunding": "Refund in progress",
+      "refunded": "Refunded"
+    }
+  },
   "checkout": {
     "title": "Checkout preview",
     "notice": "A preview does not submit an order or reserve stock. Online WeChat payment only.",
@@ -193,6 +221,17 @@
       "empty": "Select items in your local cart first.",
       "unavailable": "No delivery options are currently available. Please try later.",
       "area": "Unable to load this area. Please select it again."
+    },
+    "addressParse": {
+      "title": "Paste recipient information",
+      "placeholder": "Paste the name, phone number and full address, then check the recognized details",
+      "action": "Recognize",
+      "success": "Recipient details filled in. Please review them.",
+      "partial": "Some details or delivery regions could not be matched. Please complete and review them.",
+      "failure": "Recognition failed. Your address is unchanged. Retry or enter it manually.",
+      "unavailable": "Address recognition is unavailable. Please enter the address manually.",
+      "limited": "Too many recognition requests. Please try again later.",
+      "busy": "Recognizing address…"
     }
   }
 }

@@ -25,7 +25,7 @@
               </view>
               <view v-if="!orderPayable" class="checkout-status" role="status">
                 <text>{{ t(batchStatusKey) }}</text>
-                <AppButton v-if="!batchPaid" size="sm" variant="secondary" :disabled="loadingBatch" @click="refreshCheckout">
+                <AppButton v-if="!batchPaid && !batchErpRejected" size="sm" variant="secondary" :disabled="loadingBatch" @tap="refreshCheckout">
                   {{ t('order.pay.refreshCheckout') }}
                 </AppButton>
               </view>
@@ -190,6 +190,7 @@ import { ERP_REVIEW_STATUS, PAYMENT_MODE, ORDER_STATUS, PAYMENT_STATUS } from '@
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppButton from '@/shared/ui/AppButton/AppButton.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import { navigator } from '@/app/navigation/navigator.js'
@@ -240,8 +241,10 @@ const availableAccounts = computed(() => (finance.value.accounts || []).filter(i
   item.accountStatus === 1 && item.financeStatus === 1 && item.canParticipateCombinationPay,
 ))
 const hasSufficientBalance = computed(() => availableAccounts.value.some(account => canFundOrder(account)))
+const batchErpRejected = computed(() => checkoutOrders.value.some(order => order.cancelledForErpRejection))
 const batchStatusKey = computed(() => {
   if (batchPaid.value) return 'order.pay.paid'
+  if (batchErpRejected.value) return 'order.pay.stockInsufficientCancelled'
   if (checkoutOrders.value.some(order => order.isPaymentExpired)) return 'order.pay.paymentEnded'
   if (checkoutOrders.value.some(order => order.hasActivePayment)) return 'order.pay.confirmationPending'
   if (checkoutOrders.value.some(order => !order.erpReady && order.erpPending)) return 'order.pay.batchErpPending'
@@ -338,7 +341,7 @@ async function handlePaymentExpired() {
 /**
  * 订单已离开待付款状态时停止支付，并引导用户查看后端最终状态。
  */
-async function handlePaymentUnavailable() {
+async function handlePaymentUnavailable(reasonKey = 'order.pay.unavailableContent') {
   orderPayable.value = false
   if (countdownTimer) {
     clearInterval(countdownTimer)
@@ -346,7 +349,7 @@ async function handlePaymentUnavailable() {
   }
   const confirmed = await openAppDialog({
     title: t('order.pay.unavailableTitle'),
-    description: t('order.pay.unavailableContent'),
+    description: t(reasonKey),
     showCancel: false,
   })
   if (confirmed) navigator.redirectTo(routes.order.detail(orderId.value))
@@ -388,7 +391,9 @@ async function loadOrderInfo() {
       && Array.isArray(res.allowedActions)
       && res.allowedActions.includes('pay')
     if (!canPay) {
-      handlePaymentUnavailable()
+      handlePaymentUnavailable(res.cancellationReasonCode === 'ERP_CREATE_REJECTED'
+        ? 'order.pay.stockInsufficientCancelled'
+        : 'order.pay.unavailableContent')
       return
     }
     orderPayable.value = true
@@ -406,20 +411,23 @@ function refreshCheckout() {
   return loadCheckoutInfo()
 }
 
-/** 只在等待 ERP 或支付确认时查询，页面离开和达到上限后停止。 */
-function scheduleCheckoutRefresh() {
-  if (!checkoutVisible || orderPayable.value || checkoutRefreshAttempts >= 12) return
-  if (!['order.pay.batchErpPending', 'order.pay.confirmationPending'].includes(batchStatusKey.value)) return
+/** 为可能恢复的批次状态安排下一次只读查询。 */
+function scheduleCheckoutRefresh(retryRead = false) {
+  if (!checkoutVisible || paying.value || orderPayable.value || batchPaid.value || batchErpRejected.value || checkoutRefreshAttempts >= 12) return
+  if (batchStatusKey.value === 'order.pay.paymentEnded') return
+  const waiting = ['order.pay.batchErpPending', 'order.pay.batchErpUnavailable', 'order.pay.confirmationPending']
+  if (!retryRead && !waiting.includes(batchStatusKey.value)) return
   checkoutRefreshAttempts++
-  checkoutRefreshTimer = setTimeout(() => loadCheckoutInfo(), 5000)
+  checkoutRefreshTimer = setTimeout(() => loadCheckoutInfo(true), 5000)
 }
 
 /** 读取批次实时状态和服务端应付金额。 */
-async function loadCheckoutInfo() {
-  clearTimeout(checkoutRefreshTimer)
+async function loadCheckoutInfo(background = false) {
   if (loadingBatch.value) return
+  clearTimeout(checkoutRefreshTimer)
   loadingBatch.value = true
   orderPayable.value = false
+  let retryRead = false
   try {
     const result = await getCheckoutPayment(checkoutBatchId.value)
     checkoutOrders.value = (result.orders ?? result.Orders ?? []).map(order => ({
@@ -429,18 +437,20 @@ async function loadCheckoutInfo() {
       payableAmount: order.payableAmount ?? order.PayableAmount,
       erpReady: order.erpReady ?? order.ErpReady,
       erpPending: order.erpPending ?? order.ErpPending,
+      cancelledForErpRejection: order.cancelledForErpRejection ?? order.CancelledForErpRejection,
       isPaymentExpired: order.isPaymentExpired ?? order.IsPaymentExpired,
       hasActivePayment: order.hasActivePayment ?? order.HasActivePayment,
     }))
     payAmount.value = Number(result.totalPayable ?? result.TotalPayable ?? 0)
     batchPaid.value = Boolean(result.isPaid ?? result.IsPaid)
-    orderPayable.value = Boolean(result.canPay ?? result.CanPay) && !batchPaid.value
+    orderPayable.value = Boolean(result.canPay ?? result.CanPay) && !batchPaid.value && !batchErpRejected.value
     if (payMode.value === PAYMENT_MODE.COMBINATION) autoAllocate()
-    scheduleCheckoutRefresh()
   } catch (error) {
-    uni.showToast({ title: error?.message || t('order.pay.loadOrderFailed'), icon: 'none' })
+    retryRead = true
+    if (!background) uni.showToast({ title: error?.message || t('order.pay.loadOrderFailed'), icon: 'none' })
   } finally {
     loadingBatch.value = false
+    scheduleCheckoutRefresh(retryRead)
   }
 }
 

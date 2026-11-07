@@ -1,13 +1,12 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader :title="t('account.titles.inventory')" :show-back="true" :searchable="true" :search-value="keywordInput" :search-placeholder="t('account.inventory.skuSearch')" @update:search-value="keywordInput = $event" @search="applySearch" @clear-search="clearSearch" />
+      <AppHeader :title="t('account.inventory.list')" :show-back="true" :searchable="true" :search-value="keywordInput" :search-placeholder="t('account.inventory.skuSearch')" @update:search-value="keywordInput = $event" @search="applySearch" @clear-search="clearSearch" />
       <view class="filter-panel"><StatusTabBar :items="tabs" :model-value="activeTab" :max-width="1040" :item-width="88" @change="changeTab" /></view>
     </template>
     <template #content>
       <AppContent padding="16px var(--page-padding-x,16px) 28px" :refresher-enabled="true" :refresher-triggered="isRefreshing" @refresherrefresh="handleRefresh" @refresherrestore="handleRefresherRestore" @refresherabort="handleRefresherRestore" @scrolltolower="loadMore">
         <view class="inventory-wrap">
-          <view class="inventory-tools"><button @tap="openOverview"><AppIcon name="box" :size="18" />{{ t('account.inventory.overview') }}</button><button @tap="openLedger"><AppIcon name="receipt" :size="18" />{{ t('account.inventory.ledger') }}</button></view>
           <view class="result-head"><text>{{ t('account.inventory.productTotalLabel', { count: totalCount }) }}</text><text class="link-text batch-toggle" @tap="toggleSelecting">{{ t(selecting ? 'account.inventory.finishSelection' : 'account.inventory.batchReturn') }}</text></view>
           <text v-if="selecting" class="selection-hint">{{ t('account.inventory.selectHint') }}</text>
           <AppPageState :state="pageState" :title="t('account.inventory.empty')" :description="pageState === PageStatus.ERROR ? loadError : t('account.inventory.emptyHint')" @retry="reload" @action="reload">
@@ -143,10 +142,6 @@ function clearSearch(){keywordInput.value='';keyword.value='';return reload()}
 function changeTab(key){if(key!==activeTab.value){activeTab.value=key;return reload()}}
 /** Open one SKU's inventory detail. */
 function openDetail(skuId){return navigator.navigateTo(routes.account.inventoryDetail(skuId))}
-/** Open inventory summary. */
-function openOverview(){return navigator.navigateTo(routes.account.inventoryOverview())}
-/** Open all inventory activity. */
-function openLedger(){return navigator.navigateTo(routes.account.inventoryLedger())}
 /** Format quantities in the existing numeric style. */
 function formatQty(value){return Number(value||0).toLocaleString('zh-CN')}
 </script>

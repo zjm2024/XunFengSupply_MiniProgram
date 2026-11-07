@@ -1,17 +1,17 @@
 import { prepareShareOrder, createShareOrder } from '../api/shareOrderApi.js'
 import { newShareRequestId } from '../model/dealerShareIntent.js'
-import { getShareCheckoutAreas, getShareCheckoutCarriers, previewShareCheckout } from '../api/shareCheckoutApi.js'
+import { getShareCheckoutAreas, getShareCheckoutCarriers, previewShareCheckout, parseShareCheckoutAddress } from '../api/shareCheckoutApi.js'
 
 /** 独立结算编排；收件信息只随当前请求经过，不写状态/草稿，预览凭证留闭包。 */
 export function createShareCheckout({ getAccess, getDraft, onChange, onSessionError, onCreated,
-  api = { getShareCheckoutAreas, getShareCheckoutCarriers, previewShareCheckout, prepareShareOrder, createShareOrder }, schedule = setTimeout, cancel = clearTimeout, clock = () => Date.now() }) {
-  let generation = 0, previewGeneration = 0, active = false, timer = null, quote = null, submission = null
-  const state = { phase: 'idle', busy: false, locked: false, error: '', provinces: [], carriers: [], preview: null }
+  api = { getShareCheckoutAreas, getShareCheckoutCarriers, previewShareCheckout, parseShareCheckoutAddress, prepareShareOrder, createShareOrder }, schedule = setTimeout, cancel = clearTimeout, clock = () => Date.now() }) {
+  let generation = 0, previewGeneration = 0, parseGeneration = 0, active = false, timer = null, quote = null, submission = null
+  const state = { phase: 'idle', busy: false, locked: false, parsing: false, error: '', provinces: [], carriers: [], preview: null }
   /** 状态只有安全展示字段，不含收件表单、CSRF或预览凭证。 */
   function emit() { onChange(JSON.parse(JSON.stringify(state))) }
   /** 清除旧预览及计时，购买/收件信息变化不自动重新请求。 */
   function invalidate() {
-    previewGeneration++; quote = null; submission = null; state.locked = false; state.preview = null
+    previewGeneration++; parseGeneration++; state.parsing = false; quote = null; submission = null; state.locked = false; state.preview = null
     if (timer !== null) cancel(timer); timer = null
     if (state.phase === 'preview') state.phase = 'editing'
     state.busy = false; emit()
@@ -57,6 +57,22 @@ export function createShareCheckout({ getAccess, getDraft, onChange, onSessionEr
       return current(version) ? rows : []
     } catch (error) { if (current(version)) fail(error); throw error }
   }
+  /** 解析候选仅经返回值回到当前表单，不进入共享状态、预览或持久缓存。 */
+  async function parseAddress(addressText) {
+    if (!active || !getAccess() || state.busy || state.locked || state.parsing) return null
+    invalidate()
+    const version = generation, requestVersion = ++parseGeneration
+    state.parsing = true; emit()
+    try {
+      const result = await api.parseShareCheckoutAddress({ ...getAccess(), addressText })
+      return current(version) && requestVersion === parseGeneration && !state.locked ? result : null
+    } catch (error) {
+      if (current(version) && requestVersion === parseGeneration && [401, 403, 410].includes(error?.httpStatus)) fail(error)
+      throw error
+    } finally {
+      if (current(version) && requestVersion === parseGeneration) { state.parsing = false; emit() }
+    }
+  }
   /** 预览只取当前勾选意向和手填字段，禁止陈旧响应覆盖新表单/草稿。 */
   async function preview(input) {
     if (!active || !getAccess() || state.busy || submission || !['editing', 'preview'].includes(state.phase)) return false
@@ -81,7 +97,7 @@ export function createShareCheckout({ getAccess, getDraft, onChange, onSessionEr
   }
   /** 只提交已确认的预览；重复点击及未知重试都复用同一意图/票据。 */
   async function submit() {
-    if (!active || !getAccess() || state.busy || !quote || state.phase !== 'preview') return false
+    if (!active || !getAccess() || state.busy || state.parsing || !quote || state.phase !== 'preview') return false
     const version = generation
     if (!submission) submission = { ...quote, clientRequestId: newShareRequestId(), ticket: null }
     const pending = submission
@@ -107,5 +123,5 @@ export function createShareCheckout({ getAccess, getDraft, onChange, onSessionEr
     state.phase = 'idle'; state.error = ''; state.provinces = []; state.carriers = []; emit()
   }
   emit()
-  return { open, areas, preview, submit, changed, reset }
+  return { open, areas, parseAddress, preview, submit, changed, reset }
 }

@@ -255,7 +255,7 @@ function shareSessionTransport(module, className, method, options) {
   const fail = () => { throw new AppError(t('common.errors.operation'), ErrorKind.BUSINESS, { errorCode: 'SHARE_ACCESS_TRANSPORT' }) }
   const access = module === 'MallOrder' && className === 'Mini.ShareAccessController' && ['Exchange', 'Resolve', 'GetState'].includes(method)
   const catalog = module === 'MallProduct' && className === 'Mini.ShareCatalogController' && ['GetCategories', 'GetList', 'GetDetail', 'QuoteSelection'].includes(method)
-  const checkout = module === 'MallOrder' && className === 'Mini.ShareCheckoutController' && ['GetAreas', 'GetCarriers', 'Preview'].includes(method)
+  const checkout = module === 'MallOrder' && className === 'Mini.ShareCheckoutController' && ['GetAreas', 'GetCarriers', 'Preview', 'ParseAddress'].includes(method)
   const order = module === 'MallOrder' && className === 'Mini.ShareOrderController' && ['Prepare','Create','GetCurrent','Cancel'].includes(method)
   const payment = module === 'Finance' && className === 'Mini.SharePaymentController' && ['Authorize','CompleteAuthorization','Pay','Query'].includes(method)
   if ((!access && !catalog && !checkout && !order && !payment) || typeof window === 'undefined') return fail()

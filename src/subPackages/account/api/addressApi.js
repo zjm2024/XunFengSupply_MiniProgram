@@ -58,6 +58,22 @@ export async function getAddressList(params = {}) {
   }
 }
 
+export async function parseAddress(addressText) {
+  const result = await dispatch('MallOrder', 'Mini.AddressController', 'ParseAddress', {
+    AddressText: addressText.trim(),
+  }, { timeout: 35000 })
+  const { name, phone, province, city, district, detail } = normalizeAddress(result)
+  return {
+    name: name.trim(),
+    phone: phone.trim(),
+    province: province.trim(),
+    city: city.trim(),
+    district: district.trim(),
+    detail: detail.trim(),
+    isComplete: valueOf(result, 'isComplete', 'IsComplete') === true,
+  }
+}
+
 export async function createAddress(address) {
   const result = await dispatch('MallOrder', 'Mini.AddressController', 'CreateAddress', toAddressPayload(address))
   return Number(

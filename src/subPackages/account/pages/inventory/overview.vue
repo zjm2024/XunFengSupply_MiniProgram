@@ -15,6 +15,10 @@
               <view class="metric"><text>{{ t('account.inventory.reservedTotal') }}</text><text>{{ qty(overview.reservedQuantity) }}</text></view>
               <view class="metric"><text>{{ t('account.inventory.unavailableTotal') }}</text><text>{{ qty(overview.unavailableQuantity) }}</text></view>
             </view>
+            <view class="overview-tools">
+              <AppButton @tap="openInventory('all')">{{ t('account.inventory.list') }}</AppButton>
+              <AppButton variant="secondary" @tap="openLedger">{{ t('account.inventory.ledger') }}</AppButton>
+            </view>
             <view class="section-card">
               <view class="section-head"><text class="section-title">{{ t('account.inventory.stockHealth') }}</text><text class="muted">SKU</text></view>
               <view class="distribution-row" @tap="openInventory('available')"><text>{{ t('account.inventory.availableSku') }}</text><text>{{ qty(overview.availableSkuCount) }} <AppIcon name="chevron-right" :size="14" /></text></view>
@@ -22,7 +26,6 @@
               <view class="distribution-row" @tap="openInventory('out')"><text>{{ t('account.inventory.outSku') }}</text><text>{{ qty(overview.outOfStockSkuCount) }} <AppIcon name="chevron-right" :size="14" /></text></view>
               <view class="distribution-row"><text>{{ t('account.inventory.reservedSku') }}</text><text>{{ qty(overview.reservedSkuCount) }}</text></view>
             </view>
-            <view class="inventory-tools overview-tools"><button @tap="openInventory('all')">{{ t('account.inventory.viewInventory') }}</button><button @tap="openLedger">{{ t('account.inventory.ledger') }}</button></view>
             <text class="note">{{ t('account.inventory.lastInbound', { date: formatDateTime(overview.lastInboundAt) }) }}</text>
           </AppPageState>
         </view>
@@ -40,6 +43,7 @@ import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import AppButton from '@/shared/ui/AppButton/AppButton.vue'
 import { PageStatus } from '@/shared/model/pageState.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
@@ -86,7 +90,8 @@ function qty(value) { return Number(value || 0).toLocaleString('zh-CN') }
 .distribution-row > text:last-child { font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-semibold, 600); }
 .distribution-row view text { display: block; }
 .warning { color: #C08326; }
-.overview-tools { margin: 18px 0 0; }
+.overview-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 12px 0; }
+.overview-tools :deep(.app-button) { width: 100%; min-width: 0; margin: 0; padding-inline: 8px; box-sizing: border-box; }
 @media screen and (min-width:720px) { .metric { padding: 20px; } .overview-hero { padding: 30px; } }
 
 /* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */

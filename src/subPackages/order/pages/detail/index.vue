@@ -394,6 +394,7 @@ const progressStepLabels = computed(() => ['submitted', 'paid', 'shipped', 'comp
 const refundDisplay = computed(() => getCustomerRefundDisplay(detail.value))
 
 const cancellationReasonText = computed(() => {
+  if (detail.value?.cancellationReasonCode === 'ERP_CREATE_REJECTED') return t('order.pay.stockInsufficient')
   if (!detail.value?.cancellationReason) return ''
   return detail.value.cancellationReason
 })
