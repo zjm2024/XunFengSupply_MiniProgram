@@ -26,28 +26,18 @@ function handleTap(event) {
   width: 100%;
   overflow: hidden;
   color: var(--text-primary, #1B1C20);
-  background: var(--glass-card-background, rgba(255, 255, 255, 0.74));
-  border-radius: var(--radius-base, 14px);
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55, 65, 80, 0.07));
-  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
-  backdrop-filter: var(--glass-card-blur, blur(16px));
+  background: var(--surface-card, #FFF);
+  border-radius: var(--radius-card, 16px);
+  box-shadow: var(--shadow-sm);
 }
 
 .padding-none { padding: 0; }
-.padding-sm { padding: 12px; }
-.padding-md { padding: 16px; }
-.padding-lg { padding: 20px; }
+.padding-sm { padding: var(--spacing-md, 12px); }
+.padding-md { padding: var(--module-padding, 16px); }
+.padding-lg { padding: var(--spacing-lg, 24px); }
 
 .interactive:active {
   background: var(--surface-subtle, #FCFCFD);
 }
 
-/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
-.app-card {
-  border: 0 !important;
-  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
-  backdrop-filter: var(--glass-card-blur, blur(16px));
-}
 </style>

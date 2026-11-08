@@ -752,8 +752,8 @@ function splitItemQuantityText(split, item) {
 .action-btn.disabled { color: #A8ABB2; background: #ECEEF2; }
 .order-detail-page.is-english .info-row .info-label,
 .order-detail-page.is-english .price-row .price-label { flex-basis: 96px; line-height: 1.4; overflow-wrap: anywhere; }
- .detail-columns { display: flex; flex-direction: column; gap: 10px; }
- .detail-main-column, .detail-side-column { display: flex; min-width: 0; flex-direction: column; gap: 10px; }
+ .detail-columns { display: flex; flex-direction: column; gap: var(--module-gap, 12px); }
+ .detail-main-column, .detail-side-column { display: flex; min-width: 0; flex-direction: column; gap: var(--module-gap, 12px); }
  .detail-main-column > *, .detail-side-column > * { margin: 0; }
 
 @media (min-width: 720px) {

@@ -4,7 +4,22 @@
       <swiper-item v-for="item in items" :key="item.homeItemId"><view class="home-banner-item" @click="$emit('target', item)"><AppImage :src="item.imageUrl" width="100%" height="100%" mode="aspectFill" radius="0" /><view class="banner-copy"><text class="banner-brand">KUMPOO</text><text class="banner-title">{{ item.title }}</text><text v-if="item.subtitle" class="banner-subtitle">{{ item.subtitle }}</text></view></view></swiper-item>
     </swiper>
     <view v-else-if="component.componentType === 2" class="home-notices"><view class="home-block-heading"><text>{{ component.title }}</text><view v-if="component.config.showMore" @click="$emit('announcements')">{{ t('common.homePage.more') }} ›</view></view><view v-for="item in items" :key="item.announcementId" class="home-notice-line" @click="$emit('target', item)"><text>{{ item.title }}</text><AppIcon name="arrow-right" :size="14" /></view><text v-if="!items.length" class="home-inline-empty">{{ t('common.homePage.noAnnouncements') }}</text></view>
-    <view v-else-if="component.componentType === 3 && items.length" class="home-quick-entries" :style="quickEntryStyle"><view v-for="item in items" :key="item.homeItemId" class="home-quick-entry" hover-class="entry--pressed" @click="$emit('target', item)"><AppImage v-if="item.imageUrl" :src="item.imageUrl" :width="40" :height="40" radius="10px" /><view v-else class="quick-icon"><AppIcon :name="item.iconCode || 'product'" :size="20" /></view><text>{{ item.title }}</text></view></view>
+    <view v-else-if="component.componentType === 3 && items.length" class="home-quick-entries" :style="quickEntryStyle">
+      <view v-for="item in items" :key="item.homeItemId" class="home-quick-entry" hover-class="entry--pressed" @click="$emit('target', item)">
+        <view class="quick-icon">
+          <AppImage
+            v-if="item.imageUrl || !item.iconCode"
+            :src="item.imageUrl"
+            width="100%"
+            height="100%"
+            mode="aspectFit"
+            :error-icon-size="26"
+          />
+          <AppIcon v-else :name="item.iconCode" :size="26" />
+        </view>
+        <text>{{ item.title }}</text>
+      </view>
+    </view>
     <view v-else-if="component.componentType === 4 && items.length" class="home-ad-list"><view v-for="item in items" :key="item.homeItemId" class="home-ad" @click="$emit('target', item)"><AppImage :src="item.imageUrl" width="100%" height="100%" mode="aspectFill" radius="0" /><view class="ad-copy"><text>{{ item.title }}</text><text v-if="item.subtitle" class="ad-subtitle">{{ item.subtitle }}</text></view></view></view>
     <view v-else-if="component.componentType === 5" class="home-product-floor" :data-component-id="component.homeComponentId"><view class="home-block-heading"><text>{{ component.title }}</text><view v-if="component.config.showMore" @click="$emit('more', component)">{{ t('common.homePage.more') }} ›</view></view><view v-if="section?.state === 'ready' && section.items.length" class="home-product-grid" :style="{ '--floor-columns': component.config.columns }"><HomeProductTile v-for="product in section.items" :key="product.productId" :product="product" :can-purchase="canPurchase" @detail="$emit('detail', $event)" @buy="$emit('buy', $event)" /></view><view v-else-if="section?.state === 'ready'" class="home-floor-state">{{ t('common.homePage.emptyFloor') }}</view><view v-else-if="section?.state === 'loading'" class="home-floor-skeleton"><view v-for="n in 2" :key="n" /></view><view v-else class="home-floor-state" @click="$emit('retry', component.homeComponentId)">{{ section?.state === 'error' ? t('common.homePage.retry') : t('common.homePage.loadFloor') }}<AppIcon name="refresh" :size="16" /></view></view>
   </view>
@@ -28,6 +43,56 @@ watch(()=>[props.active,props.component.homeComponentId],observe,{immediate:true
 onBeforeUnmount(()=>{disposed=true;observer?.disconnect()})
 </script>
 <style lang="scss" scoped>
-.home-content-block{min-width:0}.home-banner{height:200px;border-radius: var(--radius-card, 14px);overflow:hidden}.home-banner-item{height:100%;position:relative;background:#a44338}.banner-copy{position:absolute;left:20px;right:20px;top:23px;color:#fff;display:flex;flex-direction:column;gap:11px;text-shadow:0 1px 8px #0003;pointer-events:none}.banner-brand{font-size: var(--type-caption-size, 12px);letter-spacing:2px;opacity:.75}.banner-title{font-size: var(--type-heading-size, 24px);font-weight: var(--font-weight-bold, 700);line-height:1.4;max-width:85%;white-space:pre-line}.banner-subtitle{font-size: var(--type-caption-size, 12px);line-height:1.6}.home-notices{padding:15px;border-radius: var(--radius-control, 10px);background:var(--glass-card-background,#fff);height:100%;min-height:130px;box-sizing:border-box}.home-block-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;font-size: var(--type-section-title-size, 18px);font-weight: var(--font-weight-semibold, 600);color:var(--color-text-primary,#2d3440)}.home-block-heading>view{font-size: var(--type-caption-size, 12px);font-weight: var(--font-weight-regular, 400);color:#959eab;padding:6px 0 6px 12px}.home-notice-line{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;color:#7f8997;font-size: var(--type-caption-size, 12px)}.home-notice-line text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}.home-inline-empty{color:#a0a8b3;font-size: var(--type-caption-size, 12px);display:block;padding:13px 0}.home-quick-entries{--entry-columns:var(--entry-phone-columns);display:flex;flex-wrap:wrap;gap:18px 12px;padding:22px 16px;background:var(--glass-card-background,#fff);border-radius:14px}.home-quick-entry{flex:1 1 calc((100% - (var(--entry-columns) - 1) * 12px) / var(--entry-columns));display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;min-width:0;font-size: var(--type-caption-size, 12px);color:#535c69}.entry--pressed{opacity:.6}.quick-icon{width:40px;height:40px;background:#f9eee8;color:#ad6c58;border-radius: var(--radius-control, 10px);display:flex;align-items:center;justify-content:center}.home-quick-entry:nth-child(2n) .quick-icon{color:#66859b;background:#edf2f6}.home-ad-list{display:grid;gap:10px}.home-ad{height:105px;position:relative;overflow:hidden;border-radius: var(--radius-control, 10px);background:#eae4d6}.ad-copy{position:absolute;left:17px;right:17px;top:20px;display:flex;flex-direction:column;gap:8px;color:#937340;text-shadow:0 1px 5px #fff8;font-size: var(--type-section-title-size, 18px);font-weight: var(--font-weight-semibold, 600);pointer-events:none}.ad-subtitle{font-size: var(--type-caption-size, 12px);font-weight: var(--font-weight-regular, 400)}.home-product-floor{padding-top:2px}.home-product-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.home-floor-state{padding:25px 12px;display:flex;justify-content:center;align-items:center;gap:10px;background:#ffffff75;border-radius: var(--radius-small, 8px);font-size: var(--type-caption-size, 12px);color:#9ca4b0}.home-floor-skeleton{display:grid;grid-template-columns:1fr 1fr;gap:12px}.home-floor-skeleton>view{aspect-ratio:1 / 1;background:#ebedf1;border-radius:9px}@media(min-width:768px){.home-product-grid{grid-template-columns:repeat(var(--floor-columns,4),minmax(0,1fr));gap:18px}.home-quick-entries{--entry-columns:var(--entry-wide-columns)}.home-banner{height:240px}.banner-title{font-size: var(--type-display-size, 28px)}.home-ad{height:115px}}
+.home-content-block{min-width:0}.home-banner{height:200px;border-radius: var(--radius-card, 14px);overflow:hidden}.home-banner-item{height:100%;position:relative;background:#a44338}.banner-copy{position:absolute;left:20px;right:20px;top:23px;color:#fff;display:flex;flex-direction:column;gap:11px;text-shadow:0 1px 8px #0003;pointer-events:none}.banner-brand{font-size: var(--type-caption-size, 12px);letter-spacing:2px;opacity:.75}.banner-title{font-size: var(--type-heading-size, 24px);font-weight: var(--font-weight-bold, 700);line-height:1.4;max-width:85%;white-space:pre-line}.banner-subtitle{font-size: var(--type-caption-size, 12px);line-height:1.6}.home-notices{padding:15px;border-radius: var(--radius-control, 10px);background:var(--glass-card-background,#fff);height:100%;min-height:130px;box-sizing:border-box}.home-block-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;font-size: var(--type-section-title-size, 18px);font-weight: var(--font-weight-semibold, 600);color:var(--color-text-primary,#2d3440)}.home-block-heading>view{font-size: var(--type-caption-size, 12px);font-weight: var(--font-weight-regular, 400);color:#959eab;padding:6px 0 6px 12px}.home-notice-line{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;color:#7f8997;font-size: var(--type-caption-size, 12px)}.home-notice-line text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}.home-inline-empty{color:#a0a8b3;font-size: var(--type-caption-size, 12px);display:block;padding:13px 0}.home-ad-list{display:grid;gap:10px}.home-ad{height:105px;position:relative;overflow:hidden;border-radius: var(--radius-control, 10px);background:#eae4d6}.ad-copy{position:absolute;left:17px;right:17px;top:20px;display:flex;flex-direction:column;gap:8px;color:#937340;text-shadow:0 1px 5px #fff8;font-size: var(--type-section-title-size, 18px);font-weight: var(--font-weight-semibold, 600);pointer-events:none}.ad-subtitle{font-size: var(--type-caption-size, 12px);font-weight: var(--font-weight-regular, 400)}.home-product-floor{padding-top:2px}.home-product-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.home-floor-state{padding:25px 12px;display:flex;justify-content:center;align-items:center;gap:10px;background:#ffffff75;border-radius: var(--radius-small, 8px);font-size: var(--type-caption-size, 12px);color:#9ca4b0}.home-floor-skeleton{display:grid;grid-template-columns:1fr 1fr;gap:12px}.home-floor-skeleton>view{aspect-ratio:1 / 1;background:#ebedf1;border-radius:9px}@media(min-width:768px){.home-product-grid{grid-template-columns:repeat(var(--floor-columns,4),minmax(0,1fr));gap:18px}.home-banner{height:240px}.banner-title{font-size: var(--type-display-size, 28px)}.home-ad{height:115px}}
+
+.home-quick-entries {
+  --entry-columns: var(--entry-phone-columns);
+  --quick-entry-icon-size: 44px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 12px;
+  padding: 14px 12px;
+  background: var(--glass-card-background, #fff);
+  border-radius: var(--radius-card, 14px);
+}
+.home-quick-entry {
+  flex: 1 1 calc((100% - (var(--entry-columns) - 1) * 12px) / var(--entry-columns));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-primary, #252a34);
+  overflow-wrap: anywhere;
+}
+.quick-icon {
+  width: var(--quick-entry-icon-size);
+  height: var(--quick-entry-icon-size);
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius-control, 10px);
+  background: var(--surface-muted, #f4f5f8);
+  color: var(--text-tertiary, #9da1a8);
+}
+.entry--pressed { opacity: .6; }
+@media (min-width: 480px) {
+  .home-quick-entries {
+    --quick-entry-icon-size: 50px;
+  }
+}
+@media (min-width: 768px) {
+  .home-quick-entries {
+    --entry-columns: var(--entry-wide-columns);
+    --quick-entry-icon-size: 56px;
+    padding: 16px;
+  }
+  .home-quick-entry { font-size: 14px; }
+}
 </style>
 

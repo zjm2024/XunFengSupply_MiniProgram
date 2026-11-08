@@ -12,6 +12,7 @@ export const useMessageStore = defineStore('message', {
   state: () => ({
     // 未读消息总数
     unreadCount: 0,
+    maxMessageId: '0',
     
     // 各类型未读数
     typeUnreadCount: {
@@ -46,6 +47,12 @@ export const useMessageStore = defineStore('message', {
   },
 
   actions: {
+    /** Apply authoritative counts; duplicate push delivery never increments a badge. */
+    applySummary(summary) {
+      this.unreadCount = Number(summary.total || 0)
+      this.maxMessageId = String(summary.maxMessageId || '0')
+      this.typeUnreadCount = { order: 0, audit: 0, bill: 0, announcement: 0, ...summary.byType }
+    },
     /**
      * 设置未读数量
      * @param {number|Object} count - 总未读数 或 各类型未读数对象

@@ -1,10 +1,12 @@
 <template>
   <view class="quantity-stepper" :class="[`size-${size}`, { 'is-disabled': disabled }]">
-    <button class="stepper-button" :disabled="minusDisabled" :aria-label="t('common.ui.decrease')" @tap="decrease">
+    <button class="stepper-button" :disabled="minusDisabled" :aria-label="buttonLabel('common.ui.decrease')" @tap="decrease">
       <text class="stepper-symbol">−</text>
     </button>
     <input
       v-if="allowInput"
+      ref="quantityField"
+      :aria-label="inputLabel || undefined"
       class="stepper-value"
       type="number"
       :value="inputValue"
@@ -13,7 +15,7 @@
       @blur="handleBlur"
     />
     <text v-else class="stepper-value">{{ modelValue }}</text>
-    <button class="stepper-button" :disabled="plusDisabled" :aria-label="t('common.ui.increase')" @tap="increase">
+    <button class="stepper-button" :disabled="plusDisabled" :aria-label="buttonLabel('common.ui.increase')" @tap="increase">
       <text class="stepper-symbol">＋</text>
     </button>
   </view>
@@ -24,6 +26,7 @@ import { t } from '@/shared/i18n/index.js'
 import { computed, nextTick, ref, watch } from 'vue'
 
 const props = defineProps({
+  inputLabel: { type: String, default: '' },
   modelValue: { type: Number, default: 0 },
   min: { type: Number, default: 0 },
   max: { type: Number, default: 9999 },
@@ -36,6 +39,17 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'change', 'minus', 'plus'])
 const inputValue = ref(props.modelValue)
+const quantityField = ref(null)
+
+function buttonLabel(key) {
+  return props.inputLabel ? t(key) + ' · ' + props.inputLabel : t(key)
+}
+
+// #ifdef H5
+watch([quantityField, () => props.inputLabel], ([field, label]) => {
+  if (label) field?.$el?.querySelector?.('input')?.setAttribute('aria-label', label)
+}, { flush: 'post' })
+// #endif
 let inputRevision = 0
 
 /** 外部数量更新时同步显示，不依赖父值发生变化来纠正超限输入。 */

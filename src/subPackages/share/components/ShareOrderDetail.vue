@@ -62,7 +62,7 @@ const statusDescription = computed(() => props.detail.order.orderStatus === 90 ?
 </script>
 <style scoped lang="scss">
 .share-order-detail { width: 100%; max-width: var(--content-max-width, 1120px); margin: 0 auto; box-sizing: border-box; color: var(--type-body-color); }
-.detail-columns { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.detail-columns { display: flex; flex-direction: column; gap: var(--module-gap, 12px); min-width: 0; }
 .detail-main-column, .detail-side-column { display:contents; }
 .payment-card { order: 1; }
 .goods-card { order: 2; }

@@ -47,8 +47,9 @@ defineEmits(['click'])
   box-sizing: border-box;
   border: 1px solid transparent;
   border-radius: 50%;
-  color: #22252a;
-  background: #e7e8eb;
+  color: var(--type-title-color, #1B1C20);
+  background: var(--surface-card, #FFF);
+  box-shadow: var(--shadow-sm);
   transition: opacity .16s ease, transform .16s ease, background-color .16s ease;
 }
 
@@ -62,6 +63,7 @@ defineEmits(['click'])
 .app-back-button.is-plain {
   border-color: transparent;
   background: transparent;
+  box-shadow: none;
 }
 
 .app-back-button.is-plain.is-transparent {

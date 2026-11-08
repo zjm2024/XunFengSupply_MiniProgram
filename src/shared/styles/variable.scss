@@ -63,14 +63,14 @@ page,
   --bg-subtle: #{tokens.$color-bg-subtle};
   --bg-pressed: #{tokens.$color-bg-pressed};
   --surface-page: #{tokens.$color-bg-page};
-  --surface-card: rgba(255, 255, 255, 0.74);
-  --surface-card-strong: rgba(255, 255, 255, 0.84);
-  /* 弹框本体必须完全不透底；页面卡片仍可单独使用毛玻璃变量。 */
-  --modal-surface: #FFFFFF;
-  --sheet-surface: #FFFFFF;
-  --glass-card-background: rgba(255, 255, 255, 0.74);
-  --glass-card-blur: blur(16px);
-  --glass-card-shadow: 0 10px 28px rgba(55, 65, 80, 0.07);
+  --surface-card: #{tokens.$color-bg-card};
+  --surface-card-strong: var(--surface-card);
+  --modal-surface: var(--surface-card);
+  --sheet-surface: var(--surface-card);
+  /* 既有页面通过这些别名共用实色卡片表面。 */
+  --glass-card-background: var(--surface-card);
+  --glass-card-blur: none;
+  --glass-card-shadow: #{tokens.$shadow-card};
   --surface-subtle: #{tokens.$color-bg-subtle};
   --surface-muted: #{tokens.$color-bg-subtle};
 
@@ -134,7 +134,7 @@ page,
   --type-display-size: #{tokens.$font-size-display};
   --type-display-line-height: #{tokens.$line-height-display};
   --type-page-title-size: #{tokens.$font-size-h2};
-  --type-page-title-line-height: #{tokens.$line-height-h1};
+  --type-page-title-line-height: #{tokens.$line-height-h2};
   --type-header-title-size: 17px;
   --type-header-title-line-height: 24px;
   --type-section-title-size: #{tokens.$font-size-h3};
@@ -151,18 +151,29 @@ page,
   --type-caption-line-height: #{tokens.$line-height-caption};
   --type-micro-size: #{tokens.$font-size-micro};
   --type-micro-line-height: #{tokens.$line-height-micro};
-  --type-button-size: #{tokens.$font-size-body-m};
-  --type-button-line-height: 20px;
+  --type-button-size: #{tokens.$font-size-label-l};
+  --type-button-line-height: #{tokens.$line-height-label-l};
   --type-nav-size: #{tokens.$font-size-micro};
   --type-nav-line-height: #{tokens.$line-height-micro};
   --type-money-size: #{tokens.$font-size-h3};
   --type-money-line-height: #{tokens.$line-height-h2};
+  /* 大额实付、卡片总额和商品单价按展示位置独立取值。 */
+  --type-money-display-size: var(--type-display-size);
+  --type-money-display-line-height: var(--type-display-line-height);
+  --type-money-total-size: #{tokens.$font-size-h1};
+  --type-money-total-line-height: #{tokens.$line-height-h1};
+  --type-price-size: #{tokens.$font-size-h2};
+  --type-price-line-height: #{tokens.$line-height-body-l};
+  --type-price-tile-size: #{tokens.$font-size-body-l};
+  --type-price-tile-line-height: #{tokens.$line-height-label-l};
+  --type-price-compact-size: #{tokens.$font-size-label-l};
+  --type-price-compact-line-height: #{tokens.$line-height-body-s};
 
   /* 文字层级语义色：页面只需表达“标题 / 正文 / 辅助”，不再自建灰色 */
   --type-title-color: #{tokens.$color-text-primary};
   --type-body-color: #{tokens.$color-text-primary};
   --type-secondary-color: #{tokens.$color-text-secondary};
-  --type-muted-color: #{tokens.$color-gray-400};
+  --type-muted-color: #{tokens.$color-gray-500};
 
   /* 统一尺寸：图标与内容模块在手机、iPad、桌面保持同一阅读尺度。 */
   --type-heading-size: 24px;
@@ -176,9 +187,9 @@ page,
   --icon-size-xl: 28px;
   --icon-size-feature: 40px;
   --icon-size-state: 48px;
-  --radius-small: 8px;
-  --module-padding: 16px;
-  --module-gap: 12px;
+  --radius-small: #{tokens.$radius-tag};
+  --module-padding: #{tokens.$space-4};
+  --module-gap: #{tokens.$space-3};
   --module-icon-box: 36px;
   --module-row-min-height: 56px;
 
@@ -220,6 +231,14 @@ page,
   --z-tooltip: 700;
   --z-toast: 800;
   --z-max: 9999;
+}
+
+@media screen and (min-width: 600px) {
+  page,
+  :root {
+    --module-padding: #{tokens.$space-5};
+    --module-gap: #{tokens.$space-4};
+  }
 }
 
 @media screen and (min-width: 600px) {
@@ -267,4 +286,4 @@ $radius-base: tokens.$radius-card;              // 废弃：用 $radius-card
 $radius-lg: tokens.$radius-feature;             // 废弃：用 $radius-feature
 
 /* 列表操作密度：独立于结算/表单主按钮。 */
-:root, page { --list-action-height:32px; --list-action-min-width:72px; --list-action-radius:8px; --list-action-font-size:12px; --list-tool-height:36px; }
+:root, page { --list-action-height:32px; --list-action-min-width:72px; --list-action-radius:var(--radius-small); --list-action-font-size:12px; --list-tool-height:36px; }

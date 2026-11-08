@@ -21,7 +21,7 @@
       </view>
     </view>
 
-    <view class="search-section recommendation-section">
+    <view v-if="recommendations.length" class="search-section recommendation-section">
       <view class="section-header">
         <text class="section-title">{{ t('commerce.search.recommended') }}</text>
       </view>
@@ -29,13 +29,13 @@
       <view class="recommendation-grid">
         <view
           v-for="item in recommendations"
-          :key="item"
+          :key="item.keyword ?? item"
           class="recommendation-item"
           hover-class="entry--pressed"
-          @click="$emit('search', item)"
+          @click="$emit('search', item.keyword ?? item)"
         >
           <AppIcon name="search" :size="18" :stroke-width="1.8" />
-          <text>{{ item }}</text>
+          <text>{{ item.label ?? item }}</text>
         </view>
       </view>
     </view>

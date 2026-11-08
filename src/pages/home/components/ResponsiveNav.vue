@@ -131,18 +131,14 @@ function getItemIcon(item) {
 .responsive-nav--bottom {
   position: relative;
   z-index: 100;
-  padding: var(--home-bottom-nav-padding, 6px) 10px calc(var(--home-bottom-nav-padding, 6px) + env(safe-area-inset-bottom));
-  // border-top: 1px solid rgba(42, 44, 51, 0.08);
-  background: var(--home-bg);
-  // box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.04);
+  padding: var(--home-bottom-nav-padding, 6px) var(--page-padding-x, 16px) calc(var(--home-bottom-nav-padding, 6px) + env(safe-area-inset-bottom));
+  background: var(--surface-card, #FFF);
+  box-shadow: var(--shadow-bottom-bar);
 }
 
 .responsive-nav--bottom .nav-list {
   justify-content: space-around;
-}
-
-.responsive-nav--bottom .nav-list {
-  gap: 6px;
+  gap: 2px;
 }
 
 .responsive-nav--bottom .nav-item {
@@ -151,13 +147,12 @@ function getItemIcon(item) {
   height: var(--home-bottom-nav-item-height, 48px);
   flex-direction: column;
   gap: 3px;
-  border-radius: 0;
-  color: #999;
+  color: var(--type-secondary-color, #62666F);
 }
 
 .responsive-nav--bottom .nav-item.is-active {
   color: var(--color-brand, #d7192d);
-  background: transparent;
+  font-weight: var(--font-weight-bold, 700);
 }
 
 .responsive-nav--bottom .nav-icon-wrap {
@@ -238,15 +233,15 @@ function getItemIcon(item) {
   width: 60px;
   height: 48px;
   justify-content: center;
-  border-radius: 0;
-  color: #999;
+  border-radius: var(--radius-control, 12px);
+  color: var(--type-secondary-color, #62666F);
   background: transparent;
   transition: color 140ms ease, opacity 140ms ease, transform 140ms ease;
 }
 
 .responsive-nav--sidebar .nav-item.is-active {
   color: var(--color-brand, #d7192d);
-  background: transparent;
+  background: var(--color-brand-soft, #FFF1F2);
 }
 
 .responsive-nav--sidebar .nav-icon-wrap {

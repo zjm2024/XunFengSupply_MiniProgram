@@ -13,12 +13,13 @@ $color-brand-700: #970E1D;
 
 /* ---------- 中性色 Neutral ---------- */
 $color-gray-0: #FFFFFF;
-$color-gray-25: #FCFCFD;
-$color-gray-50: #F4F5F8;
+$color-gray-25: #F7F8FA;
+$color-gray-50: #F2F3F5;
 $color-gray-100: #ECEEF2;
 $color-gray-200: #D9DCE2;
 $color-gray-300: #C7C9CE;
 $color-gray-400: #969AA3;
+$color-gray-500: #6C737F;
 $color-gray-600: #62666F;
 $color-gray-800: #303238;
 $color-gray-950: #1B1C20;
@@ -47,9 +48,9 @@ $color-action-primary-pressed: $color-brand-600;
 
 /* ---------- 圆角 Radius ----------
  * 尺寸使用稳定 px，避免在 iPad 上随 rpx 等比放大。 */
-$radius-tag: 6px;
-$radius-control: 10px;
-$radius-card: 14px;
+$radius-tag: 8px;
+$radius-control: 12px;
+$radius-card: 16px;
 $radius-feature: 18px;
 $radius-full: 999px;
 
@@ -116,9 +117,9 @@ $font-weight-bold: 700;
 $font-weight-extrabold: 800;
 
 /* ---------- 阴影 Shadows ---------- */
-$shadow-card: 0 1px 2px rgba(17, 18, 22, 0.03);
+$shadow-card: 0 2px 10px rgba(17, 18, 22, 0.045);
 $shadow-float: 0 12px 32px rgba(17, 18, 22, 0.12);
-$shadow-bottom-bar: 0 -4px 16px rgba(17, 18, 22, 0.07);
+$shadow-bottom-bar: 0 -2px 14px rgba(17, 18, 22, 0.05);
 
 /* ---------- 动画 Animation ---------- */
 $duration-fast: 120ms;

@@ -160,7 +160,7 @@ function handleOverlayClick() {
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
-  padding: 20px;
+  padding: var(--spacing-base, 16px);
   animation: xf-popup-fade-in 180ms ease-out both;
 }
 
@@ -176,7 +176,7 @@ function handleOverlayClick() {
   overflow: hidden;
   background: var(--modal-surface, #FFFFFF);
   border-radius: var(--radius-feature, 18px);
-  padding: 20px;
+  padding: var(--spacing-lg, 24px);
   box-shadow: var(--shadow-lg, 0 12px 32px rgba(17, 18, 22, 0.12));
   transform-origin: center bottom;
   animation: xf-popup-sheet-in 260ms cubic-bezier(.2, .8, .2, 1) both;
@@ -288,7 +288,7 @@ function handleOverlayClick() {
   flex: 0 0 auto;
   /* 两个按钮均分；按钮多于两组时按最小视觉宽度自动换行。 */
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 112px), 1fr));
-  gap: 10px;
+  gap: var(--spacing-md, 12px);
 }
 .popup-actions.is-single {
   grid-template-columns: minmax(112px, min(220px, 100%));
@@ -357,8 +357,8 @@ function handleOverlayClick() {
     max-width: 100%;
     max-height: calc(100vh - 20px);
     max-height: calc(100dvh - 20px);
-    border-radius: 20px 20px 0 0;
-    padding: 20px 20px calc(12px + env(safe-area-inset-bottom));
+    border-radius: var(--radius-feature, 18px) var(--radius-feature, 18px) 0 0;
+    padding: var(--spacing-section, 20px) var(--spacing-base, 16px) calc(var(--spacing-md, 12px) + env(safe-area-inset-bottom));
   }
   .is-action-sheet .popup-actions.is-single { grid-template-columns: minmax(0, 1fr); }
 }

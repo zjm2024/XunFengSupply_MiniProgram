@@ -338,7 +338,7 @@ async function saveAddress() {
 .parse-actions :deep(.app-button) { flex-shrink: 0; margin: 0; }
 .parse-card, .loading-card, .form-card { border-radius: var(--radius-card); }
 .loading-card { padding: 48px 20px; color: var(--type-secondary-color); font-size: var(--type-body-size); text-align: center; }
-.form-card { display: flex; flex-direction: column; gap: 18px; padding: 18px 16px; }
+.form-card { display: flex; flex-direction: column; gap: var(--spacing-base, 16px); padding: var(--module-padding, 16px); }
 .field-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .field-item { display: block; }
 .field-label { display: block; margin-bottom: 8px; color: var(--type-body-color); font-size: var(--type-body-small-size); font-weight: var(--font-weight-semibold, 600); }

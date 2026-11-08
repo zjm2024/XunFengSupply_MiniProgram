@@ -96,7 +96,7 @@ import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/content/i18n/register.js'
 import { computed, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { getMessageList, getUnreadCount, markAllAsRead, markAsRead } from '../../api/message.js'
+import { getMessageList, getUnreadSummary, markAllAsRead } from '../../api/message.js'
 import { useMessageStore } from '../../model/messageStore.js'
 import { formatRelativeTime, parseUtcToLocal } from '../../../../shared/utils/format.js'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
@@ -110,6 +110,7 @@ import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
 import noMessageSvg from '../../../../shared/assets/illustrations/no-message.svg?raw'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import { useUserStore } from '@/shared/session/userStore.js'
 import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
 
 const messageStore = useMessageStore()
@@ -140,8 +141,11 @@ const markingAll = ref(false)
 const hasMore = ref(true)
 const pageNum = ref(1)
 const totalCount = ref(0)
-const unreadCount = ref(0)
+const unreadCount = computed(() => messageStore.unreadCount)
+const userStore = useUserStore()
+const sessionKey = () => String(userStore.userId) + ":" + String(userStore.dealerId)
 const loadMoreError = ref(false)
+let listRequestId = 0
 
 const loadMoreStatus = computed(() => {
   if (loadMoreError.value) return 'error'
@@ -169,30 +173,6 @@ onShow(() => refreshPage())
 
 function pick(source, camelKey, pascalKey, fallback) {
   return source?.[camelKey] ?? source?.[pascalKey] ?? fallback
-}
-
-function normalizeMessage(item) {
-  let templateParams = {}
-  const rawParams = pick(item, 'templateParams', 'TemplateParams', '')
-  if (rawParams && typeof rawParams === 'object') templateParams = rawParams
-  else if (rawParams) {
-    try { templateParams = JSON.parse(rawParams) } catch (_) { templateParams = {} }
-  }
-
-  const orderId = templateParams.orderId ?? templateParams.OrderId
-  const billId = templateParams.billId ?? templateParams.BillId
-  const relatedId = orderId ?? billId ?? templateParams.relatedId ?? templateParams.RelatedId ?? null
-
-  return {
-    messageId: Number(pick(item, 'messageId', 'MessageId', 0)),
-    title: String(pick(item, 'title', 'Title', '消息通知')),
-    content: String(pick(item, 'content', 'Content', '')),
-    type: Number(pick(item, 'msgType', 'MsgType', 0)),
-    isRead: Boolean(pick(item, 'isRead', 'IsRead', false)),
-    createdAt: pick(item, 'createdAt', 'CreatedAt', ''),
-    relatedId,
-    relatedKind: orderId ? 'order' : billId ? 'bill' : null,
-  }
 }
 
 async function refreshPage() {
@@ -232,37 +212,22 @@ async function switchType(type) {
 }
 
 async function requestPage(targetPage) {
-  if (currentType.value === 'business') {
-    const results = await Promise.all([1, 2, 3].map(msgType => (
-      getMessageList({ pageNum: targetPage, pageSize, msgType })
-    )))
-    const items = results.flatMap(result => pick(result, 'items', 'Items', []))
-      .map(normalizeMessage)
-      .sort((a, b) => parseUtcToLocal(b.createdAt).getTime() - parseUtcToLocal(a.createdAt).getTime())
-    return {
-      items,
-      totalCount: results.reduce((sum, result) => sum + Number(pick(result, 'totalCount', 'TotalCount', 0)), 0),
-    }
-  }
-
-  const result = await getMessageList({
-    pageNum: targetPage,
-    pageSize,
-    msgType: currentType.value === '' ? null : currentType.value,
-  })
-  return {
-    items: pick(result, 'items', 'Items', []).map(normalizeMessage),
-    totalCount: Number(pick(result, 'totalCount', 'TotalCount', 0)),
-  }
+  return getMessageList({ pageNum: targetPage, pageSize,
+    businessOnly: currentType.value === 'business',
+    msgType: currentType.value === '' || currentType.value === 'business' ? null : currentType.value })
 }
 
 /** 按原筛选和分页读取消息，保留消息正文与业务事实。 */
 async function loadMessages(append = false) {
-  if (loading.value || loadingMore.value) return
-  const state = append ? loadingMore : loading
-  state.value = true
+  if (append && (loading.value || loadingMore.value)) return
+  const requestId = ++listRequestId
+  const key = sessionKey()
+  const isCurrent = () => requestId === listRequestId && key === sessionKey()
+  loading.value = !append
+  loadingMore.value = append
   try {
     const result = await requestPage(pageNum.value)
+    if (!isCurrent()) return
     messageList.value = append ? [...messageList.value, ...result.items] : result.items
     totalCount.value = result.totalCount
     hasMore.value = messageList.value.length < result.totalCount
@@ -270,41 +235,23 @@ async function loadMessages(append = false) {
     messageStore.setMessageList(messageList.value)
     messageStore.setLatestMessage(messageList.value[0] || null)
   } catch (error) {
+    if (!isCurrent()) return
     if (append) pageNum.value = Math.max(1, pageNum.value - 1)
     loadMoreError.value = Boolean(append)
     console.error('[MessageCenter] 加载消息失败:', error)
     uni.showToast({ title: t('content.messages.loadFailed'), icon: 'none' })
   } finally {
-    state.value = false
+    if (requestId === listRequestId) {
+      loading.value = false
+      loadingMore.value = false
+    }
   }
 }
 
 async function loadUnreadCount() {
-  try {
-    const result = await getUnreadCount()
-    const source = result?.data ?? result?.Data ?? result
-    const typedCounts = source?.typeUnreadCount
-      ?? source?.TypeUnreadCount
-      ?? source?.counts
-      ?? source?.Counts
-    if (typedCounts && typeof typedCounts === 'object' && !Array.isArray(typedCounts)) {
-      const counts = {
-        order: Number(typedCounts.order ?? typedCounts.Order ?? typedCounts[1] ?? 0),
-        audit: Number(typedCounts.audit ?? typedCounts.Audit ?? typedCounts[2] ?? 0),
-        bill: Number(typedCounts.bill ?? typedCounts.Bill ?? typedCounts[3] ?? 0),
-        announcement: Number(typedCounts.announcement ?? typedCounts.Announcement ?? typedCounts[4] ?? 0),
-      }
-      messageStore.setUnreadCount(counts)
-      unreadCount.value = messageStore.unreadCount
-      return
-    }
-    unreadCount.value = Number(source?.unreadCount ?? source?.UnreadCount ?? source ?? 0)
-    // 旧接口只有总未读数，清掉上一次会话残留的分类数，避免徽标显示过期数据。
-    messageStore.setUnreadCount({ order: 0, audit: 0, bill: 0, announcement: 0 })
-    messageStore.setUnreadCount(unreadCount.value)
-  } catch (error) {
-    console.error('[MessageCenter] 加载未读数失败:', error)
-  }
+  const key = sessionKey()
+  try { const summary = await getUnreadSummary(); if (key === sessionKey()) messageStore.applySummary(summary) }
+  catch (error) { console.warn('[MessageCenter] Summary unavailable', error?.kind) }
 }
 
 function loadMore() {
@@ -329,27 +276,7 @@ function goToNotificationSettings() {
 
 /** 用户点击时沿用原已读写入和业务导航，只本地化失败反馈。 */
 async function goToDetail(item) {
-  if (!item.isRead) {
-    try {
-      await markAsRead({ messageId: item.messageId })
-      item.isRead = true
-      unreadCount.value = Math.max(0, unreadCount.value - 1)
-      messageStore.reduceUnread(messageStore.getMessageTypeKey(item.type), 1)
-    } catch (error) {
-      console.error('[MessageCenter] 标记已读失败:', error)
-      uni.showToast({ title: t('content.messages.operationFailed'), icon: 'none' })
-      return
-    }
-  }
-
-  if ((item.relatedKind === 'order' || item.type === 1) && item.relatedId) {
-    navigator.navigateTo(routes.order.detail(item.relatedId))
-    return
-  }
-  if ((item.relatedKind === 'bill' || item.type === 3) && item.relatedId) {
-    navigator.navigateTo(routes.account.billDetail(item.relatedId))
-    return
-  }
+  // The detail page marks read only after an owned message was loaded successfully.
   navigator.navigateTo(routes.content.messageDetail(item.messageId))
 }
 
@@ -358,10 +285,10 @@ async function handleMarkAllRead() {
   if (markingAll.value || unreadCount.value <= 0) return
   markingAll.value = true
   try {
-    await markAllAsRead()
-    unreadCount.value = 0
-    messageStore.markAllRead()
-    messageList.value.forEach(item => { item.isRead = true })
+    const key = sessionKey()
+    await markAllAsRead(messageStore.maxMessageId)
+    if (key !== sessionKey()) return
+    await refreshPage()
     uni.showToast({ title: t('content.messages.markedAll'), icon: 'success' })
   } catch (error) {
     console.error('[MessageCenter] 全部已读失败:', error)

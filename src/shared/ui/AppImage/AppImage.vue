@@ -15,6 +15,7 @@
   <view class="app-image-wrapper" :style="wrapperStyle">
     <image
       v-if="hasSource && !hasError"
+      :key="displaySrc"
       class="app-image"
       :class="{ 'is-loading': isLoading }"
       :src="displaySrc"
@@ -34,7 +35,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import AppIcon from '../AppIcon/AppIcon.vue'
 import { getCachedResource, getCachedResourcePath } from '@/shared/utils/resourceCache.js'
 
@@ -86,7 +87,8 @@ const emit = defineEmits(['load', 'error'])
 const isLoading = ref(true)
 const hasError = ref(false)
 const displaySrc = ref('')
-let cacheRequestId = 0
+let sourceVersion = 0
+let alternateSource = null
 const hasSource = computed(() => Boolean(displaySrc.value?.trim()))
 
 // 规范化尺寸单位
@@ -119,24 +121,40 @@ function handleLoad(event) {
   emit('load', event)
 }
 
-function handleError(event) {
+async function handleError(event) {
+  const version = sourceVersion
+  const failedSource = displaySrc.value
+  const alternate = alternateSource
+  alternateSource = null
   isLoading.value = false
   hasError.value = true
+
+  // 缓存失效时试原图；原图直连失败时，仍可尝试已下载的副本。
+  const nextSource = await alternate
+  if (version !== sourceVersion) return
+  if (nextSource && nextSource !== failedSource) {
+    displaySrc.value = nextSource
+    hasError.value = false
+    isLoading.value = true
+    return
+  }
   emit('error', event)
 }
 
-// 监听 src 变化重置状态
-watch(() => props.src, async (source) => {
-  const requestId = ++cacheRequestId
+watch(() => props.src, (source) => {
+  sourceVersion += 1
+  const original = String(source || '').trim()
+  const cached = getCachedResourcePath(original, { kind: 'image' })
+  displaySrc.value = cached || original
   hasError.value = false
-  const remoteUrl = String(source || '').trim()
-  displaySrc.value = getCachedResourcePath(remoteUrl, { kind: 'image' }) || remoteUrl
-  isLoading.value = Boolean(remoteUrl)
-  if (!remoteUrl) return
-
-  const cachedUrl = await getCachedResource(displaySrc.value, { kind: 'image' })
-  if (requestId === cacheRequestId && cachedUrl) displaySrc.value = cachedUrl
+  isLoading.value = Boolean(original)
+  alternateSource = cached ? original : null
+  if (original && !cached) {
+    // 预缓存成功后不切换已经正常显示的图片。
+    alternateSource = getCachedResource(original, { kind: 'image' }).catch(() => '')
+  }
 }, { immediate: true })
+onBeforeUnmount(() => { sourceVersion += 1 })
 </script>
 
 <style lang="scss" scoped>

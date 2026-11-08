@@ -3,6 +3,7 @@ import './app/navigation/shareLandingBoot.js'
 // #endif
 import { createSSRApp } from 'vue'
 import { createPinia } from 'pinia'
+import { installNotificationLifecycle } from './shared/services/notificationLifecycle.js'
 import App from './App.vue'
 import { registerMainLocales } from './app/i18n/registerMain.js'
 import { initializeAppLocale } from './app/i18n/localePersistence.js'
@@ -17,6 +18,7 @@ export function createApp() {
   const app = createSSRApp(App)
   const pinia = createPinia()
   app.use(pinia)
+  if (APP_SURFACE.mode !== 'share-h5') installNotificationLifecycle(pinia)
 
   return { app }
 }

@@ -39,7 +39,8 @@ defineEmits(['tap'])
   padding: 0 18px;
   border: 1px solid transparent;
   border-radius: var(--radius-control, 10px);
-  font-size: var(--type-label-size, 15px);
+  font-size: var(--type-button-size, 15px);
+  line-height: var(--type-button-line-height, 22px);
   font-weight: var(--font-weight-semibold, 600);
   transition: opacity var(--transition-fast, 120ms) ease;
 }

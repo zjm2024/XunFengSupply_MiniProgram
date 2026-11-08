@@ -27,8 +27,8 @@ defineProps({
 const emit = defineEmits(['select'])
 </script>
 <style scoped>
-.category-layout { display:flex; width:100%; min-height:0; flex:1; overflow:hidden; border-radius: var(--radius-feature, 18px); background:rgba(242,243,244,.62); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px); }
-.primary-scroll { width:92px; height:100%; flex:0 0 92px; }
+.category-layout { display:flex; width:100%; min-height:0; flex:1; overflow:hidden; border-radius: var(--radius-card, 16px); background: var(--surface-page, #F2F3F5); }
+.primary-scroll { width:92px; height:100%; flex:0 0 92px; background: var(--surface-page, #F2F3F5); }
 .primary-list { padding:7px 0 35px; }
 .primary-item { position:relative; display:flex; min-height:54px; padding:7px 11px; align-items:center; justify-content:center; box-sizing:border-box; color:#696d75; font-size: var(--type-body-small-size, 13px); line-height:1.35; text-align:center; overflow-wrap:anywhere; }
 .primary-item.is-active { color:#202228; font-weight: var(--font-weight-bold, 700); }
@@ -38,5 +38,5 @@ const emit = defineEmits(['select'])
 .category-content { display:flex; min-width:0; height:100%; flex:1; flex-direction:column; }
 @media screen and (max-width:360px) { .primary-scroll { width:82px; flex-basis:82px; } }
 @media screen and (min-width:600px) { .primary-scroll { width:124px; flex-basis:124px; } .primary-item { min-height:58px; padding-right:15px; padding-left:15px; font-size: var(--type-body-small-size, 13px); } }
-@media screen and (min-width:821px) { .category-layout { border-radius: var(--radius-feature, 18px); } .primary-scroll { width:150px; flex-basis:150px; } .primary-item { min-height:62px; font-size: var(--type-body-small-size, 13px); } }
+@media screen and (min-width:821px) { .primary-scroll { width:150px; flex-basis:150px; } .primary-item { min-height:62px; font-size: var(--type-body-small-size, 13px); } }
 </style>

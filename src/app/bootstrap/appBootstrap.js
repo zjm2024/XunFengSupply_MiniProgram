@@ -281,7 +281,7 @@ function _handleBootError(error) {
 
   // 401 → Token 失效，清理登录态，返回 LOGIN
   if (error instanceof AppError && error.kind === ErrorKind.AUTH) {
-    userStore.logout()
+    userStore.logout({ preserveNotificationTarget: true })
     return {
       status: 'ready',
       targetUrl: _getSafeLoginUrl(),

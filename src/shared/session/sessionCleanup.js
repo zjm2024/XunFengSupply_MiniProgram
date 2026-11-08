@@ -84,3 +84,15 @@ export function getCleanupHandlerCount() {
 export function _clearAllCleanupHandlers() {
   _cleanupHandlers.clear()
 }
+
+const _releaseHandlers = new Map()
+/** Register a synchronous-start hook that captures the old session before local logout. */
+export function registerSessionRelease(name, callback) { _releaseHandlers.set(name, callback) }
+/** Start remote release immediately; callers may clear local credentials before awaiting it. */
+export function beginSessionRelease(options = {}) {
+  const pending = []
+  for (const callback of _releaseHandlers.values()) {
+    try { pending.push(Promise.resolve(callback(options)).catch(() => {})) } catch { /* Local logout must still complete. */ }
+  }
+  return Promise.all(pending)
+}

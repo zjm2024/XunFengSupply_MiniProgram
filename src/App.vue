@@ -1,5 +1,6 @@
 <script setup>
 import { getCurrentInstance } from 'vue'
+import { notificationAppShow, notificationAppHide } from './shared/services/notificationLifecycle.js'
 import { onLaunch, onShow, onHide } from '@dcloudio/uni-app'
 import { STARTUP_CONFIG } from './app/config/startupConfig.js'
 import { APP_SURFACE } from './app/config/shareSurface.js'
@@ -39,10 +40,12 @@ onLaunch(() => {
 onShow(() => {
   console.log('[App] Show')
   ensureSurfaceRoute()
+  notificationAppShow()
 })
 
 onHide(() => {
   console.log('[App] Hide')
+  notificationAppHide()
 })
 
 /** 禁止通过浏览器深链进入另一构建表面的页面。 */

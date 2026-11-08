@@ -45,7 +45,13 @@
       "minute": "{count}分钟前",
       "hour": "{count}小时前",
       "day": "{count}天前"
-    }
+    },
+    "read": "已读",
+    "unread": "未读",
+    "readSynced": "已同步阅读状态",
+    "readOnOpen": "打开后将自动标记为已读",
+    "viewInvoice": "查看发票",
+    "viewAfterSale": "查看售后详情"
   },
   "manual": {
     "reload": "重新加载",

@@ -84,6 +84,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onShow, onResize } from '@dcloudio/uni-app'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import { notificationSessionReady } from '@/shared/services/notificationLifecycle.js'
 import { useMessageStore } from '@/shared/model/messageStore.js'
 import { useCart } from '@/shared/composables/useCart.js'
 import AppStatusBarSpacer from '@/shared/ui/AppStatusBarSpacer/AppStatusBarSpacer.vue'
@@ -155,6 +156,7 @@ onMounted(() => {
 })
 
 onShow(() => {
+  notificationSessionReady()
   loadCart({ silent: true }).catch(() => {})
 })
 
@@ -172,7 +174,7 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .home-page {
-  --home-bg: #f4f5f6;
+  --home-bg: var(--surface-page, #F2F3F5);
   --home-bottom-nav-item-height: 48px;
   --home-bottom-nav-padding: 6px;
   --home-bottom-nav-height: calc(var(--home-bottom-nav-item-height) + var(--home-bottom-nav-padding) + var(--home-bottom-nav-padding));
@@ -184,11 +186,6 @@ onUnmounted(() => {
   overflow: hidden;
   color: var(--color-text-primary, #1b1c20);
   background: var(--home-bg);
-}
-
-.home-page--integrated {
-  /* 状态栏、顶部、个人信息和内容区共用一张底，避免色块断层。 */
-  --home-bg: #f2f5f9;
 }
 
 .home-page.is-large-screen {

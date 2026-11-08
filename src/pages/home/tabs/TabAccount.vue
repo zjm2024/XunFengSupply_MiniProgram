@@ -11,8 +11,6 @@
 
     <template v-else>
     <view class="profile-hero">
-      <view class="hero-decoration hero-decoration--large" />
-      <view class="hero-decoration hero-decoration--small" />
 
       <view class="profile-main" hover-class="item--pressed" @tap="openProfile">
         <view class="avatar-wrap">
@@ -273,10 +271,9 @@ const functionEntries = computed(() => [
 </script>
 
 <style lang="scss" scoped>
-.tab-page { width: 100%; min-height: 100%; margin: 0 auto; padding: 0 14px; box-sizing: border-box; background: transparent; }
+.tab-page { width: 100%; min-height: 100%; margin: 0 auto; padding: 0 var(--page-padding-x, 16px) var(--spacing-lg, 24px); box-sizing: border-box; background: transparent; }
 .account-initializing { min-height: calc(100vh - 138px - env(safe-area-inset-bottom)); }
-.profile-hero { position: relative; overflow: hidden; margin: 0 -14px; padding: 12px 18px 24px; background: transparent; }
-.hero-decoration { position: absolute; border-radius: 50%; background: rgba(255,255,255,.38); pointer-events: none; }.hero-decoration--large { top: -58px; right: -40px; width: 190px; height: 190px; }.hero-decoration--small { right: 118px; bottom: 34px; width: 44px; height: 44px; background: rgba(185,207,231,.25); }
+.profile-hero { position: relative; overflow: hidden; padding: var(--module-padding, 16px); border-radius: var(--radius-card, 16px); background: var(--surface-card, #FFF); box-shadow: var(--shadow-sm); }
 .profile-main { position: relative; z-index: 1; display: grid; grid-template-columns: 64px minmax(0,1fr); align-items: center; gap: 13px; min-height: 76px; }
 .avatar-wrap { display: grid; width: 64px; height: 64px; place-items: center; overflow: hidden; border: 4px solid rgba(255,255,255,.84); border-radius: 50%; color: #FFF; box-shadow: 0 9px 22px rgba(79,102,128,.14); box-sizing: border-box; }.avatar-image { width: 100%; height: 100%; }.avatar-text { font-size: var(--type-heading-size, 24px); font-weight: var(--font-weight-bold, 700); }
 .profile-copy { min-width: 0; }.name-row { display: flex; min-width: 0; align-items: center; gap: 5px; }.profile-name { overflow: hidden; color: #202831; font-size: var(--type-page-title-size, 20px); font-weight: var(--font-weight-bold, 700); text-overflow: ellipsis; white-space: nowrap; }
@@ -306,13 +303,13 @@ const functionEntries = computed(() => [
 .item--pressed { opacity: .65; }.function-card, .function-grid { transition: opacity .18s ease, transform .18s ease; }
 @media screen and (min-width: 600px) {
   .profile-metrics { grid-template-columns: repeat(4,minmax(0,1fr)); }.profile-metric:not(:last-child)::after { content: ''; position: absolute; top: 9px; bottom: 9px; right: 0; width: 1px; background: rgba(87,108,130,.13); }
-  .tab-page { padding-right: 22px; padding-left: 22px; }.profile-hero { margin-right: -22px; margin-left: -22px; padding-right: 28px; padding-left: 28px; }.core-grid { gap: 14px; }.function-grid { row-gap: 12px; }.service-links { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1px; margin-top: 14px; background: #EFF0F2; }.service-link { padding: 0 12px; border-top: 0; background: #FFF; }.account-service-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1px; background: #EFF0F2; }.account-service-item { padding: 0 11px; border-top: 0; background: #FFF; }
+  .core-grid { gap: 14px; }.function-grid { row-gap: 12px; }.service-links { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1px; margin-top: 14px; background: #EFF0F2; }.service-link { padding: 0 12px; border-top: 0; background: #FFF; }.account-service-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1px; background: #EFF0F2; }.account-service-item { padding: 0 11px; border-top: 0; background: #FFF; }
 }
 @media screen and (min-width: 820px) {
-  .tab-page { padding: 0 28px 34px; }.profile-hero { margin: 0; padding: 18px 28px 26px; }.profile-main { grid-template-columns: 72px minmax(0,1fr); }.avatar-wrap { width: 72px; height: 72px; }.profile-metrics { max-width: 690px; margin-top: 22px; }.core-grid { margin-top: 16px; }.order-card, .service-card, .function-card, .account-service-card { padding: 20px 22px; }.function-item { min-height: 72px; }.order-status { min-height: 68px; }.status-icon-wrap { width: var(--module-icon-box, 36px); height: var(--module-icon-box, 36px); }
+  .profile-main { grid-template-columns: 72px minmax(0,1fr); }.avatar-wrap { width: 72px; height: 72px; }.profile-metrics { max-width: 690px; margin-top: 22px; }.core-grid { margin-top: 16px; }.order-card, .service-card, .function-card, .account-service-card { padding: 20px 22px; }.function-item { min-height: 72px; }.order-status { min-height: 68px; }.status-icon-wrap { width: var(--module-icon-box, 36px); height: var(--module-icon-box, 36px); }
 }
 @media screen and (max-width: 374px) {
-  .tab-page { padding-right: 11px; padding-left: 11px; }.profile-hero { margin-right: -11px; margin-left: -11px; padding: 10px 14px 20px; }.profile-main { grid-template-columns: 58px minmax(0,1fr); }.avatar-wrap { width: 58px; height: 58px; }.profile-name { font-size: var(--type-section-title-size, 18px); }.order-card, .service-card, .function-card, .account-service-card { padding: var(--module-padding, 16px); }.function-grid { row-gap: 18px; }.function-icon { width: var(--module-icon-box, 36px); height: var(--module-icon-box, 36px); }
+  .profile-main { grid-template-columns: 58px minmax(0,1fr); }.avatar-wrap { width: 58px; height: 58px; }.profile-name { font-size: var(--type-section-title-size, 18px); }.order-card, .service-card, .function-card, .account-service-card { padding: var(--module-padding, 16px); }.function-grid { row-gap: 18px; }.function-icon { width: var(--module-icon-box, 36px); height: var(--module-icon-box, 36px); }
 }
 
 /* 金额按实际可用宽度缩字，父布局允许收缩。 */

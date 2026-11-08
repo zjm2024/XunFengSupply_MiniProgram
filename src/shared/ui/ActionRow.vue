@@ -56,7 +56,7 @@ onBeforeUnmount(() => { alive = false; generation++; uni.offWindowResize?.(measu
 
 <style scoped>
 .action-row-control { position: relative; display: flex; width: 100%; min-width: 0; align-items: stretch; gap: 8px; }
-.row-button { display: flex; flex: 1 1 0; min-width: 0; min-height: 44px; align-items: center; justify-content: center; margin: 0; padding: 10px 13px; border: 1px solid #dde0e4; border-radius: var(--radius-control, 10px); background: #fff; color: #363c45; font-size: var(--type-body-size, 14px); font-weight: var(--font-weight-semibold, 600); line-height: 20px; white-space: normal; overflow-wrap: anywhere; }
+.row-button { display: flex; flex: 1 1 0; min-width: 0; min-height: 44px; align-items: center; justify-content: center; margin: 0; padding: 10px 13px; border: 1px solid #dde0e4; border-radius: var(--radius-control, 10px); background: #fff; color: #363c45; font-size: var(--type-button-size, 15px); font-weight: var(--font-weight-semibold, 600); line-height: var(--type-button-line-height, 22px); white-space: normal; overflow-wrap: anywhere; }
 .row-button.primary { border-color: #d7192d; background: #d7192d; color: #fff; }
 .row-button:disabled { color: #969aa3; background: #eceef2; border-color: #eceef2; }
 .action-row-control.is-compact { justify-content: flex-end; }
@@ -68,7 +68,7 @@ onBeforeUnmount(() => { alive = false; generation++; uni.offWindowResize?.(measu
 .is-compact .row-more { margin-right: auto; }
 .row-more { display: flex; flex: 0 0 auto; min-width: 60px; min-height: 44px; align-items: center; justify-content: center; gap: 5px; margin: 0; padding: 10px 6px; border: 0; background: transparent; color: #626974; font-size: var(--type-body-small-size, 13px); line-height: 20px; }
 .action-measures { position: absolute; top: 0; left: 0; display: flex; width: 0; height: 0; overflow: hidden; visibility: hidden; pointer-events: none; white-space: nowrap; }
-.action-measure { flex: none; font-size: var(--type-body-size, 14px); font-weight: var(--font-weight-semibold, 600); line-height: 20px; white-space: nowrap; }
+.action-measure { flex: none; font-size: var(--type-button-size, 15px); font-weight: var(--font-weight-semibold, 600); line-height: var(--type-button-line-height, 22px); white-space: nowrap; }
 .more-measure { flex: none; font-size: var(--type-body-small-size, 13px); line-height: 20px; white-space: nowrap; }
 button::after { border: 0; }
 </style>

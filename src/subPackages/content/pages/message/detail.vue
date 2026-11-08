@@ -25,7 +25,7 @@
               </view>
               <view class="read-status" :class="{ unread: !detail.isRead }">
                 <view class="read-status-dot" />
-                <text>{{ detail.isRead ? '已读' : '未读' }}</text>
+                <text>{{ detail.isRead ? t('content.messages.read') : t('content.messages.unread') }}</text>
               </view>
             </view>
 
@@ -48,7 +48,7 @@
 
             <view class="read-hint">
               <AppIcon name="check" :size="14" :stroke-width="1.8" />
-              <text>{{ detail.isRead ? '已同步阅读状态' : '打开后将自动标记为已读' }}</text>
+              <text>{{ detail.isRead ? t('content.messages.readSynced') : t('content.messages.readOnOpen') }}</text>
             </view>
           </view>
         </view>
@@ -62,7 +62,7 @@ import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/content/i18n/register.js'
 import { computed, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
-import { getMessageList, markAsRead } from '../../api/message.js'
+import { getMessageDetail, getUnreadSummary, markAsRead } from '../../api/message.js'
 import { useMessageStore } from '../../model/messageStore.js'
 import { formatDateTime } from '../../../../shared/utils/format.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
@@ -71,8 +71,11 @@ import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import { useUserStore } from '@/shared/session/userStore.js'
 
 const messageStore = useMessageStore()
+const userStore = useUserStore()
+const sessionKey = () => String(userStore.userId) + ':' + String(userStore.dealerId)
 const messageId = ref('')
 const detail = ref(null)
 const loading = ref(false)
@@ -89,6 +92,8 @@ const typeMeta = computed(() => ({
 
 const relatedAction = computed(() => {
   if (!detail.value?.relatedId) return null
+  if (detail.value.relatedKind === 'afterSale') return { title: t('content.messages.viewAfterSale'), icon: 'order', kind: 'afterSale' }
+  if (detail.value.relatedKind === 'invoice') return { title: t('content.messages.viewInvoice'), icon: 'invoice', kind: 'invoice' }
   if (detail.value.relatedKind === 'bill' || detail.value.type === 3) {
     return { title: t('content.messages.viewBill'), icon: 'invoice', kind: 'bill' }
   }
@@ -107,30 +112,6 @@ function pick(source, camelKey, pascalKey, fallback) {
   return source?.[camelKey] ?? source?.[pascalKey] ?? fallback
 }
 
-function normalizeMessage(item) {
-  let templateParams = {}
-  const rawParams = pick(item, 'templateParams', 'TemplateParams', '')
-  if (rawParams && typeof rawParams === 'object') templateParams = rawParams
-  else if (rawParams) {
-    try { templateParams = JSON.parse(rawParams) } catch (_) { templateParams = {} }
-  }
-
-  const orderId = templateParams.orderId ?? templateParams.OrderId
-  const billId = templateParams.billId ?? templateParams.BillId
-  const relatedId = orderId ?? billId ?? templateParams.relatedId ?? templateParams.RelatedId ?? null
-
-  return {
-    messageId: Number(pick(item, 'messageId', 'MessageId', 0)),
-    title: String(pick(item, 'title', 'Title', '消息通知')),
-    content: String(pick(item, 'content', 'Content', '')),
-    type: Number(pick(item, 'msgType', 'MsgType', 0)),
-    isRead: Boolean(pick(item, 'isRead', 'IsRead', false)),
-    createdAt: pick(item, 'createdAt', 'CreatedAt', ''),
-    relatedId,
-    relatedKind: orderId ? 'order' : billId ? 'bill' : null,
-  }
-}
-
 /** 读取原消息和关联记录，保留错误对象以响应语言变化。 */
 async function loadDetail() {
   if (!messageId.value || loading.value) {
@@ -141,21 +122,17 @@ async function loadDetail() {
   loading.value = true
   loadFailure.value = null
   try {
-    const cached = messageStore.messageList.find(item => String(item.messageId) === messageId.value)
-    if (cached) {
-      detail.value = { ...cached }
-    } else {
-      const result = await getMessageList({ pageNum: 1, pageSize: 100 })
-      const items = pick(result, 'items', 'Items', []).map(normalizeMessage)
-      detail.value = items.find(item => String(item.messageId) === messageId.value) || null
-    }
+    const key = sessionKey()
+    const result = await getMessageDetail(messageId.value)
+    if (key !== sessionKey()) return
+    detail.value = result
 
     if (!detail.value) {
       loadFailure.value = { messageKey: 'content.messages.missing' }
       return
     }
 
-    await markDetailAsRead()
+    try { await markDetailAsRead() } catch { uni.showToast({ title: t('content.messages.operationFailed'), icon: 'none' }) }
   } catch (error) {
     console.error('[MessageDetail] 加载消息失败:', error)
     loadFailure.value = error?.message ? error : { messageKey: 'content.messages.loadFailed' }
@@ -166,9 +143,15 @@ async function loadDetail() {
 
 async function markDetailAsRead() {
   if (!detail.value || detail.value.isRead) return
+  const key = sessionKey()
   await markAsRead({ messageId: detail.value.messageId })
+  if (key !== sessionKey()) return
   detail.value.isRead = true
-  messageStore.reduceUnread(messageStore.getMessageTypeKey(detail.value.type), 1)
+  try {
+    const summary = await getUnreadSummary()
+    if (key !== sessionKey()) return
+    messageStore.applySummary(summary)
+  } catch { /* A failed background badge refresh must not hide an already loaded message. */ }
   const cached = messageStore.messageList.find(item => item.messageId === detail.value.messageId)
   if (cached) cached.isRead = true
 }
@@ -180,6 +163,8 @@ function getTypeMeta(type) {
 
 function openRelatedBusiness() {
   if (!relatedAction.value || !detail.value?.relatedId) return
+  if (relatedAction.value.kind === 'afterSale') { navigator.navigateTo(routes.order.afterSaleDetail(detail.value.relatedId)); return }
+  if (relatedAction.value.kind === 'invoice') { navigator.navigateTo(routes.account.invoice()); return }
   if (relatedAction.value.kind === 'bill') {
     navigator.navigateTo(routes.account.billDetail(detail.value.relatedId))
     return

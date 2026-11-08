@@ -83,7 +83,7 @@ const { layout, safeArea } = useResponsive()
   flex-shrink: 0;
   position: relative;
   z-index: 90;
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--surface-card, #FFF);
   box-shadow: var(--shadow-bottom-bar, 0 -4px 16px rgba(17, 18, 22, 0.07));
 
   .safe-area-spacer {

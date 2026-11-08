@@ -296,9 +296,7 @@ onBeforeUnmount(() => { generation++ })
   min-height: 54px;
   flex: 0 0 54px;
   white-space: nowrap;
-  background: rgba(242,243,244,.62);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  background: var(--surface-page, #F2F3F5);
 }
 
 .secondary-tab-list {
@@ -312,18 +310,16 @@ onBeforeUnmount(() => { generation++ })
   min-height: 32px;
   padding: 0 13px;
   justify-content: center;
-  border-radius: var(--radius-feature, 18px);
-  color: #676b73;
+  border-radius: var(--radius-control, 12px);
+  color: var(--type-secondary-color, #62666F);
   font-size: var(--type-caption-size, 12px);
-  background: rgba(255,255,255,.68);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  background: var(--surface-card, #FFF);
 }
 
 .secondary-tab.is-active {
-  color: #fff;
+  color: var(--primary-dark, #B91224);
   font-weight: var(--font-weight-semibold, 600);
-  background: #292b30;
+  background: var(--color-brand-soft, #FFF1F2);
 }
 
 .category-groups-scroll {
@@ -339,11 +335,8 @@ onBeforeUnmount(() => { generation++ })
 .category-group {
   margin-bottom: 10px;
   padding: 14px 12px 12px;
-  border-radius: var(--radius-feature, 18px);
-  background: var(--glass-card-background, rgba(255,255,255,.74));
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+  border-radius: var(--radius-card, 16px);
+  background: var(--surface-card, #FFF);
 }
 
 .group-heading {
@@ -370,7 +363,7 @@ onBeforeUnmount(() => { generation++ })
 
 .group-subtitle {
   margin-top: 3px;
-  color: #a0a3aa;
+  color: var(--type-secondary-color, #62666F);
   font-size: var(--type-caption-size, 12px);
 }
 

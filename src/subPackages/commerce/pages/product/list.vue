@@ -7,6 +7,7 @@
       :sort-key="sortKey"
       :filter-count="activeFilterCount"
       :auto-focus="searchMode"
+      :placeholder="t('main.search.placeholder')"
       :keyword-committed="keywordCommitted"
       :show-cart="!searchMode"
       :show-tools="showCatalogTools"
@@ -116,7 +117,6 @@
 </template>
 
 <script setup>
-import { SEARCH_RECOMMENDATIONS } from '../../model/productSearchRecommendations.js'
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/commerce/i18n/register.js'
 import { ref, computed, watch, onMounted } from 'vue'
@@ -161,6 +161,7 @@ const searchMode = ref(false)
 const hasSearched = ref(false)
 const keywordCommitted = ref(false)
 const searchHistory = ref([])
+const searchRecommendations = ref([])
 const activeCategoryId = ref(null)
 const categoryTree = ref([])
 const activeCategoryPath = ref([])
@@ -202,7 +203,27 @@ const showCatalogTools = computed(() => {
   if (!searchMode.value) return true
   return loading.value || products.value.length > 0
 })
-const searchRecommendations = computed(() => SEARCH_RECOMMENDATIONS)
+
+watch([showSearchLanding, activeCategoryId, stockFilter], async ([visible, categoryId, stock], _, onCleanup) => {
+  if (!visible) return
+  let active = true
+  onCleanup(() => { active = false })
+  searchRecommendations.value = []
+  try {
+    const { items = [] } = await getGoodsList({ pageNum: 1, pageSize: 8, categoryId, stockFilter: stock || undefined })
+    if (!active) return
+    const suggestions = new Map()
+    for (const item of items) {
+      const keyword = String(item.code || '').trim()
+      if (!keyword || suggestions.has(keyword)) continue
+      suggestions.set(keyword, { keyword, label: String(item.name || '').trim() || keyword })
+      if (suggestions.size === 4) break
+    }
+    searchRecommendations.value = [...suggestions.values()]
+  } catch {
+    // 推荐为空时仍可直接搜索。
+  }
+})
 
 watch(keyword, value => {
   if (searchMode.value && hasSearched.value && !value.trim()) {
@@ -290,6 +311,7 @@ async function loadProducts(isLoadMore = false) {
       } else {
         products.value = items || []
         page.value = 1
+        if (searchMode.value && params.keyword && products.value.length) saveSearchKeyword(params.keyword)
       }
 
       total.value = totalCount || 0
@@ -335,7 +357,6 @@ async function handleSearch() {
   keywordCommitted.value = Boolean(normalizedKeyword)
   if (searchMode.value) {
     hasSearched.value = true
-    saveSearchKeyword(normalizedKeyword)
   }
 
   if (!categoryTree.value.length) {

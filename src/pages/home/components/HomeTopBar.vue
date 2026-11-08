@@ -97,7 +97,7 @@ const currentTitle = computed(() => tabTitles[props.activeTab] ? t(tabTitles[pro
   justify-content: space-between;
   gap: 12px;
   min-height: 62px;
-  padding: 8px 16px;
+  padding: var(--spacing-sm, 8px) var(--page-padding-x, 16px);
   box-sizing: border-box;
 }
 
@@ -123,7 +123,7 @@ const currentTitle = computed(() => tabTitles[props.activeTab] ? t(tabTitles[pro
   overflow: hidden;
   border-radius: 50%;
   color: #2f3238;
-  background: #e7e8eb;
+  background: var(--surface-card, #FFF);
   transition: transform 160ms ease, opacity 160ms ease;
 }
 
@@ -136,7 +136,7 @@ const currentTitle = computed(() => tabTitles[props.activeTab] ? t(tabTitles[pro
 .home-search-box {
   display: flex;
   min-width: 0;
-  height: 36px;
+  min-height: 40px;
   flex: 1;
   align-items: center;
   gap: 7px;
@@ -144,8 +144,8 @@ const currentTitle = computed(() => tabTitles[props.activeTab] ? t(tabTitles[pro
   padding: 0 12px;
   box-sizing: border-box;
   overflow: hidden;
-  border-radius: var(--radius-feature, 18px);
-  background: #eff0f2;
+  border-radius: var(--radius-full, 999px);
+  background: var(--surface-card, #FFF);
 }
 
 .home-search-icon {

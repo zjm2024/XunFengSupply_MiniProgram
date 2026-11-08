@@ -3,7 +3,7 @@
 .amount-section { padding: 24px 20px 18px; border-radius: var(--radius-feature, 18px); color: #FFF; background: linear-gradient(145deg, #C9152B 0%, #A50F22 100%); box-shadow: 0 12px 28px rgba(174, 20, 38, .16); text-align: center; }
 .pay-label, .amount, .order-no, .deadline-label, .deadline-note { display: block; }
 .pay-label { color: rgba(255,255,255,.8); font-size: var(--type-caption-size, 12px); }
-.amount { margin-top: 8px; font-size: var(--type-display-size, 28px); font-weight: var(--font-weight-bold, 700); line-height: 44px; font-variant-numeric: tabular-nums; letter-spacing: -.5px; }
+.amount { margin-top: 8px; font-size: var(--type-money-display-size, 28px); font-weight: var(--font-weight-bold, 700); line-height: var(--type-money-display-line-height, 36px); font-variant-numeric: tabular-nums; letter-spacing: -.5px; }
 .order-no { margin-top: 5px; color: rgba(255,255,255,.68); font-size: var(--type-micro-size, 11px); }
 .deadline-panel { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 20px; padding: 12px 14px; border: 1px solid rgba(255,255,255,.2); border-radius: var(--radius-control, 10px); background: rgba(255,255,255,.11); text-align: left; }
 .deadline-panel.is-expired { color: #B42318; background: #FFF; }

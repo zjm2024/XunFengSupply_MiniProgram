@@ -125,7 +125,7 @@ const containerStyle = computed(() => {
 const padding = computed(() => {
   if (props.padding) return props.padding
   // 默认：使用 CSS px 保持 H5、iOS、Android、平板端尺寸稳定
-  return `16px ${pagePaddingX.value}`
+  return `var(--module-gap, 16px) ${pagePaddingX.value}`
 })
 
 function handleScroll(e) {

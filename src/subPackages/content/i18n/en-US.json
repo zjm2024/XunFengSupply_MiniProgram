@@ -45,7 +45,13 @@
       "minute": "{count} min ago",
       "hour": "{count} hr ago",
       "day": "{count} d ago"
-    }
+    },
+    "read": "Read",
+    "unread": "Unread",
+    "readSynced": "Read status synced",
+    "readOnOpen": "Marked as read when opened",
+    "viewInvoice": "View invoices",
+    "viewAfterSale": "View after-sales request"
   },
   "manual": {
     "reload": "Reload",

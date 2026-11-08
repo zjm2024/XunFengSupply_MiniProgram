@@ -17,6 +17,10 @@
             </view>
           </view>
 
+          <AppListGroup v-if="nativeApp" :title="t('account.notifications.systemTitle')">
+            <AppListItem :label="systemPermission ? t('account.notifications.systemEnabled') : t('account.notifications.systemDisabled')" icon="bell" @tap="openSystemSettings" />
+          </AppListGroup>
+          <AppListItem v-if="!loaded && !loadingSettings" :label="t('common.retry')" icon="refresh" @tap="loadSettings" />
           <AppListGroup :title="t('account.notifications.receive')" :description="t('account.notifications.master')">
             <AppListItem
               :label="t('account.notifications.enabled')"
@@ -26,7 +30,7 @@
               :show-arrow="false"
             >
               <template #action>
-                <switch :checked="settings.enabled" color="#D7192D" @change="toggle('enabled', $event)" />
+                <switch :checked="settings.enabled" :disabled="!loaded || saving" color="#D7192D" @change="toggle('enabled', $event)" />
               </template>
             </AppListItem>
           </AppListGroup>
@@ -40,7 +44,7 @@
               :icon="item.icon"
               :clickable="false"
               :show-arrow="false"
-              :disabled="!settings.enabled"
+              :disabled="!loaded || saving || !settings.enabled"
             >
               <template #action>
                 <switch
@@ -66,30 +70,6 @@
                 <switch :checked="settings.announcement" :disabled="!settings.enabled" color="#D7192D" @change="toggle('announcement', $event)" />
               </template>
             </AppListItem>
-            <AppListItem
-              :label="t('account.notifications.sound')"
-              :description="t('account.notifications.soundHint')"
-              icon="bell"
-              :clickable="false"
-              :show-arrow="false"
-              :disabled="!settings.enabled"
-            >
-              <template #action>
-                <switch :checked="settings.sound" :disabled="!settings.enabled" color="#D7192D" @change="toggle('sound', $event)" />
-              </template>
-            </AppListItem>
-            <AppListItem
-              :label="t('account.notifications.vibration')"
-              :description="t('account.notifications.vibrationHint')"
-              icon="settings"
-              :clickable="false"
-              :show-arrow="false"
-              :disabled="!settings.enabled"
-            >
-              <template #action>
-                <switch :checked="settings.vibration" :disabled="!settings.enabled" color="#D7192D" @change="toggle('vibration', $event)" />
-              </template>
-            </AppListItem>
           </AppListGroup>
 
           <view class="notification-note">
@@ -106,16 +86,25 @@
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/account/i18n/register.js'
 import { onShow } from '@dcloudio/uni-app'
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppListGroup from '@/shared/ui/AppListGroup/AppListGroup.vue'
 import AppListItem from '@/shared/ui/AppListItem/AppListItem.vue'
-import { getNotificationSettings, saveNotificationSettings } from '@/shared/model/notificationSettings.js'
+import { getSystemNotificationPermission } from '@/shared/services/notificationLifecycle.js'
+import { getNotificationSettings, loadNotificationSettings, persistNotificationSettings } from '@/shared/model/notificationSettings.js'
 
 const settings = reactive(getNotificationSettings())
+const saving = ref(false)
+const loadingSettings = ref(false)
+const nativeApp = ref(false)
+const systemPermission = ref(false)
+// #ifdef APP-PLUS
+nativeApp.value = true
+// #endif
+const loaded = ref(false)
 
 const businessItems = computed(() => [
   { key: 'order', label: t('account.notifications.order'), description: t('account.notifications.orderHint'), icon: 'order' },
@@ -124,11 +113,27 @@ const businessItems = computed(() => [
   { key: 'afterSale', label: t('account.notifications.afterSale'), description: t('account.notifications.afterSaleHint'), icon: 'refresh' },
 ])
 
-onShow(() => Object.assign(settings, getNotificationSettings()))
+onShow(() => { systemPermission.value = getSystemNotificationPermission(); return loadSettings() })
+async function loadSettings() {
+  if (loadingSettings.value) return
+  loadingSettings.value = true
+  loaded.value = false
+  try { Object.assign(settings, await loadNotificationSettings()); loaded.value = true }
+  catch { uni.showToast({ title: t('account.notifications.loadFailed'), icon: 'none' }) }
+  finally { loadingSettings.value = false }
+}
+function openSystemSettings() {
+  // #ifdef APP-PLUS
+  uni.openAppAuthorizeSetting?.({})
+  // #endif
+}
 
-function toggle(key, event) {
-  const value = Boolean(event?.detail?.value)
-  Object.assign(settings, saveNotificationSettings({ ...settings, [key]: value }))
+async function toggle(key, event) {
+  if (saving.value || !loaded.value) return
+  saving.value = true
+  try { Object.assign(settings, await persistNotificationSettings({ ...settings, [key]: Boolean(event?.detail?.value) })) }
+  catch { uni.showToast({ title: t('account.notifications.saveFailed'), icon: 'none' }) }
+  finally { saving.value = false }
 }
 </script>
 

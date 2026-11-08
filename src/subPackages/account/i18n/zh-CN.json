@@ -242,7 +242,7 @@
     "soundHint": "收到新消息时播放提示音",
     "vibration": "震动提醒",
     "vibrationHint": "收到新消息时触发设备震动",
-    "note": "通知偏好保存在当前设备。订单、审核和账单进度可在消息中心查看。",
+    "note": "通知偏好按账号保存。声音和震动请在系统通知设置中调整。",
     "order": "订单消息",
     "orderHint": "下单、付款、发货和订单状态变化",
     "audit": "审核消息",
@@ -250,7 +250,12 @@
     "bill": "账单与授信",
     "billHint": "充值、对账、授信和还款提醒",
     "afterSale": "售后消息",
-    "afterSaleHint": "售后申请、退款和处理结果"
+    "afterSaleHint": "售后申请、退款和处理结果",
+    "loadFailed": "通知设置加载失败，请重试",
+    "saveFailed": "保存失败，请重试",
+    "systemTitle": "系统通知权限",
+    "systemEnabled": "系统通知已开启",
+    "systemDisabled": "系统通知未开启，前往设置"
   },
   "addressForm": {
     "parseTitle": "地址解析",

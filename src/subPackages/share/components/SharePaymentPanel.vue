@@ -41,7 +41,7 @@ const nativeMatrix = computed(() => props.payment.codeUrl ? createQrMatrix(props
 <style scoped>
 .payment-heading { display: block; color: var(--type-title-color); font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-semibold, 600); line-height: 24px; }
 .payment-total { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 12px 0; color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); }
-.amount { max-width: 100%; color: var(--color-brand, #D7192D); font-size: var(--type-money-size, 18px); font-weight: var(--font-weight-bold, 700); font-variant-numeric: tabular-nums; }
+.amount { max-width: 100%; color: var(--color-brand, #D7192D); font-size: var(--type-money-total-size, 24px); line-height: var(--type-money-total-line-height, 32px); font-weight: var(--font-weight-bold, 700); font-variant-numeric: tabular-nums; }
 .payment-status { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: var(--radius-control, 10px); background: var(--surface-subtle, #F5F6F8); color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); }
 .deadline-time { flex-shrink: 0; margin-left: auto; color: var(--type-title-color); font-weight: var(--font-weight-semibold, 600); font-variant-numeric: tabular-nums; }
 .native-pay { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 12px; text-align: center; }

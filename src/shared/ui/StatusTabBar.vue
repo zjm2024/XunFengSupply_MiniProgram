@@ -119,15 +119,15 @@ function getPoint(touch) {
   flex: 0 0 auto;
   padding: 0 13px;
   border-radius: var(--radius-small, 8px);
-  color: #737983;
-  background: rgba(255, 255, 255, .86);
+  color: var(--type-secondary-color, #62666F);
+  background: var(--surface-card, #FFF);
   font-size: var(--type-caption-size, 12px);
   line-height: 18px;
   white-space: nowrap;
   transition: color .16s ease, background .16s ease, border-color .16s ease, transform .16s ease;
 }
 
-.status-tab-item.active { color: #FFF; background: var(--color-brand, #D7192D); font-weight: var(--font-weight-bold, 700); }
+.status-tab-item.active { color: var(--primary-dark, #B91224); background: var(--color-brand-soft, #FFF1F2); font-weight: var(--font-weight-bold, 700); }
 .status-tab-item:active { transform: scale(.96); }
 
 .status-tab-label { line-height: 18px; }
@@ -149,7 +149,7 @@ function getPoint(touch) {
   line-height: 1;
 }
 
-.status-tab-count.active { color: #FFF; background: rgba(255, 255, 255, .22); }
+.status-tab-count.active { color: var(--primary-dark, #B91224); background: var(--color-brand-100, #FFE0E3); }
 
 @media screen and (max-width: 380px) {
   .status-tab-track { gap: 6px; }

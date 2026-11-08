@@ -3,7 +3,7 @@
  */
 import { defineStore } from 'pinia'
 import storage from '../utils/storage.js'
-import { runSessionCleanup } from './sessionCleanup.js'
+import { runSessionCleanup, beginSessionRelease } from './sessionCleanup.js'
 
 export const DEALER_PERMISSIONS = Object.freeze({
   ORDER_VIEW: 'ORDER_VIEW',
@@ -173,14 +173,14 @@ export const useUserStore = defineStore('user', {
       Object.entries(persisted).forEach(([key, value]) => storage.set(key, value))
     },
 
-    async logout() {
-      this.$reset()
+    async logout(options = {}) {
+      const release = beginSessionRelease(options)
       storage.clearAllForLogout()
-      try {
-        await runSessionCleanup()
-      } catch (e) {
-        // 分包未注册清理函数时无需阻断退出。
-      }
+      this.$reset()
+      await release
+      // A new login may finish while the previous device unbind is still pending.
+      if (this.token) return
+      try { await runSessionCleanup() } catch { /* Local credentials have already been cleared. */ }
     },
 
     restoreLoginState() {

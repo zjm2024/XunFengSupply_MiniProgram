@@ -20,7 +20,7 @@ button::after { border: 0; }
 .stock-numbers text:last-child { margin-top: 3px; color: #414954; font-size: var(--type-section-title-size, 18px); font-weight: var(--font-weight-semibold, 600); font-variant-numeric: tabular-nums; }
 .stock-numbers .primary text:last-child { color: #D7192D; }
 .pressed { opacity: .7; }
-.section-card { margin-top: 16px; padding: 18px 16px; border-radius: var(--radius-feature, 18px); background: #fff; }
+.section-card { margin-top: var(--module-gap, 12px); padding: var(--module-padding, 16px); border-radius: var(--radius-card, 16px); background: var(--surface-card, #FFF); }
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .section-title { color: #2C333D; font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-semibold, 600); }
 .muted { color: #9097A1; font-size: var(--type-caption-size, 12px); line-height: 1.7; }

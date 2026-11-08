@@ -242,7 +242,7 @@
     "soundHint": "Play a sound for new messages",
     "vibration": "Vibration",
     "vibrationHint": "Vibrate for new messages",
-    "note": "Notification preferences are saved on this device. Track orders, reviews and statements in the message center.",
+    "note": "Notification preferences are saved to your account. Manage sound and vibration in your device settings.",
     "order": "Order alerts",
     "orderHint": "Order placement, payment, shipping and status updates",
     "audit": "Review alerts",
@@ -250,7 +250,12 @@
     "bill": "Statements and credit",
     "billHint": "Top-up, reconciliation, credit and repayment reminders",
     "afterSale": "After-sales alerts",
-    "afterSaleHint": "After-sales requests, refunds and results"
+    "afterSaleHint": "After-sales requests, refunds and results",
+    "loadFailed": "Could not load notification settings. Please retry.",
+    "saveFailed": "Could not save settings. Please retry.",
+    "systemTitle": "System notification permission",
+    "systemEnabled": "System notifications are enabled",
+    "systemDisabled": "Notifications are off. Open system settings"
   },
   "addressForm": {
     "parseTitle": "Address parsing",
