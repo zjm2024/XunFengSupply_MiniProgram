@@ -261,6 +261,11 @@ async function openPdf() {
   }
 
   pdfDocument = await Promise.race([loadingTask.promise, rangeError])
+  mountPdfPages()
+}
+
+/** 根据已加载文档创建懒加载页面。 */
+function mountPdfPages() {
   for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber += 1) {
     createPageElement(pageNumber)
   }
@@ -268,4 +273,26 @@ async function openPdf() {
   observePages()
 }
 
-openPdf().catch(showError)
+if (new URLSearchParams(window.location.search).get('private') === '1') {
+  let opening = false
+
+  /** 打开由本地父页面通过登录态取得的私有 PDF。 */
+  window.openPrivatePdf = async data => {
+    if (opening || pdfDocument || typeof data !== 'string' || data.length > 2796204) return
+    opening = true
+    try {
+      const bytes = Uint8Array.from(atob(data), char => char.charCodeAt(0))
+      pdfDocument = await pdfjsLib.getDocument({ data: bytes, isEvalSupported: false }).promise
+      mountPdfPages()
+    } catch (error) { showError(error) }
+    finally { opening = false }
+  }
+  window.addEventListener('message', event => {
+    if (event.origin === window.location.origin && event.source === window.parent && event.data?.type === 'pdf-viewer-private') {
+      void window.openPrivatePdf(event.data.data)
+    }
+  })
+  if (window.parent !== window) window.parent.postMessage({ type: 'pdf-viewer-private-ready' }, window.location.origin)
+} else {
+  openPdf().catch(showError)
+}

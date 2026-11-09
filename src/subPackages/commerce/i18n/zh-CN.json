@@ -201,6 +201,7 @@
     "variantCount": "{count} 种"
   },
   "catalog": {
+    "searchProduct": "搜商品",
     "refreshing": "刷新中",
     "loading": "加载中...",
     "notFound": "未找到相关商品",
@@ -253,6 +254,7 @@
     "fillTitle": "按规格批量填数",
     "fillHint": "一键填数将覆盖所有可采购 SKU 的数量",
     "quantityPlaceholder": "输入数量",
+    "quantityShort": "数量",
     "fill": "全表填数",
     "clear": "一键清空",
     "copy": "同色填数",

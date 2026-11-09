@@ -111,7 +111,7 @@
               <text class="card-title">{{ t('order.detail.deliveryInfo') }}</text>
               <button v-if="canArrangeFulfillment" class="arrange-button" @tap="goToFulfillmentSplit">{{ t('order.detail.arrange') }}</button>
             </view>
-            <text class="split-overview">{{ splitBatchGroups.length ? splitOverview : fulfillmentSummary }}</text>
+            <text v-if="splitOverview" class="split-overview">{{ splitOverview }}</text>
             <view v-for="batch in visibleSplitBatchGroups" :key="batch.batchNo || batch.sequence" class="split-batch-group">
               <text v-if="!batch.isCurrent" class="split-history-heading">{{ t('order.detail.historyBatch', { sequence: batch.sequence }) }}</text>
               <view v-for="split in batch.splits" :key="split.splitId || split.splitNo" class="split-block">
@@ -350,14 +350,6 @@ const fullAddress = computed(() => {
   return `${d.receiverProvince || ''}${d.receiverCity || ''}${d.receiverDistrict || ''}${d.receiverAddress || ''}`
 })
 
-/** 当前批次由后端标识，旧响应仅按最新配送记录回显历史结构。 */
-const currentSplitBatch = computed(() => {
-  const splits = detail.value?.fulfillmentSplits ?? []
-  const latest = splits.find(split => split.isCurrentBatch)
-    || [...splits].sort((left, right) => Number(right.splitId) - Number(left.splitId))[0]
-  return { batchNo: latest?.splitBatchNo || '' }
-})
-
 const splitBatchGroups = computed(() => {
   const splits = detail.value?.fulfillmentSplits ?? []
   const groups = []
@@ -365,7 +357,7 @@ const splitBatchGroups = computed(() => {
   splits.forEach(split => {
     const batchNo = split.splitBatchNo || ''
     if (!byBatch.has(batchNo)) {
-      const group = { batchNo, splits: [], sequence: groups.length + 1, isCurrent: batchNo === currentSplitBatch.value.batchNo, total: 0 }
+      const group = { batchNo, splits: [], sequence: groups.length + 1, isCurrent: split.isCurrentBatch, total: 0 }
       byBatch.set(batchNo, group)
       groups.push(group)
     }
@@ -385,7 +377,8 @@ const visibleSplitBatchGroups = computed(() => showSplitHistory.value
 /** 这里只概括配送单数量，阶段文案由主状态和每个配送单各展示一次。 */
 const splitOverview = computed(() => {
   const batch = splitBatchGroups.value.find(group => group.isCurrent)
-  return batch ? t('order.detail.splitBatchSummary', { count: batch.total }) : ''
+  if (batch) return t('order.detail.splitBatchSummary', { count: batch.total })
+  return canArrangeFulfillment.value ? fulfillmentSummary.value : ''
 })
 /** 主状态及退款提示由后端通过启用字典生成，列表与详情完全共用。 */
 const orderDisplay = computed(() => getOrderCustomerDisplay(detail.value))

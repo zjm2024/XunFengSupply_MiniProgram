@@ -48,7 +48,7 @@
                 </picker>
                 <input v-model="batchFillNumber" type="number" class="batch-fill-input"
                   :aria-label="t('commerce.variants.quantityPlaceholder')"
-                  :placeholder="t('commerce.variants.quantityPlaceholder')" @confirm="applyBatchFill" />
+                  :placeholder="t('commerce.variants.quantityShort')" @confirm="applyBatchFill" />
                 <button class="batch-fill-btn button-center" @click="applyBatchFill">{{ t('commerce.variants.applyFill') }}</button>
                 <button class="clear-btn button-center" :disabled="!selectedLines.length" @click="clearAll">{{ t('commerce.variants.clearShort') }}</button>
               </view>
@@ -657,7 +657,7 @@ function localError(messageKey) {
   .batch-fill-btn, .clear-btn { padding-inline: 8px; }
   .batch-fill-input { height: 36px; padding-inline: 8px; }
   .batch-fill-row { gap: 5px; }
-  .fill-scope { flex-basis: 86px; }
+  .fill-scope { flex: 0 0 100px; }
   .collapse-btn { width: 34px; height: 34px; }
   .spec-scroll.is-matrix .sku-row, .spec-scroll.is-matrix .matrix-empty { min-height: 54px; }
   .spec-scroll.is-matrix { --matrix-color-width: 82px; --matrix-cell-width: 78px; }

@@ -28,7 +28,7 @@ export function createShareCheckout({ getAccess, getDraft, onChange, onSessionEr
   }
   /** 错误信息不携带请求或原始响应；鉴权终态交回父级会话处理。 */
   function fail(error) {
-    state.busy = false; quote = null; submission = null; state.preview = null
+    state.busy = false; state.locked = false; quote = null; submission = null; state.preview = null
     if ([401, 403, 410].includes(error?.httpStatus)) { reset(); onSessionError?.(error); return }
     state.error = error?.httpStatus === 429 ? 'limited' : error?.httpStatus === 409 ? 'changed' : error instanceof TypeError ? 'input' : 'retry'
     state.phase = 'editing'; emit()

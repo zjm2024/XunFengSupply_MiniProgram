@@ -161,6 +161,10 @@
     "priceFrom": "From ¥{price}"
   },
   "orderDetail": {
+    "goodsAmount": "Items subtotal",
+    "refundedAmount": "Refunded amount",
+    "tracking": "Shipment tracking",
+    "trackingNo": "Tracking number",
     "title": "Order details",
     "products": "Products",
     "productSummary": "{count} products · {quantity} items",
@@ -189,6 +193,7 @@
     }
   },
   "checkout": {
+    "requote": "Refresh quote",
     "title": "Checkout preview",
     "notice": "A preview does not submit an order or reserve stock. Online WeChat payment only.",
     "loading": "Loading delivery options…",

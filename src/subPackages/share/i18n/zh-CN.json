@@ -161,6 +161,10 @@
     "priceFrom": "¥{price} 起"
   },
   "orderDetail": {
+    "goodsAmount": "商品金额",
+    "refundedAmount": "已退款金额",
+    "tracking": "物流信息",
+    "trackingNo": "运单号",
     "title": "订单详情",
     "products": "商品信息",
     "productSummary": "{count} 款 · {quantity} 件",
@@ -189,6 +193,7 @@
     }
   },
   "checkout": {
+    "requote": "重新报价",
     "title": "结算预览",
     "notice": "预览金额不代表已提交订单，不占库存。仅支持在线微信支付。",
     "loading": "正在读取配送选项…",

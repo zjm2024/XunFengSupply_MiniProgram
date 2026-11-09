@@ -1,7 +1,7 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader :title="invoiceId ? t('content.titles.invoicePreview') : t('content.titles.manualPreview')" :show-back="true" @back="goBack" />
+      <AppHeader :title="pageTitle" :show-back="true" @back="goBack" />
     </template>
     <template #content>
       <view class="pdf-page">
@@ -36,8 +36,14 @@ import { navigator } from '@/app/navigation/navigator.js'
 import { useResponsive } from '@/shared/composables/useResponsive.js'
 import { getManualDetail } from '../../api/manual.js'
 import { getInvoiceDetail } from '@/shared/api/invoice.js'
+import { getWithdrawalReceipt } from '@/shared/api/withdrawal.js'
 
 const invoiceId = ref('')
+const withdrawalId = ref('')
+const pageTitle = computed(() => t(withdrawalId.value ? 'content.titles.withdrawalReceiptPreview'
+  : invoiceId.value ? 'content.titles.invoicePreview' : 'content.titles.manualPreview'))
+let receiptBase64 = ''
+let active = true
 const manualId = ref('')
 const loading = ref(true)
 const loadFailure = ref(null)
@@ -68,6 +74,10 @@ const bottomSafeHeight = () => Math.max(Number(safeArea.value.bottom) || 0, 8)
 
 onLoad((options = {}) => {
   invoiceId.value = String(options.invoiceId || '')
+  withdrawalId.value = String(options.withdrawalId || '')
+  // #ifdef H5
+  if (withdrawalId.value) window.addEventListener('message', handlePrivateViewerReady)
+  // #endif
   manualId.value = String(options.manualId || '')
   loadDetail()
 })
@@ -79,7 +89,7 @@ onReady(() => {
 
 /** 读取原 PDF 附件地址，保留原生布局与加载流程。 */
 async function loadDetail() {
-  if (!manualId.value && !invoiceId.value) {
+  if (!manualId.value && !invoiceId.value && !withdrawalId.value) {
     loadFailure.value = { messageKey: 'content.manual.missingId' }
     loading.value = false
     return
@@ -90,6 +100,25 @@ async function loadDetail() {
   viewerUrl.value = ''
   resetNativePdfWebview()
   try {
+    if (withdrawalId.value) {
+      const data = await getWithdrawalReceipt(withdrawalId.value)
+      if (!active) return
+      if (!data) {
+        loadFailure.value = { messageKey: 'content.manual.noPdf' }
+        return
+      }
+      // #ifdef MP-WEIXIN
+      await openMiniReceipt(data)
+      if (active) navigator.back()
+      // #endif
+      // #ifndef MP-WEIXIN
+      receiptBase64 = data
+      viewerUrl.value = '/subPackages/content/static/pdf-viewer/index.html?embedded=1&private=1&ui='
+        + encodeURIComponent(JSON.stringify(viewerLanguagePayload()))
+      // #endif
+      return
+    }
+
     const detail = invoiceId.value
       ? await getInvoiceDetail(invoiceId.value)
       : await getManualDetail(manualId.value)
@@ -110,6 +139,47 @@ async function loadDetail() {
 
 function goBack() { navigator.back() }
 
+// #ifdef MP-WEIXIN
+/** 通过小程序原生PDF预览打开凭证并清理临时文件。 */
+async function openMiniReceipt(data) {
+  const fs = uni.getFileSystemManager()
+  const filePath = wx.env.USER_DATA_PATH + '/withdrawal-' + Date.now() + '.pdf'
+  try {
+    await new Promise((resolve, reject) => fs.writeFile({ filePath, data, encoding: 'base64', success: resolve, fail: reject }))
+    await new Promise((resolve, reject) => uni.openDocument({ filePath, fileType: 'pdf', showMenu: false, success: resolve, fail: reject }))
+  } finally {
+    fs.unlink({ filePath, fail: () => {} })
+  }
+}
+// #endif
+
+/** 向当前本地阅读器发送凭证字节，不写入路由或公开URL。 */
+function sendPrivateReceipt() {
+  if (!receiptBase64) return
+  // #ifdef H5
+  const iframe = receiptFrame()
+  if (iframe?.contentWindow) iframe.contentWindow.postMessage({ type: 'pdf-viewer-private', data: receiptBase64 }, window.location.origin)
+  // #endif
+  // #ifdef APP-PLUS
+  nativePdfWebview?.evalJS?.('window.openPrivatePdf?.(' + JSON.stringify(receiptBase64) + ')')
+  // #endif
+}
+
+// #ifdef H5
+/** 获取当前页面的嵌入阅读器，兼容 uni-app 返回原生元素或组件实例。 */
+function receiptFrame() {
+  const element = viewerComponent.value?.$el || viewerComponent.value
+  if (element?.tagName === 'IFRAME') return element
+  return element?.querySelector?.('iframe') || document.querySelector('iframe[src*="pdf-viewer/index.html?embedded=1&private=1"]')
+}
+
+/** 等待同源私有阅读器完成监听后传递本次凭证。 */
+function handlePrivateViewerReady(event) {
+  if (event.origin === window.location.origin && event.source === receiptFrame()?.contentWindow
+      && event.data?.type === 'pdf-viewer-private-ready') sendPrivateReceipt()
+}
+// #endif
+
 /** 从 content JSON 取出独立阅读器文案，不向 HTML 传递会话或修改附件签名地址。 */
 function viewerLanguagePayload() {
   return { type: 'pdf-viewer-locale', locale: getLocale(),
@@ -119,6 +189,7 @@ function viewerLanguagePayload() {
 /** 阅读器加载完成后同步语言和原生位置，已加载文档不重建。 */
 function handleViewerLoad() {
   syncViewerLanguage()
+  sendPrivateReceipt()
   scheduleNativePdfLayout()
 }
 
@@ -157,6 +228,7 @@ function scheduleNativePdfLayout() {
     if (webview) {
       nativePdfWebview = webview
       syncViewerLanguage()
+      sendPrivateReceipt()
       applyNativePdfLayout()
       return
     }
@@ -230,6 +302,11 @@ watch([layout, safeArea], () => {
 }, { deep: true })
 
 onUnload(() => {
+  active = false
+  receiptBase64 = ''
+  // #ifdef H5
+  window.removeEventListener('message', handlePrivateViewerReady)
+  // #endif
   resetNativePdfWebview()
 })
 </script>

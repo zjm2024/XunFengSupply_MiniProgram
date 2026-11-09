@@ -79,6 +79,8 @@
     "share": "Sharing center",
     "shareDescription": "Public stock sharing and retail links",
     "invoice": "Invoices",
+    "withdrawal": "Withdrawals",
+    "withdrawalDescription": "Bank cards and withdrawal history",
     "invoiceDescription": "Company details and invoice history",
     "identity": "Customer ID {code}",
     "all": "All",

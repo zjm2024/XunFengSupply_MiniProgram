@@ -22,9 +22,21 @@
       </view>
       <view class="detail-side-column">
         <SharePaymentPanel class="detail-card payment-card" :order="detail.order" :payment="payment" :status="paymentState" :countdown="countdown" />
+        <view v-if="detail.tracking?.length" class="detail-card">
+          <view class="card-heading"><text class="card-title">{{ t('share.orderDetail.tracking') }}</text></view>
+          <view v-for="(shipment, index) in detail.tracking" :key="index" class="share-info-row">
+            <text>{{ shipment.carrierName || t('share.orderDetail.trackingNo') }}</text>
+            <text class="share-value" selectable>{{ shipment.trackingNo }}</text>
+          </view>
+        </view>
         <view class="detail-card order-info-card">
           <view class="card-heading"><text class="card-title">{{ t('share.orderDetail.orderInfo') }}</text></view>
           <view class="share-info-row"><text>{{ t('share.orderDetail.orderNo') }}</text><text class="share-value">{{ detail.order.orderNo }}</text></view>
+          <template v-if="detail.goodsAmount && detail.freightAmount">
+            <view class="share-info-row"><text>{{ t('share.orderDetail.goodsAmount') }}</text><AmountText class="share-value" :text="'¥' + detail.goodsAmount" /></view>
+            <view class="share-info-row"><text>{{ t('share.checkout.freight') }}</text><AmountText class="share-value" :text="'¥' + detail.freightAmount" /></view>
+          </template>
+          <view v-if="detail.refundedAmount" class="share-info-row"><text>{{ t('share.orderDetail.refundedAmount') }}</text><AmountText class="share-value" :text="'¥' + detail.refundedAmount" /></view>
           <view v-if="detail.cancellationNo" class="share-info-row"><text>取消单号</text><text class="share-value">{{ detail.cancellationNo }}</text></view>
           <view v-if="detail.warehouseReleaseState != null" class="share-info-row"><text>取消进度</text><text class="share-value">{{ detail.cancellationState === 5 ? '订单已发货，取消未成功，请查看履约进度' : detail.warehouseReleaseState === 3 ? (detail.refundState === 4 ? '已原路退款' : detail.order.paymentStatus === 3 ? '仓储已确认，退款处理中' : '仓储已确认') : '取消已受理，等待支付及仓储确认' }}</text></view>
           <view class="share-info-row"><text>{{ t('share.orderDetail.deadline') }}</text><text class="share-value">{{ deadlineText }}</text></view>

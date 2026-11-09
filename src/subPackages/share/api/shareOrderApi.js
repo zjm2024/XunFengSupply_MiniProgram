@@ -36,7 +36,15 @@ export async function createShareOrder(access, value, ticket) {
 export async function getCurrentShareOrder(access) {
   const row = await dispatch('MallOrder', 'Mini.ShareOrderController', 'GetCurrent', {}, options(access))
   if (!Array.isArray(row?.items) || row.items.length > 100) throw new TypeError('Invalid share items')
-  return { cancellationState: row.cancellationState, cancellationNo: typeof row.cancellationNo === 'string' ? row.cancellationNo : '', canCancel: row.canCancel === true, refundState: Number(row.refundState || 0), warehouseReleaseState: row.warehouseReleaseState, order: order(row.order), receiver: row.receiverName ? { name: String(row.receiverName), phone: String(row.receiverPhone || ''), address: String(row.receiverAddress || '') } : null, items: row.items.map(item => {
+  const goodsAmount = shareMoney(row.goodsAmount)
+  const freightAmount = shareMoney(row.freightAmount)
+  const refundedAmount = shareMoney(row.refundedAmount)
+  const tracking = Array.isArray(row.tracking) ? row.tracking.filter(entry => typeof entry?.trackingNo === 'string' && entry.trackingNo.trim()).map(entry => ({
+    packageCode: String(entry.packageCode ?? ''),
+    carrierName: String(entry.carrierName ?? ''),
+    trackingNo: entry.trackingNo.trim(),
+  })) : []
+  return { ...(goodsAmount && freightAmount ? { goodsAmount, freightAmount } : {}), ...(tracking.length ? { tracking } : {}), ...(refundedAmount && refundedAmount !== '0.00' ? { refundedAmount } : {}), cancellationState: row.cancellationState, cancellationNo: typeof row.cancellationNo === 'string' ? row.cancellationNo : '', canCancel: row.canCancel === true, refundState: Number(row.refundState || 0), warehouseReleaseState: row.warehouseReleaseState, order: order(row.order), receiver: row.receiverName ? { name: String(row.receiverName), phone: String(row.receiverPhone || ''), address: String(row.receiverAddress || '') } : null, items: row.items.map(item => {
     const skuId = shareId(item.skuId), unitPrice = shareMoney(item.unitPrice), lineAmount = shareMoney(item.lineAmount)
     if (!skuId || !unitPrice || !lineAmount || !Number.isSafeInteger(item.quantity) || item.quantity < 1) throw new TypeError('Invalid share item')
     let spec = ''; try { spec = JSON.parse(item.specSnapshot)?.description || '' } catch { /* 历史快照无规格时回退空文本。 */ }

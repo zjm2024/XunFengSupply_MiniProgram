@@ -63,7 +63,7 @@
     "removeInvalid": "Remove {count} unavailable items?",
     "removeSelected": "Delete {count} selected SKUs?",
     "removeAll": "Clear all {count} SKUs from your cart? This cannot be undone.",
-    "searchPlaceholder": "Product / SKU / barcode",
+    "searchPlaceholder": "Item / SKU / barcode",
     "searchCount": "{count} matching SKUs",
     "showAll": "Show all",
     "selectResults": "Select results",
@@ -201,6 +201,7 @@
     "variantCount": "{count} variants"
   },
   "catalog": {
+    "searchProduct": "Product",
     "refreshing": "Refreshing",
     "loading": "Loading…",
     "notFound": "No matching products",
@@ -253,6 +254,7 @@
     "fillTitle": "Enter quantities by variant",
     "fillHint": "Bulk fill overwrites quantities for all purchasable SKUs",
     "quantityPlaceholder": "Quantity",
+    "quantityShort": "Qty",
     "fill": "Fill all",
     "clear": "Clear all",
     "copy": "Fill color",

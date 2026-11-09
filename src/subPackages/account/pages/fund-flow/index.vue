@@ -88,10 +88,12 @@ const filters = computed(() => [
   { label: t('account.fundFlow.topups'), value: 'recharge' },
   { label: t('account.fundFlow.refunds'), value: 'refund' },
   { label: t('account.fundFlow.transfers'), value: 'transfer' },
+  { label: t('account.withdrawal.title'), value: 'withdrawal' },
 ])
 const titleMap = computed(() => ({
   order_payment: t('account.fundFlow.orderPayment'), payment: t('account.fundFlow.orderPayment'), recharge: t('account.fundFlow.recharge'), refund: t('account.fundFlow.refund'),
   rebate: t('account.fundFlow.rebate'), transfer_in: t('account.fundFlow.transferIn'), transfer_out: t('account.fundFlow.transferOut'),
+  withdrawal: t('account.withdrawal.paidEntry'),
   freeze: t('account.fundFlow.freeze'), unfreeze: t('account.fundFlow.unfreeze'), adjustment: t('account.fundFlow.adjustment'), bill_repayment: t('account.fundFlow.repayment'),
 }))
 

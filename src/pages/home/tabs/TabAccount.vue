@@ -180,6 +180,8 @@ const serviceEntries = computed(() => [
   ...(['PUBLIC_STOCK_SHARE', 'RETAIL_SHARE_CREATE', 'RETAIL_SHARE_VIEW', 'RETAIL_SHARE_REVOKE'].some(code => userStore.hasPermission(code)) ? [{ key: 'share', label: t('main.accountPanel.share'), description: t('main.accountPanel.shareDescription'), icon: 'globe', action: goToShare }] : []),
   { key: 'help', label: accountCopy.value.services.help, description: accountCopy.value.services.helpDescription, icon: 'profile-help', action: goToHelp },
   { key: 'invoice', label: accountCopy.value.services.invoice, description: accountCopy.value.services.invoiceDescription, icon: 'profile-invoice', action: goToInvoice },
+  ...(userStore.isMainAccount ? [{ key: 'withdrawal', label: t('main.accountPanel.withdrawal'),
+    description: t('main.accountPanel.withdrawalDescription'), icon: 'wallet', action: goToWithdrawal }] : []),
 ])
 
 watch(() => props.active, active => {
@@ -236,6 +238,7 @@ function goToOrders(status) { return navigator.navigateTo(routes.order.list(type
 /** 打开经销商分享中心，页面与服务端会再次校验权限。 */
 function goToShare() { return navigator.navigateTo(routes.share.home()) }
 function goToInventory() { return navigator.navigateTo(routes.account.inventoryOverview()) }
+function goToWithdrawal() { return navigator.navigateTo(routes.account.withdrawal()) }
 function goToInvoice() { return navigator.navigateTo(routes.account.invoice()) }
 function goToRecharge() { return navigator.navigateTo(routes.account.recharge()) }
 function goToBill() { return navigator.navigateTo(routes.account.billList()) }

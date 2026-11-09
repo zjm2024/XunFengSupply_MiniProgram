@@ -325,6 +325,14 @@
                     }
                 },
                 {
+                    "path": "pages/withdrawal/index",
+                    "style": { "navigationStyle": "custom" }
+                },
+                {
+                    "path": "pages/withdrawal/bank-cards",
+                    "style": { "navigationStyle": "custom" }
+                },
+                {
                     "path": "pages/invoice/titles",
                     "style": { "navigationStyle": "custom", "navigationBarTitleText": "" }
                 },

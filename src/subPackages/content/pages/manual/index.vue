@@ -188,11 +188,11 @@ async function preview(item) {
 .category-btn { min-height:var(--list-action-height,32px);padding:0 12px;border:1px solid #E5E6EB;border-radius:var(--list-action-radius,8px); color: #666A73; background: #FFF; font-size:var(--list-action-font-size,12px);line-height: 30px; }
 .category-btn::after { border: 0; }
 .category-btn.is-active { border-color: #D7192D; color: #FFF; background: #D7192D; font-weight: var(--font-weight-bold, 700); }
-.manual-list { display: grid; gap: 12px; }
-.manual-item { display: flex; min-height: 92px; align-items: center; gap: 12px; padding: 12px; border-radius: var(--radius-feature, 18px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.manual-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.manual-item { display: flex; min-width: 0; min-height: 92px; align-items: center; gap: 12px; padding: 12px; border-radius: var(--radius-feature, 18px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .manual-cover { width: 70px; height: 82px; flex: 0 0 70px; border-radius: var(--radius-control, 10px); background: #F1F3F6; }
 .manual-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; }
-.manual-title { overflow: hidden; color: #17191E; font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-bold, 700); line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.manual-title { display: -webkit-box; overflow: hidden; color: #17191E; font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-bold, 700); line-height: 1.45; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .manual-meta, .manual-file-hint { margin-top: 7px; color: #9699A1; font-size: var(--type-caption-size, 12px); }
 .manual-file-hint { color: #D7192D; }
 .manual-arrow { flex: 0 0 auto; color: #A0A3AA; }

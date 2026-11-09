@@ -79,6 +79,8 @@
     "share": "分享中心",
     "shareDescription": "公共库存分享与散客链接管理",
     "invoice": "发票中心",
+    "withdrawal": "提现中心",
+    "withdrawalDescription": "收款银行卡与提现记录",
     "invoiceDescription": "企业抬头与开票记录",
     "identity": "客户编号 {code}",
     "all": "全部",
