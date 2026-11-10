@@ -63,12 +63,7 @@
     <view v-else-if="state === 'error'" class="state-error">
       <view class="illustration">
         <slot name="errorIllustration">
-          <view class="icon-placeholder icon-error">
-            <view class="css-icon icon-error-svg">
-              <view class="error-circle" />
-              <view class="error-mark">!</view>
-            </view>
-          </view>
+          <AppSvgIllustration name="no-network" :size="compact ? 'sm' : 'md'" />
         </slot>
       </view>
       <text class="state-title">{{ displayTitle }}</text>
@@ -196,7 +191,7 @@ const EMPTY_ILLUSTRATIONS = Object.freeze({
 
 const emptyIllustrationName = computed(() => EMPTY_ILLUSTRATIONS[props.iconType] || 'no-search-result')
 
-// 注意：图标已改为纯 CSS 实现（见模板中的 css-icon），不再使用 Unicode 符号
+// 空、错误与离线状态复用已注册 SVG 插图；保留插槽供业务覆盖。
 // EmptyType 仍导出供外部判断使用
 
 // ==================== 事件处理 ====================
@@ -365,14 +360,6 @@ export default {
     &.icon-address { background: #EAF2FF; color: $color-info; }
     &.icon-voucher { background: #EAF7F0; color: $color-success; }
 
-    // 特殊状态图标
-    &.icon-error {
-      width: 120rpx;
-      height: 120rpx;
-      border-radius: 50%;
-      background: $color-error-bg;
-      color: $color-error;
-    }
 
     &.icon-offline {
       background: $color-gray-50;
@@ -681,30 +668,6 @@ export default {
     top: 15rpx;
     left: -2rpx;
     box-shadow: 58rpx 0 0 currentColor;
-  }
-}
-
-// 错误图标
-.icon-error-svg {
-  width: 100%;
-  height: 100%;
-  .error-circle {
-    width: 100%;
-    height: 100%;
-    border: 4rpx solid currentColor;
-    border-radius: 50%;
-    top: 0;
-    left: 0;
-  }
-  .error-mark {
-    font-size: var(--type-heading-size, 24px);
-    font-weight: var(--font-weight-bold, 700);
-    color: currentColor;
-    line-height: 1;
-    text-align: center;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
   }
 }
 

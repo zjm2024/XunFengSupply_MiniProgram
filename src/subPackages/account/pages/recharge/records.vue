@@ -19,7 +19,7 @@
       >
         <view class="records-page">
           <view class="record-summary">
-            <StatusTabBar :items="tabs" :model-value="activeTab" max-width="100%" @change="changeTab" />
+            <text class="finance-title">{{ t('account.rechargeRecords.paidRecords') }}</text>
             <text class="finance-meta">{{ t('account.rechargeRecords.count', { count: totalCount }) }}</text>
           </view>
 
@@ -53,7 +53,7 @@
                       <view v-if="record.transactionId" class="detail-row"><text>{{ t('account.rechargeRecords.transaction') }}</text><text>{{ record.transactionId }}</text></view>
                       <view v-if="isConfirming(record)" class="recovery-note">
                         <AppIcon name="refresh" :size="14" />
-                        <text>{{ t('account.fundCenter.confirmingRecharge') }}{{ record.nextQueryAt ? ' · ' + t('account.fundCenter.nextRechargeQuery', { time: formatDateTime(record.nextQueryAt, 'MM-DD HH:mm') }) : '' }}</text>
+                        <text>{{ t('account.rechargeRecords.processingHint') }}</text>
                       </view>
                       <view v-if="record.failureMessage" class="recovery-note is-failure">
                         <AppIcon name="info" :size="14" />
@@ -90,23 +90,11 @@ import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
-import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
 import { PageStatus } from '@/shared/model/pageState.js'
 import { getRechargeList } from '../../api/settlement.js'
 import { formatDateTime } from '../../../../shared/utils/format.js'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
-const tabs = Object.freeze([
-  { key: 'all', /** 筛选通用名称随语言刷新，状态码保持不变。 */ get label() { return t('account.rechargeRecords.all') }, value: 'all', status: undefined },
-  { key: 'pending', get label() { return statusText(0) }, value: 'pending', status: 0 },
-  { key: 'unknown', get label() { return statusText(5) }, value: 'unknown', status: 5 },
-  { key: 'closed', get label() { return statusText(4) }, value: 'closed', status: 4 },
-  { key: 'audit', /** 筛选标签随语言刷新，原充值状态码不变。 */ get label() { return t('account.rechargeRecords.filters.audit') }, value: 'audit', status: 6 },
-  { key: 'processing', /** 筛选标签随语言刷新，原充值状态码不变。 */ get label() { return t('account.rechargeRecords.filters.processing') }, value: 'processing', status: 1 },
-  { key: 'success', /** 筛选标签随语言刷新，原充值状态码不变。 */ get label() { return t('account.rechargeRecords.filters.success') }, value: 'success', status: 2 },
-  { key: 'failed', /** 筛选标签随语言刷新，原充值状态码不变。 */ get label() { return t('account.rechargeRecords.filters.failed') }, value: 'failed', status: 3 },
-])
-const activeTab = ref('all')
 const expandedId = ref(null)
 let requestSequence = 0
 const records = ref([])
@@ -131,12 +119,6 @@ const loadMoreStatus = computed(() => {
 onShow(() => { reload() })
 
 function toggleRecord(id) { expandedId.value = expandedId.value === id ? null : id }
-
-function changeTab(key) {
-  if (key === activeTab.value) return
-  activeTab.value = key
-  reload()
-}
 
 async function reload() {
   pageNum.value = 1
@@ -176,8 +158,7 @@ async function fetchPage(append) {
   if (append) loadingMore.value = true
   loadFailure.value = null
   try {
-    const tab = tabs.find(item => item.key === activeTab.value)
-    const result = await getRechargeList({ pageNum: pageNum.value, pageSize, status: tab?.status })
+    const result = await getRechargeList({ pageNum: pageNum.value, pageSize })
     if (sequence !== requestSequence) return
     records.value = append ? [...records.value, ...result.items] : result.items
     totalCount.value = result.totalCount
@@ -199,14 +180,11 @@ async function fetchPage(append) {
 }
 
 function statusText(status) {
-  const key = [0, 1, 2, 3, 4, 5, 6].includes(Number(status)) ? status : 'unknown'
-  return t('account.fundCenter.rechargeStatus.' + key)
+  return t(Number(status) === 3 ? 'account.rechargeRecords.creditException'
+    : Number(status) === 1 ? 'account.rechargeRecords.creditProcessing' : 'account.fundCenter.rechargeStatus.2')
 }
 
-function isConfirming(record) {
-  return [0, 5].includes(Number(record?.status))
-    && ['wechat', 'wechat_native'].includes(String(record?.payMethod || '').toLowerCase())
-}
+function isConfirming(record) { return Number(record?.status) === 1 }
 
 /** 仅翻译已存在的充值渠道显示名，未知渠道使用通用标题。 */
 function payMethodText(method) {

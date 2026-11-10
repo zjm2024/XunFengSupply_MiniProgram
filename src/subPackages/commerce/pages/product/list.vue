@@ -7,7 +7,7 @@
       :sort-key="sortKey"
       :filter-count="activeFilterCount"
       :auto-focus="searchMode"
-      :placeholder="t('commerce.catalog.searchProduct')"
+      :placeholder="t('main.search.placeholder')"
       :keyword-committed="keywordCommitted"
       :show-cart="!searchMode"
       :show-tools="showCatalogTools"
@@ -24,8 +24,6 @@
       @remove-filter="removeFilter"
       @clear-filters="clearFilters"
     />
-
-    <text v-if="!keywordCommitted" class="catalog-search-hint">{{ t('main.search.placeholder') }}</text>
 
     <!-- 可滚动区域：商品列表 -->
     <view class="product-content">
@@ -540,16 +538,6 @@ function goToDetail(item) {
   background: var(--surface-page, #F4F5F8);
   display: flex;
   flex-direction: column;
-}
-
-.catalog-search-hint {
-  display: block;
-  padding: 0 var(--page-padding-x, 16px) 8px;
-  color: var(--type-secondary-color, #62666f);
-  font-size: var(--type-caption-size, 12px);
-  line-height: 1.4;
-  text-align: center;
-  overflow-wrap: anywhere;
 }
 
 .catalog-header {

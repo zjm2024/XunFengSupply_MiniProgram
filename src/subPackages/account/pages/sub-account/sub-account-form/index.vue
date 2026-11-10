@@ -10,7 +10,7 @@
           <view class="form-card">
             <view class="form-group">
               <text class="form-label">{{ t('account.subAccountForm.username') }}<text class="required">*</text></text>
-              <input
+              <input :placeholder-style="$inputPlaceholderStyle"
                 v-model="formData.username"
                 class="form-input"
                 :placeholder="t('account.subAccountForm.usernameRequired')"
@@ -20,7 +20,7 @@
 
             <view v-if="!isEdit" class="form-group">
               <text class="form-label">{{ t('account.subAccountForm.password') }}<text class="required">*</text></text>
-              <input
+              <input :placeholder-style="$inputPlaceholderStyle"
                 v-model="formData.password"
                 class="form-input"
                 type="password"
@@ -32,7 +32,7 @@
 
             <view class="form-group">
               <text class="form-label">{{ t('account.subAccountForm.realName') }}</text>
-              <input
+              <input :placeholder-style="$inputPlaceholderStyle"
                 v-model="formData.realName"
                   class="form-input"
                   :placeholder="t('account.subAccountForm.realNamePlaceholder')"
@@ -42,7 +42,7 @@
 
             <view class="form-group">
               <text class="form-label">{{ t('account.subAccountForm.mobile') }}</text>
-              <input
+              <input :placeholder-style="$inputPlaceholderStyle"
                 v-model="formData.mobile"
                 class="form-input"
                   type="number"

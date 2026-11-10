@@ -329,7 +329,6 @@
 
   &.is-invalid {
     grid-template-columns: 84px minmax(0, 1fr) auto;
-    opacity: 0.65;
     background: tokens.$color-bg-subtle;
   }
 }
@@ -831,3 +830,9 @@
   -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
   backdrop-filter: var(--glass-card-blur, blur(16px));
 }
+
+.invalid-spu .spu-name, .invalid-spu .product-name,
+.invalid-spu .invalid-price, .invalid-spu .invalid-reason {
+  color: var(--color-text-secondary, #737a84);
+}
+.invalid-price { margin-top: 6px; font-size: var(--type-money-size, 18px); }

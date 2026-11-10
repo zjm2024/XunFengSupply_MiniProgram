@@ -40,7 +40,7 @@
         </button>
         <button v-if="carrierError" class="text-action" :disabled="saving" @tap="loadCarriers">{{ t('common.retry') }} · {{ carrierError }}</button>
         <text class="field-label">{{ t('order.afterSaleDetail.trackingNo') }}</text>
-        <input v-model="logistics.trackingNo" class="field-input" :disabled="saving" maxlength="100" :placeholder="t('order.afterSaleDetail.trackingPlaceholder')" />
+        <input :placeholder-style="$inputPlaceholderStyle" v-model="logistics.trackingNo" class="field-input" :disabled="saving" maxlength="100" :placeholder="t('order.afterSaleDetail.trackingPlaceholder')" />
         <text v-if="saveError" class="save-error">{{ saveError }}</text>
         <button class="return-submit" :disabled="saving || !canSave" @tap="saveLogistics">{{ saving ? t('order.afterSale.submitting') : t('order.afterSaleDetail.submitLogistics') }}</button>
       </view>

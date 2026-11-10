@@ -141,7 +141,7 @@
                 <text>{{ account.isMaster ? t('order.pay.masterAccount') : (account.realName || account.username) }}</text>
                 <AmountText :text="t('order.pay.availableBalance', { amount: Number(account.availableBalance || 0).toFixed(2) })" />
               </view>
-              <input
+              <input :placeholder-style="$inputPlaceholderStyle"
                 v-if="isSelected(account)"
                 class="source-input"
                 type="digit"
@@ -165,14 +165,35 @@
     </template>
     <template #footer>
       <FixedActionBar>
-        <button 
-          class="confirm-pay-btn" 
+        <button
+          class="confirm-pay-btn"
           :disabled="paying || !orderPayable || paymentExpired || (payMode === PAYMENT_MODE.CASH && !cashPaymentAvailable) || (payMode === PAYMENT_MODE.COMBINATION && !hasSufficientBalance)"
           @click="handleConfirmPay"
         >
           {{ confirmButtonText }}
         </button>
       </FixedActionBar>
+    </template>
+    <template #overlay>
+      <ConfirmPopup v-model="nativeQrVisible" :title="t('order.pay.qrTitle')" :show-cancel="false" :show-confirm="false">
+        <view class="order-qr-content">
+          <text class="order-qr-label">{{ t('order.pay.amountDue') }}</text>
+          <AmountText class="order-qr-amount" :text="'¥' + Number(qrState.intent?.amount || payAmount).toFixed(2)" />
+          <text class="order-qr-number">{{ checkoutBatchId ? t('order.pay.qrBatch') : orderNo }}</text>
+          <text class="order-qr-hint" role="status">{{ qrStatusText }}</text>
+          <view v-if="qrMatrix.length" class="order-qr-code" :aria-label="t('order.pay.qrTitle')">
+            <view v-for="(row, rowIndex) in qrMatrix" :key="rowIndex" class="order-qr-row">
+              <view v-for="(dark, columnIndex) in row" :key="columnIndex" class="order-qr-cell" :class="{ dark }" />
+            </view>
+          </view>
+          <view v-if="qrState.phase === 'paid'" class="order-qr-success"><AppIcon name="check" :size="40" color="#168A52" /></view>
+          <text v-if="qrState.error" class="order-qr-error" role="alert">{{ qrErrorText }}</text>
+          <AppButton v-if="qrState.phase === 'closed' || (qrState.phase === 'error' && !qrState.intent?.rechargeNo)" block @tap="retryOrderQr">{{ t('order.pay.qrRetry') }}</AppButton>
+          <AppButton v-else-if="!['creating','confirming','paid'].includes(qrState.phase)" block :loading="qrChecking" @tap="checkOrderQr">{{ t(qrState.phase === 'confirm-error' ? 'order.pay.qrConfirmRetry' : 'order.pay.qrCheck') }}</AppButton>
+          <AppButton block variant="ghost" @tap="nativeQrVisible = false">{{ t('order.pay.qrClose') }}</AppButton>
+          <text class="order-qr-footnote">{{ t('order.pay.qrCloseHint') }}</text>
+        </view>
+      </ConfirmPopup>
     </template>
   </AppPageShell>
 </template>
@@ -181,7 +202,7 @@
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/order/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { onHide, onLoad, onShow } from '@dcloudio/uni-app'
 import { getOrderDetail } from '../../api/orderApi.js'
 import { parseUtcToLocal } from '../../../../shared/utils/format.js'
@@ -198,6 +219,10 @@ import { routes } from '@/app/config/routes.js'
 import { confirmCheckoutPayment, confirmDealerOrderPayment, getCheckoutPayment, getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import { AppError, ErrorKind } from '@/shared/api/appError.js'
 import { openAppDialog } from '@/shared/composables/useAppDialog.js'
+import ConfirmPopup from '@/shared/ui/ConfirmPopup/ConfirmPopup.vue'
+import { createQrMatrix } from '@/shared/utils/qrMatrix.js'
+import { createNativeRecharge, getRechargeStatus } from '@/shared/api/dealerFinance.js'
+import { createOrderQrPayment } from '../../model/orderQrPayment.js'
 
 const userStore = useUserStore()
 
@@ -210,7 +235,7 @@ const loadingBatch = ref(false)
 const checkoutPaymentKeys = new Map()
 const payMode = ref(PAYMENT_MODE.COMBINATION)     // 默认使用单一余额账户支付
 const payAmount = ref(0)    // 单位：元（后端返回元）
-// 汇报演示默认进入网页微信扫码充值。
+// 在线支付在当前收银台展示微信扫码，不跳转充值页。
 const payType = ref('wechat_native')
 const paying = ref(false)
 const remainTime = ref(0)   // 剩余时间（秒）
@@ -218,7 +243,82 @@ const paymentExpired = ref(false)
 const confirmationPending = ref(false)
 const finance = ref({ credit: {}, accounts: [] })
 const cashPaymentAvailable = true
-let returningFromRecharge = false
+
+
+const nativeQrVisible = ref(false)
+const qrState = ref({ phase: 'idle', intent: null, error: '' })
+const qrChecking = ref(false)
+let qrPayment = null
+let qrPollTimer = null
+let qrPollCount = 0
+const qrMatrix = computed(() => {
+  // 倒计时让后台返回和二维码有效期同步刷新；过期码只查询原单，不新建第二笔。
+  void remainTime.value
+  const intent = qrState.value.intent
+  if (!intent?.codeUrl || !['pending','unknown'].includes(qrState.value.phase)) return []
+  if (intent.expiresAtUtc && parseUtcToLocal(intent.expiresAtUtc).getTime() <= Date.now()) return []
+  try { return createQrMatrix(intent.codeUrl) } catch { return [] }
+})
+const qrStatusText = computed(() => {
+  const phase = qrState.value.phase
+  if (phase === 'creating') return t('order.pay.qrCreating')
+  if (phase === 'confirming') return t('order.pay.qrConfirming')
+  if (phase === 'paid') return t('order.pay.paid')
+  if (phase === 'confirm-error') return t('order.pay.qrConfirmFailed')
+  if (phase === 'closed') return t('order.pay.qrClosed')
+  return t(qrMatrix.value.length ? 'order.pay.qrScan' : 'order.pay.qrPending')
+})
+const qrErrorText = computed(() => {
+  const key = { PAYMENT_FACT_MISMATCH: 'qrFactMismatch', PAYMENT_CONTEXT_CHANGED: 'qrContextChanged' }[qrState.value.error]
+  return key ? t('order.pay.' + key) : qrState.value.error
+})
+watch([nativeQrVisible, () => qrState.value.phase], syncQrPolling)
+watch(() => userStore.token, () => { qrPayment?.dispose(); qrPayment = null; nativeQrVisible.value = false; clearTimeout(qrPollTimer) })
+
+/** 页面可见且弹层待确认时有限轮询；关闭、离页和终态立即停止。 */
+function syncQrPolling() {
+  clearTimeout(qrPollTimer)
+  if (!checkoutVisible || !nativeQrVisible.value || qrPollCount >= 120 || !['pending','unknown'].includes(qrState.value.phase)) return
+  qrPollTimer = setTimeout(async () => { qrPollCount++; await qrPayment?.check(); syncQrPolling() }, 3000)
+}
+/** 使用已建账的当前账户显式编码，不把空编码带到充值页再猜账户。 */
+async function openOrderQr() {
+  const context = await getDealerFinanceContext()
+  const account = context.currentAccount
+  if (!account?.accountId || account.accountStatus !== 1 || account.financeStatus !== 1
+    || !account.fundAccountCode || !account.canParticipateCombinationPay) throw localError('qrAccountUnavailable')
+  finance.value = context
+  if (!qrPayment) {
+    const token = userStore.token
+    const owner = context.dealerId + ':' + account.accountCustomerId
+    const target = checkoutBatchId.value ? 'batch:' + checkoutBatchId.value : 'order:' + orderId.value
+    const key = 'order-native-payment:' + owner + ':' + target
+    qrPayment = createOrderQrPayment({
+      storage: { get: () => uni.getStorageSync(key) || null, set: value => uni.setStorageSync(key, value), remove: () => uni.removeStorageSync(key) },
+      createIntent: createNativeRecharge, readStatus: getRechargeStatus,
+      isCurrent: () => userStore.token === token,
+      onChange: value => { qrState.value = value },
+      onPaid: () => { if (checkoutVisible) handlePaid() },
+      confirmOrder: intent => submitPayment({
+        orderId: orderId.value, clientRequestId: 'order-qr-confirm-' + intent.rechargeNo,
+        paymentMode: PAYMENT_MODE.COMBINATION, fundAccountCode: intent.fundAccountCode,
+        allocations: [{ payMethod: 'balance', accountCustomerId: intent.accountCustomerId, amount: Number(intent.amount) }],
+      }),
+    })
+  }
+  qrPollCount = 0
+  nativeQrVisible.value = true
+  await qrPayment.open({ amount: Number(payAmount.value), fundAccountCode: account.fundAccountCode, accountCustomerId: account.accountCustomerId })
+}
+/** 弹层重试仍保留错误提示，不制造未处理Promise。 */
+async function retryOrderQr() { try { await openOrderQr() } catch (error) { uni.showToast({ title: error?.message || t('order.pay.failed'), icon: 'none' }) } }
+/** 手动查询和失败重试均复用同一到账单及订单确认幂等键。 */
+async function checkOrderQr() {
+  if (qrChecking.value) return
+  qrChecking.value = true
+  try { await qrPayment?.check() } finally { qrChecking.value = false }
+}
+
 const selectedAccountIds = ref([])
 const allocationAmounts = ref({})
 const orderPayable = ref(false)
@@ -289,21 +389,22 @@ onLoad(async (options) => {
 
 onShow(() => {
   checkoutVisible = true
+  if (qrState.value.phase === 'paid') { handlePaid(); return }
+  if (nativeQrVisible.value && qrPayment) { qrPayment.check().then(syncQrPolling); return }
   if (checkoutBatchId.value && !paying.value) refreshCheckout()
   else if (orderId.value && !paying.value) loadOrderInfo()
-  if (returningFromRecharge) {
-    returningFromRecharge = false
-    payMode.value = PAYMENT_MODE.COMBINATION
-    loadFinanceContext()
-  }
+
 })
 
 onHide(() => {
   checkoutVisible = false
+  clearTimeout(qrPollTimer)
   clearTimeout(checkoutRefreshTimer)
 })
 
 onUnmounted(() => {
+  clearTimeout(qrPollTimer)
+  qrPayment?.dispose()
   checkoutVisible = false
   clearTimeout(checkoutRefreshTimer)
   if (countdownTimer) clearInterval(countdownTimer)
@@ -464,7 +565,7 @@ function submitPayment(params) {
   }
   return confirmCheckoutPayment({
     ...params, allocation, checkoutBatchId: checkoutBatchId.value,
-    clientRequestId: checkoutPaymentKeys.get(signature),
+    clientRequestId: params.clientRequestId?.startsWith('order-qr-confirm-') ? params.clientRequestId : checkoutPaymentKeys.get(signature),
   })
 }
 
@@ -541,12 +642,7 @@ async function handleConfirmPay() {
       return handlePaid()
     }
     if (payMode.value === PAYMENT_MODE.CASH) {
-      returningFromRecharge = true
-      await navigator.navigateTo(routes.account.recharge({
-        orderId: orderId.value, checkoutBatchId: checkoutBatchId.value,
-        amount: Number(payAmount.value).toFixed(2),
-        channel: cashPaymentMethods.value.some(item => item.key === payType.value) ? payType.value : 'wechat_native',
-        fundAccountCode: finance.value.currentAccount?.fundAccountCode || null }))
+      await openOrderQr()
       return
     }
     throw localError('cashIntegration')

@@ -12,6 +12,11 @@
             <text class="section-desc">{{ t('account.recharge.orderTopUpHint') }}</text>
             <AppButton v-if="confirmedRechargeNo" block @tap="continueOrderPayment">{{ t('account.recharge.continueOrder') }}</AppButton>
           </view>
+          <view v-if="pendingRechargeNo" class="service-card order-recharge-context" role="status">
+            <text class="section-title">{{ t(pendingRechargeStatus === 0 ? 'account.recharge.awaitingPayment' : 'account.recharge.confirmingPayment') }}</text>
+            <text class="section-desc">{{ t('account.recharge.progressHint') }}</text>
+            <AppButton size="sm" variant="secondary" :loading="checkingRecharge" :disabled="checkingRecharge" @tap="checkRechargeResult()">{{ t('account.recharge.checkProgress') }}</AppButton>
+          </view>
           <view class="service-card">
             <view class="section-head">
               <text class="balance-label">{{ t('account.recharge.availableBalance') }}</text>
@@ -26,13 +31,13 @@
               <text class="form-label">{{ t('account.recharge.amount') }}</text>
               <view class="amount-input-wrap">
                 <text class="amount-prefix">¥</text>
-                <input
+                <input :placeholder-style="$inputPlaceholderStyle"
                   v-model="rechargeAmount"
                   class="amount-input"
                   type="digit"
                   :placeholder="t('account.recharge.amountPlaceholder')"
                   placeholder-class="amount-placeholder"
-                  placeholder-style="font-size:14px;font-weight:400;color:#969AA3"
+
                   :disabled="submitting"
                   @input="handleAmountChanged"
                 />
@@ -90,13 +95,14 @@
         <text class="native-qr-result-title">{{ t('account.recharge.closedTitle') }}</text>
         <text class="native-qr-result-hint">{{ t('account.recharge.closedHint') }}</text>
       </view>
-      <text v-else class="native-qr-hint">{{ t('account.recharge.qrHint') }}</text>
-      <view v-if="![2, 3, 4].includes(nativeQrStatus)" class="native-qr-code">
+      <text v-else class="native-qr-hint">{{ t(nativeQrExpired ? 'account.recharge.qrExpired' : 'account.recharge.qrHint') }}</text>
+      <text v-if="nativeQrCountdown && ![2, 3, 4].includes(nativeQrStatus)" class="native-qr-hint">{{ t('account.recharge.qrRemaining', { time: nativeQrCountdown }) }}</text>
+      <view v-if="![2, 3, 4].includes(nativeQrStatus) && !nativeQrExpired" class="native-qr-code">
         <view v-for="(row, rowIndex) in nativeQrMatrix" :key="rowIndex" class="native-qr-row">
           <view v-for="(dark, columnIndex) in row" :key="columnIndex" class="native-qr-cell" :class="{ dark }" />
         </view>
       </view>
-      <AppButton v-if="![2, 3, 4].includes(nativeQrStatus)" block variant="secondary" @tap="copyNativeQrLink">{{ t('account.recharge.qrCopyLink') }}</AppButton>
+      <AppButton v-if="![2, 3, 4].includes(nativeQrStatus) && !nativeQrExpired" block variant="secondary" @tap="copyNativeQrLink">{{ t('account.recharge.qrCopyLink') }}</AppButton>
       <AppButton v-if="![2, 3, 4].includes(nativeQrStatus)" block :loading="checkingRecharge" :disabled="checkingRecharge" @tap="checkRechargeResult()">{{ t(checkingRecharge ? 'account.recharge.checking' : 'account.recharge.checkPaid') }}</AppButton>
       <AppButton block variant="ghost" @tap="closeNativeQr">{{ t('account.recharge.qrClose') }}</AppButton>
 
@@ -166,7 +172,19 @@ const nativeQrNumber = ref('')
 const nativeQrAmount = ref('')
 const nativeQrMatrix = ref([])
 const nativeQrStatus = ref(0)
+const nativeQrExpiresAt = ref('')
+const nativeQrNow = ref(Date.now())
+const nativeQrSeconds = computed(() => {
+  const expires = Date.parse(nativeQrExpiresAt.value)
+  return Number.isFinite(expires) ? Math.max(0, Math.ceil((expires - nativeQrNow.value) / 1000)) : null
+})
+const nativeQrExpired = computed(() => nativeQrSeconds.value === 0)
+const nativeQrCountdown = computed(() => nativeQrSeconds.value === null ? ''
+  : String(Math.floor(nativeQrSeconds.value / 60)).padStart(2, '0') + ':' + String(nativeQrSeconds.value % 60).padStart(2, '0'))
+let nativeQrTimer = null
+let nativeQrExpiryChecked = ''
 const pendingRechargeNo = ref('')
+const pendingRechargeStatus = ref(5)
 const checkingRecharge = ref(false)
 const confirmedRechargeNo = ref('')
 const lastFinalRecharge = ref(null)
@@ -186,6 +204,7 @@ function syncRechargeRealtime() {
 const rechargeCleanupKey = 'finance-recharge-' + Date.now() + '-' + Math.random().toString(36).slice(2)
 /** 统一退出会话钩子主动关闭缓存页连接，并清除该页所有待支付显示上下文。 */
 function resetRechargeSession() {
+  stopNativeQrClock()
   rechargeRealtime.stop()
   nativeQrVisible.value = false
   nativeQrMatrix.value = []
@@ -195,7 +214,7 @@ function resetRechargeSession() {
   clearPendingRequest()
 }
 registerSessionCleanup(rechargeCleanupKey, resetRechargeSession)
-onScopeDispose(() => { rechargeRealtime.stop(); unregisterSessionCleanup(rechargeCleanupKey) })
+onScopeDispose(() => { stopNativeQrClock(); rechargeRealtime.stop(); unregisterSessionCleanup(rechargeCleanupKey) })
 watch(() => pendingRechargeNo.value, syncRechargeRealtime)
 watch(() => [userStore.token, userStore.userId], ([token, userId], previous) => {
   if (!token || (previous?.[1] && previous[1] !== userId)) {
@@ -237,6 +256,7 @@ function continueOrderPayment() {
 
 onShow(() => {
   pageVisible = true
+  if (nativeQrVisible.value) startNativeQrClock()
   if (successNoticePending) announceRechargeSuccess()
   loadFinance()
   restorePendingRequest()
@@ -244,8 +264,8 @@ onShow(() => {
   if (pendingRechargeNo.value) checkRechargeResult({ silent: true })
   syncRechargeRealtime()
 })
-onHide(() => { pageVisible = false; rechargeRealtime.stop() })
-onUnload(() => { pageVisible = false; rechargeRealtime.stop() })
+onHide(() => { stopNativeQrClock(); pageVisible = false; rechargeRealtime.stop() })
+onUnload(() => { stopNativeQrClock(); pageVisible = false; rechargeRealtime.stop() })
 
 async function loadFinance() {
   try {
@@ -264,7 +284,7 @@ function contactFinance() {
 /** 恢复尚未确认的本地幂等键，避免网络中断后重复创建充值单。 */
 function restorePendingRequest() {
   const pending = uni.getStorageSync(pendingStorageKey.value)
-  if (!pending || Date.now() - Number(pending.createdAt || 0) > 30 * 60 * 1000) {
+  if (!pending || !pending.clientRequestId) {
     uni.removeStorageSync(pendingStorageKey.value)
     return
   }
@@ -273,6 +293,7 @@ function restorePendingRequest() {
   pendingRequestChannel.value = String(pending.channel || 'wechat')
   pendingOrderId.value = pending.orderId || null
   pendingRechargeNo.value = String(pending.rechargeNo || '')
+  pendingRechargeStatus.value = Number(pending.status ?? 5)
   if (visiblePaymentChannels.value.some(item => item.key === pendingRequestChannel.value && !item.disabled)) {
     selectedChannel.value = pendingRequestChannel.value
   }
@@ -344,21 +365,24 @@ function clearPendingRequest() {
 /** 保存服务端单号，恢复页面时只读查询此单，不重复调用创建接口。 */
 function rememberRecharge(response) {
   if (!response.rechargeNo) return
+  pendingRechargeStatus.value = Number(response.status ?? 5)
   pendingRechargeNo.value = String(response.rechargeNo)
   const existing = uni.getStorageSync(pendingStorageKey.value) || {}
   uni.setStorageSync(pendingStorageKey.value, {
     ...existing, rechargeNo: pendingRechargeNo.value, clientRequestId: pendingClientRequestId.value,
-    amount: pendingRequestAmount.value, channel: pendingRequestChannel.value, createdAt: existing.createdAt || Date.now(),
+    amount: pendingRequestAmount.value, channel: pendingRequestChannel.value, status: pendingRechargeStatus.value, createdAt: existing.createdAt || Date.now(),
   })
 }
 
 /** 使用服务端已提交状态更新界面；支付SDK回调本身不能确认到账。 */
 function applyRechargeResult(response) {
+  pendingRechargeStatus.value = Number(response.status ?? 5)
   const number = String(response.rechargeNo || pendingRechargeNo.value || '')
   if (response.status === 2) {
     lastFinalRecharge.value = { rechargeNo: number, status: response.status }
     if (nativeQrNumber.value === number) {
       nativeQrStatus.value = 2
+      stopNativeQrClock()
       nativeQrMatrix.value = []
       nativeQrLink.value = ''
     }
@@ -371,6 +395,7 @@ function applyRechargeResult(response) {
     lastFinalRecharge.value = { rechargeNo: number, status: response.status }
     if (nativeQrNumber.value === number) {
       nativeQrStatus.value = response.status
+      stopNativeQrClock()
       nativeQrMatrix.value = []
       nativeQrLink.value = ''
     }
@@ -506,21 +531,46 @@ async function startRecharge() {
 
 /** 展示服务端返回的 Native 支付二维码；关闭弹层不会清除幂等上下文，便于继续查看或重试。 */
 function openNativeQr(response) {
+  nativeQrExpiresAt.value = String(response.expiresAtUtc || '')
+  nativeQrExpiryChecked = ''
   nativeQrAmount.value = response.amount ?? pendingRequestAmount.value ?? rechargeAmount.value
   nativeQrStatus.value = Number(response.status || 0)
   nativeQrLink.value = String(response.codeUrl || '')
   nativeQrNumber.value = String(response.rechargeNo || '')
   nativeQrMatrix.value = createQrMatrix(nativeQrLink.value)
   nativeQrVisible.value = nativeQrMatrix.value.length > 0
+  if (nativeQrVisible.value) startNativeQrClock()
+}
+
+/** 倒计时仅控制二维码可用提示；到期仍读取服务端事实，不伪造充值关闭。 */
+function startNativeQrClock() {
+  stopNativeQrClock()
+  const tick = () => {
+    nativeQrNow.value = Date.now()
+    if (nativeQrExpired.value && nativeQrNumber.value && nativeQrExpiryChecked !== nativeQrNumber.value) {
+      nativeQrExpiryChecked = nativeQrNumber.value
+      checkRechargeResult({ silent: true })
+    }
+  }
+  tick()
+  nativeQrTimer = setInterval(tick, 1000)
+}
+
+/** 页面隐藏、关闭弹层、终态和退出账号时释放倒计时。 */
+function stopNativeQrClock() {
+  if (nativeQrTimer !== null) clearInterval(nativeQrTimer)
+  nativeQrTimer = null
 }
 
 /** 关闭 Native 支付二维码弹层，不改变充值单的服务端状态。 */
 function closeNativeQr() {
+  stopNativeQrClock()
   nativeQrVisible.value = false
 }
 
 /** 复制 Native 支付链接，方便在无法直接扫码时转发到其他设备。 */
 function copyNativeQrLink() {
+  if (nativeQrExpired.value) return uni.showToast({ title: t('account.recharge.qrExpired'), icon: 'none' })
   if (!nativeQrLink.value) return
   uni.setClipboardData({
     data: nativeQrLink.value,
@@ -531,14 +581,8 @@ function copyNativeQrLink() {
 
 /** 在客户端调起结束后统一说明服务端确认语义，并引导查看可靠状态。 */
 function showPaymentResultPending(content) {
-  return new Promise(resolve => {
-    openAppDialog({
-      title: t('account.recharge.pendingTitle'),
-      description: content,
-      confirmText: t('account.recharge.viewRecords'),
-      cancelText: t('account.recharge.stay'),
-    }).then(result => { if (result) goToRecords(); resolve() })
-  })
+  return openAppDialog({ title: t('account.recharge.pendingTitle'), description: content,
+    confirmText: t('common.confirm'), showCancel: false })
 }
 
 function goToRecords() { navigator.navigateTo(routes.account.rechargeRecords()) }
@@ -563,7 +607,7 @@ function goToRecords() { navigator.navigateTo(routes.account.rechargeRecords()) 
 .amount-input-wrap:focus-within { outline: 2px solid var(--color-brand, #d7192d); outline-offset: -2px; }
 .amount-prefix { font-size: 22px; font-weight: 650; }
 .amount-input { flex: 1; min-width: 0; height: 52px; font-size: 24px; font-weight: 650; }
-.amount-placeholder { font-size: var(--type-body-size, 14px); font-weight: 400; }
+.amount-placeholder { font-size: var(--input-placeholder-size, 13px); font-weight: 400; }
 .quick-amounts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
 .quick-amount { display: flex; justify-content: center; align-items: center; width: 100%; min-height: 44px; margin: 0; padding: 5px; border: 1px solid transparent; border-radius: var(--radius-control, 10px); color: var(--type-body-color, #1b1c20); background: var(--surface-page, #f4f5f8); font-size: 14px; line-height: 1.35; font-weight: 600; }
 .quick-amount.active { border-color: #d7192d; color: #ad1024; background: #f4f5f8; }

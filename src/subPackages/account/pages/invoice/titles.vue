@@ -30,9 +30,9 @@
         :confirm-text="t('common.save')" :confirm-disabled="saving" :dismiss-disabled="saving" :close-on-overlay="false" @confirm="saveTitle">
         <view class="title-form">
           <text class="field-label">{{ t('account.invoice.companyTitle') }}</text>
-          <input v-model="draft.title" :disabled="saving" maxlength="200" :placeholder="t('account.invoice.titlePlaceholder')" />
+          <input :placeholder-style="$inputPlaceholderStyle" v-model="draft.title" :disabled="saving" maxlength="200" :placeholder="t('account.invoice.titlePlaceholder')" />
           <text class="field-label">{{ t('account.invoice.taxNo') }}</text>
-          <input v-model="draft.taxNo" :disabled="saving" maxlength="50" :placeholder="t('account.invoice.taxPlaceholder')" />
+          <input :placeholder-style="$inputPlaceholderStyle" v-model="draft.taxNo" :disabled="saving" maxlength="50" :placeholder="t('account.invoice.taxPlaceholder')" />
           <text v-if="formError" class="form-error">{{ formError }}</text>
         </view>
       </ConfirmPopup>

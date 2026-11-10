@@ -29,8 +29,8 @@
             <view class="logistics-info">
               <AppIcon name="shipping" :size="20" color="#67C23A" />
               <view class="logistics-text">
-                <text class="logistics-company">{{ detail.shipments[0]?.carrierName || t('order.detail.logisticsFallback') }}</text>
-                <text class="tracking-no" v-if="detail.shipments[0]?.trackingNo">{{ t('order.detail.trackingNo') }} {{ detail.shipments[0].trackingNo }}</text>
+                <text class="logistics-company">{{ primaryShipment?.carrierName || t('order.detail.logisticsFallback') }}</text>
+                <text class="tracking-no" v-if="primaryShipment?.trackingNo">{{ t('order.detail.trackingNo') }} {{ primaryShipment.trackingNo }}</text>
               </view>
               <AppIcon name="chevron-right" :size="16" color="#CCC" />
             </view>
@@ -428,6 +428,9 @@ const canArrangeFulfillment = computed(() => {
 const showFulfillmentCard = computed(() => canArrangeFulfillment.value)
 const fulfillmentSummary = computed(() => t('order.detail.arrangeHint'))
 
+/** 优先展示已有真实运单，未回传运单时不提供复制物流的空操作。 */
+const primaryShipment = computed(() => detail.value?.shipments?.find(item => item.trackingNo) || detail.value?.shipments?.[0] || null)
+
 // 可用操作按钮由服务端 AllowedActions 决定，前端只做统一展示。
 const actionButtons = computed(() => {
   if (!detail.value) return []
@@ -439,7 +442,7 @@ const actionButtons = computed(() => {
     priority: 2,
   }
 
-  const actions = [...(detail.value.salesScene === 1 ? [] : [reorderAction]), ...getOrderActionButtons(detail.value.allowedActions)]
+  const actions = [...(detail.value.salesScene === 1 ? [] : [reorderAction]), ...getOrderActionButtons(detail.value.allowedActions).filter(action => action.key !== 'viewLogistics' || primaryShipment.value?.trackingNo)]
   const priority = { reorder: 0, pay: 1, cancel: 2, confirmReceipt: 3, viewLogistics: 4 }
   return actions.sort((left, right) => (priority[left.key] ?? 99) - (priority[right.key] ?? 99))
 })
@@ -540,8 +543,8 @@ async function handleAction(key) {
       }
       break
     case 'viewLogistics':
-      if (detail.value?.shipments?.[0]?.trackingNo) {
-        copyText(detail.value.shipments[0].trackingNo)
+      if (primaryShipment.value?.trackingNo) {
+        copyText(primaryShipment.value.trackingNo)
         uni.showToast({ title: t('order.detail.copySuccess'), icon: 'none' })
       } else {
         uni.showToast({ title: t('order.detail.noLogistics'), icon: 'none' })

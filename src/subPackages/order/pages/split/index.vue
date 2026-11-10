@@ -90,7 +90,7 @@
                     </view>
                     <view class="sku-search">
                       <AppIcon name="search" :size="18" color="#747b86" />
-                      <input v-model="searchQuery" class="sku-search-input" :placeholder="t('order.split.searchPlaceholder')" :aria-label="t('order.split.searchPlaceholder')" confirm-type="search" maxlength="100" />
+                      <input :placeholder-style="$inputPlaceholderStyle" v-model="searchQuery" class="sku-search-input" :placeholder="t('order.split.searchPlaceholder')" :aria-label="t('order.split.searchPlaceholder')" confirm-type="search" maxlength="100" />
                       <button v-if="searchQuery" class="search-clear" :aria-label="t('order.split.clearSearch')" @tap="clearSearch"><AppIcon name="close" :size="16" /></button>
                     </view>
                     <view class="item-filters">

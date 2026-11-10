@@ -9,7 +9,7 @@
       <AppHeader :title="t('order.titles.cancel')" :show-back="true" />
     </template>
     <template #content>
-      <AppContent>
+      <AppContent width-mode="standard" padding="0 var(--page-padding-x, 16px)">
         <view class="cancel-page" v-if="orderId">
           <!-- 订单信息摘要 -->
           <view class="order-summary">
@@ -32,8 +32,8 @@
               @click="selectedReasonCode = reason.code"
             >
               <text class="reason-text">{{ t(reason.labelKey) }}</text>
-              <view class="reason-check" v-if="selectedReasonCode === reason.code">
-                <AppIcon name="check" :size="16" color="#FFFFFF" />
+              <view class="reason-check" :class="{ checked: selectedReasonCode === reason.code }">
+                <AppIcon v-if="selectedReasonCode === reason.code" name="check" :size="14" color="#FFFFFF" />
               </view>
             </view>
           </view>
@@ -44,7 +44,7 @@
               <text class="required-mark">*</text>
                <text class="label-text">{{ t('order.cancel.fillReason') }}</text>
             </view>
-            <textarea
+            <textarea :placeholder-style="$inputPlaceholderStyle"
               class="reason-textarea"
               :value="customReason"
               @input="customReason = $event.detail.value"
@@ -56,16 +56,17 @@
             <text class="char-count">{{ customReason.length }}/200</text>
           </view>
 
-          <!-- 底部占位 -->
-          <view class="footer-placeholder" />
+
         </view>
       </AppContent>
     </template>
     <template #footer>
-      <FixedActionBar>
-        <button class="submit-btn" :disabled="!canSubmit || submitting" @click="handleSubmit">
+      <FixedActionBar width-mode="standard" :show-border="false">
+        <view class="cancel-footer">
+        <AppButton class="submit-btn" block :disabled="!canSubmit" :loading="submitting" @tap="handleSubmit">
           {{ submitting ? t('order.cancel.submitting') : t('order.cancel.confirm') }}
-        </button>
+        </AppButton>
+        </view>
       </FixedActionBar>
     </template>
   </AppPageShell>
@@ -82,6 +83,7 @@ import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
+import AppButton from '@/shared/ui/AppButton/AppButton.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 
@@ -158,208 +160,92 @@ async function handleSubmit() {
 
 <style lang="scss" scoped>
 .cancel-page {
-  min-height: 100%;
-  padding: 24rpx 0 24rpx;
-  background: var(--bg-color);
+  width: 100%;
+  max-width: 640px;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 16px 0 24px;
+  color: var(--text-primary, #1B1C20);
 }
-
 .order-summary {
-  background: linear-gradient(135deg, #E6A23C 0%, #F5DAB1 100%);
-  border-radius: 12rpx;
-  padding: 28rpx 32rpx;
-  margin: 0 24rpx 28rpx;
-
-  .order-no {
-    font-size: var(--type-body-size, 14px);
-    color: #fff;
-    font-weight: var(--font-weight-medium, 500);
-    letter-spacing: 0.5rpx;
-  }
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  background: var(--surface-card, #FFFFFF);
+  border-radius: var(--radius-card, 16px);
 }
-
+.order-no {
+  display: block;
+  color: var(--text-secondary, #62666F);
+  font-size: var(--type-body-size, 14px);
+  line-height: 22px;
+  overflow-wrap: anywhere;
+}
 .hint-text {
   display: block;
-  font-size: var(--type-label-size, 15px);
+  margin: 0 0 12px;
+  font-size: var(--type-card-title-size, 16px);
+  line-height: 24px;
   font-weight: var(--font-weight-semibold, 600);
-  color: var(--text-primary);
-  margin: 0 32rpx 20rpx;
 }
-
 .reason-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4rpx;
-  padding: 0 32rpx;
-  margin-bottom: 24rpx;
+  overflow: hidden;
+  margin-bottom: 16px;
+  background: var(--surface-card, #FFFFFF);
+  border-radius: var(--radius-card, 16px);
 }
-
 .reason-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 88rpx;
-  padding: 24rpx 28rpx;
-  border-radius: 10rpx;
-  background: rgba(255,255,255,.68);
-  border: 1rpx solid transparent;
-  transition: background 180ms ease, border-color 180ms ease;
-
-  &:active {
-    background: #f7f8fa;
-  }
-
-  &.active {
-    background: #fff6f6;
-    border-color: var(--primary-color);
-  }
-
-  &.is-other {
-    margin-top: 8rpx;
-  }
+  gap: 16px;
+  min-height: 56px;
+  padding: 14px 20px;
+  box-sizing: border-box;
+  transition: background-color 160ms ease;
+  cursor: pointer;
 }
-
-.reason-text {
-  font-size: var(--type-body-size, 14px);
-  color: var(--text-primary);
-  flex: 1;
-  line-height: 1.5;
-}
-
+.reason-item + .reason-item { border-top: 1px solid var(--divider-color, #ECEEF2); }
+.reason-item:active { background: var(--bg-subtle, #F7F8FA); }
+.reason-item.active { background: var(--bg-subtle, #F7F8FA); }
+.reason-text { flex: 1; min-width: 0; font-size: var(--type-body-size, 14px); line-height: 22px; }
 .reason-check {
-  width: 36rpx;
-  height: 36rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--primary-color);
-  border-radius: 50%;
   flex-shrink: 0;
-  margin-left: 16rpx;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  border: 1px solid var(--border-color, #D9DCE2);
+  border-radius: 50%;
 }
-
+.reason-check.checked { background: var(--primary-color, #D7192D); border-color: var(--primary-color, #D7192D); }
 .reason-input-block {
-  background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: 10rpx;
-  padding: 28rpx 32rpx;
-  margin: 0 32rpx 16rpx;
-  animation: slide-down 220ms cubic-bezier(.2, .8, .2, 1) both;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-
-  @keyframes slide-down {
-    from {
-      opacity: 0;
-      transform: translateY(-8rpx);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
+  padding: 18px 20px;
+  border-radius: var(--radius-card, 16px);
+  background: var(--surface-card, #FFFFFF);
+  animation: reason-reveal 160ms ease-out;
 }
-
-.input-label-text {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16rpx;
-}
-
-.required-mark {
-  color: #F56C6C;
-  font-size: var(--type-body-size, 14px);
-  margin-right: 6rpx;
-}
-
-.label-text {
-  font-size: var(--type-body-small-size, 13px);
-  color: var(--text-secondary);
-  font-weight: var(--font-weight-medium, 500);
-}
-
+.input-label-text { display: flex; align-items: center; gap: 4px; margin-bottom: 10px; }
+.required-mark { color: var(--danger-color, #B42318); }
+.label-text { font-size: var(--type-body-size, 14px); line-height: 22px; font-weight: 500; }
 .reason-textarea {
   width: 100%;
-  min-height: 160rpx;
-  max-height: 280rpx;
-  padding: 16rpx 18rpx;
-  background: #f7f8fa;
-  border-radius: 8rpx;
-  font-size: var(--type-body-small-size, 13px);
-  color: var(--text-primary);
-  line-height: 1.6;
-  border: 1rpx solid var(--border-color);
+  min-height: 112px;
+  max-height: 224px;
+  padding: 12px;
   box-sizing: border-box;
+  border: 1px solid var(--border-color, #D9DCE2);
+  border-radius: var(--radius-control, 12px);
+  background: var(--bg-subtle, #F7F8FA);
+  color: var(--text-primary, #1B1C20);
+  font-size: var(--type-body-size, 14px);
+  line-height: 22px;
 }
-
-.reason-placeholder {
-  color: var(--text-placeholder);
-  font-size: var(--type-body-small-size, 13px);
-}
-
-.char-count {
-  display: block;
-  font-size: var(--type-caption-size, 12px);
-  color: var(--text-placeholder);
-  text-align: right;
-  margin-top: 8rpx;
-}
-
-.footer-placeholder {
-  height: 32rpx;
-}
-
-.submit-btn {
-  width: 100%;
-  height: 80rpx;
-  border-radius: 12rpx;
-  font-size: var(--type-label-size, 15px);
-  font-weight: 600;
-  border: none;
-  background: var(--primary-color);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-
-  &:active {
-    background: #b91224;
-  }
-
-  &:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  &::after {
-    border: none;
-  }
-}
-
-@media screen and (min-width: 600px) {
-  .cancel-page {
-    padding: 32rpx 20% 32rpx;
-  }
-
-  .order-summary,
-  .reason-list,
-  .reason-input-block {
-    margin-left: 0;
-    margin-right: 0;
-  }
-
-  .hint-text {
-    margin-left: 8rpx;
-    margin-right: 8rpx;
-  }
-}
-
-/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
-.order-summary {
-  border: 0 !important;
-  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
-  backdrop-filter: var(--glass-card-blur, blur(16px));
-}
+.reason-placeholder { color: var(--text-placeholder, #969AA3); font-size: var(--input-placeholder-size, 13px); }
+.char-count { display: block; margin-top: 8px; color: var(--text-secondary, #62666F); text-align: right; font-size: var(--type-caption-size, 12px); line-height: 18px; }
+.cancel-footer { width: 100%; max-width: 640px; margin: 0 auto; }
+.submit-btn { font-size: var(--type-body-size, 14px); line-height: 20px; }
+@keyframes reason-reveal { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .reason-item { transition: none; } .reason-input-block { animation: none; } }
 </style>

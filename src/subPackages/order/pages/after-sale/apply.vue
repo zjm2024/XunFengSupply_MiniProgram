@@ -46,12 +46,12 @@
               </view>
               <view class="section-card">
                 <text class="section-label">{{ t('order.afterSale.reason') }}</text>
-                <textarea v-model="form.reason" class="reason-input" :disabled="submitting || submitted" :placeholder="t('order.afterSale.reasonPlaceholder')" maxlength="500" auto-height />
+                <textarea :placeholder-style="$inputPlaceholderStyle" v-model="form.reason" class="reason-input" :disabled="submitting || submitted" :placeholder="t('order.afterSale.reasonPlaceholder')" maxlength="500" auto-height />
                 <text class="character-count">{{ form.reason.length }}/500</text>
               </view>
               <view class="section-card express-card">
                 <text class="section-label">{{ t('order.afterSale.expressNo') }}</text>
-                <input v-model="form.expressNo" class="express-input" :disabled="submitting || submitted" maxlength="100" :placeholder="t('order.afterSale.expressNoPlaceholder')" />
+                <input :placeholder-style="$inputPlaceholderStyle" v-model="form.expressNo" class="express-input" :disabled="submitting || submitted" maxlength="100" :placeholder="t('order.afterSale.expressNoPlaceholder')" />
               </view>
               <view class="section-card refund-card">
                 <view class="refund-row"><text>{{ t('order.afterSale.refundAmount') }}</text><AmountText class="refund-value" :text="'¥' + estimatedRefundAmount.toFixed(2)" /></view>

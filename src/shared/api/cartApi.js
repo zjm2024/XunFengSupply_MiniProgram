@@ -1,3 +1,4 @@
+import { resolveCatalogPrice } from '@/shared/utils/catalogPrice.js'
 /**
  * Mini SKU 级购物车 API 层。
  *
@@ -97,9 +98,7 @@ function number(value, fallback = 0) {
  * @returns {CartItemDomain}
  */
 function normalizeCartItem(item = {}) {
-  const price = number(
-    item.currentPrice ?? item.CurrentPrice ?? item.current_price ?? item.unitPrice ?? item.UnitPrice ?? item.price ?? item.Price,
-  )
+  const price = resolveCatalogPrice(item) ?? 0
   const quantity = Math.max(0, number(item.quantity ?? item.Quantity))
   const selected = item.isSelected ?? item.IsSelected ?? item.selected ?? item.is_selected
   const basePrice = number(item.basePrice ?? item.BasePrice ?? item.base_price, price)
@@ -131,6 +130,7 @@ function normalizeCartItem(item = {}) {
     netSubtotal: number(item.netSubtotal ?? item.NetSubtotal ?? item.net_subtotal, number(item.subTotal ?? item.SubTotal ?? item.subtotal, price * quantity) - number(item.promotionDiscountAmount ?? item.PromotionDiscountAmount ?? item.promotion_discount_amount)),
     promotionSnapshot: item.promotionSnapshot ?? item.PromotionSnapshot ?? item.promotion_snapshot ?? null,
     quantity,
+    stockKnown: (item.displayStock ?? item.DisplayStock ?? item.display_stock ?? item.stock ?? item.Stock) != null,
     stock: number(item.displayStock ?? item.DisplayStock ?? item.display_stock ?? item.stock ?? item.Stock, Number.MAX_SAFE_INTEGER),
     selected: selected === undefined ? true : Boolean(selected),
     subtotal: number(item.subTotal ?? item.SubTotal ?? item.subtotal, price * quantity),

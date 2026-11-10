@@ -45,6 +45,7 @@
           <!-- #ifdef H5 -->
           <template #refresher><view class="compact-refresher"><view class="compact-refresher-icon" :class="{ 'is-refreshing': refreshing }"><AppIcon name="refresh" :size="20" color="#737A84" /></view></view></template>
           <!-- #endif -->
+          <view class="category-default-sort">{{ t('common.search.sortDefault') }}</view>
           <view class="category-groups">
             <view
               v-for="section in categorySections"
@@ -206,7 +207,6 @@ async function loadSectionProducts(section) {
       pageNum: 1,
       pageSize: 9,
       categoryId: section.id,
-      hasImage: true,
     })
     if (ticket !== generation) return
     productsByCategory.value = {
@@ -603,4 +603,5 @@ onBeforeUnmount(() => { generation++ })
   -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
   backdrop-filter: var(--glass-card-blur, blur(16px));
 }
+.category-default-sort { padding: 12px 16px 0; color: var(--brand-primary, #d7192d); font-size: var(--type-body-small-size, 13px); line-height: 20px; }
 </style>

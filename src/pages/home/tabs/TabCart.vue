@@ -12,7 +12,7 @@
       <view class="cart-action" @click="openCart"><view><text class="action-title">{{ t('main.cart.open') }}</text><text class="action-subtitle">{{ t('main.cart.openHint') }}</text></view><view class="action-arrow"><AppIcon name="arrow-right" :size="20" /></view></view>
       
       <view class="cart-preview">
-        <view class="section-heading"><view><text class="section-title">{{ t('main.cart.selected') }}</text><text class="section-subtitle">{{ t('main.cart.recent', { count: previewItems.length }) }}</text></view><text class="item-count">{{ t('main.cart.total', { count: cartStore.cartBadgeCount }) }}</text></view>
+        <view class="section-heading"><view><text class="section-title">{{ t('main.cart.selected') }}</text><text class="section-subtitle">{{ t('common.search.sortDefault') }}</text></view><text class="item-count">{{ t('main.cart.total', { count: cartStore.cartBadgeCount }) }}</text></view>
         <view class="cart-list">
           <view v-for="item in previewItems" :key="item.cartItemId" class="cart-item" @click="openProduct(item)">
             <view class="item-image-wrap"><AppProductImage class="item-image" :src="item.image" :stock="item.stock" /></view>
@@ -40,6 +40,7 @@
 import { t } from '@/shared/i18n/index.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, watch } from 'vue'
+import { sortProductsByStock } from '@/shared/utils/productAvailability.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { useCart } from '@/shared/composables/useCart.js'
@@ -50,7 +51,7 @@ import emptyCartSvg from '../../../shared/assets/illustrations/empty-cart.svg?ra
 
 const props = defineProps({ active: { type: Boolean, default: false } })
 const { cartStore, loading, loadCart } = useCart({ autoSchedule: false })
-const previewItems = computed(() => cartStore.validItems.slice(0, 4))
+const previewItems = computed(() => sortProductsByStock(cartStore.validItems).slice(0, 4))
 
 watch(() => props.active, active => {
   if (active) loadCart({ silent: cartStore.loaded }).catch(error => console.warn('[HomeCart] 购物车同步失败:', error))

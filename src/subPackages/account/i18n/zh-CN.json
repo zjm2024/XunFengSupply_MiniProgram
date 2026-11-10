@@ -822,7 +822,7 @@
     "bank": "银行收银台",
     "bankLater": "后续接入",
     "records": "充值记录",
-    "recordsHint": "查看待确认、到账和失败状态",
+    "recordsHint": "查看已付款充值的到账进度",
     "wechat": "微信支付",
     "wechatHint": "使用微信付款，付款后可查看充值记录。",
     "wechatNative": "微信扫码支付",
@@ -835,7 +835,7 @@
     "wechatMissing": "微信支付参数不完整，请重新发起充值",
     "amountInvalid": "请输入最多两位小数的正数金额",
     "creditedHint": "该充值已确认到账，请以账户余额和充值记录为准。",
-    "acceptedHint": "充值单已受理，支付结果正在由平台确认。请稍后在充值记录中查看最终状态。",
+    "acceptedHint": "支付结果正在确认中，请在本页查看进度，暂勿重复付款。",
     "alipayFormat": "支付宝支付参数格式异常，请重新发起充值",
     "pendingTitle": "支付结果确认中",
     "viewRecords": "查看记录",
@@ -846,7 +846,7 @@
     "unavailableTitle": "暂不可调起{channel}",
     "unavailableContent": "请使用已配置{channel}支付模块的正式 App 安装包。",
     "createFailed": "{channel}充值单创建失败，请稍后重试",
-    "requested": "已向{channel}提交支付请求。请在充值记录中查看到账进度。",
+    "requested": "已向{channel}提交支付请求，请在本页查看进度，暂勿重复付款。",
     "qrTitle": "微信扫码支付",
     "qrHint": "请使用微信扫一扫。支付完成后点击下方按钮查看到账结果。",
     "successTitle": "充值成功",
@@ -868,7 +868,13 @@
     "frozenAmount": "冻结 ¥{amount}",
     "orderTopUp": "订单充值",
     "orderTopUpHint": "充值先存入余额，到账后请返回订单确认付款。订单状态以实际扣款结果为准。",
-    "continueOrder": "继续支付订单"
+    "continueOrder": "继续支付订单",
+    "awaitingPayment": "等待完成支付",
+    "confirmingPayment": "正在确认支付结果",
+    "progressHint": "未付款记录不会出现在充值记录中；支付有效期为15分钟，到期由后台核实并关闭。",
+    "checkProgress": "查看支付进度",
+    "qrExpired": "二维码已过期，请查看支付进度；最终结果以服务端核实为准。",
+    "qrRemaining": "支付剩余时间 {time}"
   },
   "rechargeRecords": {
     "filters": {
@@ -891,6 +897,10 @@
     "fallback": "账户充值",
     "count": "{count} 条记录",
     "accountRef": "账户 {id}",
-    "emptyHint": "充值记录将在这里显示"
+    "emptyHint": "付款后的充值记录将在这里显示",
+    "paidRecords": "已付款充值",
+    "creditException": "到账异常",
+    "creditProcessing": "充值处理中",
+    "processingHint": "已确认付款，正在处理到账，请稍后查看。"
   }
 }

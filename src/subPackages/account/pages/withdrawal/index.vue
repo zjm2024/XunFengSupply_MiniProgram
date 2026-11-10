@@ -25,8 +25,8 @@
           <text class="finance-title">{{ t('account.withdrawal.amount') }}</text>
           <view class="input-surface amount-field">
             <text class="amount-prefix">¥</text>
-            <input v-model="amount" type="digit" maxlength="15" :disabled="submitting"
-              :placeholder="t('account.withdrawal.amount')" placeholder-style="font-size:14px;font-weight:400" />
+            <input :placeholder-style="$inputPlaceholderStyle" v-model="amount" type="digit" maxlength="15" :disabled="submitting"
+              :placeholder="t('account.withdrawal.amount')"  />
             <AppButton size="sm" variant="ghost" :disabled="submitting || !(selectedAccount?.availableCash > 0)" @tap="fillAvailable">
               {{ t('account.fundCenter.withdrawAll') }}
             </AppButton>

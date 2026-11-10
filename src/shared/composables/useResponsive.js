@@ -167,6 +167,13 @@ function _resizeHandler(resizeInfo) {
   }
 }
 
+/** 全应用原生输入提示样式；读取共享窗口状态，旋转和分屏后随渲染更新。 */
+export function getInputPlaceholderStyle() {
+  initSystemInfo()
+  const size = state.windowWidth < BREAKPOINTS.COMPACT ? 13 : 14
+  return 'color:#969AA3;font-size:' + size + 'px;font-weight:400'
+}
+
 // ==================== 主 Hook ====================
 
 /**

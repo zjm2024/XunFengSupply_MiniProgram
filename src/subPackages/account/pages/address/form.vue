@@ -10,7 +10,7 @@
           <view v-if="!loading" class="parse-card">
             <label>
               <text class="field-label">{{ t('account.addressForm.parseTitle') }}</text>
-              <textarea
+              <textarea :placeholder-style="$inputPlaceholderStyle"
                 v-model="addressText"
                 class="parse-input"
                 maxlength="1000"
@@ -34,11 +34,11 @@
             <view class="field-grid">
               <label class="field-item">
                 <text class="field-label">{{ t('account.addressForm.name') }}</text>
-                <input v-model="form.name" class="field-input" maxlength="50" :placeholder="t('account.addressForm.namePlaceholder')" @input="clearError" />
+                <input :placeholder-style="$inputPlaceholderStyle" v-model="form.name" class="field-input" maxlength="50" :placeholder="t('account.addressForm.namePlaceholder')" @input="clearError" />
               </label>
               <label class="field-item">
                 <text class="field-label">{{ t('account.addressForm.phone') }}</text>
-                <input v-model="form.phone" class="field-input" type="text" maxlength="30" :placeholder="t('account.addressForm.phonePlaceholder')" @input="clearError" />
+                <input :placeholder-style="$inputPlaceholderStyle" v-model="form.phone" class="field-input" type="text" maxlength="30" :placeholder="t('account.addressForm.phonePlaceholder')" @input="clearError" />
               </label>
             </view>
 
@@ -54,7 +54,7 @@
 
             <label class="field-item">
               <text class="field-label">{{ t('account.addressForm.detail') }}</text>
-              <textarea
+              <textarea :placeholder-style="$inputPlaceholderStyle"
                 v-model="form.detail"
                 class="detail-input"
                 maxlength="300"

@@ -3,7 +3,7 @@
     <template #header><AppHeader :title="title || t('common.homePage.section')" :show-back="true" /></template>
     <template #content><AppContent :refresher-enabled="!unavailable" :refresher-triggered="refreshing" @refresherrefresh="reload(true)" @scrolltolower="loadMore">
       <view class="section-page">
-        <template v-if="!unavailable"><view class="section-search"><input v-model="keyword" :placeholder="t('common.homePage.search')" maxlength="64" confirm-type="search" @confirm="reload()" /><button @click="reload()"><AppIcon name="search" :size="18" /></button></view><view class="section-sort"><text v-for="option in [0,1]" :key="option" :class="{selected:sort===option}" @click="changeSort(option)">{{ t(option===0?'common.homePage.configured':'common.homePage.latest') }}</text></view></template>
+        <template v-if="!unavailable"><view class="section-search"><input :placeholder-style="$inputPlaceholderStyle" v-model="keyword" :placeholder="t('common.homePage.search')" maxlength="64" confirm-type="search" @confirm="reload()" /><button @click="reload()"><AppIcon name="search" :size="18" /></button></view><view class="section-sort"><text v-for="option in [2,0,1]" :key="option" :class="{selected:sort===option}" @click="changeSort(option)">{{ t(option===2?'common.search.sortDefault':option===0?'common.homePage.configured':'common.homePage.latest') }}</text></view></template>
         <view v-if="unavailable" class="section-state">{{ t('common.homePage.unavailable') }}<button @click="returnHome">{{ t('common.homePage.home') }}</button></view>
         <template v-else><view class="section-grid"><HomeProductTile v-for="product in items" :key="product.productId" :product="product" :can-purchase="canPurchase" @detail="openProduct($event,false)" @buy="openProduct($event,true)" /></view><view v-if="loading" class="section-state">{{ t('common.homePage.loading') }}</view><view v-else-if="failed" class="section-state" @click="loadMore">{{ t('common.homePage.retry') }}</view><view v-else-if="!items.length" class="section-state">{{ t('common.homePage.empty') }}</view><view v-else-if="!hasMore" class="section-state">{{ t('common.homePage.end') }}</view></template>
       </view>
@@ -23,7 +23,7 @@ import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import HomeProductTile from '@/shared/ui/HomeProductTile/HomeProductTile.vue'
-const user=useUserStore(),items=ref([]),title=ref(''),keyword=ref(''),sort=ref(0),loading=ref(false),failed=ref(false),unavailable=ref(false),hasMore=ref(true),canPurchase=ref(false),refreshing=ref(false)
+const user=useUserStore(),items=ref([]),title=ref(''),keyword=ref(''),sort=ref(2),loading=ref(false),failed=ref(false),unavailable=ref(false),hasMore=ref(true),canPurchase=ref(false),refreshing=ref(false)
 let scope=null,page=1,epoch=0,disposed=false,appliedKeyword=''
 onLoad(options=>{scope={homePageId:String(options?.homePageId||''),componentId:String(options?.componentId||''),configStamp:options?.configStamp||''};if(!/^\d+$/.test(scope.homePageId)||!/^\d+$/.test(scope.componentId)||!scope.configStamp){unavailable.value=true;return}reload()})
 /** 搜索/排序/语言变化从同一楼层第一页重新读取，不扩大商品范围。 */

@@ -4,7 +4,7 @@
     <button class="address-entry" :class="{empty:!hasAddress}" :disabled="state.locked" @click="addressEditing=!addressEditing"><view v-if="hasAddress" class="contact-block"><view class="contact-line"><text class="contact-name">{{ form.contactName }}</text><text class="contact-phone">{{ form.contactPhone }}</text></view><text class="contact-address">{{ receiverSummary }}</text></view><view v-else class="contact-block"><text class="contact-name">添加收货信息</text></view><view class="address-action"><text>{{ addressEditing ? '收起' : hasAddress ? '修改' : '填写' }}</text><AppIcon name="chevron-right" :size="18" /></view></button>
     <view v-if="addressEditing && requestAddressParse" class="address-parser">
       <text class="label">{{ t('share.checkout.addressParse.title') }}</text>
-      <textarea v-model="addressText" :maxlength="1000" :disabled="state.locked" :aria-label="t('share.checkout.addressParse.title')"
+      <textarea :placeholder-style="$inputPlaceholderStyle" v-model="addressText" :maxlength="1000" :disabled="state.locked" :aria-label="t('share.checkout.addressParse.title')"
         :placeholder="t('share.checkout.addressParse.placeholder')" @input="parseTextEdited" />
       <view class="address-parser-actions"><text v-if="parseMessage" class="note" role="status">{{ parseMessage }}</text>
         <AppButton size="sm" variant="secondary" :loading="parsingAddress" :disabled="state.locked || state.busy || !addressText.trim()" @tap="parseAddress">{{ t('share.checkout.addressParse.action') }}</AppButton>
@@ -12,13 +12,13 @@
     </view>
     <view v-show="addressEditing" class="fields">
       <text class="label">{{ t('share.checkout.contactName') }}</text>
-      <input v-model="form.contactName" :aria-label="t('share.checkout.contactName')" :placeholder="t('share.checkout.contactName')" :maxlength="50" :disabled="state.locked || parsingAddress" @input="edited" />
+      <input :placeholder-style="$inputPlaceholderStyle" v-model="form.contactName" :aria-label="t('share.checkout.contactName')" :placeholder="t('share.checkout.contactName')" :maxlength="50" :disabled="state.locked || parsingAddress" @input="edited" />
       <text class="label">{{ t('share.checkout.contactPhone') }}</text>
-      <input v-model="form.contactPhone" :aria-label="t('share.checkout.contactPhone')" :placeholder="t('share.checkout.contactPhone')" :maxlength="30" :disabled="state.locked || parsingAddress" @input="edited" />
+      <input :placeholder-style="$inputPlaceholderStyle" v-model="form.contactPhone" :aria-label="t('share.checkout.contactPhone')" :placeholder="t('share.checkout.contactPhone')" :maxlength="30" :disabled="state.locked || parsingAddress" @input="edited" />
       <text class="label">配送地区</text>
       <AreaCascadePicker :model-value="region" :disabled="state.locked || parsingAddress" @open="areaVisible=true" />
       <text class="label">{{ t('share.checkout.addressDetail') }}</text>
-      <textarea v-model="form.addressDetail" :aria-label="t('share.checkout.addressDetail')" :placeholder="t('share.checkout.addressDetail')" :maxlength="300" :disabled="state.locked || parsingAddress" @input="edited" />
+      <textarea :placeholder-style="$inputPlaceholderStyle" v-model="form.addressDetail" :aria-label="t('share.checkout.addressDetail')" :placeholder="t('share.checkout.addressDetail')" :maxlength="300" :disabled="state.locked || parsingAddress" @input="edited" />
     </view>
 
     <view v-if="addressEditing" class="draft-actions"><text>{{ draftSaved ? '已保存' : '' }}</text><button :disabled="state.locked || parsingAddress" @click="clearAddress">清除</button></view>
@@ -28,7 +28,7 @@
     </view>
 
   </view><view class="checkout-side"><view class="section-card share-payment-choice"><view class="compact-heading"><text class="section-title">支付方式</text></view><view class="share-pay-choice"><AppIcon name="pay-wechat" :size="24" use-original-color /><text>微信支付</text><text class="share-choice-mark">✓</text></view></view><view class="section-card options-card"><view class="compact-heading"><text class="section-title">配送方式</text></view><view class="delivery-fixed"><view class="choice-icon active-icon"><AppIcon name="truck" :size="20" /></view><view class="choice-copy"><text class="choice-title">物流配送</text></view><text class="fixed-label">默认</text></view><view class="carrier-selector"><view class="carrier-selector-copy"><text class="choice-title">承运商</text></view>      <button class="share-carrier-choice" :disabled="state.locked || !state.carriers.length" @click="carrierVisible=true"><text>{{ nameOf(state.carriers,carrier) || '请选择' }}</text><AppIcon name="chevron-right" :size="16" /></button></view></view>
-    <view class="section-card detail-card"><view class="remark-block"><view class="remark-heading"><view class="setting-label"><AppIcon name="edit" :size="18" /><text>订单备注</text></view><text class="remark-count">{{ remark.length }}/300</text></view><textarea v-model="remark" class="remark-input" :maxlength="300" placeholder="选填" :disabled="state.locked || parsingAddress" @input="edited" /></view></view>
+    <view class="section-card detail-card"><view class="remark-block"><view class="remark-heading"><view class="setting-label"><AppIcon name="edit" :size="18" /><text>订单备注</text></view><text class="remark-count">{{ remark.length }}/300</text></view><textarea :placeholder-style="$inputPlaceholderStyle" v-model="remark" class="remark-input" :maxlength="300" placeholder="选填" :disabled="state.locked || parsingAddress" @input="edited" /></view></view>
     <view class="section-card summary-card share-checkout-summary"><view class="compact-heading"><text class="section-title">金额明细</text></view><template v-if="state.preview"><view class="amount"><text>商品金额</text><AmountText :text="'¥' + state.preview.goodsAmount" /></view><view class="amount"><text>运费</text><AmountText :text="'¥' + state.preview.freightAmount" /></view><view class="amount total"><text>应付金额</text><AmountText :text="'¥' + state.preview.payableAmount" /></view></template>
     <text v-if="state.busy && !state.locked" class="note" role="status">正在更新金额…</text>
 <AppButton variant="secondary" block :disabled="state.locked" @tap="$emit('back')">返回购物车</AppButton></view></view></view></view>

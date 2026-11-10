@@ -71,7 +71,9 @@ input, textarea {
 
 input::placeholder,
 textarea::placeholder {
-  color: var(--text-placeholder, #969AA3);
+  color: var(--input-placeholder-color, #969AA3);
+  font-size: var(--input-placeholder-size, 13px);
+  font-weight: 400;
 }
 
 /* 纯操作按钮统一使用该类，禁止用“行高等于高度”伪造垂直居中。 */

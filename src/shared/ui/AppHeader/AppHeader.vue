@@ -64,7 +64,7 @@
       <!-- 列表页顶部搜索：与状态栏、导航栏组成一个紧凑头部。 -->
       <view v-if="searchable" class="nav-search">
         <AppIcon class="nav-search-icon" name="search" :size="18" :stroke-width="1.8" />
-        <input
+        <input :placeholder-style="$inputPlaceholderStyle"
           class="nav-search-input"
           :value="searchValue"
           type="text"

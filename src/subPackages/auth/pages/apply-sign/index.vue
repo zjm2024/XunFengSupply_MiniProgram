@@ -55,12 +55,12 @@
             <view class="form-grid">
               <view id="field-password" class="form-item">
                 <text class="field-label"><text class="required">*</text>{{ formData.applicationId ? t('auth.apply.originalPassword') : t('auth.apply.password') }}</text>
-                <input v-model="formData.password" class="form-control" :class="{ error: errors.password }" password maxlength="64" :placeholder="t('auth.apply.passwordPlaceholder')" :placeholder-style="placeholderStyle" @input="clearFieldError('password')" @blur="validateField('password')" />
+                <input :placeholder-style="$inputPlaceholderStyle" v-model="formData.password" class="form-control" :class="{ error: errors.password }" password maxlength="64" :placeholder="t('auth.apply.passwordPlaceholder')"  @input="clearFieldError('password')" @blur="validateField('password')" />
                 <text v-if="errors.password" class="field-error">{{ displayError(errors.password) }}</text>
               </view>
               <view id="field-confirmPassword" class="form-item">
                 <text class="field-label"><text class="required">*</text>{{ t('auth.apply.confirmPassword') }}</text>
-                <input v-model="formData.confirmPassword" class="form-control" :class="{ error: errors.confirmPassword }" password maxlength="64" :placeholder="t('auth.apply.confirmPasswordPlaceholder')" :placeholder-style="placeholderStyle" @input="clearFieldError('confirmPassword')" @blur="validateField('confirmPassword')" />
+                <input :placeholder-style="$inputPlaceholderStyle" v-model="formData.confirmPassword" class="form-control" :class="{ error: errors.confirmPassword }" password maxlength="64" :placeholder="t('auth.apply.confirmPasswordPlaceholder')"  @input="clearFieldError('confirmPassword')" @blur="validateField('confirmPassword')" />
                 <text v-if="errors.confirmPassword" class="field-error">{{ displayError(errors.confirmPassword) }}</text>
               </view>
             </view>
@@ -78,13 +78,13 @@
             <view class="form-grid">
               <view id="field-companyName" class="form-item full">
                 <text class="field-label"><text class="required">*</text>{{ t('auth.apply.companyName') }}</text>
-                <input
+                <input :placeholder-style="$inputPlaceholderStyle"
                   v-model="formData.companyName"
                   class="form-control"
                   :class="{ error: errors.companyName }"
                   maxlength="120"
                   :placeholder="t('auth.apply.companyPlaceholder')"
-                  :placeholder-style="placeholderStyle"
+
                   @input="clearFieldError('companyName')"
                   @blur="validateField('companyName')"
                 />
@@ -93,13 +93,13 @@
 
               <view id="field-contactName" class="form-item">
                 <text class="field-label"><text class="required">*</text>{{ t('auth.apply.contactName') }}</text>
-                <input
+                <input :placeholder-style="$inputPlaceholderStyle"
                   v-model="formData.contactName"
                   class="form-control"
                   :class="{ error: errors.contactName }"
                   maxlength="50"
                   :placeholder="t('auth.apply.contactPlaceholder')"
-                  :placeholder-style="placeholderStyle"
+
                   @input="clearFieldError('contactName')"
                   @blur="validateField('contactName')"
                 />
@@ -108,14 +108,14 @@
 
               <view id="field-mobile" class="form-item">
                 <text class="field-label"><text class="required">*</text>{{ t('auth.apply.mobile') }}</text>
-                <input
+                <input :placeholder-style="$inputPlaceholderStyle"
                   v-model="formData.mobile"
                   class="form-control"
                   :class="{ error: errors.mobile }"
                   type="number"
                   maxlength="11"
                   :placeholder="t('auth.apply.mobilePlaceholder')"
-                  :placeholder-style="placeholderStyle"
+
                   @input="clearFieldError('mobile')"
                   @blur="validateField('mobile')"
                 />
@@ -124,13 +124,13 @@
 
               <view id="field-landlinePhone" class="form-item">
                 <text class="field-label"><text class="required">*</text>{{ t('auth.apply.landline') }}</text>
-                <input
+                <input :placeholder-style="$inputPlaceholderStyle"
                   v-model="formData.landlinePhone"
                   class="form-control"
                   :class="{ error: errors.landlinePhone }"
                   maxlength="20"
                   :placeholder="t('auth.apply.landlinePlaceholder')"
-                  :placeholder-style="placeholderStyle"
+
                   @input="clearFieldError('landlinePhone')"
                   @blur="validateField('landlinePhone')"
                 />
@@ -139,13 +139,13 @@
 
               <view id="field-taxNo" class="form-item">
                 <text class="field-label">{{ t('auth.apply.taxNo') }}<text class="optional">{{ t('auth.apply.optional') }}</text></text>
-                <input
+                <input :placeholder-style="$inputPlaceholderStyle"
                   v-model="formData.taxNo"
                   class="form-control"
                   :class="{ error: errors.taxNo }"
                   maxlength="32"
                   :placeholder="t('auth.apply.taxPlaceholder')"
-                  :placeholder-style="placeholderStyle"
+
                   @input="clearFieldError('taxNo')"
                   @blur="validateField('taxNo')"
                 />
@@ -154,13 +154,13 @@
 
               <view id="field-email" class="form-item full">
                 <text class="field-label">{{ t('auth.apply.email') }}<text class="optional">{{ t('auth.apply.optional') }}</text></text>
-                <input
+                <input :placeholder-style="$inputPlaceholderStyle"
                   v-model="formData.email"
                   class="form-control"
                   :class="{ error: errors.email }"
                   maxlength="100"
                   :placeholder="t('auth.apply.emailPlaceholder')"
-                  :placeholder-style="placeholderStyle"
+
                   @input="clearFieldError('email')"
                   @blur="validateField('email')"
                 />
@@ -191,13 +191,13 @@
 
               <view id="field-addressDetail" class="form-item full">
                 <text class="field-label"><text class="required">*</text>{{ t('auth.apply.addressDetail') }}</text>
-                <textarea
+                <textarea :placeholder-style="$inputPlaceholderStyle"
                   v-model="formData.addressDetail"
                   class="form-textarea"
                   :class="{ error: errors.addressDetail }"
                   maxlength="200"
                   :placeholder="t('auth.apply.addressPlaceholder')"
-                  :placeholder-style="placeholderStyle"
+
                   @input="clearFieldError('addressDetail')"
                   @blur="validateField('addressDetail')"
                 />
@@ -206,13 +206,13 @@
 
               <view id="field-registeredAddress" class="form-item full">
                 <text class="field-label">{{ t('auth.apply.registeredAddress') }}<text class="optional">{{ t('auth.apply.optional') }}</text></text>
-                <textarea
+                <textarea :placeholder-style="$inputPlaceholderStyle"
                   v-model="formData.registeredAddress"
                   class="form-textarea compact"
                   :class="{ error: errors.registeredAddress }"
                   maxlength="200"
                   :placeholder="t('auth.apply.registeredPlaceholder')"
-                  :placeholder-style="placeholderStyle"
+
                   @input="clearFieldError('registeredAddress')"
                   @blur="validateField('registeredAddress')"
                 />
@@ -336,7 +336,6 @@ import storage from '../../../../shared/utils/storage.js'
 import { useUserStore } from '../../../../shared/session/userStore.js'
 import { formatDateTime } from '../../../../shared/utils/format.js'
 
-const placeholderStyle = 'color: #989BA3; font-size: 14px;'
 const CAPTCHA_CHALLENGE_SAFETY_WINDOW_MS = 10 * 1000
 const CAPTCHA_TOKEN_SAFETY_WINDOW_MS = 5 * 1000
 const CAPTCHA_RECOVERABLE_ERRORS = new Set([

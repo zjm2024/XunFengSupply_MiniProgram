@@ -822,7 +822,7 @@
     "bank": "Bank payment",
     "bankLater": "Coming later",
     "records": "Top-up history",
-    "recordsHint": "Check pending, credited and failed top-ups",
+    "recordsHint": "Track paid top-ups and crediting progress",
     "wechat": "WeChat Pay",
     "wechatHint": "Pay with WeChat and check top-up history after payment.",
     "wechatNative": "WeChat scan to pay",
@@ -835,7 +835,7 @@
     "wechatMissing": "WeChat Pay parameters are incomplete. Please start the top-up again.",
     "amountInvalid": "Enter a positive amount with up to 2 decimal places",
     "creditedHint": "This top-up has been credited. Check the account balance and top-up history.",
-    "acceptedHint": "The top-up has been accepted and payment is being confirmed. Check top-up history later for the final result.",
+    "acceptedHint": "Your payment result is being checked. Track it on this page and avoid paying again.",
     "alipayFormat": "Invalid Alipay parameters. Please start the top-up again.",
     "pendingTitle": "Confirming payment result",
     "viewRecords": "View history",
@@ -846,7 +846,7 @@
     "unavailableTitle": "{channel} is unavailable",
     "unavailableContent": "Use an app release with {channel} enabled.",
     "createFailed": "Unable to create the {channel} top-up. Please try again later.",
-    "requested": "A payment request was sent to {channel}. Check top-up history for crediting progress.",
+    "requested": "Payment submitted to {channel}. Check progress on this page and avoid paying again.",
     "qrTitle": "WeChat scan to pay",
     "qrHint": "Scan with WeChat. After paying, tap below to check your top-up.",
     "successTitle": "Top-up successful",
@@ -868,7 +868,13 @@
     "frozenAmount": "Frozen ¥{amount}",
     "orderTopUp": "Top up for this order",
     "orderTopUpHint": "Funds go to your balance first. Once credited, return to the order and confirm payment.",
-    "continueOrder": "Continue to checkout"
+    "continueOrder": "Continue to checkout",
+    "awaitingPayment": "Awaiting payment",
+    "confirmingPayment": "Confirming payment",
+    "progressHint": "Unpaid attempts are excluded from your history. Payments expire after 15 minutes; the server verifies and closes unpaid transactions.",
+    "checkProgress": "Check payment progress",
+    "qrExpired": "This QR code has expired. Check payment progress for the confirmed result.",
+    "qrRemaining": "Time remaining {time}"
   },
   "rechargeRecords": {
     "filters": {
@@ -891,6 +897,10 @@
     "fallback": "Account top-up",
     "count": "{count} records",
     "accountRef": "Account {id}",
-    "emptyHint": "Top-up records will appear here"
+    "emptyHint": "Paid top-ups will appear here",
+    "paidRecords": "Paid top-ups",
+    "creditException": "Credit issue",
+    "creditProcessing": "Crediting",
+    "processingHint": "Payment confirmed. Your balance is being credited."
   }
 }

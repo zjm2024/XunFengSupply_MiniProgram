@@ -1,3 +1,5 @@
+import { knownProductStock, sortProductsByStock } from '@/shared/utils/productAvailability.js'
+
 function number(value, fallback = 0) {
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : fallback
@@ -59,4 +61,17 @@ export function filterCartItems(items = [], keyword = '') {
     const text = [item?.name, item?.skuName, item?.code, item?.skuCode, item?.barcode].map(normalize).join(' ')
     return terms.every(term => text.includes(term))
   })
+}
+
+/** 仅购物车展示使用；不改变结算明细顺序或 store 中的对象/勾选状态。 */
+export function sortCartGroupsByStock(groups = []) {
+  return sortProductsByStock(groups.map(group => {
+    const skus = new Map(group.items.map(item => [item.skuId ?? item.cartItemId, knownProductStock(item)]))
+    const quantities = [...skus.values()].filter(value => value !== null)
+    return {
+      ...group,
+      stock: quantities.length ? quantities.reduce((sum, value) => sum + value, 0) : null,
+      items: sortProductsByStock(group.items),
+    }
+  }))
 }

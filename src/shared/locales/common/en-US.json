@@ -60,7 +60,7 @@
     "clear": "Clear search",
     "filter": "Filter",
     "placeholder": "Product name / SKU / barcode",
-    "sortDefault": "Recommended",
+    "sortDefault": "Default",
     "sortLatest": "Latest",
     "sortPrice": "Price",
     "sortStock": "Stock"
@@ -102,7 +102,7 @@
     "loading": "Loading...",
     "section": "Product collection",
     "search": "Search this collection",
-    "configured": "Default",
+    "configured": "Configured",
     "latest": "Newest",
     "empty": "No matching products",
     "end": "All products loaded",

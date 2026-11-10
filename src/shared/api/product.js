@@ -1,3 +1,4 @@
+import { firstCatalogPrice, resolveCatalogPrice } from '@/shared/utils/catalogPrice.js'
 /**
  * 商品接口与页面模型适配。
  *
@@ -57,9 +58,9 @@ function normalizeSku(item, product) {
     sizeName: firstDefined(item, ['sizeName'], null),
     specName: firstDefined(item, ['specName', 'specDesc', 'skuName', 'specificationName', 'specValue'], ''),
     image: firstDefined(item, ['imageUrl', 'image'], ''),
-    price: number(firstDefined(item, ['currentPrice', 'price', 'salePrice'], product.price)),
-    listPrice: number(firstDefined(item, ['listPrice', 'standardPrice'])),
-    basePrice: number(firstDefined(item, ['basePrice', 'base_price'])),
+    price: resolveCatalogPrice(item, product.price) ?? 0,
+    listPrice: firstCatalogPrice(item.listPrice, item.ListPrice, item.standardPrice) ?? 0,
+    basePrice: firstCatalogPrice(item.basePrice, item.BasePrice, item.base_price),
     priceSource: firstDefined(item, ['priceSource', 'PriceSource'], 'BASE'),
     priceRuleId: firstDefined(item, ['priceRuleId', 'PriceRuleId'], null),
     matchedScope: firstDefined(item, ['matchedScope', 'MatchedScope'], null),
@@ -121,7 +122,7 @@ function normalizePromotion(item = {}) {
 export function normalizeProduct(item = {}, extra = {}) {
   const source = item?.product || item || {}
   const prices = Array.isArray(item?.prices) ? item.prices : []
-  const currentPrice = firstDefined(item, ['currentPrice'], firstDefined(source, ['currentPrice', 'minCurrentPrice', 'basePrice', 'price'], 0))
+  const currentPrice = firstCatalogPrice(item.currentPrice, item.CurrentPrice, source.currentPrice, source.CurrentPrice, source.minCurrentPrice, source.MinCurrentPrice, resolveCatalogPrice(source))
   const priceRule = prices.find(rule => number(rule.price) === number(currentPrice)) || prices[0]
   const minPrice = firstDefined(source, ['minCurrentPrice', 'MinCurrentPrice'], null)
   const maxPrice = firstDefined(source, ['maxCurrentPrice', 'MaxCurrentPrice'], null)
@@ -138,7 +139,7 @@ export function normalizeProduct(item = {}, extra = {}) {
     barcode: firstDefined(source, ['barcode', 'barCode'], ''),
     image: images[0],
     images,
-    price: number(currentPrice),
+    price: currentPrice ?? 0,
     minCurrentPrice: minPrice === null ? null : number(minPrice),
     maxCurrentPrice: maxPrice === null ? null : number(maxPrice),
     hasPriceRange: minPrice !== null && maxPrice !== null && number(maxPrice) > number(minPrice),
@@ -161,6 +162,9 @@ export function normalizeProduct(item = {}, extra = {}) {
   }
   const skuSource = firstDefined(item, ['skus', 'skuList'], firstDefined(source, ['skus', 'skuList'], []))
   product.skus = Array.isArray(skuSource) ? skuSource.map(sku => normalizeSku(sku, product)) : []
+  if (currentPrice === null && product.skus.length) {
+    product.price = Math.min(...product.skus.map(sku => sku.price))
+  }
   if (!product.stockKnown && product.skus.some(sku => sku.stockKnown)) {
     product.stock = product.skus.reduce((sum, sku) => sum + (sku.stockKnown ? sku.stock : 0), 0)
     product.stockKnown = true

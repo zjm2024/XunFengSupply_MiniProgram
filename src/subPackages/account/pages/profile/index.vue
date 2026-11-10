@@ -44,7 +44,7 @@
     </template>
     <template #overlay>
       <ConfirmPopup v-model="editVisible" :title="editTitle" :confirm-text="t(saving ? 'account.profile.saving' : 'common.save')" :confirm-disabled="saving" :dismiss-disabled="saving" :close-on-overlay="!saving" @confirm="confirmProfileEdit" @cancel="closeProfileEdit" @close="closeProfileEdit">
-        <view class="field profile-edit-field"><input :key="editField" v-model="editValue" class="form-input" :aria-label="editTitle" :maxlength="editField === 'realName' ? 50 : 30" :disabled="saving" :placeholder="t(editField === 'realName' ? 'account.profile.namePlaceholder' : 'account.profile.optional')" autocomplete="off" @confirm="confirmProfileEdit" /></view>
+        <view class="field profile-edit-field"><input :placeholder-style="$inputPlaceholderStyle" :key="editField" v-model="editValue" class="form-input" :aria-label="editTitle" :maxlength="editField === 'realName' ? 50 : 30" :disabled="saving" :placeholder="t(editField === 'realName' ? 'account.profile.namePlaceholder' : 'account.profile.optional')" autocomplete="off" @confirm="confirmProfileEdit" /></view>
         <text v-if="saveError || validationKey" class="feedback error">{{ saveError || t(validationKey) }}</text>
       </ConfirmPopup>
     </template>

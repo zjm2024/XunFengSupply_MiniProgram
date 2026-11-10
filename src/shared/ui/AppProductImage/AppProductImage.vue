@@ -1,5 +1,5 @@
 <template>
-  <view class="app-product-image">
+  <view class="app-product-image" :class="{ 'is-out-of-stock': isUnavailable }">
     <image
       v-if="hasImageSource && !imageFailed"
       class="app-product-image__source"
@@ -21,12 +21,14 @@
     <view v-if="!hasImageSource || imageFailed" class="app-product-image__fallback">
       <AppIcon name="image" :size="fallbackIconSize" :stroke-width="1.6" />
     </view>
-    <text v-if="isOutOfStock" class="app-product-image__stock-badge">暂无库存</text>
+    <text v-if="showStockBadge && isUnavailable" class="app-product-image__stock-badge">{{ t('common.productCard.stockEmpty') }}</text>
   </view>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { t } from '@/shared/i18n/index.js'
+import { isProductOutOfStock } from '@/shared/utils/productAvailability.js'
 import AppIcon from '../AppIcon/AppIcon.vue'
 import { getCachedResource, getCachedResourcePath } from '@/shared/utils/resourceCache.js'
 
@@ -35,6 +37,7 @@ const props = defineProps({
   mode: { type: String, default: 'aspectFit' },
   lazyLoad: { type: Boolean, default: false },
   stock: { type: [Number, String], default: undefined },
+  unavailable: { type: Boolean, default: false },
   showStockBadge: { type: Boolean, default: true },
   fallbackIconSize: { type: Number, default: 28 },
 })
@@ -45,12 +48,7 @@ const displaySrc = ref('')
 let cacheRequestId = 0
 const hasImageSource = computed(() => Boolean(displaySrc.value?.trim()))
 const hasImageRequest = computed(() => Boolean(String(props.src || '').trim()))
-const hasKnownStock = computed(() => props.stock !== undefined && props.stock !== null && props.stock !== '')
-const isOutOfStock = computed(() => (
-  props.showStockBadge
-  && hasKnownStock.value
-  && Number(props.stock) <= 0
-))
+const isUnavailable = computed(() => props.unavailable || isProductOutOfStock({ stock: props.stock }))
 
 watch(() => props.src, async (source) => {
   const requestId = ++cacheRequestId
@@ -152,14 +150,20 @@ function handleImageError() {
 .app-product-image__stock-badge {
   position: absolute;
   z-index: 2;
-  top: 6px;
-  right: 6px;
-  padding: 4px 7px;
-  border-radius: var(--radius-control, 10px);
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 5px 3px;
+  text-align: center;
+  box-sizing: border-box;
   color: #fff;
   font-size: var(--type-caption-size, 12px);
   font-weight: var(--font-weight-semibold, 600);
   line-height: 1;
   background: rgba(65, 68, 75, 0.72);
+}
+.app-product-image.is-out-of-stock .app-product-image__source {
+  filter: grayscale(1);
+  opacity: 0.55;
 }
 </style>

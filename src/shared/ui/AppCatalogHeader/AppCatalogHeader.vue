@@ -31,12 +31,12 @@
                 <AppIcon name="close" :size="14" :stroke-width="2" />
               </view>
             </view>
-            <input
+            <input :placeholder-style="$inputPlaceholderStyle"
               v-else-if="!searchEntry"
               class="search-input"
               :value="editingKeyword"
               :placeholder="placeholder ?? t('common.search.placeholder')"
-              placeholder-style="color:#a2a7ae;font-size:14px;font-weight:400"
+
               :focus="autoFocus"
               confirm-type="search"
               @input="handleKeywordInput"
@@ -60,7 +60,7 @@
         <view v-if="showTools" class="quick-sort-bar" :class="{'has-result-count':showResultCount}">
           <text v-if="showResultCount" class="catalog-result-count">{{ total }} 件商品</text>
           <view
-            v-for="item in (showSort ? quickSortItems : [])"
+            v-for="item in (showSort ? quickSortItems.filter(item => !sortKeys || sortKeys.includes(item.key)) : [])"
             :key="item.key"
             class="quick-sort-item"
             :class="{ 'is-active': isQuickSortActive(item.key) }"
@@ -110,6 +110,7 @@ const props = defineProps({
   keywordCommitted: { type: Boolean, default: false },
   showTools: { type: Boolean, default: true },
   showSort: { type: Boolean, default: true },
+  sortKeys: { type: Array, default: null },
   showResultCount: { type: Boolean, default: false },
   showCart: { type: Boolean, default: true },
   cartCount: { type: Number, default: 0 },
@@ -121,6 +122,7 @@ const props = defineProps({
   stockFilterLabel: { type: String, default: '' },
   theme: { type: String, default: 'dark' },
 })
+
 
 const emit = defineEmits([
   'search-entry',
@@ -325,7 +327,7 @@ watch(() => props.theme, applyStatusBarStyle)
   white-space: nowrap;
   text-overflow: ellipsis;
   color: #a2a7ae;
-  font-weight: var(--font-weight-regular, 400);
+  font-weight: 400;
   line-height: 20px;
 }
 
@@ -600,4 +602,5 @@ watch(() => props.theme, applyStatusBarStyle)
     padding-left: 36px;
   }
 }
-.has-result-count{justify-content:space-between}.catalog-result-count{margin-right:auto;font-size: var(--type-caption-size, 12px);line-height: 20px;color:var(--text-secondary,#737a84)}.has-result-count .filter-entry{flex:none;margin-left:16px}</style>
+.has-result-count{justify-content:space-between}.catalog-result-count{margin-right:auto;font-size: var(--type-caption-size, 12px);line-height: 20px;color:var(--text-secondary,#737a84)}.has-result-count .filter-entry{flex:none;margin-left:16px}@media screen and (max-width: 599px) { .search-entry-placeholder { font-size: var(--input-placeholder-size, 13px); } }
+</style>

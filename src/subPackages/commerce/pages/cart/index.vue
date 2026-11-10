@@ -63,7 +63,7 @@
                   <view class="toolbar-left">
                     <text class="toolbar-title">{{ t('commerce.cart.list') }}</text>
                     <text class="toolbar-desc">
-                      {{ t('commerce.cart.listCount', { products: visibleProductCount, skus: visibleItems.length, quantity: visibleQuantity }) }}
+                      {{ t('common.search.sortDefault') }} · {{ t('commerce.cart.listCount', { products: visibleProductCount, skus: visibleItems.length, quantity: visibleQuantity }) }}
                     </text>
                   </view>
                   <button v-if="!isManaging" class="outline-btn button-center" @click="goToProductList">{{ t('commerce.cart.continue') }}</button>
@@ -92,36 +92,6 @@
                 <view v-if="flushError" class="sync-hint is-error">
                   <text class="sync-text">{{ t('commerce.cart.syncNotice', { message: flushError.message || t('commerce.cart.retryHint') }) }}</text>
                   <button class="retry-link button-center" @click="retryFlush">{{ t('commerce.cart.retry') }}</button>
-                </view>
-
-                <!-- 失效商品区 -->
-                <view v-if="visibleInvalidItems.length > 0" class="invalid-section">
-                  <view class="invalid-header">
-                    <text class="invalid-title">{{ t('commerce.cart.invalidCount', { count: visibleInvalidItems.length }) }}</text>
-                    <button class="link-btn button-center" @click="removeInvalidItems">{{ t(isSearching ? 'commerce.cart.clearInvalidResults' : 'commerce.cart.clearInvalid') }}</button>
-                  </view>
-                  <view class="cart-list">
-                    <view v-for="group in invalidGroups" :key="group.key" class="spu-card invalid-spu">
-                      <view class="invalid-spu-header">
-                        <text class="spu-name">{{ group.name }}</text>
-                        <text class="spu-meta">{{ t('commerce.cart.groupCount', { count: group.skuCount, quantity: group.totalQuantity }) }}</text>
-                      </view>
-                    <view v-for="item in group.items" :key="item.cartItemId" class="cart-card is-invalid">
-                      <label v-if="isManaging" class="check-wrap" @tap.stop="onToggleSelect(item)">
-                        <view class="check" :class="{ checked: isManagementSelected(item) }">
-                          <text v-if="isManagementSelected(item)">✓</text>
-                        </view>
-                      </label>
-                      <AppProductImage class="product-image" :src="item.image" :stock="item.stock" />
-                      <view class="product-info">
-                        <text class="product-name">{{ item.skuName || t('commerce.cart.defaultVariant') }}</text>
-                        <text class="product-code">{{ t('commerce.cart.code', { code: item.code || item.productId }) }}</text>
-                        <text class="invalid-reason">{{ item.invalidReason || t('commerce.cart.invalidHint') }}</text>
-                      </view>
-                      <button v-if="!isManaging" class="delete-btn button-center" @click="deleteOne(item.cartItemId)">{{ t('commerce.cart.remove') }}</button>
-                    </view>
-                    </view>
-                  </view>
                 </view>
 
                 <!-- 有效商品：SPU 分组，组内展示 SKU -->
@@ -194,6 +164,37 @@
                     </view>
                   </view>
                 </view>
+                <!-- 失效商品区 -->
+                <view v-if="visibleInvalidItems.length > 0" class="invalid-section">
+                  <view class="invalid-header">
+                    <text class="invalid-title">{{ t('commerce.cart.invalidCount', { count: visibleInvalidItems.length }) }}</text>
+                    <button class="link-btn button-center" @click="removeInvalidItems">{{ t(isSearching ? 'commerce.cart.clearInvalidResults' : 'commerce.cart.clearInvalid') }}</button>
+                  </view>
+                  <view class="cart-list">
+                    <view v-for="group in invalidGroups" :key="group.key" class="spu-card invalid-spu">
+                      <view class="invalid-spu-header">
+                        <text class="spu-name">{{ group.name }}</text>
+                        <text class="spu-meta">{{ t('commerce.cart.groupCount', { count: group.skuCount, quantity: group.totalQuantity }) }}</text>
+                      </view>
+                    <view v-for="item in group.items" :key="item.cartItemId" class="cart-card is-invalid">
+                      <label v-if="isManaging" class="check-wrap" @tap.stop="onToggleSelect(item)">
+                        <view class="check" :class="{ checked: isManagementSelected(item) }">
+                          <text v-if="isManagementSelected(item)">✓</text>
+                        </view>
+                      </label>
+                      <AppProductImage class="product-image" :src="item.image" :stock="item.stock" />
+                      <view class="product-info">
+                        <text class="product-name">{{ item.skuName || t('commerce.cart.defaultVariant') }}</text>
+                        <text class="product-code">{{ t('commerce.cart.code', { code: item.code || item.productId }) }}</text>
+                        <AmountText class="invalid-price" :text="'¥' + formatMoney(item.price)" />
+                        <text class="invalid-reason">{{ item.invalidReason || t('commerce.cart.invalidHint') }}</text>
+                      </view>
+                      <button v-if="!isManaging" class="delete-btn button-center" @click="deleteOne(item.cartItemId)">{{ t('commerce.cart.remove') }}</button>
+                    </view>
+                    </view>
+                  </view>
+                </view>
+
               </view>
 
               <!-- 侧栏汇总 -->
@@ -318,7 +319,7 @@ import ConfirmPopup from '../../../../shared/ui/ConfirmPopup/ConfirmPopup.vue'
 import AppProductImage from '../../../../shared/ui/AppProductImage/AppProductImage.vue'
 import AppSvgIllustration from '../../../../shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
-import { groupItemsBySpu, filterCartItems } from '../../model/cartGrouping.js'
+import { sortCartGroupsByStock, groupItemsBySpu, filterCartItems } from '../../model/cartGrouping.js'
 import cartEmptySvg from '../../../../shared/assets/illustrations/empty-cart.svg?raw'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
@@ -396,8 +397,8 @@ const visibleItems = computed(() => filterCartItems(cartStore.items, searchKeywo
 const visibleValidItems = computed(() => visibleItems.value.filter(item => item.canPurchase !== false))
 const visibleInvalidItems = computed(() => visibleItems.value.filter(item => item.canPurchase === false))
 const visibleQuantity = computed(() => visibleItems.value.reduce((sum,item) => sum + (Number(item.quantity) || 0),0))
-const validGroups = computed(() => groupItemsBySpu(visibleValidItems.value))
-const invalidGroups = computed(() => groupItemsBySpu(visibleInvalidItems.value))
+const validGroups = computed(() => sortCartGroupsByStock(groupItemsBySpu(visibleValidItems.value)))
+const invalidGroups = computed(() => sortCartGroupsByStock(groupItemsBySpu(visibleInvalidItems.value)))
 const visibleProductCount = computed(() => groupItemsBySpu(visibleItems.value).length)
 const hiddenSelectedCount = computed(() => {
   if (!isSearching.value) return 0

@@ -1,32 +1,33 @@
 <template>
   <view class="error-container">
     <!-- 图标 -->
-    <view class="error-icon" :class="`icon-${mode}`">
+    <AppSvgIllustration v-if="mode !== 'force-update'" class="error-illustration" name="no-network" size="sm" />
+    <view v-else class="error-icon icon-force-update">
       <view class="icon-svg">
-        <AppIcon :name="modeIcon" size="56rpx" />
+        <AppIcon name="tools" size="56rpx" />
       </view>
     </view>
-    
+
     <!-- 标题 -->
     <text class="error-title">{{ displayTitle }}</text>
-    
+
     <!-- 说明 -->
     <text class="error-desc">{{ displayDesc }}</text>
-    
+
     <!-- 操作按钮 -->
     <view class="error-actions">
       <!-- 主按钮 -->
-      <view 
-        class="btn btn-primary" 
+      <view
+        class="btn btn-primary"
         @click="onPrimaryClick"
         v-if="showPrimary"
       >
         <text class="btn-text">{{ primaryText }}</text>
       </view>
-      
+
       <!-- 次按钮 -->
-      <view 
-        class="btn btn-secondary" 
+      <view
+        class="btn btn-secondary"
         @click="$emit('secondary')"
         v-if="showSecondary"
       >
@@ -40,6 +41,7 @@
 import { computed } from 'vue'
 import { t } from '@/shared/i18n/index.js'
 import AppIcon from '../../../shared/ui/AppIcon/AppIcon.vue'
+import AppSvgIllustration from '../../../shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 
 /**
  * StartupError - 启动错误/离线/强制更新组件
@@ -67,12 +69,6 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['retry', 'update', 'secondary'])
-
-const modeIcon = computed(() => ({
-  error: 'error',
-  offline: 'offline',
-  'force-update': 'tools',
-}[props.mode] || 'error'))
 
 /**
  * 主按钮点击处理
@@ -122,6 +118,10 @@ const displayDesc = computed(() => {
   padding: 0 64rpx;
 }
 
+.error-illustration {
+  margin-bottom: 20px;
+}
+
 .error-icon {
   width: 120rpx;
   height: 120rpx;
@@ -130,26 +130,16 @@ const displayDesc = computed(() => {
   align-items: center;
   justify-content: center;
   margin-bottom: 40rpx;
-  
-  &.icon-error {
-    background-color: $color-error-bg;
-    color: $color-error;
-  }
-  
-  &.icon-offline {
-    background-color: $color-warning-bg;
-    color: $color-warning;
-  }
-  
+
   &.icon-force-update {
     background-color: $color-info-bg;
     color: $color-info;
   }
-  
+
   .icon-svg {
     width: 56rpx;
     height: 56rpx;
-    
+
   }
 }
 
@@ -181,31 +171,31 @@ const displayDesc = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   &.btn-primary {
     background-color: $color-brand-500;
-    
+
     .btn-text {
       color: $color-gray-0;
       font-size: $font-size-body-l;
       font-weight: $font-weight-semibold;
     }
-    
+
     &:active {
       background-color: $color-brand-600;
     }
   }
-  
+
   &.btn-secondary {
     background-color: $color-gray-0;
     border: 2rpx solid $color-border-default;
-    
+
     .btn-text {
       color: $color-gray-950;
       font-size: $font-size-body-l;
       font-weight: $font-weight-medium;
     }
-    
+
     &:active {
       background-color: $color-gray-25;
     }

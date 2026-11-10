@@ -1,6 +1,6 @@
 <template>
   <view class="password-control" :class="{ 'is-disabled': disabled }">
-    <input :id="inputName" class="password-input" :value="modelValue" :type="visible ? 'text' : 'password'" :password="!visible" :disabled="disabled" :aria-label="label" :name="inputName" :maxlength="64" :placeholder="placeholder" autocomplete="off" text-content-type="none" autocapitalize="off" autocorrect="off" :spellcheck="false" data-lpignore="true" data-1p-ignore="true" confirm-type="done" @input="updateValue" @confirm="emit('confirm')" />
+    <input :placeholder-style="$inputPlaceholderStyle" :id="inputName" class="password-input" :value="modelValue" :type="visible ? 'text' : 'password'" :password="!visible" :disabled="disabled" :aria-label="label" :name="inputName" :maxlength="64" :placeholder="placeholder" autocomplete="off" text-content-type="none" autocapitalize="off" autocorrect="off" :spellcheck="false" data-lpignore="true" data-1p-ignore="true" confirm-type="done" @input="updateValue" @confirm="emit('confirm')" />
     <button class="password-eye" :disabled="disabled" :aria-label="(visible ? hideText : showText) + ' · ' + label" :aria-pressed="visible" @tap="visible = !visible">
       <AppIcon :name="visible ? 'eye-off' : 'eye'" :size="20" color="#747b86" />
     </button>

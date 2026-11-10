@@ -389,4 +389,6 @@ const currentTitle = computed(() => tabTitles[props.activeTab] ? t(tabTitles[pro
 
 /* 金额按实际可用宽度缩字，父布局允许收缩。 */
 .message-icon-anchor { position: relative; display: flex; width: 21px; height: 21px; align-items: center; justify-content: center; }
+@media screen and (max-width: 599px) { .home-search-placeholder, .category-search-text { font-size: var(--type-body-small-size, 13px); } }
+.home-search-placeholder, .category-search-text { font-size: var(--input-placeholder-size, 13px); font-weight: 400; color: var(--input-placeholder-color, #969AA3); }
 </style>

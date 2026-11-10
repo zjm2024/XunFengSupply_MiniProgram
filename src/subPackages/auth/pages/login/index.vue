@@ -1,4 +1,4 @@
-﻿﻿<!--
+﻿<!--
   经销商登录页（分包：authSub）
   安全策略：首次不展示验证码；凭证输错一次后，由服务端强制启用滑块拼图验证。
 -->
@@ -14,7 +14,7 @@
             <view class="brand-block">
               <image class="brand-logo" src="/static/images/logo.png" mode="aspectFit" />
               <text class="brand-title">薰风体育</text>
-            
+
             </view>
 
             <view class="login-card">
@@ -27,14 +27,14 @@
                 <text class="field-label">{{ t('auth.login.account') }}</text>
                 <view class="field-control" :class="{ focused: focusedField === 'account' }">
                   <AppIcon name="user" :size="20" color="#5E626B" />
-                  <input
+                  <input :placeholder-style="$inputPlaceholderStyle"
                     v-model="account"
                     class="field-input"
                     type="text"
                     :placeholder="t('auth.login.accountPlaceholder')"
                     maxlength="50"
                     confirm-type="next"
-                    :placeholder-style="placeholderStyle"
+
                     @focus="focusedField = 'account'"
                     @blur="handleAccountBlur"
                   />
@@ -45,14 +45,14 @@
                 <text class="field-label">{{ t('auth.login.password') }}</text>
                 <view class="field-control" :class="{ focused: focusedField === 'password' }">
                   <AppIcon name="lock" :size="20" color="#5E626B" />
-                  <input
+                  <input :placeholder-style="$inputPlaceholderStyle"
                     v-model="password"
                     class="field-input"
                     :type="showPassword ? 'text' : 'password'"
                     :placeholder="t('auth.login.passwordPlaceholder')"
                     maxlength="64"
                     confirm-type="done"
-                    :placeholder-style="placeholderStyle"
+
                     @focus="focusedField = 'password'"
                     @blur="focusedField = ''"
                     @confirm="handleLogin"
@@ -105,7 +105,7 @@
               </view>
 
               <button
-                class="login-button"
+                class="login-button button-center"
                 :disabled="!canLogin || logging"
                 @click="handleLogin"
               >
@@ -182,9 +182,9 @@ const CAPTCHA_ERRORS = new Set([
 ])
 
 const userStore = useUserStore()
-// 汇报演示默认填充；登录仍使用正常账号认证和验证码流程。
-const account = ref('18696541236')
-const password = ref('123456')
+// 登录初始为空；仅允许显式的账号导航参数预填账号。
+const account = ref('')
+const password = ref('')
 const showPassword = ref(false)
 const agreeProtocol = ref(false)
 const logging = ref(false)
@@ -219,7 +219,6 @@ const captchaUsername = ref('')
 const showCaptchaModal = ref(false)
 const loginAfterVerification = ref(false)
 
-const placeholderStyle = 'color: #989BA3; font-size: 14px;'
 
 const canLogin = computed(() => {
   const hasCredentials = Boolean(account.value.trim() && password.value)
@@ -444,7 +443,7 @@ function goToApplySign() {
 <style lang="scss" scoped>
 .login-page {
   min-height: 100%;
-  padding: $space-10 $page-padding-mobile calc(#{$space-6} + env(safe-area-inset-bottom));
+  padding: $space-8 $page-padding-mobile calc(#{$space-6} + env(safe-area-inset-bottom));
   box-sizing: border-box;
   background: $color-bg-page;
   display: flex;
@@ -454,7 +453,7 @@ function goToApplySign() {
 
 .login-main {
   width: 100%;
-  max-width: 720rpx;
+  max-width: 440px;
   margin: 0 auto;
 }
 
@@ -463,12 +462,12 @@ function goToApplySign() {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  margin-bottom: $space-8;
+  margin-bottom: $space-6;
 }
 
 .brand-logo {
-  width: 112rpx;
-  height: 112rpx;
+  width: 56px;
+  height: 56px;
   margin-bottom: $space-3;
 }
 
@@ -477,7 +476,7 @@ function goToApplySign() {
   font-size: $font-size-h1;
   line-height: $line-height-h1;
   font-weight: $font-weight-bold;
-  letter-spacing: 4rpx;
+  letter-spacing: 2px;
 }
 
 .brand-subtitle {
@@ -518,10 +517,10 @@ function goToApplySign() {
 }
 
 .card-caption {
-  margin-top: $space-1;
+  margin-top: $space-2;
   color: $color-text-secondary;
-  font-size: $font-size-caption;
-  line-height: $line-height-caption;
+  font-size: var(--type-body-small-size, 13px);
+  line-height: 20px;
 }
 
 .form-field + .form-field {
@@ -545,7 +544,7 @@ function goToApplySign() {
   align-items: center;
   gap: $space-3;
   background: $color-gray-25;
-  border: 2rpx solid $color-border-default;
+  border: 1px solid $color-border-default;
   border-radius: $radius-control;
   transition: border-color $duration-normal $easing-standard,
     background-color $duration-normal $easing-standard;
@@ -583,7 +582,7 @@ function goToApplySign() {
 }
 
 .captcha-entry {
-  min-height: 72rpx;
+  min-height: 36px;
   margin-top: $space-4;
   padding: 0 $space-3;
   box-sizing: border-box;
@@ -592,7 +591,7 @@ function goToApplySign() {
   gap: $space-2;
   color: #b54708;
   background: #fffaeb;
-  border: 2rpx solid #fedf89;
+  border: 1px solid #fedf89;
   border-radius: $radius-control;
 
   &.verified {
@@ -637,12 +636,14 @@ function goToApplySign() {
 
 .captcha-modal {
   width: 100%;
-  max-width: 680rpx;
+  max-width: 360px;
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
   padding: $space-5;
   box-sizing: border-box;
   background: $color-bg-card;
   border-radius: $radius-feature;
-  box-shadow: 0 24rpx 64rpx rgba(16, 24, 40, 0.2);
+  box-shadow: 0 12px 32px rgba(16, 24, 40, 0.2);
   transform-origin: center;
   animation: xf-captcha-dialog-in 260ms cubic-bezier(.2, .8, .2, 1) both;
 }
@@ -653,7 +654,7 @@ function goToApplySign() {
 }
 
 @keyframes xf-captcha-dialog-in {
-  from { opacity: 0; transform: translateY(18rpx) scale(.94); }
+  from { opacity: 0; transform: translateY(9px) scale(.94); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
@@ -712,12 +713,15 @@ function goToApplySign() {
   min-height: $touch-target-min;
   margin-top: $space-3;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  padding: 10px 0;
+  box-sizing: border-box;
 }
 
 .checkbox {
-  width: 36rpx;
-  height: 36rpx;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
   margin-right: $space-2;
   flex-shrink: 0;
   display: flex;
@@ -725,7 +729,7 @@ function goToApplySign() {
   justify-content: center;
   box-sizing: border-box;
   background: $color-bg-card;
-  border: 2rpx solid $color-gray-300;
+  border: 1px solid $color-gray-300;
   border-radius: $radius-tag;
 
   &.checked {
@@ -735,9 +739,11 @@ function goToApplySign() {
 }
 
 .agreement-text {
+  flex: 1;
+  min-width: 0;
   color: $color-text-secondary;
-  font-size: $font-size-caption;
-  line-height: $line-height-caption;
+  font-size: var(--type-body-small-size, 13px);
+  line-height: 22px;
 }
 
 .agreement-link,
@@ -756,9 +762,9 @@ function goToApplySign() {
   color: $color-gray-0;
   background: $color-action-primary;
   border-radius: $radius-control;
-  font-size: $font-size-body-l;
+  font-size: var(--type-body-size, 14px);
   font-weight: $font-weight-semibold;
-  line-height: 1;
+  line-height: 20px;
 
   &::after {
     border: 0;
@@ -787,16 +793,17 @@ function goToApplySign() {
 
 .security-note {
   display: block;
-  max-width: 720rpx;
+  max-width: 360px;
   margin: $space-6 auto 0;
-  color: $color-text-disabled;
+  color: $color-text-secondary;
   text-align: center;
-  font-size: $font-size-micro;
-  line-height: $line-height-micro;
+  font-size: var(--type-caption-size, 12px);
+  line-height: 20px;
 }
 
 @media (min-width: 768px) {
   .login-page {
+    padding-top: 64px;
     padding-left: $page-padding-tablet;
     padding-right: $page-padding-tablet;
   }

@@ -45,7 +45,7 @@
                     <AppIcon name="chevron-right" :size="12" class="fill-scope-icon" />
                   </view>
                 </button>
-                <input v-model="batchFillNumber" type="number" class="batch-fill-input"
+                <input :placeholder-style="$inputPlaceholderStyle" v-model="batchFillNumber" type="number" class="batch-fill-input"
                   :aria-label="t('commerce.variants.quantityPlaceholder')"
                   :placeholder="t('commerce.variants.quantityShort')" @confirm="applyBatchFill" />
                 <button class="batch-fill-btn button-center" @click="applyBatchFill">{{ t('commerce.variants.applyFill') }}</button>
@@ -107,7 +107,7 @@
                             <text v-if="cell.code">{{ cell.code }}</text>
                           </view>
                         </view>
-                        <input v-if="cell.editable && isMatrix" class="matrix-quantity" type="number"
+                        <input :placeholder-style="$inputPlaceholderStyle" v-if="cell.editable && isMatrix" class="matrix-quantity" type="number"
                           :key="matrixInputRevisions[cell.sku.skuId] || 0"
                           :ref="field => labelMatrixField(field, quantityLabel(group, cell))"
                           :aria-label="quantityLabel(group, cell)"

@@ -25,8 +25,8 @@
               </button>
               <text v-else class="sub-title">{{ t('order.afterSale.inventoryApply.noAccount') }}</text>
             </view>
-            <view class="card section-card"><text class="section-title">{{ t('order.afterSale.inventoryApply.reason') }}</text><textarea v-model="form.reason" :disabled="locked" class="reason-input" maxlength="500" :placeholder="t('order.afterSale.inventoryApply.reasonPlaceholder')" /><text class="counter">{{ form.reason.length }}/500</text></view>
-            <view class="card section-card express-card"><text class="section-title">{{ t('order.afterSale.expressNo') }}</text><input v-model="form.expressNo" :disabled="locked || submitted" class="express-input" maxlength="100" :placeholder="t('order.afterSale.expressNoPlaceholder')" /></view>
+            <view class="card section-card"><text class="section-title">{{ t('order.afterSale.inventoryApply.reason') }}</text><textarea :placeholder-style="$inputPlaceholderStyle" v-model="form.reason" :disabled="locked" class="reason-input" maxlength="500" :placeholder="t('order.afterSale.inventoryApply.reasonPlaceholder')" /><text class="counter">{{ form.reason.length }}/500</text></view>
+            <view class="card section-card express-card"><text class="section-title">{{ t('order.afterSale.expressNo') }}</text><input :placeholder-style="$inputPlaceholderStyle" v-model="form.expressNo" :disabled="locked || submitted" class="express-input" maxlength="100" :placeholder="t('order.afterSale.expressNoPlaceholder')" /></view>
             <view class="refund-status"><text>{{ t('order.afterSale.inventoryApply.pendingAmount') }}</text><text>{{ t('order.afterSale.inventoryApply.notice') }}</text></view>
             <text v-if="pending" class="pending-result">{{ t('order.afterSale.inventoryApply.pendingResult') }}</text>
             <text v-else-if="rows.some(item => !validItem(item))" class="stock-error">{{ t('order.afterSale.inventoryApply.stockChanged') }}</text>

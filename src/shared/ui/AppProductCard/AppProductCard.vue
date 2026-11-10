@@ -1,7 +1,7 @@
 <template>
   <view
     class="app-product-card"
-    :class="`app-product-card--${variant}`"
+    :class="[`app-product-card--${variant}`, { 'is-out-of-stock': isOutOfStock }]"
     hover-class="app-product-card--pressed"
     @click="emit('click')"
   >
@@ -9,8 +9,9 @@
       <AppProductImage
         class="app-product-card__image"
         :src="product.image"
-        :stock="product.stock"
-        :show-stock-badge="showImageStockBadge"
+        :stock="hasKnownStock ? product.stock : undefined"
+        :unavailable="isOutOfStock"
+        :show-stock-badge="showImageStockBadge || isOutOfStock"
         :fallback-icon-size="variant === 'compact' ? 24 : 30"
       />
     </view>
@@ -42,6 +43,7 @@
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed } from 'vue'
 import { t } from '@/shared/i18n/index.js'
+import { knownProductStock, isProductOutOfStock } from '@/shared/utils/productAvailability.js'
 import { getPriceDisplay } from '@/shared/utils/priceDisplay.js'
 import AppProductImage from '../AppProductImage/AppProductImage.vue'
 
@@ -81,7 +83,8 @@ const formattedPrice = computed(() => {
   return Number.isFinite(price) ? price.toFixed(2) : '0.00'
 })
 
-const hasKnownStock = computed(() => props.product.stock !== undefined && props.product.stock !== null && props.product.stock !== '')
+const hasKnownStock = computed(() => knownProductStock(props.product) !== null)
+const isOutOfStock = computed(() => isProductOutOfStock(props.product))
 const stock = computed(() => Number(props.product.stock) || 0)
 const minimumOrder = computed(() => Number(props.product.moq) || 0)
 const unitText = computed(() => String(
@@ -354,5 +357,11 @@ const stockText = computed(() => {
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
   -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
   backdrop-filter: var(--glass-card-blur, blur(16px));
+}
+.app-product-card.is-out-of-stock {
+  .app-product-card__name, .app-product-card__code, .app-product-card__price,
+  .app-product-card__unit, .app-product-card__stock, .app-product-card__list-price {
+    color: var(--color-text-secondary, #737a84);
+  }
 }
 </style>

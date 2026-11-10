@@ -1,9 +1,10 @@
+import { firstCatalogPrice, resolveCatalogPrice } from '@/shared/utils/catalogPrice.js'
 import { dispatch } from './dispatchClient.js'
 import { normalizeProduct } from './product.js'
 
 /** 规范化首页商品卡片，缺失报价不能转成零价。 */
 export function normalizeHomeProduct(item) {
-  if (item?.minCurrentPrice === null || item?.minCurrentPrice === undefined || !Number.isFinite(Number(item.minCurrentPrice))) {
+  if (firstCatalogPrice(item?.minCurrentPrice, resolveCatalogPrice(item || {})) === null) {
     throw new Error('HOME_PRODUCT_PRICE_UNAVAILABLE')
   }
   return { ...normalizeProduct(item), productId: String(item.productId), badge: item.badge || '' }
@@ -41,6 +42,6 @@ export function getHomePreviews(home, componentIds) {
 export function getHomeSection(params) {
   return dispatch('System', 'Mini.HomePageController', 'GetSectionProducts', {
     HomePageId: params.homePageId, HomeComponentId: params.componentId, ConfigStamp: params.configStamp,
-    Keyword: params.keyword || '', Sort: params.sort || 0, PageNum: params.pageNum || 1, PageSize: 20,
+    Keyword: params.keyword || '', Sort: params.sort ?? 2, PageNum: params.pageNum || 1, PageSize: 20,
   }).then(result => ({ ...result, homePageId: String(result.homePageId), homeComponentId: String(result.homeComponentId), items: (result.items || []).map(normalizeHomeProduct) }))
 }

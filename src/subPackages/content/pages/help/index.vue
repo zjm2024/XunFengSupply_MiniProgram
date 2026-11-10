@@ -10,7 +10,7 @@
           <!-- 搜索框 -->
           <view class="search-box">
             <text class="search-icon">🔍</text>
-            <input
+            <input :placeholder-style="$inputPlaceholderStyle"
               class="search-input"
               v-model="keyword"
               :placeholder="t('content.help.search')"

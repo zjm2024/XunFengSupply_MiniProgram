@@ -2,6 +2,7 @@
 import './app/navigation/shareLandingBoot.js'
 // #endif
 import { createSSRApp } from 'vue'
+import { getInputPlaceholderStyle } from './shared/composables/useResponsive.js'
 import { createPinia } from 'pinia'
 import { installNotificationLifecycle } from './shared/services/notificationLifecycle.js'
 import App from './App.vue'
@@ -16,6 +17,8 @@ export function createApp() {
   if (APP_SURFACE.mode === 'share-h5') setLocale('zh-CN')
   else initializeAppLocale()
   const app = createSSRApp(App)
+  // 统一原生input/textarea提示，避免金额字号继承；getter保留窗口响应性。
+  Object.defineProperty(app.config.globalProperties, '$inputPlaceholderStyle', { get: getInputPlaceholderStyle })
   const pinia = createPinia()
   app.use(pinia)
   if (APP_SURFACE.mode !== 'share-h5') installNotificationLifecycle(pinia)

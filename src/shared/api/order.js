@@ -10,6 +10,7 @@
  * - 本文件负责转换为后端 PascalCase DTO
  * - 响应统一转换为 camelCase 领域模型
  */
+import { customerShipments } from '@/shared/utils/orderLogistics.js'
 import { dispatch } from './dispatchClient.js'
 
 // ==================== 内部工具函数 ====================
@@ -34,6 +35,7 @@ function normalizeOrder(order = {}) {
   if (!order || typeof order !== 'object') return order
   return {
     ...order,
+    shipments: customerShipments(order.shipments ?? order.Shipments),
     orderId: order.orderId ?? order.OrderId,
     orderNo: order.orderNo ?? order.OrderNo,
     parentOrderId: number(order.parentOrderId ?? order.ParentOrderId),
@@ -281,7 +283,7 @@ export function confirmReceipt(params = {}) {
  */
 export function getOrderLogistics(orderId) {
   const id = Number(orderId)
-  return dispatch('MallOrder', 'Mini.OrderController', 'GetLogistics', { OrderId: id })
+  return dispatch('MallOrder', 'Mini.OrderController', 'GetLogistics', { OrderId: id }).then(customerShipments)
 }
 
 // ==================== 配送履约拆单 ====================

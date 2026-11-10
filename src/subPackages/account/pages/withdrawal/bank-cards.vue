@@ -34,11 +34,11 @@
         :confirm-text="t('common.save')" :confirm-disabled="saving" :dismiss-disabled="saving" :close-on-overlay="false" @confirm="save">
         <view class="withdrawal-form">
           <text>{{ t('account.withdrawal.bankName') }}</text>
-          <input v-model="draft.bankName" :disabled="saving" maxlength="100" :placeholder="t('account.withdrawal.bankName')" />
+          <input :placeholder-style="$inputPlaceholderStyle" v-model="draft.bankName" :disabled="saving" maxlength="100" :placeholder="t('account.withdrawal.bankName')" />
           <text>{{ t('account.withdrawal.accountHolder') }}</text>
-          <input v-model="draft.accountHolder" :disabled="saving" maxlength="100" :placeholder="t('account.withdrawal.accountHolder')" />
+          <input :placeholder-style="$inputPlaceholderStyle" v-model="draft.accountHolder" :disabled="saving" maxlength="100" :placeholder="t('account.withdrawal.accountHolder')" />
           <text>{{ t('account.withdrawal.bankAccount') }}</text>
-          <input v-model="draft.bankAccount" :disabled="saving" type="number" maxlength="32"
+          <input :placeholder-style="$inputPlaceholderStyle" v-model="draft.bankAccount" :disabled="saving" type="number" maxlength="32"
             :placeholder="t(draft.bankCardId ? 'account.withdrawal.keepCardNumber' : 'account.withdrawal.bankAccount')" />
           <text v-if="formError" class="form-error">{{ formError }}</text>
         </view>

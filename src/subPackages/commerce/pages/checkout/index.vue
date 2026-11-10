@@ -202,7 +202,7 @@
                       </view>
                       <text class="remark-count">{{ customerRemark.length }}/200</text>
                     </view>
-                    <textarea
+                    <textarea :placeholder-style="$inputPlaceholderStyle"
                       v-model="customerRemark"
                       class="remark-input"
                       maxlength="200"

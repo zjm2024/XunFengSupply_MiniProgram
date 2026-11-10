@@ -145,6 +145,8 @@ page,
   --type-label-line-height: #{tokens.$line-height-label-l};
   --type-body-size: #{tokens.$font-size-body-m};
   --type-body-line-height: #{tokens.$line-height-body-m};
+  --input-placeholder-size: 13px;
+  --input-placeholder-color: #969AA3;
   --type-body-small-size: #{tokens.$font-size-body-s};
   --type-body-small-line-height: #{tokens.$line-height-body-s};
   --type-caption-size: #{tokens.$font-size-caption};
@@ -236,6 +238,7 @@ page,
 @media screen and (min-width: 600px) {
   page,
   :root {
+    --input-placeholder-size: 14px;
     --module-padding: #{tokens.$space-5};
     --module-gap: #{tokens.$space-4};
   }

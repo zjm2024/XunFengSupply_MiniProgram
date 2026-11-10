@@ -12,7 +12,7 @@
     @cancel="settleAppDialog(false, hostId)"
     @close="settleAppDialog(false, hostId)"
   >
-    <input
+    <input :placeholder-style="$inputPlaceholderStyle"
       v-if="dialog.input"
       class="app-dialog-input"
       :value="dialog.input.value"

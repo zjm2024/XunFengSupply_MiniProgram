@@ -62,7 +62,7 @@
             <AppIcon name="chevron-right" :size="16" color="#969AA3" />
           </view>
           <text class="field-label">{{ t('account.invoice.amount') }}</text>
-          <view class="invoice-amount-input"><text>¥</text><input v-model="form.amount" :disabled="submitting" type="digit" maxlength="16" placeholder-class="amount-placeholder" :placeholder-style="'font-size:14px;color:#969AA3'" :placeholder="t('account.invoice.amountPlaceholder')" /></view>
+          <view class="invoice-amount-input"><text>¥</text><input :placeholder-style="$inputPlaceholderStyle" v-model="form.amount" :disabled="submitting" type="digit" maxlength="16" placeholder-class="amount-placeholder"  :placeholder="t('account.invoice.amountPlaceholder')" /></view>
           <text v-if="formError" class="amount-error">{{ formError }}</text>
         </view>
       </ConfirmPopup>

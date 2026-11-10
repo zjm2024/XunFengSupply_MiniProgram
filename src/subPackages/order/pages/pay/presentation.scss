@@ -74,3 +74,20 @@
   .checkout-member-amount { grid-column: 2; justify-self: end; }
   .checkout-status { flex-wrap: wrap; gap: 6px 12px; }
 }
+
+.order-qr-content { display: flex; flex-direction: column; align-items: stretch; gap: 12px; text-align: center; }
+.order-qr-label,.order-qr-number,.order-qr-footnote { color: var(--text-secondary,#62666F); font-size: var(--type-caption-size,12px); line-height: 18px; overflow-wrap: anywhere; }
+.order-qr-amount { font-size: var(--type-display-size,28px); line-height: 36px; font-weight: 700; }
+.order-qr-hint { font-size: var(--type-body-size,14px); line-height: 22px; color: var(--text-primary,#1B1C20); }
+.order-qr-code { display:flex;flex-direction:column;width:232px;height:232px;max-width:100%;margin:0 auto;padding:12px;box-sizing:border-box;background:#fff; }
+.order-qr-row { display:flex;flex:1;min-height:0; }
+.order-qr-cell { flex:1;min-width:0;background:#fff; }
+.order-qr-cell.dark { background:#14171c; }
+.order-qr-error { color:var(--danger-color,#b42318);font-size:var(--type-body-small-size,13px);line-height:20px;overflow-wrap:anywhere; }
+.order-qr-success { display:flex;justify-content:center;padding:16px; }
+
+.order-qr-content .order-qr-amount { align-self: center; }
+
+@media screen and (max-width: 359px) {
+  .deadline-panel { gap: 8px; }
+}
