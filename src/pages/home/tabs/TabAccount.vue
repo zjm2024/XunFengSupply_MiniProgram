@@ -179,6 +179,7 @@ const metricEntries = computed(() => [
   { key: 'score', value: String(userStore.creditScore || 0), unit: accountCopy.value.metrics.scoreUnit, label: accountCopy.value.metrics.score },
 ])
 const serviceEntries = computed(() => [
+  /* 暂停售后服务入口，恢复时取消本段注释。
   {
     key: 'after-sales',
     label: accountCopy.value.services.afterSales,
@@ -186,6 +187,7 @@ const serviceEntries = computed(() => [
     icon: 'profile-after-sales',
     action: goToAfterSales,
   },
+  */
   ...(['PUBLIC_STOCK_SHARE', 'RETAIL_SHARE_CREATE', 'RETAIL_SHARE_VIEW', 'RETAIL_SHARE_REVOKE'].some(code => userStore.hasPermission(code)) ? [{ key: 'share', label: t('main.accountPanel.share'), description: t('main.accountPanel.shareDescription'), icon: 'globe', action: goToShare }] : []),
   { key: 'help', label: accountCopy.value.services.help, description: accountCopy.value.services.helpDescription, icon: 'profile-help', action: goToHelp },
 ])

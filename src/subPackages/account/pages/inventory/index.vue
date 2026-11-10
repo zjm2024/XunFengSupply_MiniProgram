@@ -7,26 +7,36 @@
     <template #content>
       <AppContent padding="16px var(--page-padding-x,16px) 28px" :refresher-enabled="true" :refresher-triggered="isRefreshing" @refresherrefresh="handleRefresh" @refresherrestore="handleRefresherRestore" @refresherabort="handleRefresherRestore" @scrolltolower="loadMore">
         <view class="inventory-wrap">
-          <view class="result-head"><text>{{ t('account.inventory.productTotalLabel', { count: totalCount }) }}</text><text class="link-text batch-toggle" @tap="toggleSelecting">{{ t(selecting ? 'account.inventory.finishSelection' : 'account.inventory.batchReturn') }}</text></view>
-          <text v-if="selecting" class="selection-hint">{{ t('account.inventory.selectHint') }}</text>
+          <view class="result-head"><text>{{ t('account.inventory.productTotalLabel', { count: totalCount }) }}</text><!-- 暂停售后入口，保留代码待恢复。
+<text class="link-text batch-toggle" @tap="toggleSelecting">{{ t(selecting ? 'account.inventory.finishSelection' : 'account.inventory.batchReturn') }}</text>
+--></view>
+          <!-- 暂停售后入口，保留代码待恢复。
+<text v-if="selecting" class="selection-hint">{{ t('account.inventory.selectHint') }}</text>
+-->
           <AppPageState :state="pageState" :title="t('account.inventory.empty')" :description="pageState === PageStatus.ERROR ? loadError : t('account.inventory.emptyHint')" @retry="reload" @action="reload">
             <view class="spu-list">
               <view v-for="product in items" :key="product.productId" class="spu-card">
                 <view class="spu-main" @tap="toggleProduct(product)">
                   <AppProductImage class="spu-image" :src="product.imageUrl" mode="aspectFit" />
-                  <view class="stock-copy"><text class="spu-name">{{ product.productName || t('account.inventory.unnamed') }}</text><text class="sku-code">{{ t('account.inventory.variantCount', { count: product.skuCount }) }}</text><text v-if="selectedFor(product.productId)" class="selected-mark">{{ t('account.inventory.selected') }} {{ selectedFor(product.productId) }}</text></view>
-                  <view class="spu-quantity"><text>{{ t('account.inventory.availableReturn') }}</text><text>{{ formatQty(product.availableQuantity) }}</text><text>{{ product.unit }}</text></view>
+                  <view class="stock-copy"><text class="spu-name">{{ product.productName || t('account.inventory.unnamed') }}</text><text class="sku-code">{{ t('account.inventory.variantCount', { count: product.skuCount }) }}</text><!-- 暂停售后入口，保留代码待恢复。
+<text v-if="selectedFor(product.productId)" class="selected-mark">{{ t('account.inventory.selected') }} {{ selectedFor(product.productId) }}</text>
+--></view>
+                  <view class="spu-quantity"><text>{{ t('account.inventory.currentAvailable') }}</text><text>{{ formatQty(product.availableQuantity) }}</text><text>{{ product.unit }}</text></view>
                 </view>
-                <view class="spu-bottom" @tap="toggleProduct(product)"><text>{{ t('account.inventory.physicalStock') }} {{ formatQty(product.onHandQuantity) }} · {{ t('account.inventory.returnReserved') }} {{ formatQty(product.reservedQuantity) }}</text><view><text>{{ t(variants[product.productId]?.expanded ? 'account.inventory.collapse' : 'account.inventory.expand') }}</text><AppIcon :name="variants[product.productId]?.expanded ? 'chevron-up' : 'chevron-down'" :size="14" /></view></view>
+                <view class="spu-bottom" @tap="toggleProduct(product)"><text>{{ t('account.inventory.physicalStock') }} {{ formatQty(product.onHandQuantity) }} · {{ t('account.inventory.reserved') }} {{ formatQty(product.reservedQuantity) }}</text><view><text>{{ t(variants[product.productId]?.expanded ? 'account.inventory.collapse' : 'account.inventory.expand') }}</text><AppIcon :name="variants[product.productId]?.expanded ? 'chevron-up' : 'chevron-down'" :size="14" /></view></view>
                 <view v-if="variants[product.productId]?.expanded" class="sku-panel">
-                  <view v-for="sku in variants[product.productId].items" :key="sku.skuId" class="variant-row" :class="{ 'variant-selected': isSelected(sku.skuId) }">
-                    <view class="variant-main" @tap="selecting ? toggleSku(sku) : openDetail(sku.skuId)">
-                      <view v-if="selecting" class="select-circle" :class="{ checked: isSelected(sku.skuId), disabled: sku.availableQuantity <= 0 }"><AppIcon v-if="isSelected(sku.skuId)" name="check" :size="14" color="#fff" /></view>
+                  <view v-for="sku in variants[product.productId].items" :key="sku.skuId" class="variant-row">
+                    <view class="variant-main" @tap="openDetail(sku.skuId)">
+                      <!-- 暂停售后入口，保留代码待恢复。
+<view v-if="selecting" class="select-circle" :class="{ checked: isSelected(sku.skuId), disabled: sku.availableQuantity <= 0 }"><AppIcon v-if="isSelected(sku.skuId)" name="check" :size="14" color="#fff" /></view>
+-->
                       <view class="variant-copy"><text class="variant-name">{{ [sku.colorName, sku.sizeName].filter(Boolean).join(' / ') || sku.skuName }}</text><text class="sku-code">{{ sku.skuCode || ('SKU ' + sku.skuId) }}</text></view>
-                      <view class="variant-stock"><text>{{ t('account.inventory.availableReturn') }}</text><text>{{ formatQty(sku.availableQuantity) }} {{ sku.unit }}</text></view>
+                      <view class="variant-stock"><text>{{ t('account.inventory.currentAvailable') }}</text><text>{{ formatQty(sku.availableQuantity) }} {{ sku.unit }}</text></view>
                       <AppIcon v-if="!selecting" name="chevron-right" :size="14" color="#9BA3AE" />
                     </view>
-                    <view v-if="selecting && isSelected(sku.skuId)" class="variant-edit"><text>{{ t('account.inventory.returnQuantity') }}</text><view class="quantity-control"><button class="step-button" :disabled="draft.state.pendingIntent || selectedQuantity(sku.skuId) <= 1" @tap="setQuantity(sku, selectedQuantity(sku.skuId)-1)">−</button><input type="number" class="quantity-input" :disabled="Boolean(draft.state.pendingIntent)" :value="selectedQuantity(sku.skuId)" @input="setQuantity(sku, $event.detail.value)" /><button class="step-button" :disabled="selectedQuantity(sku.skuId) >= sku.availableQuantity" @tap="setQuantity(sku, selectedQuantity(sku.skuId)+1)">＋</button></view></view>
+                    <!-- 暂停售后入口，保留代码待恢复。
+<view v-if="selecting && isSelected(sku.skuId)" class="variant-edit"><text>{{ t('account.inventory.returnQuantity') }}</text><view class="quantity-control"><button class="step-button" :disabled="draft.state.pendingIntent || selectedQuantity(sku.skuId) <= 1" @tap="setQuantity(sku, selectedQuantity(sku.skuId)-1)">−</button><input type="number" class="quantity-input" :disabled="Boolean(draft.state.pendingIntent)" :value="selectedQuantity(sku.skuId)" @input="setQuantity(sku, $event.detail.value)" /><button class="step-button" :disabled="selectedQuantity(sku.skuId) >= sku.availableQuantity" @tap="setQuantity(sku, selectedQuantity(sku.skuId)+1)">＋</button></view></view>
+-->
                   </view>
                   <AppLoadMore v-if="variants[product.productId].loading || variants[product.productId].error || variants[product.productId].items.length < variants[product.productId].total" :status="variants[product.productId].error ? 'error' : variants[product.productId].loading ? 'loading' : 'idle'" @retry="loadVariants(product)" />
                   <button v-if="!variants[product.productId].loading && !variants[product.productId].error && variants[product.productId].items.length < variants[product.productId].total" class="more-variants" @tap="loadVariants(product)">{{ t('account.inventory.moreVariants') }}</button>
@@ -38,9 +48,11 @@
         </view>
       </AppContent>
     </template>
+<!-- 暂停售后入口，保留代码待恢复。
     <template v-if="selecting || draft.state.items.length" #footer>
       <FixedActionBar><view class="selection-total"><text>{{ selectedSummary }}</text><text v-if="draft.state.items.length && !draft.state.pendingIntent" class="link-text" @tap="draft.clear()">{{ t('account.inventory.clearSelection') }}</text></view><button class="action-button review-selection" :disabled="!draft.state.items.length" @tap="reviewSelection">{{ t('account.inventory.reviewSelection') }}</button></FixedActionBar>
     </template>
+-->
   </AppPageShell>
 </template>
 <script setup>
@@ -68,7 +80,7 @@ import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
 const userStore = useUserStore()
 const owner = () => String(userStore.dealerId || '') + ':' + String(userStore.userId || '')
 let draft = useInventoryReturnDraft(owner())
-const tabs = computed(() => [{ key:'all',label:t('account.inventory.all') },{ key:'available',label:t('account.inventory.withStock') },{ key:'low',label:t('account.inventory.low') },{ key:'out',label:t('account.inventory.out') }])
+const tabs = computed(() => [{ key:'all',label:t('account.inventory.all') },{ key:'available',label:t('account.inventory.availableSku') },{ key:'low',label:t('account.inventory.low') },{ key:'out',label:t('account.inventory.outSku') }])
 const items=ref([]), totalCount=ref(0), pageNum=ref(1), pageSize=16, variants=reactive({}), selecting=ref(false)
 const keywordInput=ref(''),keyword=ref(''),activeTab=ref('all'),pageState=ref(PageStatus.LOADING),loadFailure=ref(null)
 const loadingMore=ref(false),loadMoreError=ref(false),isRefreshing=ref(false),hasMore=ref(false)

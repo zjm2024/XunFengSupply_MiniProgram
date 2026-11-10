@@ -11,8 +11,8 @@
               <view class="hero-stats"><text>{{ t('account.inventory.productTotal') }} <text>{{ qty(overview.productCount) }}</text></text><text>{{ t('account.inventory.skuVariants') }} <text>{{ qty(overview.skuCount) }}</text></text></view>
             </view>
             <view class="metrics">
-              <view class="metric primary" @tap="openInventory('available')"><text>{{ t('account.inventory.availableTotal') }}</text><text>{{ qty(overview.availableQuantity) }}</text></view>
-              <view class="metric"><text>{{ t('account.inventory.reservedTotal') }}</text><text>{{ qty(overview.reservedQuantity) }}</text></view>
+              <view class="metric primary" @tap="openInventory('available')"><text>{{ t('account.inventory.currentAvailable') }}</text><text>{{ qty(overview.availableQuantity) }}</text></view>
+              <view class="metric"><text>{{ t('account.inventory.reserved') }}</text><text>{{ qty(overview.reservedQuantity) }}</text></view>
               <view class="metric"><text>{{ t('account.inventory.unavailableTotal') }}</text><text>{{ qty(overview.unavailableQuantity) }}</text></view>
             </view>
             <view class="overview-tools">

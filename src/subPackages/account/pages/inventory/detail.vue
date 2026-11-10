@@ -10,8 +10,8 @@
               <view class="stock-copy"><text class="product-name">{{ detail.productName }}</text><text class="spec-line">{{ [detail.colorName, detail.sizeName].filter(Boolean).join(' / ') || detail.skuName }}</text><text class="sku-code">{{ detail.skuCode || ('SKU ' + detail.skuId) }}</text><text v-if="detail.barcode" class="sku-code">{{ detail.barcode }}</text></view>
             </view>
             <view class="quantity-card">
-              <view class="quantity-primary"><text>{{ t('account.inventory.availableReturn') }}</text><text>{{ formatQty(detail.availableQuantity) }} <text>{{ detail.unit }}</text></text></view>
-              <view class="quantity-secondary"><view><text>{{ t('account.inventory.physicalStock') }}</text><text>{{ formatQty(detail.onHandQuantity) }}</text></view><view><text>{{ t('account.inventory.returnReserved') }}</text><text>{{ formatQty(detail.reservedQuantity) }}</text></view><view><text>{{ t('account.inventory.unavailable') }}</text><text>{{ formatQty(detail.unavailableQuantity) }}</text></view></view>
+              <view class="quantity-primary"><text>{{ t('account.inventory.currentAvailable') }}</text><text>{{ formatQty(detail.availableQuantity) }} <text>{{ detail.unit }}</text></text></view>
+              <view class="quantity-secondary"><view><text>{{ t('account.inventory.physicalStock') }}</text><text>{{ formatQty(detail.onHandQuantity) }}</text></view><view><text>{{ t('account.inventory.reserved') }}</text><text>{{ formatQty(detail.reservedQuantity) }}</text></view><view><text>{{ t('account.inventory.unavailable') }}</text><text>{{ formatQty(detail.unavailableQuantity) }}</text></view></view>
             </view>
             <view class="section-card">
               <view class="section-head"><text class="section-title">{{ t('account.inventory.transactions') }}</text><text class="muted">{{ t('account.inventory.recentTotal', { count: recentTransactions.length }) }}</text></view>
@@ -28,7 +28,9 @@
       </AppContent>
     </template>
     <template v-if="pageState === PageStatus.CONTENT" #footer>
-      <FixedActionBar><button class="action-button secondary" @tap="openLedger">{{ t('account.inventory.ledger') }}</button><button v-if="userStore.hasPermission('INVENTORY_VIEW')" class="action-button" :disabled="detail.availableQuantity <= 0" @tap="openInventoryAfterSale">{{ t('account.inventory.applyAfterSale') }}</button></FixedActionBar>
+      <FixedActionBar><button class="action-button secondary" @tap="openLedger">{{ t('account.inventory.ledger') }}</button><!-- 暂停售后入口，保留代码待恢复。
+<button v-if="userStore.hasPermission('INVENTORY_VIEW')" class="action-button" :disabled="detail.availableQuantity <= 0" @tap="openInventoryAfterSale">{{ t('account.inventory.applyAfterSale') }}</button>
+--></FixedActionBar>
     </template>
   </AppPageShell>
 </template>
@@ -74,9 +76,11 @@ function openLedger() { return navigator.navigateTo(routes.account.inventoryLedg
 /** Respect order access before following a purchase source. */
 function canOpenOrder(item) { return item.sourceType === 'ORDER' && item.sourceId > 0 && userStore.hasPermission('ORDER_VIEW') }
 /** Permit inventory-return sources through the inventory permission. */
-function canOpenSource(item) { return canOpenOrder(item) || (item.sourceType === 'AFTER_SALE' && item.sourceId > 0 && userStore.hasPermission('INVENTORY_VIEW')) }
+// 暂停售后单据跳转：function canOpenSource(item) { return canOpenOrder(item) || (item.sourceType === 'AFTER_SALE' && item.sourceId > 0 && userStore.hasPermission('INVENTORY_VIEW')) }
+function canOpenSource(item) { return canOpenOrder(item) }
 /** Follow the actual source document type. */
-function openSource(item) { if (canOpenOrder(item)) return navigator.navigateTo(routes.order.detail(item.sourceId)); if (canOpenSource(item)) return navigator.navigateTo(routes.order.afterSaleDetail(item.sourceId)) }
+// 暂停售后单据跳转：function openSource(item) { if (canOpenOrder(item)) return navigator.navigateTo(routes.order.detail(item.sourceId)); if (canOpenSource(item)) return navigator.navigateTo(routes.order.afterSaleDetail(item.sourceId)) }
+function openSource(item) { if (canOpenOrder(item)) return navigator.navigateTo(routes.order.detail(item.sourceId)) }
 /** Translate stable movement codes without changing their direction. */
 function businessTypeText(type) { return t('account.inventory.' + ({ PURCHASE_RECEIPT: 'purchaseReceipt', AFTER_SALE_RESERVE: 'afterSaleReserve', AFTER_SALE_RELEASE: 'afterSaleRelease', RETURN_OUT: 'returnOut', SALE_OUT: 'saleOut', TRANSFER: 'transfer', COUNT_ADJUST: 'countAdjust' }[type] || 'change')) }
 /** Format quantities consistently with the list. */

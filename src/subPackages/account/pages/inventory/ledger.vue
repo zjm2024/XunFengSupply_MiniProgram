@@ -62,7 +62,7 @@ const startDate = ref(''), endDate = ref(''), items = ref([]), totalCount = ref(
 const pageState = ref(PageStatus.LOADING), loadFailure = ref(null), loadingMore = ref(false), moreError = ref(false), refreshing = ref(false)
 const typeOptions = computed(() => [
   { value: '', label: t('account.inventory.allTypes') },
-  ...['PURCHASE_RECEIPT', 'AFTER_SALE_RESERVE', 'AFTER_SALE_RELEASE', 'RETURN_OUT'].map(value => ({ value, label: businessTypeText(value) })),
+  ...['PURCHASE_RECEIPT' /* 暂停售后筛选：, 'AFTER_SALE_RESERVE', 'AFTER_SALE_RELEASE', 'RETURN_OUT' */].map(value => ({ value, label: businessTypeText(value) })),
 ])
 const typePickerVisible = ref(false)
 const startPickerVisible = ref(false), endPickerVisible = ref(false)
@@ -135,9 +135,11 @@ function clearSku() { skuId.value = null; return reload() }
 /** Open current quantities for the activity's SKU. */
 function openSku(item) { if (item.skuId > 0) return navigator.navigateTo(routes.account.inventoryDetail(item.skuId)) }
 /** Follow only sources for which this account has access. */
-function canOpenSource(item) { return item.sourceId > 0 && ((item.sourceType === 'ORDER' && userStore.hasPermission('ORDER_VIEW')) || (item.sourceType === 'AFTER_SALE' && userStore.hasPermission('INVENTORY_VIEW'))) }
+// 暂停售后单据跳转：function canOpenSource(item) { return item.sourceId > 0 && ((item.sourceType === 'ORDER' && userStore.hasPermission('ORDER_VIEW')) || (item.sourceType === 'AFTER_SALE' && userStore.hasPermission('INVENTORY_VIEW'))) }
+function canOpenSource(item) { return item.sourceId > 0 && item.sourceType === 'ORDER' && userStore.hasPermission('ORDER_VIEW') }
 /** Navigate to the actual order or return document. */
-function openSource(item) { if (canOpenSource(item)) return navigator.navigateTo(item.sourceType === 'ORDER' ? routes.order.detail(item.sourceId) : routes.order.afterSaleDetail(item.sourceId)) }
+// 暂停售后单据跳转：function openSource(item) { if (canOpenSource(item)) return navigator.navigateTo(item.sourceType === 'ORDER' ? routes.order.detail(item.sourceId) : routes.order.afterSaleDetail(item.sourceId)) }
+function openSource(item) { if (canOpenSource(item)) return navigator.navigateTo(routes.order.detail(item.sourceId)) }
 /** Translate inventory movement codes, preserving unknown history. */
 function businessTypeText(type) { return t('account.inventory.' + ({ PURCHASE_RECEIPT: 'purchaseReceipt', AFTER_SALE_RESERVE: 'afterSaleReserve', AFTER_SALE_RELEASE: 'afterSaleRelease', RETURN_OUT: 'returnOut' }[type] || 'change')) }
 /** Preserve the sign of both stock and reservation movements. */
