@@ -118,5 +118,10 @@
     "month": "{month}月",
     "previousYear": "上一年",
     "nextYear": "下一年"
+  },
+  "datePicker": {
+    "previousMonth": "上个月",
+    "nextMonth": "下个月",
+    "weekdays": "日,一,二,三,四,五,六"
   }
 }

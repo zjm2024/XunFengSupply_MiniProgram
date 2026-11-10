@@ -1,21 +1,24 @@
 .withdrawal-card {
-  background: var(--color-surface, #fff);
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
+  box-sizing: border-box;
+  background: var(--glass-card-background, #fff);
+  border-radius: var(--radius-card, 14px);
+  padding: 13px 14px;
+  margin-bottom: 10px;
 }
-.card-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.card-copy { display: flex; flex-direction: column; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
-.card-title { font-size: 16px; font-weight: 600; }
-.card-secondary { color: var(--color-text-secondary, #737a84); font-size: 13px; }
-.withdrawal-form { display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
-.withdrawal-form input, .withdrawal-form picker, .picker-field {
-  min-height: 44px;
-  background: var(--color-bg, #f5f6f8);
-  border-radius: 8px;
+.card-row { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.card-copy { display: flex; flex: 1 1 110px; flex-direction: column; gap: 3px; min-width: 0; }
+.bank-mark { display: flex; width: 34px; height: 34px; flex: none; justify-content: center; align-items: center; border-radius: 50%; color: #ad1024; background: #f0f2f5; }
+.withdrawal-form { display: flex; flex-direction: column; gap: 9px; font-size: var(--type-body-size, 14px); }
+.withdrawal-form > text:not(:first-child) { margin-top: 4px; }
+.withdrawal-form input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  height: 46px;
   padding: 0 12px;
-  font-size: 14px;
-  line-height: 44px;
+  border-radius: var(--radius-control, 10px);
+  background: var(--surface-page, #f4f5f8);
+  font-size: var(--type-body-size, 14px);
 }
-.form-error { color: var(--color-brand, #d7192d); font-size: 13px; }
-
+.form-error { color: #ad1024; font-size: 14px; line-height: 1.5; overflow-wrap: anywhere; }
+.card-tail { white-space: nowrap; word-break: keep-all; }

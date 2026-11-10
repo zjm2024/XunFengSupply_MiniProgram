@@ -45,11 +45,12 @@ export function applyWithdrawal(form, clientRequestId) {
 
 /** 分页读取经销商本人的提现申请。 */
 export async function getWithdrawalList(params) {
-  return paged(await send('GetWithdrawalList', page(params)), row => ({
+  const query = { ...page(params), ...(params.status == null ? {} : { Status: params.status }) }
+  return paged(await send('GetWithdrawalList', query), row => ({
     withdrawalId: text(row, 'withdrawalId'), withdrawalNo: text(row, 'withdrawalNo'),
     accountName: text(row, 'accountName'), bankName: text(row, 'bankName'),
     accountLast4: text(row, 'accountLast4'), auditRemark: text(row, 'auditRemark'),
-    createdAt: text(row, 'createdAt'), amount: Number(pick(row, 'amount')),
+    createdAt: text(row, 'createdAt'), auditedAt: text(row, 'auditedAt'), amount: Number(pick(row, 'amount')),
     status: Number(pick(row, 'status')), hasReceipt: Boolean(pick(row, 'hasReceipt')),
   }))
 }

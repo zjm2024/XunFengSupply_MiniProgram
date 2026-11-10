@@ -44,4 +44,10 @@ body.is-embedded .viewer-header { display: none; }
 .pdf-page { display: flex; width: 100%; min-height: 180px; align-items: center; justify-content: center; padding: 16px; background: #fff; box-shadow: 0 2px 10px rgba(40, 44, 52, .08); }
 .pdf-page canvas { display: block; max-width: 100%; height: auto; }
 .page-placeholder { color: #9aa0aa; font-size: 12px; }
-.error-box { margin: 32px 18px; padding: 16px; border-radius: 10px; color: #9f2430; background: #fff0f1; font-size: 13px; line-height: 1.7; }
+.error-box { margin: 32px 18px; padding: 16px; border-radius: 10px; color: #9f2430; background: #f0f2f5; font-size: 13px; line-height: 1.7; }
+
+.zoom-toolbar { position: sticky; top: 0; left: 0; z-index: 5; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 8px; padding: 8px; min-height: 48px; background: #fff; box-shadow: 0 1px 0 #e5e7eb; }
+.zoom-toolbar[hidden] { display: none; }
+.zoom-toolbar button { display: flex; align-items: center; justify-content: center; min-width: 40px; min-height: 40px; padding: 4px 10px; border: 0; border-radius: 8px; color: #25282e; background: #f0f2f5; font-size: 14px; line-height: 1.4; }
+.zoom-toolbar span { min-width: 42px; text-align: center; font-size: 13px; }
+.is-document .pdf-pages { align-items: flex-start; }

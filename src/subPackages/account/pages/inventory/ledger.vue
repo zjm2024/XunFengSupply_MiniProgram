@@ -6,8 +6,8 @@
         <button class="filter-value type-filter-trigger" @tap="typePickerVisible = true">
           <text>{{ selectedTypeLabel }}</text><AppIcon name="chevron-down" :size="14" />
         </button>
-        <picker mode="date" :value="startDate" @change="changeStart"><view class="filter-value">{{ startDate || t('account.inventory.startDate') }}</view></picker>
-        <picker mode="date" :value="endDate" @change="changeEnd"><view class="filter-value">{{ endDate || t('account.inventory.endDate') }}</view></picker>
+        <button class="filter-value" @tap="startPickerVisible = true">{{ startDate || t('account.inventory.startDate') }}</button>
+        <button class="filter-value" @tap="endPickerVisible = true">{{ endDate || t('account.inventory.endDate') }}</button>
       </view>
     </template>
     <template #content>
@@ -30,6 +30,8 @@
       </AppContent>
     </template>
     <template #overlay>
+      <AppDatePicker v-model="startPickerVisible" :value="startDate" :title="t('account.inventory.startDate')" @change="changeStart" />
+      <AppDatePicker v-model="endPickerVisible" :value="endDate" :title="t('account.inventory.endDate')" @change="changeEnd" />
       <AppOptionPicker v-model:visible="typePickerVisible" :model-value="businessType" :options="typeOptions" :title="t('account.inventory.typeFilterTitle')" @confirm="changeType" />
     </template>
   </AppPageShell>
@@ -43,6 +45,7 @@ import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppOptionPicker from '@/shared/ui/AppOptionPicker.vue'
+import AppDatePicker from '@/shared/ui/AppDatePicker/AppDatePicker.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
@@ -62,6 +65,7 @@ const typeOptions = computed(() => [
   ...['PURCHASE_RECEIPT', 'AFTER_SALE_RESERVE', 'AFTER_SALE_RELEASE', 'RETURN_OUT'].map(value => ({ value, label: businessTypeText(value) })),
 ])
 const typePickerVisible = ref(false)
+const startPickerVisible = ref(false), endPickerVisible = ref(false)
 const selectedTypeLabel = computed(() => typeOptions.value.find(item => item.value === businessType.value)?.label || t('account.inventory.allTypes'))
 const hasFilters = computed(() => Boolean(keyword.value || businessType.value || startDate.value || endDate.value))
 const loadError = computed(() => loadFailure.value?.message || (loadFailure.value ? t('account.inventory.loadFailed') : ''))

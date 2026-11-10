@@ -39,13 +39,12 @@
 
             <view v-if="skuGroups.length" class="spec-toolbar">
               <view class="batch-fill-row">
-                <picker v-if="fillScopes.length > 2" class="fill-scope" :range="fillScopes" range-key="name"
-                  :value="fillScopeIndex" @change="setFillScope">
+                <button v-if="fillScopes.length > 2" class="fill-scope" @tap="fillPickerVisible = true">
                   <view class="fill-scope-control">
                     <text class="fill-scope-text">{{ fillScopes[fillScopeIndex].name }}</text>
                     <AppIcon name="chevron-right" :size="12" class="fill-scope-icon" />
                   </view>
-                </picker>
+                </button>
                 <input v-model="batchFillNumber" type="number" class="batch-fill-input"
                   :aria-label="t('commerce.variants.quantityPlaceholder')"
                   :placeholder="t('commerce.variants.quantityShort')" @confirm="applyBatchFill" />
@@ -152,6 +151,9 @@
         </view>
       </fixed-action-bar>
     </template>
+    <template #overlay>
+      <AppOptionPicker v-model:visible="fillPickerVisible" :model-value="fillScopeIndex" :options="fillScopes.map((scope,index) => ({ value: index, label: scope.name }))" :title="t('commerce.variants.specTitle')" @confirm="setFillScope({ detail: { value: $event } })" />
+    </template>
   </AppPageShell>
 </template>
 
@@ -162,6 +164,7 @@ import '@/subPackages/commerce/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { AppError, ErrorKind } from '@/shared/api/appError.js'
 import { computed, ref } from 'vue'
+import AppOptionPicker from '@/shared/ui/AppOptionPicker.vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getGoodsDetail } from '../../api/productApi.js'
 import { useCart } from '@/shared/composables/useCart.js'
@@ -200,6 +203,7 @@ const batchFillNumber = ref('')
 const matrixEdit = ref(null)
 const matrixInputRevisions = ref({})
 const fillScopeKey = ref(null)
+const fillPickerVisible = ref(false)
 const collapsedGroupKeys = ref({})
 const pageState = ref(PageStatus.LOADING)
 const pageFailure = ref(localError('commerce.variants.network'))
@@ -556,7 +560,8 @@ function localError(messageKey) {
 .spec-view-button:focus-visible, .matrix-quantity:focus-within, .sku-stepper:focus-within { outline: 2px solid var(--color-brand); outline-offset: -2px; }
 .matrix-quantity { width: 100%; height: 34px; min-height: 0; box-sizing: border-box; padding: 0 4px; border: 1px solid var(--color-divider); border-radius: 6px; background: var(--surface-card); color: var(--color-text-secondary); text-align: center; font-size: 14px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .matrix-quantity :deep(input) { text-align: center; }
-.fill-scope { flex: 0 1 104px; min-width: 0; }
+.fill-scope { flex: 0 1 104px; min-width: 0; margin: 0; padding: 0; background: transparent; text-align: left; line-height: 20px; }
+.fill-scope::after { border: 0; }
 .fill-scope-control { display: flex; height: 36px; min-width: 0; align-items: center; gap: 4px; padding: 0 8px; border: 1px solid var(--color-divider); border-radius: 6px; box-sizing: border-box; color: var(--color-text-primary); font-size: 13px; }
 .fill-scope-text { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .fill-scope-icon { flex: none; transform: rotate(90deg); }

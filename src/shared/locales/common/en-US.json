@@ -118,5 +118,10 @@
     "month": "{month}",
     "previousYear": "Previous year",
     "nextYear": "Next year"
+  },
+  "datePicker": {
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "weekdays": "Su,Mo,Tu,We,Th,Fr,Sa"
   }
 }

@@ -198,7 +198,8 @@
     "giftCount": "Gift: {count} items",
     "expires": "Valid until {date}",
     "selectedSummary": "Selected {name}; minimum {count} {unit}",
-    "variantCount": "{count} variants"
+    "variantCount": "{count} variants",
+    "currentVariant": "Variant: {name}"
   },
   "catalog": {
     "searchProduct": "Product",

@@ -76,7 +76,7 @@ onLoad((options = {}) => {
   invoiceId.value = String(options.invoiceId || '')
   withdrawalId.value = String(options.withdrawalId || '')
   // #ifdef H5
-  if (withdrawalId.value) window.addEventListener('message', handlePrivateViewerReady)
+  if (withdrawalId.value && typeof window !== 'undefined') window.addEventListener('message', handlePrivateViewerReady)
   // #endif
   manualId.value = String(options.manualId || '')
   loadDetail()
@@ -305,7 +305,7 @@ onUnload(() => {
   active = false
   receiptBase64 = ''
   // #ifdef H5
-  window.removeEventListener('message', handlePrivateViewerReady)
+  if (withdrawalId.value && typeof window !== 'undefined') window.removeEventListener('message', handlePrivateViewerReady)
   // #endif
   resetNativePdfWebview()
 })

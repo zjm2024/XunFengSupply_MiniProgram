@@ -53,20 +53,20 @@ export function parseUtcToLocal(dateTime) {
   if (!dateTime) return new Date(NaN)
 
   // 已经是 Date 对象
-  if (dateTime instanceof Date) return isNaN(dateTime.getTime()) ? new Date(NaN) : dateTime
+  if (dateTime instanceof Date) return isNaN(dateTime.getTime()) || dateTime.getUTCFullYear() < 1000 ? new Date(NaN) : dateTime
 
   // 纯数字时间戳
   if (typeof dateTime === 'number') return new Date(dateTime)
 
   if (typeof dateTime === 'string') {
     let str = dateTime.trim()
-    if (!str) return new Date(NaN)
+    if (!str || /^0[0-9]{3}-/.test(str)) return new Date(NaN)
 
     // 纯数字字符串（时间戳）
     if (/^\d+$/.test(str)) return new Date(Number(str))
 
     // 如果末尾不是 Z/z，且是 ISO 日期时间格式（以 T 分隔），则补 Z 标记为 UTC
-    if (!/[zZ]$/.test(str) && /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(str)) {
+    if (!/(?:[zZ]|[+-]\d{2}:?\d{2})$/.test(str) && /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(str)) {
       str = str.replace(/ /, 'T') + 'Z'
     }
     return new Date(str)

@@ -55,7 +55,7 @@ function confirmMonth() {
 .year-label { min-width: 0; text-align: center; font-size: var(--type-card-title-size, 16px); line-height: 24px; font-weight: var(--font-weight-semibold, 600); }
 .month-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .month-option { display: flex; min-width: 0; min-height: 44px; align-items: center; justify-content: center; margin: 0; padding: 10px 4px; border: 1px solid transparent; border-radius: var(--radius-control, 10px); color: var(--text-primary, #1B1C20); background: var(--surface-page, #F4F5F8); font-size: var(--type-body-size, 14px); line-height: 22px; }
-.month-option.is-selected { border-color: var(--color-brand, #D7192D); color: var(--color-brand, #D7192D); background: #FFF3F4; font-weight: var(--font-weight-semibold, 600); }
+.month-option.is-selected { border-color: var(--color-brand, #D7192D); color: var(--color-brand, #D7192D); background: #F4F5F8; font-weight: var(--font-weight-semibold, 600); }
 .month-option:active, .year-arrow:active { opacity: .7; }
 .year-arrow::after, .month-option::after { border: 0; }
 </style>

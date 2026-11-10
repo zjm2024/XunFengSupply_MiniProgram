@@ -1,6 +1,6 @@
 import * as pdfjsLib from './pdfjs.js'
 
-pdfjsLib.GlobalWorkerOptions.workerSrc = '/subPackages/auth/static/pdf-worker/pdfjsworker.js'
+pdfjsLib.GlobalWorkerOptions.workerSrc = '../../../auth/static/pdf-worker/pdfjsworker.js'
 
 const params = new URLSearchParams(window.location.search)
 const pdfUrl = params.get('url') || ''
@@ -14,6 +14,8 @@ let resizeTimer = null
 let viewerMessages = {}
 let progressState = { key: 'preparing', parameters: {} }
 let errorState = null
+let documentZoom = 1
+let renderGeneration = 0
 
 /** 从宿主接收 JSON 显示资源；只更新文字，不启动 PDF 或网络流程。 */
 function setViewerLocale(payload) {
@@ -21,6 +23,10 @@ function setViewerLocale(payload) {
   viewerMessages = Object.fromEntries(Object.entries(payload.messages).filter(([, value]) => typeof value === 'string'))
   document.documentElement.lang = payload.locale === 'en-US' ? 'en-US' : 'zh-CN'
   document.title = viewerText('title')
+  document.getElementById('zoomOut')?.setAttribute('aria-label', viewerText('zoomOut'))
+  document.getElementById('zoomIn')?.setAttribute('aria-label', viewerText('zoomIn'))
+  const fit = document.getElementById('zoomFit')
+  if (fit) fit.textContent = viewerText('fitWidth')
   const title = document.querySelector('.viewer-title')
   if (title) title.textContent = viewerText('title')
   document.getElementById('backButton')?.setAttribute('aria-label', viewerText('back'))
@@ -66,6 +72,26 @@ try {
 }
 
 document.body.classList.toggle('is-embedded', params.get('embedded') === '1')
+if (params.get('document') === '1') {
+  document.body.classList.toggle('is-document', true)
+  const toolbar = document.getElementById('zoomToolbar')
+  if (toolbar) toolbar.hidden = false
+  document.getElementById('zoomOut')?.addEventListener('click', () => setDocumentZoom(documentZoom - .5))
+  document.getElementById('zoomIn')?.addEventListener('click', () => setDocumentZoom(documentZoom + .5))
+  document.getElementById('zoomFit')?.addEventListener('click', () => setDocumentZoom(1))
+}
+function setDocumentZoom(value) {
+  documentZoom = Math.max(1, Math.min(3, value))
+  const label = document.getElementById('zoomLevel')
+  if (label) label.textContent = Math.round(documentZoom * 100) + '%'
+  updateDocumentWidths()
+  rerenderPagesAfterResize()
+}
+function updateDocumentWidths() {
+  if (params.get('document') !== '1') return
+  const width = Math.max(1, pagesElement.clientWidth - 16) * documentZoom
+  pageStates.forEach(state => { state.element.style.width = width + 'px'; state.element.style.flexShrink = '0' })
+}
 
 document.getElementById('backButton')?.addEventListener('click', () => {
   window.history.back()
@@ -153,6 +179,7 @@ function createPageElement(pageNumber) {
   pagePlaceholder(section, 'lazyPage')
   pagesElement.appendChild(section)
   pageStates.set(pageNumber, { element: section, rendered: false, rendering: false })
+  updateDocumentWidths()
   return section
 }
 
@@ -161,11 +188,12 @@ async function renderPage(pageNumber) {
   const state = pageStates.get(pageNumber)
   if (!state || state.rendered || state.rendering || !pdfDocument) return
   state.rendering = true
+  const generation = renderGeneration
 
   try {
     const page = await pdfDocument.getPage(pageNumber)
     const baseViewport = page.getViewport({ scale: 1 })
-    const availableWidth = Math.max(280, state.element.clientWidth - 32)
+    const availableWidth = Math.max(1, state.element.clientWidth - 32)
     const scale = availableWidth / baseViewport.width
     const viewport = page.getViewport({ scale })
     const ratio = Math.min(window.devicePixelRatio || 1, 2)
@@ -187,11 +215,13 @@ async function renderPage(pageNumber) {
     console.error(`[PdfViewer] 第 ${pageNumber} 页渲染失败`, error)
   } finally {
     state.rendering = false
+    if (generation !== renderGeneration) { state.rendered = false; void renderPage(pageNumber) }
   }
 }
 
 /** 只在屏幕尺寸变化时重新排版已渲染页面。 */
 function rerenderPagesAfterResize() {
+  renderGeneration += 1
   pageStates.forEach((state, pageNumber) => {
     if (!state.rendered) return
     state.rendered = false
@@ -205,6 +235,7 @@ function handleViewerResize() {
   if (resizeTimer) clearTimeout(resizeTimer)
   resizeTimer = setTimeout(() => {
     resizeTimer = null
+    updateDocumentWidths()
     rerenderPagesAfterResize()
   }, 160)
 }
@@ -234,6 +265,12 @@ function observePages() {
 async function openPdf() {
   if (!pdfUrl) throw viewerError('missingUrl')
 
+  // 发票等普通文档兼容200响应；手册仍保持分片校验和懒加载。
+  if (params.get('document') === '1') {
+    pdfDocument = await pdfjsLib.getDocument({ url: pdfUrl, isEvalSupported: false }).promise
+    mountPdfPages()
+    return
+  }
   setProgressMessage('checkingRange')
   const firstChunk = await fetchRange(pdfUrl, 0, RANGE_CHUNK_SIZE)
   const rangeTransport = new HttpRangeTransport(

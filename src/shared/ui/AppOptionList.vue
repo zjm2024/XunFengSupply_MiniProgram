@@ -51,7 +51,7 @@ defineEmits(['update:modelValue'])
   white-space: normal;
 }
 .app-option::after { border: 0; }
-.app-option.is-selected { border-color: var(--color-primary, #d7192d); background: #fff5f6; }
+.app-option.is-selected { border-color: var(--color-primary, #d7192d); background: #f4f5f8; }
 .app-option-copy { flex: 1; min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
 .app-option-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
 .app-option-label { font-size: var(--type-body-size, 14px); font-weight: var(--font-weight-semibold, 600); }

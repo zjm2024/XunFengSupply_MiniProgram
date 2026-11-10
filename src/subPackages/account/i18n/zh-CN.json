@@ -602,6 +602,45 @@
     "unavailable": "账单暂不可用",
     "retryHint": "请返回账单列表后重试"
   },
+  "fundCenter": {
+    "title": "资金中心",
+    "availableBalance": "可用余额",
+    "creditLimit": "授信额度",
+    "availableCredit": "可用授信",
+    "bankCards": "银行卡",
+    "balanceDetails": "余额明细",
+    "creditDetails": "授信详情",
+    "hideBalance": "隐藏余额",
+    "showBalance": "显示余额",
+    "creditUsed": "已使用",
+    "creditReserved": "已占用",
+    "creditFrozen": "已冻结",
+    "creditUsage": "额度使用率",
+    "creditRecords": "授信记录",
+    "withdrawAll": "全部",
+    "withdrawTo": "提现到",
+    "withdrawalDetails": "提现详情",
+    "allStatuses": "全部状态",
+    "source": "提现账户",
+    "auditRemark": "审核备注",
+    "withdrawalNumber": "申请单号",
+    "appliedAt": "申请时间",
+    "processedAt": "处理时间",
+    "rechargeStatus": {
+      "0": "待支付",
+      "1": "处理中",
+      "2": "已到账",
+      "3": "失败",
+      "4": "已关闭",
+      "5": "待确认",
+      "6": "待审核",
+      "unknown": "未知状态"
+    },
+    "showDetails": "查看详情",
+    "hideDetails": "收起详情",
+    "confirmingRecharge": "支付结果确认中",
+    "nextRechargeQuery": "下次查询 {time}"
+  },
   "withdrawal": {
     "title": "提现中心",
     "availableCash": "可提现本金",
@@ -727,7 +766,26 @@
     "selectAction": "选择",
     "selectionFailed": "无法返回申请页面，请返回后重试",
     "electronicType": "电子发票",
-    "paperType": "纸质发票"
+    "paperType": "纸质发票",
+    "pdfViewer": {
+      "title": "发票预览",
+      "back": "返回",
+      "preparing": "准备中",
+      "failed": "加载失败",
+      "previewFailed": "PDF 预览失败，请返回后重试。若仍无法打开，请联系客服。",
+      "rangeRequired": "PDF 文件服务器未返回 206/Content-Range，已阻止整文件回退",
+      "rangeInvalid": "PDF 分片响应范围无效",
+      "rangeLength": "PDF 分片响应长度不一致",
+      "lazyPage": "滑动到此处时加载本页",
+      "pageFailed": "本页加载失败，请稍后重试",
+      "relayout": "正在按当前屏幕重新排版",
+      "missingUrl": "缺少 PDF 地址",
+      "checkingRange": "检查分片",
+      "pages": "{count} 页",
+      "zoomOut": "缩小",
+      "zoomIn": "放大",
+      "fitWidth": "适应宽度"
+    }
   },
   "voucher": {
     "filters": {

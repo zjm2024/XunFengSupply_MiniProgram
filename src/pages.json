@@ -325,6 +325,10 @@
                     }
                 },
                 {
+                    "path": "pages/fund-center/index",
+                    "style": { "navigationStyle": "custom" }
+                },
+                {
                     "path": "pages/withdrawal/index",
                     "style": { "navigationStyle": "custom" }
                 },

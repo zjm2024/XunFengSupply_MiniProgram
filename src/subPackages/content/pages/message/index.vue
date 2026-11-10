@@ -83,7 +83,7 @@
                     <text v-if="!item.isRead" class="sr-only">{{ t('content.messages.unreadLabel') }}</text>
                     <text class="message-title">{{ item.title }}</text>
                   </view>
-                  <text v-if="hasDistinctPreview(item)" class="message-content">{{ item.content }}</text>
+                  <text v-if="hasDistinctPreview(item)" class="message-content">{{ messagePreview(item.content) }}</text>
                   <view class="message-meta">
                     <text class="message-type">{{ getTypeMeta(item.type).label }}</text>
                     <text class="message-time message-time--inline">{{ formatRelativeTime(item.createdAt, relativeTimeLabel) }}</text>
@@ -285,10 +285,27 @@ function relativeTimeLabel(unit, count) {
   return t('content.messages.time.' + unit, { count })
 }
 
+/** 摘要只投影纯文字，保留服务端原正文，跨端不依赖DOM或执行HTML。 */
+function messagePreview(value) {
+  const entities = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ' }
+  return String(value ?? '')
+    .replace(/<!--[^]*?-->/g, ' ')
+    .replace(/<(script|style)\b[^>]*>[^]*?<\/\1\s*>/gi, ' ')
+    .replace(/<\/?(?:p|div|li|h[1-6]|br|hr)\b[^>]*>/gi, ' ')
+    .replace(/<\/?[a-z][^>]*>/gi, '')
+    .replace(/&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos|nbsp);/gi, (entity, name) => {
+      if (name[0] !== '#') return entities[name.toLowerCase()] ?? entity
+      const hex = name[1]?.toLowerCase() === 'x'
+      const code = Number.parseInt(name.slice(hex ? 2 : 1), hex ? 16 : 10)
+      return code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : entity
+    })
+    .replace(/\s+/g, ' ').trim()
+}
+
 /** 同一段文案只在列表显示一次，详情保留完整正文。 */
 function hasDistinctPreview(item) {
   const normalize = value => String(value ?? '').trim().replace(/\s+/g, ' ')
-  const preview = normalize(item.content)
+  const preview = messagePreview(item.content)
   return Boolean(preview && preview !== normalize(item.title))
 }
 

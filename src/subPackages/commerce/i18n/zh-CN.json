@@ -198,7 +198,8 @@
     "giftCount": "赠 {count} 件",
     "expires": "有效期至 {date}",
     "selectedSummary": "已选 {name}，{count} {unit}起订",
-    "variantCount": "{count} 种"
+    "variantCount": "{count} 种",
+    "currentVariant": "当前规格：{name}"
   },
   "catalog": {
     "searchProduct": "搜商品",

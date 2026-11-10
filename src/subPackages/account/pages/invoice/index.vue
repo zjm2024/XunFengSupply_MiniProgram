@@ -67,14 +67,19 @@
         </view>
       </ConfirmPopup>
 
+      <ConfirmPopup v-model="pdfVisible" :title="t('account.invoice.viewPdf')" :show-cancel="false" :show-confirm="false" class="invoice-pdf-popup">
+        <AppPageState v-if="pdfLoading" state="loading" compact />
+        <AppPageState v-else-if="pdfError" state="error" :description="pdfError" :action-text="t('common.retry')" compact @retry="loadPdf" />
+        <PdfDocument v-else-if="pdfSource" :src="pdfSource" :language="pdfLanguage" :title="t('account.invoice.viewPdf')" />
+      </ConfirmPopup>
     </template>
   </AppPageShell>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { t } from '@/shared/i18n/index.js'
+import { getLocale, t } from '@/shared/i18n/index.js'
 import '@/subPackages/account/i18n/register.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -82,6 +87,7 @@ import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import ConfirmPopup from '@/shared/ui/ConfirmPopup/ConfirmPopup.vue'
+import PdfDocument from '@/shared/ui/PdfDocument/PdfDocument.vue'
 import AppButton from '@/shared/ui/AppButton/AppButton.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
@@ -91,8 +97,13 @@ import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { useUserStore } from '@/shared/session/userStore.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
-import { applyInvoice, getInvoiceTitle, getInvoiceSummary, getInvoiceList, createInvoiceRequestId } from '../../api/invoice.js'
+import { applyInvoice, getInvoiceTitle, getInvoiceSummary, getInvoiceList, getInvoiceDetail, createInvoiceRequestId } from '../../api/invoice.js'
 
+const pdfKeys = ['title','back','preparing','failed','previewFailed','rangeRequired','rangeInvalid','rangeLength','lazyPage','pageFailed','relayout','missingUrl','checkingRange','pages','zoomOut','zoomIn','fitWidth']
+const pdfLanguage = computed(() => ({ type: 'pdf-viewer-locale', locale: getLocale(), messages: Object.fromEntries(pdfKeys.map(key => [key, t('account.invoice.pdfViewer.' + key)])) }))
+const pdfVisible = ref(false), pdfLoading = ref(false), pdfSource = ref(''), pdfError = ref(''), pdfInvoiceId = ref('')
+let pdfSequence = 0
+watch(pdfVisible, open => { if (!open) { pdfSequence++; pdfSource.value = ''; pdfError.value = '' } }, { flush: 'sync' })
 const activeTab = ref('application')
 const showForm = ref(false)
 const isRefreshing = ref(false)
@@ -100,6 +111,7 @@ const formError = ref('')
 const summary = ref(null)
 const summaryError = ref('')
 const user = useUserStore()
+watch(() => user.userId, () => { pdfVisible.value = false })
 let summarySequence = 0
 let draftOwner = ''
 const form = ref({ title: '', taxNo: '', amount: '' })
@@ -155,6 +167,7 @@ function restoreTitle() {
   pendingTitle = null
   choosingTitle = false
   showForm.value = false
+  pdfVisible.value = false
   form.value = { title: '', taxNo: '', amount: '' }
 }
 
@@ -280,10 +293,32 @@ function statusText(status) {
   return t('account.invoice.status.' + ([0, 1, 2, 3, 4].includes(status) ? status : 'unknown'))
 }
 /** 只把发票标识交给既有PDF阅读器，阅读器重新获取本人文件。 */
-function previewPdf(record) { navigator.navigateTo(routes.account.invoicePdfPreview(record.invoiceId)) }
+function previewPdf(record) {
+  pdfInvoiceId.value = record.invoiceId
+  pdfVisible.value = true
+  loadPdf()
+}
+async function loadPdf() {
+  const sequence = ++pdfSequence
+  const owner = String(user.userId || '')
+  pdfLoading.value = true; pdfError.value = ''; pdfSource.value = ''
+  try {
+    const detail = await getInvoiceDetail(pdfInvoiceId.value)
+    if (sequence !== pdfSequence || owner !== String(user.userId || '') || !pdfVisible.value) return
+    if (detail?.status !== 2 || !/^https?:[/][/]/i.test(detail.fileUrl || '')) throw new Error(t('account.invoice.pdfViewer.missingUrl'))
+    pdfSource.value = detail.fileUrl
+  } catch (error) {
+    if (sequence === pdfSequence && pdfVisible.value) pdfError.value = error?.message || t('account.invoice.pdfViewer.previewFailed')
+  } finally { if (sequence === pdfSequence) pdfLoading.value = false }
+}
 </script>
 
 <style lang="scss" scoped>
+.invoice-pdf-popup :deep(.popup-sheet) { width: min(960px, calc(100vw - 24px)); max-width: 960px; height: min(820px, calc(100vh - 48px)); height: min(820px, calc(100dvh - 48px)); display: flex; flex-direction: column; box-sizing: border-box; }
+.invoice-pdf-popup :deep(.popup-content) { flex: 1; min-height: 0; max-height: none; padding: 0; overflow: hidden; }
+.invoice-pdf-popup :deep(.popup-header) { flex: none; padding-bottom: 16px; }
+.invoice-pdf-popup :deep(.pdf-document) { height: 100%; }
+
 .invoice-content :deep(.page-content-frame) { display:flex; flex:1; flex-direction:column; }
 .invoice-content :deep(.content-body) { display:flex; flex-direction:column; }
 .invoice-page { display:flex; flex:1; flex-direction:column; gap:16px; width:100%; min-width:0; }
@@ -324,7 +359,7 @@ function previewPdf(record) { navigator.navigateTo(routes.account.invoicePdfPrev
 .status-tag { flex-shrink:0; padding:3px 8px; border-radius:var(--radius-tag,6px); background:#ECEEF2; color:#596170; font-size:var(--type-caption-size,12px); line-height:18px; }
 .status-0, .status-1 { background:#FFF3DF; color:#946000; }
 .status-2 { background:#E8F5ED; color:#287C48; }
-.status-3 { background:#FCEBEE; color:#B42338; }
+.status-3 { background:#F0F2F5; color:#B42338; }
 .record-title { display:block; flex:1; min-width:0; margin-top:0; color:var(--text-primary,#1B1C20); font-size:var(--type-body-size,14px); line-height:22px; }
 .record-meta, .record-date { color:var(--text-secondary,#737A84); font-size:var(--type-caption-size,12px); line-height:18px; }
 .record-meta { display:block; margin-top:6px; }

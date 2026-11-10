@@ -68,6 +68,7 @@ export const DEALER_INVENTORY_DETAIL = '/subPackages/account/pages/inventory/det
 export const DEALER_INVENTORY_OVERVIEW = '/subPackages/account/pages/inventory/overview'
 export const DEALER_INVENTORY_LEDGER = '/subPackages/account/pages/inventory/ledger'
 export const SECURITY = '/subPackages/account/pages/security/index'
+export const FUND_CENTER = '/subPackages/account/pages/fund-center/index'
 export const RECHARGE = '/subPackages/account/pages/recharge/index'
 export const RECHARGE_RECORDS = '/subPackages/account/pages/recharge/records'
 export const FUND_FLOW = '/subPackages/account/pages/fund-flow/index'
@@ -115,7 +116,7 @@ export const REGISTERED_ROUTES = Object.freeze([
   ORDER_LIST, ORDER_DETAIL, PAY_PAGE, FULFILLMENT_SPLIT, APPLY_AFTER_SALE, APPLY_INVENTORY_AFTER_SALE, AFTER_SALE_LIST, AFTER_SALE_DETAIL, CANCEL_ORDER,
   ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
   DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, DEALER_INVENTORY_OVERVIEW, DEALER_INVENTORY_LEDGER, SECURITY,
-  RECHARGE, RECHARGE_RECORDS, FUND_FLOW, CREDIT_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, INVOICE_TITLES, WITHDRAWAL, WITHDRAWAL_BANK_CARDS, VOUCHER, LANGUAGE, SETTINGS, NOTIFICATION_SETTINGS,
+  FUND_CENTER, RECHARGE, RECHARGE_RECORDS, FUND_FLOW, CREDIT_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, INVOICE_TITLES, WITHDRAWAL, WITHDRAWAL_BANK_CARDS, VOUCHER, LANGUAGE, SETTINGS, NOTIFICATION_SETTINGS,
   NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MANUAL_PDF_PREVIEW, MESSAGE, MESSAGE_DETAIL, HELP, ABOUT,
 ])
 
@@ -343,6 +344,7 @@ export const ROUTE_META = Object.freeze({
     allowFrozen: false,
     owner: null,
   },
+  [FUND_CENTER]: { title: '资金中心', requireAuth: true, requireSign: true, allowFrozen: false, requiredPermission: 'BALANCE_VIEW', owner: null, surface: 'dealer' },
   [RECHARGE]: {
     title: '充值',
     requireAuth: true,
@@ -784,6 +786,7 @@ export const routes = {
       return withQuery(DEALER_INVENTORY_DETAIL, { skuId: id })
     },
     security: () => SECURITY,
+    fundCenter: () => FUND_CENTER,
     recharge: ({ orderId, checkoutBatchId, amount, channel, fundAccountCode } = {}) =>
       withQuery(RECHARGE, { orderId, checkoutBatchId, amount, channel, fundAccountCode }),
     rechargeRecords: () => RECHARGE_RECORDS,
@@ -804,7 +807,7 @@ export const routes = {
       // TODO: 待 settlement 支付页就绪后替换为实际路由
       return withQuery(PAY_PAGE, { billId: id, source: 'bill' })
     },
-    withdrawal: () => WITHDRAWAL,
+    withdrawal: ({ mode } = {}) => withQuery(WITHDRAWAL, { mode }),
     withdrawalBankCards: (params = {}) => withQuery(WITHDRAWAL_BANK_CARDS, { selectMode: params.selectMode }),
     withdrawalReceiptPreview: (withdrawalId) => withQuery(MANUAL_PDF_PREVIEW, {
       withdrawalId: assertValidId(withdrawalId, 'account.withdrawalReceiptPreview'),

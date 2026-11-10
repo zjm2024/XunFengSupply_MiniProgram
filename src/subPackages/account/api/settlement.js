@@ -21,9 +21,9 @@ function numberOf(value) {
 
 export function normalizeRechargeRecord(source = {}) {
   return {
-    rechargeId: numberOf(pick(source, 'rechargeId', 'RechargeId', 0)),
+    rechargeId: String(pick(source, 'rechargeId', 'RechargeId', '') || ''),
     rechargeNo: String(pick(source, 'rechargeNo', 'RechargeNo', '') || ''),
-    accountId: numberOf(pick(source, 'accountId', 'AccountId', 0)),
+    accountId: String(pick(source, 'accountId', 'AccountId', '') || ''),
     amount: numberOf(pick(source, 'amount', 'Amount', 0)),
     payMethod: String(pick(source, 'payMethod', 'PayMethod', '') || ''),
     merchantConfigId: String(pick(source, 'merchantConfigId', 'MerchantConfigId', '') || ''),

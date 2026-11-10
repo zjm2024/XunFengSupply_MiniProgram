@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>产品手册</title>
     <link rel="stylesheet" href="./viewer.css" />
   </head>
@@ -12,6 +12,12 @@
       <div class="viewer-title">产品手册</div>
       <div id="progressText" class="viewer-progress">准备中</div>
     </header>
+    <nav id="zoomToolbar" class="zoom-toolbar" hidden>
+      <button id="zoomOut" type="button">−</button>
+      <span id="zoomLevel" aria-live="polite">100%</span>
+      <button id="zoomIn" type="button">＋</button>
+      <button id="zoomFit" type="button"></button>
+    </nav>
     <main id="pages" class="pdf-pages"></main>
     <div id="errorBox" class="error-box" hidden></div>
     <script type="module" src="./viewer.js"></script>

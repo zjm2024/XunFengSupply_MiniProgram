@@ -3,15 +3,13 @@
     <template #header>
       <view class="records-header">
         <AppHeader :title="t('account.titles.rechargeRecords')" :show-back="true" />
-        <view class="filter-panel">
-          <StatusTabBar :items="tabs" :model-value="activeTab" :max-width="700" @change="changeTab" />
-        </view>
       </view>
     </template>
 
     <template #content>
       <AppContent
-        padding="0 0 30px"
+        width-mode="standard"
+        padding="12px var(--page-padding-x, 16px) 28px"
         :refresher-enabled="true"
         :refresher-triggered="isRefreshing"
         @refresherrefresh="handleRefresh"
@@ -20,14 +18,10 @@
         @scrolltolower="loadMore"
       >
         <view class="records-page">
-          <view class="content-wrap">
-            <view class="record-summary">
-              <view>
-                <text class="summary-label">{{ t('account.rechargeRecords.filter') }}</text>
-                <text class="summary-title">{{ activeTabLabel }}</text>
-              </view>
-              <text class="summary-count">{{ t('account.rechargeRecords.count', { count: totalCount }) }}</text>
-            </view>
+          <view class="record-summary">
+            <StatusTabBar :items="tabs" :model-value="activeTab" max-width="100%" @change="changeTab" />
+            <text class="finance-meta">{{ t('account.rechargeRecords.count', { count: totalCount }) }}</text>
+          </view>
 
             <AppPageState
               :state="pageState"
@@ -39,30 +33,34 @@
               <template #default>
                 <view class="record-grid">
                   <view v-for="record in records" :key="record.rechargeId" class="record-card">
-                    <view class="card-top">
-                      <view class="method-mark"><AppIcon :name="methodIcon(record.payMethod)" :size="20" /></view>
+                    <button class="record-trigger" :aria-expanded="expandedId === record.rechargeId"
+                      :aria-label="t(expandedId === record.rechargeId ? 'account.fundCenter.hideDetails' : 'account.fundCenter.showDetails') + ' ' + money(record.amount)"
+                      @tap="toggleRecord(record.rechargeId)">
                       <view class="method-copy">
-                        <text class="method-name">{{ payMethodText(record.payMethod) }}</text>
-                        <text class="record-time">{{ formatDateTime(record.createdAt, 'YYYY-MM-DD HH:mm') }}</text>
+                        <AmountText class="amount-value" :text="money(record.amount)" />
+                        <text class="record-channel">{{ payMethodText(record.payMethod) }}</text>
+                        <text class="finance-meta">{{ record.createdAt ? formatDateTime(record.createdAt, 'YYYY-MM-DD HH:mm') : '—' }}</text>
                       </view>
-                      <text class="status-tag" :class="`status-${record.status}`">{{ statusText(record.status) }}</text>
+                      <view class="status-wrap">
+                        <text class="status-tag" :class="'status-' + record.status">{{ statusText(record.status) }}</text>
+                        <AppIcon :name="expandedId === record.rechargeId ? 'chevron-down' : 'chevron-right'" :size="15" color="#727983" />
+                      </view>
+                    </button>
+                    <view v-if="expandedId === record.rechargeId" class="record-details">
+                      <text class="finance-title">{{ payMethodText(record.payMethod) }}</text>
+                      <view class="detail-row"><text>{{ t('account.rechargeRecords.number') }}</text><text>{{ record.rechargeNo || '-' }}</text></view>
+                      <view class="detail-row"><text>{{ t('account.rechargeRecords.account') }}</text><text>{{ record.accountId ? t('account.rechargeRecords.accountRef', { id: record.accountId }) : '-' }}</text></view>
+                      <view v-if="record.transactionId" class="detail-row"><text>{{ t('account.rechargeRecords.transaction') }}</text><text>{{ record.transactionId }}</text></view>
+                      <view v-if="isConfirming(record)" class="recovery-note">
+                        <AppIcon name="refresh" :size="14" />
+                        <text>{{ t('account.fundCenter.confirmingRecharge') }}{{ record.nextQueryAt ? ' · ' + t('account.fundCenter.nextRechargeQuery', { time: formatDateTime(record.nextQueryAt, 'MM-DD HH:mm') }) : '' }}</text>
+                      </view>
+                      <view v-if="record.failureMessage" class="recovery-note is-failure">
+                        <AppIcon name="info" :size="14" />
+                        <text>{{ record.failureMessage }}</text>
+                      </view>
+                      <view v-if="record.completedAt" class="detail-row"><text>{{ t('account.rechargeRecords.completedAt') }}</text><text>{{ formatDateTime(record.completedAt) }}</text></view>
                     </view>
-                    <view class="amount-row">
-                      <text class="amount-label">{{ t('account.rechargeRecords.amount') }}</text>
-                      <AmountText class="amount-value" :text="'¥' + (formatMoney(record.amount))" />
-                    </view>
-                    <view class="detail-row"><text>{{ t('account.rechargeRecords.number') }}</text><text>{{ record.rechargeNo || '-' }}</text></view>
-                    <view class="detail-row"><text>{{ t('account.rechargeRecords.account') }}</text><text>{{ record.accountId ? t('account.rechargeRecords.accountRef', { id: record.accountId }) : '-' }}</text></view>
-                    <view v-if="record.transactionId" class="detail-row"><text>{{ t('account.rechargeRecords.transaction') }}</text><text>{{ record.transactionId }}</text></view>
-                    <view v-if="isConfirming(record)" class="recovery-note">
-                      <AppIcon name="refresh" :size="14" />
-                      <text>支付结果确认中{{ record.nextQueryAt ? `，下次查询：${formatDateTime(record.nextQueryAt, 'MM-DD HH:mm')}` : '' }}</text>
-                    </view>
-                    <view v-if="record.failureMessage" class="recovery-note is-failure">
-                      <AppIcon name="info" :size="14" />
-                      <text>{{ record.failureMessage }}</text>
-                    </view>
-                    <view v-if="record.completedAt" class="detail-row"><text>{{ t('account.rechargeRecords.completedAt') }}</text><text>{{ formatDateTime(record.completedAt) }}</text></view>
                   </view>
                 </view>
               </template>
@@ -73,7 +71,6 @@
               :status="loadMoreStatus"
               @retry="loadMore"
             />
-          </view>
         </view>
       </AppContent>
     </template>
@@ -82,6 +79,7 @@
 
 <script setup>
 import { t } from '@/shared/i18n/index.js'
+import { formatFinanceAmount as money } from '../../model/financeDisplay.js'
 import '@/subPackages/account/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, ref } from 'vue'
@@ -100,12 +98,17 @@ import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimati
 
 const tabs = Object.freeze([
   { key: 'all', /** 筛选通用名称随语言刷新，状态码保持不变。 */ get label() { return t('account.rechargeRecords.all') }, value: 'all', status: undefined },
+  { key: 'pending', get label() { return statusText(0) }, value: 'pending', status: 0 },
+  { key: 'unknown', get label() { return statusText(5) }, value: 'unknown', status: 5 },
+  { key: 'closed', get label() { return statusText(4) }, value: 'closed', status: 4 },
   { key: 'audit', /** 筛选标签随语言刷新，原充值状态码不变。 */ get label() { return t('account.rechargeRecords.filters.audit') }, value: 'audit', status: 6 },
   { key: 'processing', /** 筛选标签随语言刷新，原充值状态码不变。 */ get label() { return t('account.rechargeRecords.filters.processing') }, value: 'processing', status: 1 },
   { key: 'success', /** 筛选标签随语言刷新，原充值状态码不变。 */ get label() { return t('account.rechargeRecords.filters.success') }, value: 'success', status: 2 },
   { key: 'failed', /** 筛选标签随语言刷新，原充值状态码不变。 */ get label() { return t('account.rechargeRecords.filters.failed') }, value: 'failed', status: 3 },
 ])
 const activeTab = ref('all')
+const expandedId = ref(null)
+let requestSequence = 0
 const records = ref([])
 const totalCount = ref(0)
 const pageNum = ref(1)
@@ -118,7 +121,6 @@ const pageState = ref(PageStatus.LOADING)
 const loadFailure = ref(null)
 const loadError = computed(() => loadFailure.value?.message
   || (loadFailure.value?.messageKey ? t(loadFailure.value.messageKey) : ''))
-const activeTabLabel = computed(() => tabs.find(tab => tab.key === activeTab.value)?.label || t('account.rechargeRecords.all'))
 const loadMoreStatus = computed(() => {
   if (loadMoreError.value) return 'error'
   if (loadingMore.value) return 'loading'
@@ -126,9 +128,9 @@ const loadMoreStatus = computed(() => {
   return 'idle'
 })
 
-onShow(() => {
-  if (pageState.value === PageStatus.LOADING) reload()
-})
+onShow(() => { reload() })
+
+function toggleRecord(id) { expandedId.value = expandedId.value === id ? null : id }
 
 function changeTab(key) {
   if (key === activeTab.value) return
@@ -138,6 +140,8 @@ function changeTab(key) {
 
 async function reload() {
   pageNum.value = 1
+  expandedId.value = null
+  loadingMore.value = false
   records.value = []
   pageState.value = PageStatus.LOADING
   loadMoreError.value = false
@@ -168,17 +172,20 @@ async function loadMore() {
 
 /** 按原渠道状态和分页读取充值记录，保留错误对象。 */
 async function fetchPage(append) {
+  const sequence = ++requestSequence
   if (append) loadingMore.value = true
   loadFailure.value = null
   try {
     const tab = tabs.find(item => item.key === activeTab.value)
     const result = await getRechargeList({ pageNum: pageNum.value, pageSize, status: tab?.status })
+    if (sequence !== requestSequence) return
     records.value = append ? [...records.value, ...result.items] : result.items
     totalCount.value = result.totalCount
     hasMore.value = records.value.length < result.totalCount
     pageState.value = records.value.length ? PageStatus.CONTENT : PageStatus.EMPTY
     loadMoreError.value = false
   } catch (error) {
+    if (sequence !== requestSequence) return
     if (append) {
       pageNum.value = Math.max(1, pageNum.value - 1)
       loadMoreError.value = true
@@ -187,104 +194,56 @@ async function fetchPage(append) {
     if (!records.value.length) pageState.value = PageStatus.ERROR
     else uni.showToast({ title: loadError.value, icon: 'none' })
   } finally {
-    loadingMore.value = false
+    if (sequence === requestSequence) loadingMore.value = false
   }
 }
 
-function formatMoney(value) {
-  const number = Number(value)
-  return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
-
 function statusText(status) {
-  return ({ 0: '待支付', 1: '处理中', 2: '已到账', 3: '失败', 4: '已关闭', 5: '待确认', 6: '待审核' })[status] || '未知状态'
+  const key = [0, 1, 2, 3, 4, 5, 6].includes(Number(status)) ? status : 'unknown'
+  return t('account.fundCenter.rechargeStatus.' + key)
 }
 
 function isConfirming(record) {
   return [0, 5].includes(Number(record?.status))
-    && String(record?.payMethod || '').toLowerCase() === 'wechat'
+    && ['wechat', 'wechat_native'].includes(String(record?.payMethod || '').toLowerCase())
 }
 
 /** 仅翻译已存在的充值渠道显示名，未知渠道使用通用标题。 */
 function payMethodText(method) {
-  return ({ offline: t('account.rechargeRecords.offline'), wechat: t('account.rechargeRecords.wechat'), alipay: t('account.rechargeRecords.alipay') })[String(method || '').toLowerCase()] || t('account.rechargeRecords.fallback')
+  return ({ wechat_native: t('account.recharge.wechatNative'), offline: t('account.rechargeRecords.offline'), wechat: t('account.rechargeRecords.wechat'), alipay: t('account.rechargeRecords.alipay') })[String(method || '').toLowerCase()] || t('account.rechargeRecords.fallback')
 }
 
-function methodIcon(method) {
-  return String(method || '').toLowerCase() === 'offline' ? 'bank' : 'credit-card'
-}
 
 </script>
 
 <style lang="scss" scoped>
-.records-page { width: 100%; }
-.records-header { background: var(--surface-page, #F4F5F8); }
-.filter-panel { padding: 7px var(--page-padding-x, 16px) 12px; background: var(--surface-page, #F4F5F8); }
-.content-wrap { width: 100%; max-width: 1080px; margin: 0 auto; padding: 16px var(--page-padding-x, 16px) 30px; box-sizing: border-box; }
-.record-summary { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
-.summary-label, .summary-title { display: block; }
-.summary-label { color: #969AA2; font-size: var(--type-caption-size, 12px); }
-.summary-title { margin-top: 3px; color: #202329; font-size: var(--type-section-title-size, 18px); font-weight: var(--font-weight-bold, 700); }
-.summary-count { color: #7C818A; font-size: var(--type-caption-size, 12px); }
-.record-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.record-card { padding: var(--module-padding, 16px); border-radius: var(--radius-feature, 18px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-.card-top { display: grid; grid-template-columns: 42px minmax(0,1fr) auto; align-items: center; gap: 11px; }
-.method-mark { display: grid; width: 42px; height: 42px; place-items: center; border-radius: var(--radius-card, 14px); color: #40566B; background: #EEF3F5; }
-.method-copy { min-width: 0; }
-.method-name, .record-time { display: block; }
-.method-name { color: #262A31; font-size: var(--type-body-size, 14px); font-weight: var(--font-weight-semibold, 600); }
-.record-time { margin-top: 4px; color: #989CA4; font-size: var(--type-caption-size, 12px); }
-.status-tag { padding: 5px 8px; border-radius: 999px; color: #716842; background: #F7F3E8; font-size: var(--type-caption-size, 12px); font-weight: var(--font-weight-semibold, 600); }
-.status-tag.status-2 { color: #24724D; background: #EEF7F2; }
-.status-tag.status-3, .status-tag.status-4 { color: #9B2C25; background: #FFF3F2; }
-.amount-row { display: flex; align-items: flex-end; justify-content: space-between; margin: 16px 0 10px; padding-bottom: 13px; border-bottom: 1px solid #EFF0F2; }
-.amount-label { color: #777C85; font-size: var(--type-caption-size, 12px); }
-.amount-value { color: #1D2127; font-size: var(--type-heading-size, 24px); font-weight: var(--font-weight-bold, 700); font-variant-numeric: tabular-nums; }
-.detail-row { display: flex; justify-content: space-between; gap: 14px; padding: 5px 0; color: #858A93; font-size: var(--type-caption-size, 12px); }
-.detail-row > text:last-child { min-width: 0; overflow: hidden; color: #555B64; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
-.recovery-note { display: flex; align-items: flex-start; gap: 5px; margin-top: 7px; padding: 8px; border-radius: var(--radius-small, 8px); color: #8A6A21; background: #FFF8E9; font-size: var(--type-caption-size, 12px); line-height: 18px; }
-.recovery-note.is-failure { color: #9B2C25; background: #FFF3F2; }
-.load-status { padding: 20px 0 4px; color: #9A9EA6; font-size: var(--type-caption-size, 12px); text-align: center; }
-@media screen and (min-width: 720px) {
-  .record-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; }
-  .record-card { padding: var(--module-padding, 16px); }
+@import '../finance-ui.scss';
+.records-header { background: var(--surface-page, #f4f5f8); }
+.record-summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.record-summary > .status-tab-bar { flex: 1; min-width: 0; width: 0; }
+.record-summary > .finance-meta { flex: none; }
+.record-summary text { font-size: var(--type-body-small-size, 13px); line-height: 1.5; }
+.record-grid { padding: 0 14px; border-radius: var(--radius-card, 14px); background: var(--glass-card-background, #fff); }
+.record-card + .record-card { border-top: 1px solid var(--border-color, #eceef1); }
+.record-trigger { display: flex; align-items: center; justify-content: space-between; min-height: 80px; width: 100%; margin: 0; padding: 16px 0; gap: 8px; text-align: left; background: transparent; line-height: 1.45; }
+.record-trigger::after { border: 0; }
+.method-copy { display: grid; gap: 3px; min-width: 0; flex: 1; }
+.record-channel { color: var(--type-secondary-color, #62666f); font-size: 13px; line-height: 1.5; }
+.amount-value { font-size: 18px; }
+.status-wrap { display: flex; align-items: center; flex: 0 1 auto; gap: 6px; min-width: 0; }
+.status-tag { max-width: 117px; padding: 3px 7px; border-radius: 6px; color: #775020; background: #fff0d6; font-size: 13px; line-height: 1.35; }
+.status-0, .status-5 { color: #465a7c; background: #edf1f7; }
+.status-1 { color: #315b96; background: #edf2f8; }
+.status-2 { color: #156b3c; background: #e0f4e8; }
+.status-3, .status-4 { color: #a4142c; background: #f0f2f5; }
+.status-tag { white-space: normal; overflow-wrap: anywhere; }
+.record-details { display: grid; gap: 9px; margin-bottom: 12px; padding: 12px; border-radius: var(--radius-control, 10px); background: var(--surface-page, #f4f5f8); }
+.detail-row { display: grid; grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); gap: 8px; color: var(--type-secondary-color, #62666f); font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+.detail-row > :last-child { color: var(--type-body-color, #1b1c20); text-align: right; }
+.recovery-note { display: flex; align-items: flex-start; gap: 6px; color: #775020; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.recovery-note.is-failure { color: #a4142c; }
+@media (max-width: 380px) {
+  .detail-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .detail-row > :last-child { text-align: left; }
 }
-
-/* 金额按实际可用宽度缩字，父布局允许收缩。 */
-.amount-row { min-width: 0; gap: 12px; }
-.amount-label { flex: none; }
-
-/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
-.record-summary, .record-card {
-  border: 0 !important;
-  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
-  backdrop-filter: var(--glass-card-blur, blur(16px));
-}
-/* 充值记录与资金流水一致：信息成组，金额明确，长单号允许完整换行。 */
-.records-page { max-width: 1040px; margin: 0 auto; }
-.record-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.record-card { min-width: 0; padding: 18px; border-radius: var(--radius-card, 14px); }
-.card-top { flex-wrap: wrap; gap: 10px; }
-.method-copy { min-width: 0; flex: 1; }
-.method-name { font-size: var(--type-body-size, 14px); line-height: 22px; }
-.record-time { font-size: var(--type-caption-size, 12px); line-height: 18px; }
-.amount-row { gap: 8px 12px; margin: 16px 0; border: 0; }
-.amount-value { font-size: var(--type-heading-size, 24px); line-height: 32px; }
-.amount-label, .detail-row { font-size: var(--type-body-small-size, 13px); line-height: 20px; }
-.detail-row { display: grid; grid-template-columns: minmax(72px, .4fr) minmax(0, 1fr); gap: 8px 12px; padding: 7px 0; border: 0; }
-.detail-row > text { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
-.detail-row > text:last-child { text-align: right; }
-.status-tag { font-size: var(--type-caption-size, 12px); line-height: 18px; }
-.recovery-note { font-size: var(--type-body-small-size, 13px); line-height: 20px; }
-@media screen and (min-width: 1000px) { .record-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; } }
-/* 汇总也遵循卡片内边距；大金额必要时独立一行。 */
-.record-summary { padding: 16px 18px; margin-bottom: 12px; border-radius: var(--radius-card, 14px); }
-.summary-label { font-size: var(--type-caption-size, 12px); line-height: 18px; }
-.summary-title { font-size: var(--type-card-title-size, 16px); line-height: 24px; }
-.amount-row { display: flex; flex-wrap: wrap; align-items: baseline; }
-.amount-value { max-width: 100%; }
-/* 单号是核对凭据，覆盖旧末列省略规则以允许完整换行。 */
-.detail-row > text:last-child { min-width: 0; max-width: 100%; overflow: visible; white-space: normal; text-overflow: clip; overflow-wrap: anywhere; word-break: break-word; }
 </style>

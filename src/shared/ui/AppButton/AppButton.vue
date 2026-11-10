@@ -36,6 +36,9 @@ defineEmits(['tap'])
   align-items: center;
   justify-content: center;
   min-width: 88px;
+  box-sizing: border-box;
+  margin: 0;
+  gap: 6px;
   padding: 0 18px;
   border: 1px solid transparent;
   border-radius: var(--radius-control, 10px);

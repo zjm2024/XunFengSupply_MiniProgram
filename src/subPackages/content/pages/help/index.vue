@@ -109,7 +109,7 @@
                 class="guide-item"
                 @click="openGuide(guide)"
               >
-                <AppImage class="guide-cover" width="100%" height="100%" :src="guide.cover" mode="aspectFill" />
+                <AppImage class="guide-cover" width="60px" height="45px" :src="guide.cover" mode="aspectFill" />
                 <view class="guide-info">
                   <text class="guide-name">{{ guide.name }}</text>
                   <text class="guide-desc">{{ guide.desc }}</text>
@@ -467,7 +467,8 @@ function openGuide(guide) {
 }
 
 .guide-item {
-  display: flex;
+  display: grid;
+  grid-template-columns: 60px minmax(0, 1fr) 16px;
   align-items: center;
   gap: 10px;
   background: rgba(255,255,255,.68);
@@ -482,6 +483,7 @@ function openGuide(guide) {
 }
 
 .guide-cover {
+  min-width: 0;
   width: 60px; /* 稳定 px */
   height: 45px;
   border-radius: var(--radius-xs, 6px);
@@ -490,7 +492,8 @@ function openGuide(guide) {
 }
 
 .guide-info {
-  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .guide-name {

@@ -602,6 +602,45 @@
     "unavailable": "Statement unavailable",
     "retryHint": "Return to the statement list and try again."
   },
+  "fundCenter": {
+    "title": "Funds center",
+    "availableBalance": "Available balance",
+    "creditLimit": "Credit limit",
+    "availableCredit": "Available credit",
+    "bankCards": "Bank cards",
+    "balanceDetails": "Balance activity",
+    "creditDetails": "Credit details",
+    "hideBalance": "Hide balance",
+    "showBalance": "Show balance",
+    "creditUsed": "Used",
+    "creditReserved": "Reserved",
+    "creditFrozen": "Frozen",
+    "creditUsage": "Credit utilization",
+    "creditRecords": "Credit history",
+    "withdrawAll": "Max",
+    "withdrawTo": "Withdraw to",
+    "withdrawalDetails": "Withdrawal details",
+    "allStatuses": "All statuses",
+    "source": "Source account",
+    "auditRemark": "Review note",
+    "withdrawalNumber": "Request number",
+    "appliedAt": "Requested at",
+    "processedAt": "Processed at",
+    "rechargeStatus": {
+      "0": "Unpaid",
+      "1": "Processing",
+      "2": "Credited",
+      "3": "Failed",
+      "4": "Closed",
+      "5": "To confirm",
+      "6": "To review",
+      "unknown": "Unknown"
+    },
+    "showDetails": "View details",
+    "hideDetails": "Hide details",
+    "confirmingRecharge": "Confirming payment",
+    "nextRechargeQuery": "Next check {time}"
+  },
   "withdrawal": {
     "title": "Withdrawals",
     "availableCash": "Available cash",
@@ -727,7 +766,26 @@
     "selectAction": "Select",
     "selectionFailed": "Could not return to your application. Please go back and retry.",
     "electronicType": "Electronic invoice",
-    "paperType": "Paper invoice"
+    "paperType": "Paper invoice",
+    "pdfViewer": {
+      "title": "Invoice preview",
+      "back": "Back",
+      "preparing": "Preparing",
+      "failed": "Unable to load",
+      "previewFailed": "Unable to preview the PDF. Go back and try again. If the problem continues, contact support.",
+      "rangeRequired": "The PDF server did not return 206/Content-Range; full-file fallback was blocked",
+      "rangeInvalid": "The PDF range response is invalid",
+      "rangeLength": "The PDF range response length does not match",
+      "lazyPage": "Scroll here to load this page",
+      "pageFailed": "Unable to load this page. Please try again later.",
+      "relayout": "Adjusting to the current screen",
+      "missingUrl": "The PDF URL is missing",
+      "checkingRange": "Checking file access",
+      "pages": "{count} pages",
+      "zoomOut": "Zoom out",
+      "zoomIn": "Zoom in",
+      "fitWidth": "Fit width"
+    }
   },
   "voucher": {
     "filters": {

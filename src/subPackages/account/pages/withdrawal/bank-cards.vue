@@ -2,7 +2,7 @@
   <AppPageShell>
     <template #header><AppHeader :title="t(selectMode ? 'account.withdrawal.selectCard' : 'account.withdrawal.cards')" :show-back="true" /></template>
     <template #content>
-      <AppContent width-mode="standard" padding="12px var(--page-padding-x, 12px) 24px"
+      <AppContent width-mode="standard" padding="12px var(--page-padding-x, 16px) 24px"
         :refresher-enabled="true" :refresher-triggered="refreshing" @refresherrefresh="refresh"
         @refresherrestore="restore" @refresherabort="restore" @scrolltolower="loadMore">
         <AppPageState v-if="loading && !items.length" state="loading" compact />
@@ -13,9 +13,10 @@
         </AppPageState>
         <view v-for="item in items" :key="item.bankCardId" class="withdrawal-card">
           <view class="card-row">
+            <view class="bank-mark"><AppIcon name="bank" :size="20" /></view>
             <view class="card-copy">
-              <text class="card-title">{{ item.bankName }}</text>
-              <text class="card-secondary">{{ item.accountHolder }} · •••• {{ item.accountLast4 }}</text>
+              <text class="finance-title">{{ item.bankName }}</text>
+              <text class="finance-meta">{{ item.accountHolder }} · <text class="card-tail">•••• {{ item.accountLast4 }}</text></text>
             </view>
             <AppButton v-if="selectMode" size="sm" @tap="selectCard(item)">{{ t('account.withdrawal.choose') }}</AppButton>
             <ActionRow v-else compact :actions="actions" :more-text="t('account.invoice.moreActions')"
@@ -57,6 +58,7 @@ import '@/subPackages/account/i18n/register.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
+import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppButton from '@/shared/ui/AppButton/AppButton.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
@@ -149,5 +151,6 @@ async function selectCard(card) {
 </script>
 
 <style lang="scss" scoped>
+@import '../finance-ui.scss';
 @import './withdrawal.scss';
 </style>

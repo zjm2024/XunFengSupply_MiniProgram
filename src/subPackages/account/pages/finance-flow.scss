@@ -1,0 +1,18 @@
+.flow-header { background: var(--surface-page, #f4f5f8); }
+.filter-panel { display: flex; margin-bottom: 10px; }
+.finance-records-title { display: block; margin: 20px 0 12px; font-size: var(--type-card-title-size, 16px); font-weight: 650; }
+.flow-list { border-radius: var(--radius-card, 14px); background: var(--glass-card-background, #fff); }
+.flow-card { padding: 16px; min-width: 0; }
+.flow-card + .flow-card { border-top: 1px solid var(--border-color, #eceef1); }
+.flow-heading { display: flex; align-items: baseline; flex-wrap: wrap; justify-content: space-between; gap: 3px 10px; }
+.flow-title, .flow-title-wrap { flex: 1 1 110px; min-width: 0; }
+.flow-title { display: block; font-size: var(--type-body-size, 14px); line-height: 1.45; font-weight: 650; overflow-wrap: anywhere; }
+.flow-amount { min-width: 0; max-width: 100%; margin-left: auto; font-size: 17px; }
+.flow-amount.positive { color: #156b3c; }
+.flow-amount.negative { color: #a4142c; }
+.flow-amount.neutral { color: #62666f; }
+.flow-desc, .flow-no, .flow-meta, .balance-line { color: var(--type-secondary-color, #62666f); font-size: var(--type-body-small-size, 13px); line-height: 1.45; overflow-wrap: anywhere; }
+.flow-desc, .flow-no { display: block; margin-top: 4px; }
+.flow-meta, .balance-line { display: flex; flex-wrap: wrap; gap: 6px 12px; margin-top: 8px; }
+.balance-line .amount-text, .flow-meta .amount-text { min-width: 0; font-size: inherit; }
+
