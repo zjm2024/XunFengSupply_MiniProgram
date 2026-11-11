@@ -212,3 +212,26 @@ H5/APP/微信编译通过；现有Vue语法及库存财务回归52项通过，�
 - 本地替身触发分享记录/订单列表/商品列表/发票错误态，390/768无页面异常或整页溢出；320分享记录校验SVG data URI实际渲染、无旧icon-error-svg，点击重新加载后记录列表成功恢复。
 - H5/APP/微信构建通过；相关shared UI双语/启动事件及路由测试133项通过；本轮全量测试1185通过1失败：financeInventoryI18nTest.js旧断言v.tabs.map读取当前充值记录已移除字段，该文件/充值记录有本轮以外并发变更，本次未改动，不能将全量标为通过。目标文件diff --check通过。
 - 证据Codex work/error-illustration、work/apk-ui-audit/error-*；用户预览outputs/分享记录错误态-SVG.png。只检查本地模拟失败/恢复，无真实接口写入、未部署，未作APK真机验收。
+
+
+## 2026-11-11 充值记录仅展示已付款、15分钟超时查单关单
+
+- 用户确认沿用15分钟有效期。现有Payment:WeChat的APP/Native预支付配置已为15分钟，继续由服务端固化expires_at并下发微信time_expire，未硬编码另一套本地截止时间或修改支付密钥/商户配置。
+- OnlineRechargeRecoveryService投影expires_at；后台抢占到期任务后先查询渠道，只有到期且明确Pending/NOTPAY时才调用已存在的IPaymentLifecycleGateway.ClosePaymentAsync。关闭已确认才提交Closed事实；关闭未知/竞态则再次查询原商户单，成功仍交给既有可信Inbox/幂等入账链，查询未知保留原单继续恢复，不退款、不在前台伪造关闭。所有远端调用仍在数据库事务和行锁外。该后台由Task的OnlinePaymentNotificationProcessorHost驱动，需更新并重启Task。
+- 新增IFinanceRechargeService.GetDealerRechargeListAsync，Mini入口以登录身份指定CustomerId；管理端继续使用原GetRechargeListAsync保留完整支付尝试。本人记录在COUNT及LIMIT前过滤未付/关闭/预支付失败记录，保持金额、账户和客户过滤及同时间ID稳定排序。
+- 已到账记录正常展示；已有实际成交号的处理中/异常记录保留。对于付款可信Inbox已受理但入账尚未提交/重试的情况，列表只读投影为充值处理中；可信事实死信投影为到账异常，避免“已扣款却没有任何记录”。付款证据必须来自WECHAT_PAY/ALIPAY对应交易事件、具有signature_verified_at，并精确匹配原充值号、渠道、商户配置、人民币金额及非空成交号/付款时间。非法JSON和错参事实不作为已付款证据。投影不修改充值状态、余额或流水。
+- APP充值记录移除全部后台状态页签，显示已付款充值及到账/处理中/到账异常，不显示待确认订单或后台下次查询时间。未知/混合版本状态不可能被误标成已到账；未知结果留在当前充值页查询，不再自动引导进入已过滤的记录列表。
+- Native二维码按后端expiresAtUtc倒计时，到期隐藏二维码及复制入口并只核对一次本地状态；到期本身不改变服务端状态。关闭弹层、隐藏/销毁页面、退出账号及支付终态清理计时器。未知支付幂等上下文不再按30分钟缓存年龄直接丢弃，新缓存绑定用户/主体，仍查询原单，服务端终态后清理。
+- 新增10项真实MySQL隔离库测试：分页前过滤/计数/归属/稳定顺序、付款未记账与异常投影、伪造/错金额/错渠道/未验签/坏JSON拒绝、管理端完整记录、三个渠道到期查询后关闭、未到期不关闭、未知不关闭、已付继续入账、关单竞态重查、恢复重试及并发抢占。随机GUID测试库自动清理，远端支付网关全部替身，不调用真实支付接口。最终相关回归115项通过，0跳过。
+- APP全量106文件1189项通过；H5、微信、APP构建成功，路由审计0错误0警告。Release解决方案0错误，8项既有警告位于未改的ProductMasterDataQueryService及IntegrationQueryService，无本次修改区编译诊断。项目规范审计Controller边界0问题，保留既有ERP->Finance引用及ProductSyncDtos五类型组织问题。
+- 真实H5构建浏览器验收390x844中文、768x1024中文、1024x900英文：已付款列表/空态、有效二维码、到期隐藏及不伪造终态、后台确认关闭共15张截图；无页面异常，弹层边界与记录页无横向溢出。使用拦截API和虚拟时间，不等同真机或真实微信资金验收。
+- 证据：Codex工作区work/recharge-15min/{before/,changed.json,backend-tests-final.log,app-tests-final.log,backend-release.log,backend-audit.log,h5.log,weixin.log,app-build.log,routes.log,browser.log,browser-results.json,shots/}。未迁移/修改业务数据库，没有删除历史支付单，没有进行真实支付/退款/关单，也未部署或重启正在运行的宿主。需同步发布APP、Mini API及Finance插件，并更新/重启Task支付后台处理器后生效。
+
+## 2026-11-11 订单详情商品层级与对外优惠展示
+
+- 用户指出商品/SKU同为白色卡片层次弱、SKU图片过大、底部未展示优惠。详情改为浅灰SPU分组头（名称/件数/总价/48px图）+白底SKU明细（40px图），分组名称允许自然换行；去除SPU叠加玻璃阴影，保留整组折叠、商品图片跳转及既有履约信息。
+- 已只读核对OrderMiniService报价口径：goodsAmount是策略成交单价×数量、活动优惠之前的金额。新增getOrderPriceSummary只读取订单快照，按整数分累计有定价凭据且非赠品的吊牌价差×数量，商品总额展示为goodsAmount+已含单价优惠；不重新报价、不扣减或更改服务端payableAmount/paidAmount。
+- 用户最新明确“只显示优惠”，覆盖初版区分优惠名称：SKU行与金额汇总合并内部定价/活动优惠，仅显示优惠/Discount一项；购物车、确认订单的同类行也合并，相关中英客户文案统一，未改后端和结算参数。内部计算字段保留用于核对，前端不展示策略/活动优惠名称。
+- 一分钱案例显示商品总额102.00、优惠-101.99、应付/已付0.01；混合案例商品总额356.00、优惠-81.00、应付275.00。新增7个快照金额回归覆盖多SKU、活动、赠品、无策略、整数分、大写字段、零元及非法数量；全量107文件1196项通过。
+- 最终H5/APP/微信构建通过，路由审计0错误0警告，目标diff --check通过。390单SKU、390/320/768多商品及768英文浏览器截图与断言验证40px SKU图、合并优惠金额、无内部文案、折叠再展开，无页面异常和整页横向溢出。oil-ui规定的一轮独立只读复核无必修项，保留既有英文摘要单复数这一可选项。
+- 证据Codex work/order-detail-polish、work/apk-ui-audit/order-public-*；预览outputs/订单详情-商品层级.png、订单详情-优惠汇总.png。设计说明work/order-detail-polish/design.md。仅本地接口/商品图片替身，未操作真实订单、未部署、未作APK真机验收。

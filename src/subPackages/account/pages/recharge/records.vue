@@ -181,7 +181,8 @@ async function fetchPage(append) {
 
 function statusText(status) {
   return t(Number(status) === 3 ? 'account.rechargeRecords.creditException'
-    : Number(status) === 1 ? 'account.rechargeRecords.creditProcessing' : 'account.fundCenter.rechargeStatus.2')
+    : Number(status) === 1 ? 'account.rechargeRecords.creditProcessing'
+      : Number(status) === 2 ? 'account.fundCenter.rechargeStatus.2' : 'account.recharge.confirmingPayment')
 }
 
 function isConfirming(record) { return Number(record?.status) === 1 }

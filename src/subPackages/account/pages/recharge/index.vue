@@ -284,7 +284,9 @@ function contactFinance() {
 /** 恢复尚未确认的本地幂等键，避免网络中断后重复创建充值单。 */
 function restorePendingRequest() {
   const pending = uni.getStorageSync(pendingStorageKey.value)
-  if (!pending || !pending.clientRequestId) {
+  if (!pending || !pending.clientRequestId
+    || (pending.userId && pending.userId !== String(userStore.userId || ''))
+    || (pending.dealerId && pending.dealerId !== String(userStore.dealerId || ''))) {
     uni.removeStorageSync(pendingStorageKey.value)
     return
   }
@@ -346,6 +348,7 @@ function ensureClientRequestId(amount, channel) {
   pendingOrderId.value = rechargeOrderId.value
   uni.setStorageSync(pendingStorageKey.value, {
     clientRequestId: pendingClientRequestId.value,
+    userId: String(userStore.userId || ''), dealerId: String(userStore.dealerId || ''),
     amount,
     channel,
     orderId: rechargeOrderId.value,
@@ -369,7 +372,7 @@ function rememberRecharge(response) {
   pendingRechargeNo.value = String(response.rechargeNo)
   const existing = uni.getStorageSync(pendingStorageKey.value) || {}
   uni.setStorageSync(pendingStorageKey.value, {
-    ...existing, rechargeNo: pendingRechargeNo.value, clientRequestId: pendingClientRequestId.value,
+    ...existing, userId: String(userStore.userId || ''), dealerId: String(userStore.dealerId || ''), rechargeNo: pendingRechargeNo.value, clientRequestId: pendingClientRequestId.value,
     amount: pendingRequestAmount.value, channel: pendingRequestChannel.value, status: pendingRechargeStatus.value, createdAt: existing.createdAt || Date.now(),
   })
 }

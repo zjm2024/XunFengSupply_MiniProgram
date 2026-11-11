@@ -61,10 +61,12 @@
                   </view>
                   <view class="spu-order-copy">
                     <text class="spu-order-name">{{ group.name }}</text>
-                    <text class="spu-order-meta">{{ t('order.detail.productSummary', { count: group.items.length, quantity: group.totalQuantity }) }}</text>
+                    <view class="spu-order-meta-row">
+                      <text class="spu-order-meta">{{ t('order.detail.productSummary', { count: group.items.length, quantity: group.totalQuantity }) }}</text>
+                      <AmountText class="spu-order-total" :text="'¥' + group.totalAmount.toFixed(2)" />
+                    </view>
                     <text class="spu-shipping-summary">{{ group.shipmentSummary }}</text>
                   </view>
-                  <AmountText class="spu-order-total" :text="'¥' + (group.totalAmount.toFixed(2))" />
                   <view class="spu-collapse-button">
                     <AppIcon
                       name="chevron-right"
@@ -96,8 +98,7 @@
                         <text class="item-shipment-status">{{ item.shipment.text }}</text>
                         <view v-if="item.shipment.known" class="item-shipment-quantities"><text>{{ t('order.detail.skuShipped', { quantity: item.shipment.sent }) }} {{ item.unit }}</text><text>{{ t('order.detail.skuUnshipped', { quantity: item.shipment.remaining }) }} {{ item.unit }}</text></view>
                       </view>
-                      <AmountText v-if="item.strategyDiscount > 0" class="strategy-discount" :text="(t('order.detail.strategyDiscount')) + ' ¥' + (item.strategyDiscount.toFixed(2))" />
-                      <AmountText v-if="item.promotionDiscount > 0" class="promotion-discount" :text="(t('order.detail.promotionDiscount')) + ' ¥' + (item.promotionDiscount.toFixed(2))" />
+                      <AmountText v-if="item.strategyDiscount + item.promotionDiscount > 0" class="strategy-discount" :text="t('order.detail.discount') + ' ¥' + (item.strategyDiscount + item.promotionDiscount).toFixed(2)" />
                     </view>
                   </view>
                 </view>
@@ -205,11 +206,11 @@
           <view class="price-card summary-card">
             <view class="price-row">
               <text class="price-label">{{ t('order.detail.subtotal') }}</text>
-              <AmountText class="price-value" :text="'¥' + (Number(detail.goodsAmount || 0).toFixed(2))" />
+              <AmountText class="price-value" :text="'¥' + (priceSummary.goodsSubtotal.toFixed(2))" />
             </view>
-            <view class="price-row" v-if="detail.discountAmount > 0">
+            <view class="price-row summary-discount" v-if="priceSummary.discountAmount > 0">
               <text class="price-label">{{ t('order.detail.discount') }}</text>
-              <AmountText class="price-value" :text="'-¥' + (Number(detail.discountAmount || 0).toFixed(2))" />
+              <AmountText class="price-value" :text="'-¥' + priceSummary.discountAmount.toFixed(2)" />
             </view>
             <view class="price-row">
               <text class="price-label">{{ t('order.detail.freight') }}</text>
@@ -263,7 +264,7 @@
 
 <script setup>
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
-import { getPriceDisplay } from '@/shared/utils/priceDisplay.js'
+import { getPriceDisplay, getOrderPriceSummary } from '@/shared/utils/priceDisplay.js'
 import { ref, computed, watch } from 'vue'
 import { locale, t } from '@/shared/i18n/index.js'
 import { createLocaleReadCoordinator } from '@/shared/composables/localeReadCoordinator.js'
@@ -555,6 +556,8 @@ async function handleAction(key) {
       break
   }
 }
+// goodsAmount已使用策略成交价；仅还原汇总展示，不重算服务端应付。
+const priceSummary = computed(() => getOrderPriceSummary(detail.value))
 const productGroups = computed(() => {
   const groups = new Map()
   const items = Array.isArray(detail.value?.items) ? detail.value.items : []
@@ -706,27 +709,30 @@ function splitItemQuantityText(split, item) {
 .address-card .address-detail .address-text { color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); line-height: 20px; }
 .goods-card .card-title, .info-card .card-title { display: flex; margin-bottom: 10px; align-items: center; gap: 8px; color: var(--type-title-color); font-size: var(--type-card-title-size, 16px); line-height: var(--type-card-title-line-height, 24px); }
 .goods-card .card-title::before, .info-card .card-title::before { width: 3px; height: 16px; flex: 0 0 3px; border-radius: 2px; background: var(--color-brand, #D7192D); content: ''; }
-.spu-order-list { display: flex; flex-direction: column; gap: 8px; }
-.spu-order-card { overflow: hidden; border-radius: var(--radius-card, 14px); background: rgba(255,255,255,.34); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
-.spu-order-header { display: grid; grid-template-columns: 52px minmax(0, 1fr) minmax(0, .7fr) 28px; align-items: center; gap: 10px; min-height: 68px; padding: 8px; box-sizing: border-box; }
-.spu-image-link { width: 52px; height: 52px; overflow: hidden; border-radius: var(--radius-small, 8px); background: #FFF; }
+.spu-order-list { display: flex; flex-direction: column; gap: 12px; }
+.spu-order-card { overflow: hidden; border-radius: var(--radius-small, 12px); background: #FFF; box-shadow: none; }
+.spu-order-header { display: grid; grid-template-columns: 48px minmax(0, 1fr) 28px; align-items: center; gap: 10px; min-height: 76px; padding: 12px; box-sizing: border-box; background: var(--bg-secondary, #F3F4F6); }
+.spu-image-link { width: 48px; height: 48px; overflow: hidden; border-radius: var(--radius-small, 8px); background: #FFF; }
 .spu-image { width: 100%; height: 100%; }
 .spu-order-copy { min-width: 0; }
-.spu-order-name { display: block; overflow: hidden; color: var(--type-title-color); font-size: var(--type-body-size, 14px); font-weight: var(--font-weight-semibold, 600); line-height: 20px; text-overflow: ellipsis; white-space: nowrap; }
-.spu-order-meta { display: block; margin-top: 3px; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
+.spu-order-name { display: block; color: var(--type-title-color); font-size: var(--type-body-size, 14px); font-weight: var(--font-weight-semibold, 600); line-height: 20px; overflow-wrap: anywhere; }
+.spu-order-meta-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 4px; }
+.spu-order-meta { display: block; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
 .spu-order-total { color: var(--type-title-color); font-size: var(--type-body-small-size, 13px); font-weight: var(--font-weight-semibold, 600); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .spu-collapse-button { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 50%; color: var(--type-secondary-color); background: #FFF; }
 .spu-collapse-icon { transition: transform 180ms ease; }
 .spu-collapse-icon.expanded { transform: rotate(90deg); }
-.sku-order-list { padding: 0 8px 8px; border-top: 1px solid rgba(255,255,255,.38); background: transparent; }
-.goods-item { min-height: 82px; padding: 12px 0; border-bottom: 1px solid #EEF0F2; }
-.goods-item .goods-image { width: 78px; height: 78px; border-radius: var(--radius-control, 10px); }
-.goods-item .goods-info { display: flex; min-width: 0; flex-direction: column; margin-left: 13px; }
+.sku-order-list { padding: 0 12px; background: #FFF; }
+.goods-item { align-items: flex-start; min-height: 0; padding: 12px 0; border-bottom: 1px solid #EEF0F2; }
+.goods-item .goods-image-link { width: 40px; height: 40px; flex: 0 0 40px; }
+.goods-item .goods-image { width: 40px; height: 40px; border-radius: var(--radius-xs, 6px); }
+.goods-item .goods-info { display: flex; min-width: 0; flex-direction: column; margin-left: 10px; }
 .goods-item .goods-info .goods-name { color: var(--type-title-color); font-size: var(--type-body-size, 14px); line-height: 20px; }
 .goods-item .goods-info .sku-name { margin-top: 4px; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
 .goods-item .goods-info .strategy-discount { display: block; color: var(--color-brand, #D7192D); font-size: var(--type-caption-size, 12px); }
 .goods-item .goods-info .promotion-discount { display: block; color: #d96b24; font-size: var(--type-caption-size, 12px); }
-.goods-item .goods-info .price-row { margin-top: auto; padding-top: 8px; }
+.goods-item .goods-info .price-row { margin-top: 6px; padding: 0; }
+.summary-card .summary-discount .price-value { color: var(--color-brand, #D7192D); }
 .goods-item .goods-info .price-row .price { color: var(--color-brand, #D7192D); font-size: var(--type-label-size, 15px); }
 .goods-item .goods-info .price-row .qty { color: var(--type-secondary-color); font-size: var(--type-caption-size, 12px); }
 .info-row, .price-row { gap: 18px; padding: 9px 0; }
@@ -760,23 +766,23 @@ function splitItemQuantityText(split, item) {
 @media (min-width: 720px) and (max-width: 1023px) {
   .detail-columns { grid-template-columns: minmax(0, 1fr) minmax(260px, .78fr); gap: 8px 10px; }
   .logistics-card, .address-card, .goods-card, .split-card, .info-card, .price-card { padding: 12px; }
-  .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) minmax(0, .7fr) 26px; gap: 8px; min-height: 62px; }
+  .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) 28px; gap: 8px; padding: 10px; }
   .spu-image-link { width: 48px; height: 48px; }
 }
 
 @media (max-width: 719px) {
   .logistics-card, .address-card, .goods-card, .split-card, .info-card, .price-card { padding: 12px; }
-  .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) minmax(0, .7fr) 26px; gap: 8px; min-height: 62px; }
+  .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) 28px; gap: 8px; padding: 10px; }
   .spu-image-link { width: 48px; height: 48px; }
   .spu-order-total { font-size: var(--type-caption-size, 12px); }
-  .goods-item .goods-image { width: 64px; height: 64px; }
+  .goods-item .goods-image { width: 40px; height: 40px; }
   .goods-item .goods-info { margin-left: 10px; }
   .goods-item .goods-info .goods-name { font-size: var(--type-body-small-size, 13px); line-height: 18px; }
   .goods-item .goods-info .price-row .price { font-size: var(--type-body-size, 14px); }
 }
 
 /* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
-.logistics-card, .address-card, .goods-card, .spu-order-card, .split-card, .split-product-card, .info-card, .price-card, .order-info-card, .cancellation-card, .timeline-card, .summary-card {
+.logistics-card, .address-card, .goods-card, .split-card, .split-product-card, .info-card, .price-card, .order-info-card, .cancellation-card, .timeline-card, .summary-card {
   border: 0 !important;
   background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));

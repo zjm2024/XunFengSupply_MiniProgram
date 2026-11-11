@@ -143,8 +143,7 @@
                               <AmountText v-if="getPriceDisplay(item).showListPrice" class="list-price" :class="{ 'list-price--strike': getPriceDisplay(item).strikeListPrice }" :text="'¥' + formatMoney(item.listPrice)" />
                               <text class="unit">/ {{ unitText(item) }}</text>
                             </view>
-                            <AmountText v-if="item.strategyDiscount > 0" class="strategy-discount" :text="t('commerce.cart.strategyAmount', { amount: formatMoney(item.strategyDiscount) })" />
-                            <AmountText v-if="item.promotionDiscount > 0" class="promotion-discount" :text="t('commerce.cart.promotionAmount', { amount: formatMoney(item.promotionDiscount) })" />
+                            <AmountText v-if="item.strategyDiscount + item.promotionDiscount > 0" class="strategy-discount" :text="t('commerce.cart.strategyAmount', { amount: formatMoney(item.strategyDiscount + item.promotionDiscount) })" />
                             <view class="quantity-row">
                               <QuantityStepper
                                 :model-value="item.quantity"

@@ -107,8 +107,7 @@
                             <text class="product-spec">SKU：{{ item.code || item.skuId }}</text>
                             <view class="product-meta">
                               <AmountText :text="'¥' + (formatMoney(item.salePrice)) + ' / ' + (item.unit)" />
-                              <AmountText v-if="item.strategyDiscount > 0" class="strategy-discount" :text="t('commerce.checkout.strategyAmount', { amount: formatMoney(item.strategyDiscount) })" />
-                              <AmountText v-if="item.promotionDiscount > 0" class="promotion-discount" :text="t('commerce.checkout.promotionAmount', { amount: formatMoney(item.promotionDiscount) })" />
+                              <AmountText v-if="item.strategyDiscount + item.promotionDiscount > 0" class="strategy-discount" :text="t('commerce.checkout.strategyAmount', { amount: formatMoney(item.strategyDiscount + item.promotionDiscount) })" />
                               <text>× {{ item.quantity }}</text>
                             </view>
                             <text v-if="item.stockInsufficient" class="stock-risk">

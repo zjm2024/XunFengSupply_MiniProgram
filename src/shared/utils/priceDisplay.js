@@ -17,3 +17,22 @@ export function getPriceDisplay(item = {}) {
   }
 }
 
+
+/** 订单快照金额汇总：策略优惠已计入goodsAmount，恢复优惠前展示基数，绝不重算应付。 */
+export function getOrderPriceSummary(order = {}) {
+  const value = order || {}
+  const cents = input => Number.isFinite(Number(input)) ? Math.max(0, Math.round(Number(input) * 100)) : 0
+  const items = value.items ?? value.Items
+  const strategyCents = (Array.isArray(items) ? items : []).reduce((sum, item) => {
+    if (!item) return sum
+    const quantity = Number(item.quantity ?? item.Quantity ?? 0)
+    if (!Number.isSafeInteger(quantity) || quantity <= 0) return sum
+    return sum + cents(getPriceDisplay(item).strategyDiscount) * quantity
+  }, 0)
+  return {
+    goodsSubtotal: (cents(value.goodsAmount ?? value.GoodsAmount) + strategyCents) / 100,
+    strategyDiscount: strategyCents / 100,
+    promotionDiscount: cents(value.discountAmount ?? value.DiscountAmount) / 100,
+    discountAmount: (strategyCents + cents(value.discountAmount ?? value.DiscountAmount)) / 100,
+  }
+}
