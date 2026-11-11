@@ -135,27 +135,36 @@
           <view class="pay-methods" v-if="payMode === PAYMENT_MODE.COMBINATION">
             <view class="method-title">{{ t('order.pay.balanceAllocation') }}</view>
             <view
-              v-for="account in availableAccounts"
-              :key="account.accountCustomerId"
+              v-for="account in visibleAccounts"
+              :key="account.accountId"
               class="balance-source"
               :class="{ 'is-unavailable': !canFundOrder(account) }"
               @tap="toggleAccount(account)"
             >
               <checkbox :checked="isSelected(account)" :disabled="!canFundOrder(account)" color="#D7192D" />
               <view class="source-copy">
-                <text>{{ account.isMaster ? t('order.pay.masterAccount') : (account.realName || account.username) }}</text>
+                <text>{{ account.accountName || account.fundAccountCode }}</text>
                 <AmountText :text="t('order.pay.availableBalance', { amount: Number(account.availableBalance || 0).toFixed(2) })" />
               </view>
               <input :placeholder-style="$inputPlaceholderStyle"
                 v-if="isSelected(account)"
                 class="source-input"
                 type="digit"
-                :value="allocationAmounts[account.accountCustomerId]"
+                :value="allocationAmounts[account.accountId]"
                 placeholder="0.00"
                 @tap.stop
                 @input="setAllocation(account, $event.detail.value)"
               />
             </view>
+            <button
+              v-if="otherAccounts.length"
+              class="other-accounts-toggle"
+              :aria-expanded="otherAccountsExpanded"
+              @tap="otherAccountsExpanded = !otherAccountsExpanded"
+            >
+              <text>{{ otherAccountsExpanded ? t('order.pay.collapseOtherAccounts') : t('order.pay.expandOtherAccounts', { count: otherAccounts.length }) }}</text>
+              <AppIcon :name="otherAccountsExpanded ? 'chevron-up' : 'chevron-down'" :size="14" color="#747B86" />
+            </button>
             <text v-if="!hasSufficientBalance" class="balance-notice">{{ t('order.pay.noSufficientBalance') }}</text>
             <view class="allocation-summary">
               <AmountText :text="t('order.pay.allocated', { amount: allocationTotal.toFixed(2) })" />
@@ -330,6 +339,7 @@ async function checkOrderQr() {
   try { await qrPayment?.check() } finally { qrChecking.value = false }
 }
 
+const otherAccountsExpanded = ref(false)
 const selectedAccountIds = ref([])
 const allocationAmounts = ref({})
 const orderPayable = ref(false)
@@ -355,6 +365,9 @@ const formatRemainTime = computed(() => {
 const availableAccounts = computed(() => (finance.value.accounts || []).filter(item =>
   item.accountStatus === 1 && item.financeStatus === 1 && item.canParticipateCombinationPay,
 ))
+const otherAccounts = computed(() => availableAccounts.value.filter(account => !account.isDefault))
+// 收起时不挂载其他账户行，账户校验与支付仍使用完整列表。
+const visibleAccounts = computed(() => availableAccounts.value.filter(account => account.isDefault || otherAccountsExpanded.value))
 const hasSufficientBalance = computed(() => availableAccounts.value.some(account => canFundOrder(account)))
 const batchErpRejected = computed(() => checkoutOrders.value.some(order => order.cancelledForErpRejection))
 const batchStatusKey = computed(() => {
@@ -708,12 +721,12 @@ async function handleConfirmPay() {
     if (payMode.value === PAYMENT_MODE.COMBINATION) {
       if (selectedAccountIds.value.length === 0) throw localError('accountRequired')
       for (const id of selectedAccountIds.value) {
-        const account = availableAccounts.value.find(item => item.accountCustomerId === id)
+        const account = availableAccounts.value.find(item => item.accountId === id)
         const amount = Number(allocationAmounts.value[id])
         if (!account) throw localError('accountUnavailable')
         if (!Number.isFinite(amount) || amount <= 0) throw localError('amountRequired')
         if (amount - Number(account.availableBalance || 0) > 0.005) {
-          throw new AppError('', ErrorKind.UNKNOWN, { messageKey: 'order.pay.exceedsBalance', messageParameters: { name: account.isMaster ? t('order.pay.masterAccount') : (account.realName || account.username) } })
+          throw new AppError('', ErrorKind.UNKNOWN, { messageKey: 'order.pay.exceedsBalance', messageParameters: { name: account.accountName || account.fundAccountCode } })
         }
       }
       if (Math.abs(allocationTotal.value - Number(payAmount.value)) >= 0.005) {
@@ -723,10 +736,10 @@ async function handleConfirmPay() {
         orderId: orderId.value,
         clientRequestId: `balance-pay-${orderId.value}-${Date.now()}`,
         paymentMode: PAYMENT_MODE.COMBINATION,
-        fundAccountCode: checkoutBatchId.value ? finance.value.currentAccount?.fundAccountCode || null : null,
+        fundAccountCode: availableAccounts.value.find(item => item.accountId === selectedAccountIds.value[0])?.fundAccountCode || null,
         allocations: selectedAccountIds.value.map(id => ({
           payMethod: 'balance',
-          accountCustomerId: Number(id),
+          accountCustomerId: availableAccounts.value.find(item => item.accountId === id)?.accountCustomerId,
           amount: Number(allocationAmounts.value[id] || 0),
         })),
       })
@@ -745,9 +758,9 @@ async function handleConfirmPay() {
   }
 }
 
-function isSelected(account) { return selectedAccountIds.value.includes(account.accountCustomerId) }
+function isSelected(account) { return selectedAccountIds.value.includes(account.accountId) }
 function setAllocation(account, value) {
-  allocationAmounts.value = { ...allocationAmounts.value, [account.accountCustomerId]: value }
+  allocationAmounts.value = { ...allocationAmounts.value, [account.accountId]: value }
 }
 /** 单一账户必须能覆盖整笔应付金额，才可选为付款来源。 */
 function canFundOrder(account) {
@@ -755,7 +768,7 @@ function canFundOrder(account) {
 }
 function toggleAccount(account) {
   if (!orderPayable.value || paying.value || paymentExpired.value || !canFundOrder(account)) return
-  const id = account.accountCustomerId
+  const id = account.accountId
   if (isSelected(account)) {
     selectedAccountIds.value = selectedAccountIds.value.filter(item => item !== id)
     const next = { ...allocationAmounts.value }; delete next[id]; allocationAmounts.value = next
@@ -771,8 +784,10 @@ function autoAllocate() {
   const amount = Number(payAmount.value)
   const account = availableAccounts.value.find(canFundOrder)
   if (!account) return
-  selectedAccountIds.value = [account.accountCustomerId]
-  allocationAmounts.value[account.accountCustomerId] = amount.toFixed(2)
+  selectedAccountIds.value = [account.accountId]
+  allocationAmounts.value[account.accountId] = amount.toFixed(2)
+  // 默认账户不足而自动选中备用账户时，展示实际付款来源。
+  if (!account.isDefault) otherAccountsExpanded.value = true
 }
 /** 仅接受订单确认响应或已付款快照；立即停止收银并打开本次订单详情。 */
 function handlePaid(result) {

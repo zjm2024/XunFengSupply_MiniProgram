@@ -97,7 +97,7 @@
       <ConfirmPopup v-model="repaymentPickerVisible" :title="t('account.billing.selectAccount')"
         presentation="action-sheet" :show-confirm="false">
         <view class="repayment-options">
-          <button v-for="option in repaymentAccountOptions" :key="option.account.accountCustomerId"
+          <button v-for="option in repaymentAccountOptions" :key="option.account.accountId"
             class="repayment-option" @tap="selectRepaymentAccount(option.account)">{{ option.label }}</button>
         </view>
       </ConfirmPopup>
@@ -213,7 +213,7 @@ function startRepayment() {
 
 /** 返回选择时的原账户显示名称，真实姓名不翻译。 */
 function repaymentAccountName(account) {
-  return account.isMaster ? t('account.billing.mainAccount') : (account.realName || account.username)
+  return account.accountName || account.fundAccountCode
 }
 
 const repaymentAccountOptions = computed(() => repaymentAccounts.value.map(account => ({
@@ -248,6 +248,7 @@ async function submitRepayment(account, amount) {
   try {
     await payBill(bill.billId, {
       accountCustomerId: account.accountCustomerId,
+      fundAccountCode: account.fundAccountCode,
       amount,
       clientRequestId: `bill-repay-${bill.billId}-${Date.now()}`,
     })

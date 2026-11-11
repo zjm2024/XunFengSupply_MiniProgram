@@ -162,6 +162,8 @@
     "creditTip": "The credit amount will be added to this month's bill. Please repay it by the 5th of each month.",
     "cashUnavailableNotice": "We will verify receipt and confirm the order automatically. Do not pay twice.",
     "balanceAllocation": "Balance allocation",
+    "expandOtherAccounts": "Show other accounts ({count})",
+    "collapseOtherAccounts": "Hide other accounts",
     "masterAccount": "Master account",
     "availableBalance": "Available ¥{amount}",
     "allocated": "Allocated ¥{amount}",

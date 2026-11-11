@@ -185,6 +185,7 @@ function unavailable(feature) {
 export function payBill(_billId, params = {}) {
   return repayDealerCreditFromBalance({
     accountCustomerId: params.accountCustomerId,
+    fundAccountCode: params.fundAccountCode,
     amount: params.amount,
     clientRequestId: params.clientRequestId,
   })

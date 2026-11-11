@@ -239,7 +239,7 @@ export const useUserStore = defineStore('user', {
     },
 
     hasPermission(permission) {
-      return this.isMainAccount || this.permissions.includes(permission)
+      return this.isMainAccount || (permission !== 'SUB_ACCOUNT_MANAGE' && this.permissions.includes(permission))
     },
 
     updateFinanceContext(data = {}, persist = true) {

@@ -140,7 +140,6 @@ const permissionOptions = computed(() => [
   { code: 'ORDER_CREATE', name: t('account.permissions.createOrders'), description: t('account.permissions.createOrdersHint') },
   { code: 'BALANCE_VIEW', name: t('account.permissions.viewBalance'), description: t('account.permissions.viewBalanceHint') },
   { code: 'INVENTORY_VIEW', name: t('account.permissions.viewInventory'), description: t('account.permissions.viewInventoryHint') },
-  { code: 'SUB_ACCOUNT_MANAGE', name: t('account.permissions.manageAccounts'), description: t('account.permissions.manageAccountsHint') },
   { code: 'COMBINATION_PAY_PARTICIPATE', name: t('account.permissions.combinedPayment'), description: t('account.permissions.combinedPaymentHint') },
   { code: 'PUBLIC_STOCK_SHARE', name: t('account.permissions.publicStockShare'), description: t('account.permissions.publicStockShareHint') },
   { code: 'RETAIL_SHARE_CREATE', name: t('account.permissions.retailShareCreate'), description: t('account.permissions.retailShareCreateHint') },
@@ -169,6 +168,7 @@ onLoad((params = {}) => {
       try { formData.permissions = JSON.parse(decodeURIComponent(rawPermissions)) }
       catch (_) { formData.permissions = [] }
     }
+    formData.permissions = formData.permissions.filter(code => permissionOptions.value.some(option => option.code === code))
   }
 })
 

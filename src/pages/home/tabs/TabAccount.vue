@@ -114,6 +114,7 @@ import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { useUserStore } from '@/shared/session/userStore.js'
 import { getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
+import { formatFinanceAmount } from '@/shared/utils/financeAmount.js'
 import { getProfile } from '@/shared/api/auth.js'
 import { getDealerInventoryOverview } from '@/shared/api/inventory.js'
 import { getOrderCounts } from '@/shared/api/order.js'
@@ -173,8 +174,8 @@ const accountNoticeText = computed(() => (
 ))
 const showInitialLoading = computed(() => props.active && dashboardLoading.value && !dashboardInitialized.value)
 const metricEntries = computed(() => [
-  { key: 'credit', value: formatCompactMoney(finance.value?.credit?.availableAmount), label: accountCopy.value.metrics.credit, action: goToCreditFlow },
-  { key: 'balance', value: formatCompactMoney(finance.value?.subjectAvailableBalance), label: accountCopy.value.metrics.balance, action: goToFundCenter },
+  { key: 'credit', value: formatFinanceAmount(finance.value?.credit?.availableAmount), label: accountCopy.value.metrics.credit, action: goToCreditFlow },
+  { key: 'balance', value: finance.value?.canViewBalance ? formatFinanceAmount(finance.value.subjectAvailableBalance) : '••••••', label: accountCopy.value.metrics.balance, action: goToFundCenter },
   { key: 'inventory', value: formatQuantity(inventoryOverview.value?.availableQuantity), unit: accountCopy.value.metrics.inventoryUnit, label: accountCopy.value.metrics.inventory, action: goToInventory },
   { key: 'score', value: String(userStore.creditScore || 0), unit: accountCopy.value.metrics.scoreUnit, label: accountCopy.value.metrics.score },
 ])
@@ -229,12 +230,6 @@ async function loadDashboard() {
   }
 }
 
-function formatCompactMoney(value) {
-  const number = Number(value)
-  if (!Number.isFinite(number)) return '¥0'
-  if (Math.abs(number) >= 10000) return `¥${(number / 10000).toFixed(number >= 100000 ? 0 : 1)}万`
-  return `¥${number.toLocaleString('zh-CN', { maximumFractionDigits: 0 })}`
-}
 function formatQuantity(value) {
   const number = Number(value)
   return (Number.isFinite(number) ? number : 0).toLocaleString('zh-CN')

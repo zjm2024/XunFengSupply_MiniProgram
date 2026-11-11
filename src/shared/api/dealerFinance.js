@@ -3,6 +3,8 @@ import { dispatch } from './dispatchClient.js'
 function normalizeAccount(item = {}) {
   return {
     accountId: Number(item.accountId ?? item.AccountId ?? 0),
+    accountName: item.accountName ?? item.AccountName ?? item.fundAccountCode ?? item.FundAccountCode ?? '',
+    isDefault: Boolean(item.isDefault ?? item.IsDefault),
     accountCustomerId: Number(item.accountCustomerId ?? item.AccountCustomerId ?? 0),
     fundAccountCode: item.fundAccountCode ?? item.FundAccountCode ?? '',
     username: item.username ?? item.Username ?? '',
@@ -22,15 +24,19 @@ function normalizeAccount(item = {}) {
 export function normalizeFinanceContext(result = {}) {
   const credit = result.credit ?? result.Credit ?? {}
   const rawAccounts = result.accounts ?? result.Accounts ?? []
+  const accounts = rawAccounts.map(normalizeAccount)
+  const uniqueAccounts = Array.from(new Set(accounts.filter(item => item.accountId > 0).map(item => item.accountId)))
+    .map(id => accounts.find(item => item.accountId === id && item.isMaster) || accounts.find(item => item.accountId === id))
   return {
     dealerId: Number(result.dealerId ?? result.DealerId ?? 0),
+    canViewBalance: Boolean(result.canViewBalance ?? result.CanViewBalance ?? true),
     subjectTotalBalance: Number(result.subjectTotalBalance ?? result.SubjectTotalBalance ?? 0),
     subjectFrozenBalance: Number(result.subjectFrozenBalance ?? result.SubjectFrozenBalance ?? 0),
     subjectAvailableBalance: Number(result.subjectAvailableBalance ?? result.SubjectAvailableBalance ?? 0),
     currentAccount: result.currentAccount || result.CurrentAccount
       ? normalizeAccount(result.currentAccount ?? result.CurrentAccount)
       : null,
-    accounts: rawAccounts.map(normalizeAccount),
+    accounts: uniqueAccounts,
     credit: {
       fundAccountCode: credit.fundAccountCode ?? credit.FundAccountCode ?? '',
       creditAccountId: Number(credit.creditAccountId ?? credit.CreditAccountId ?? 0),
@@ -192,6 +198,7 @@ export function confirmCheckoutPayment({ checkoutBatchId, clientRequestId, payme
 export function repayDealerCreditFromBalance(params = {}) {
   return dispatch('Finance', 'Mini.DealerFinanceController', 'RepayCreditFromBalance', {
     AccountCustomerId: Number(params.accountCustomerId || 0),
+    FundAccountCode: params.fundAccountCode || null,
     Amount: Number(params.amount || 0),
     ClientRequestId: params.clientRequestId,
   })

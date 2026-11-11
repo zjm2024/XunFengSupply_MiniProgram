@@ -88,10 +88,6 @@
                       </view>
                     </view>
                     <view class="detail-row">
-                      <text class="detail-label">{{ t('account.subAccounts.balance') }}</text>
-                      <view class="detail-value balance-values"><AmountText :text="t('account.subAccounts.availableAmount', { amount: formatMoney(item.availableBalance) })" /><AmountText :text="t('account.subAccounts.frozenAmount', { amount: formatMoney(item.frozenBalance) })" /></view>
-                    </view>
-                    <view class="detail-row">
                       <text class="detail-label">{{ t('account.subAccounts.createdAt') }}</text>
                       <text class="detail-value">{{ item.createdAt }}</text>
                     </view>
@@ -100,11 +96,6 @@
 
                 <view class="account-actions">
                   <button class="action-btn" :disabled="isReadOnly" @click="editAccount(item)">{{ t('account.subAccounts.edit') }}</button>
-                  <button class="action-btn" :disabled="isReadOnly" @click="adjustBalance(item, 'allocate')">{{ t('account.subAccounts.allocate') }}</button>
-                  <button class="action-btn" :disabled="isReadOnly" @click="adjustBalance(item, 'reclaim')">{{ t('account.subAccounts.reclaim') }}</button>
-                  <button class="action-btn" :disabled="isReadOnly" @click="changeFrozen(item, item.frozenBalance <= 0)">
-                    {{ item.frozenBalance > 0 ? t('account.subAccounts.unfreeze') : t('account.subAccounts.freeze') }}
-                  </button>
                   <button
                     v-if="item.status === 'active'"
                     class="action-btn warning"
@@ -140,7 +131,6 @@
 <script setup>
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/account/i18n/register.js'
-import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { ref, computed } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -154,18 +144,12 @@ import { routes } from '@/app/config/routes.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { useUserStore } from '@/shared/session/userStore.js'
 import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
-import { openAppDialog, openAppPrompt } from '@/shared/composables/useAppDialog.js'
-import {
-  changeDealerFrozenBalance,
-  getDealerFinanceContext,
-  transferDealerBalance,
-} from '@/shared/api/dealerFinance.js'
+import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 
 const accountList = ref([])
 const userStore = useUserStore()
 const loading = ref(false)
 const isRefreshing = ref(false)
-const finance = ref({ accounts: [], currentAccount: null })
 
 const totalCount = ref(0)
 const activeCount = computed(() => accountList.value.filter(a => a.status === 'active').length)
@@ -206,13 +190,7 @@ async function loadSubAccounts({ reset = true } = {}) {
   }
   try {
     const result = await getSubAccountList({ pageNum: pageNum.value, pageSize })
-    if (reset) finance.value = await getDealerFinanceContext()
-    const balanceMap = new Map(finance.value.accounts.map(item => [item.accountCustomerId, item]))
-    const items = (result.items || []).map(item => ({
-      ...item,
-      availableBalance: balanceMap.get(item.customerId)?.availableBalance || 0,
-      frozenBalance: balanceMap.get(item.customerId)?.frozenBalance || 0,
-    }))
+    const items = result.items || []
     accountList.value = reset ? items : [...accountList.value, ...items]
     totalCount.value = Number(result.totalCount || accountList.value.length)
     hasMore.value = accountList.value.length < totalCount.value
@@ -250,10 +228,6 @@ function handleRefresherRestore() {
   if (!loading.value) isRefreshing.value = false
 }
 
-function formatMoney(value) {
-  return Number(value || 0).toFixed(2)
-}
-
 /** 仅翻译已知权限的显示名称，未知权限码原样返回。 */
 function permissionLabel(code) {
   return {
@@ -268,62 +242,6 @@ function permissionLabel(code) {
     RETAIL_SHARE_VIEW: t('account.permissions.retailShareView'),
     RETAIL_SHARE_REVOKE: t('account.permissions.retailShareRevoke'),
   }[code] || code
-}
-
-/** 用户确认有效金额后执行一次原资金操作。 */
-async function promptAmount(title, placeholder, action) {
-  const result = await openAppPrompt({
-    confirmText: t('common.confirm'),
-    cancelText: t('common.cancel'),
-    title,
-    placeholder,
-  })
-  if (!result.confirmed) return
-  const amount = Number(result.content)
-  if (!Number.isFinite(amount) || amount <= 0) {
-    uni.showToast({ title: t('account.subAccounts.positiveAmount'), icon: 'none' })
-    return
-  }
-  try {
-    await action(amount)
-    uni.showToast({ title: t('account.subAccounts.success'), icon: 'success' })
-    await loadSubAccounts()
-  } catch (error) {
-    uni.showToast({ title: error?.message || t('account.subAccounts.failed'), icon: 'none' })
-  }
-}
-
-/** 按原主子账户方向分配或收回余额。 */
-function adjustBalance(account, direction) {
-  const mainId = finance.value.accounts.find(item => item.isMaster)?.accountCustomerId
-  if (!mainId) {
-    uni.showToast({ title: t('account.subAccounts.missingMain'), icon: 'none' })
-    return
-  }
-  return promptAmount(
-    direction === 'allocate' ? t('account.subAccounts.allocateTitle') : t('account.subAccounts.reclaimTitle'),
-    t('account.subAccounts.amountPlaceholder'),
-    amount => transferDealerBalance({
-      fromAccountCustomerId: direction === 'allocate' ? mainId : account.customerId,
-      toAccountCustomerId: direction === 'allocate' ? account.customerId : mainId,
-      amount,
-      clientRequestId: 'transfer_' + Date.now(),
-    }),
-  )
-}
-
-/** 保留冻结方向、金额和原客户端请求标识。 */
-function changeFrozen(account, freeze) {
-  return promptAmount(
-    freeze ? t('account.subAccounts.freezeTitle') : t('account.subAccounts.unfreezeTitle'),
-    freeze ? t('account.subAccounts.availableLimit') : t('account.subAccounts.frozenLimit'),
-    amount => changeDealerFrozenBalance({
-      accountCustomerId: account.customerId,
-      amount,
-      freeze,
-      clientRequestId: 'freeze_' + Date.now(),
-    }),
-  )
 }
 
 /**

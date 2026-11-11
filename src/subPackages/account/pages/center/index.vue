@@ -39,15 +39,15 @@
               <view class="finance-secondary">
                 <view>
                   <text>{{ t('account.center.balance') }}</text>
-                  <AmountText :text="'¥' + (formatMoney(finance.subjectAvailableBalance))" />
+                  <AmountText :text="finance.canViewBalance ? '¥' + formatMoney(finance.subjectAvailableBalance) : '••••••'" />
                 </view>
                 <view>
                   <text>{{ t('account.center.accountBalance') }}</text>
-                  <AmountText :text="'¥' + (formatMoney(finance.currentAccount?.availableBalance))" />
+                  <AmountText :text="finance.canViewBalance ? '¥' + formatMoney(finance.currentAccount?.availableBalance) : '••••••'" />
                 </view>
                 <view>
                   <text>{{ t('account.center.accountFrozen') }}</text>
-                  <AmountText :text="'¥' + (formatMoney(finance.currentAccount?.frozenBalance))" />
+                  <AmountText :text="finance.canViewBalance ? '¥' + formatMoney(finance.currentAccount?.frozenBalance) : '••••••'" />
                 </view>
               </view>
             </view>

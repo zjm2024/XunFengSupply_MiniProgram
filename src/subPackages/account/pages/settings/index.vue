@@ -5,35 +5,29 @@
     </template>
 
     <template #content>
-      <AppContent>
+      <AppContent width-mode="standard">
         <view class="settings-content">
           <AppListGroup :title="t('account.settings.general')">
             <AppListItem
               :label="t('account.settings.language')"
-              :description="t('account.settings.languageHint')"
-              :value="languageLabel"
               icon="settings"
               @tap="goToLanguage"
             />
             <AppListItem
               :label="t('account.settings.clearCache')"
-              :description="t('account.settings.cacheHint')"
-              :value="cacheLabel"
               icon="trash"
               @tap="handleClearCache"
             />
           </AppListGroup>
 
-          <AppListGroup :title="t('account.settings.accountSecurity')" :description="t('account.settings.core')">
+          <AppListGroup :title="t('account.settings.accountSecurity')">
             <AppListItem
               :label="t('account.settings.profile')"
-              :description="t('account.settings.profileHint')"
               icon="user"
               @tap="goToProfile"
             />
             <AppListItem
               :label="t('account.settings.security')"
-              :description="t('account.settings.securityHint')"
               icon="shield"
               @tap="goToSecurity"
             />
@@ -42,19 +36,16 @@
           <AppListGroup :title="t('account.settings.support')">
             <AppListItem
               :label="t('account.settings.notifications')"
-              :description="t('account.settings.notificationsHint')"
               icon="bell"
               @tap="goToNotificationSettings"
             />
             <AppListItem
               :label="t('account.settings.help')"
-              :description="t('account.settings.helpHint')"
               icon="help"
               @tap="goToHelp"
             />
             <AppListItem
               :label="t('account.settings.about')"
-              value="V 1.0.0"
               icon="info"
               @tap="goToAbout"
             />
@@ -73,9 +64,7 @@
 </template>
 
 <script setup>
-import { onShow } from '@dcloudio/uni-app'
-import { computed, ref } from 'vue'
-import { locale, t } from '@/shared/i18n/index.js'
+import { t } from '@/shared/i18n/index.js'
 import '../../i18n/register.js'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -85,25 +74,14 @@ import AppListItem from '@/shared/ui/AppListItem/AppListItem.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { useUserStore } from '@/shared/session/userStore.js'
-import { clearAppCache, getCacheSummary } from '@/shared/utils/cacheManager.js'
+import { clearAppCache } from '@/shared/utils/cacheManager.js'
 import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 
 const userStore = useUserStore()
-const cacheSummary = ref(getCacheSummary())
-const cacheLabel = computed(() => cacheSummary.value.count > 0
-  ? t('account.settings.cacheSummary', { count: cacheSummary.value.count })
-  : t('account.settings.cacheEmpty'))
-const languageLabel = computed(() => locale.value === 'en-US'
-  ? t('account.language.en') : t('account.language.zh'))
-
 /** 前往既有语言页，不通过重启或重新创建当前页面切换语言。 */
 function goToLanguage() {
   navigator.navigateTo(routes.account.language())
 }
-
-onShow(() => {
-  cacheSummary.value = getCacheSummary()
-})
 
 function goToProfile() {
   navigator.navigateTo(routes.account.profile())
@@ -134,7 +112,6 @@ async function handleClearCache() {
   })) return
   try {
     await clearAppCache()
-    cacheSummary.value = getCacheSummary()
     uni.showToast({ title: t('account.settings.cacheCleared'), icon: 'success' })
   } catch (error) {
     console.error('[Settings] 清除缓存失败:', error)

@@ -1,25 +1,24 @@
-﻿﻿<template>
+<template>
   <AppPageShell>
     <template #header>
-      <app-header :title="t('content.titles.about')" :show-back="true" />
+      <AppHeader :title="t('content.titles.about')" :show-back="true" />
     </template>
 
     <template #content>
-      <AppContent>
+      <AppContent width-mode="standard">
         <view class="content">
           <!-- 品牌信息 -->
           <view class="brand-card">
-            <view class="brand-logo">
-              <text class="logo-text">薰风</text>
+            <AppImage src="/static/images/logo.png" width="72px" height="72px" mode="aspectFit" radius="16px" />
+            <view class="brand-copy">
+              <text class="brand-name">薰风体育</text>
+              <text class="brand-slogan">{{ t('content.about.slogan') }}</text>
+              <view class="version-info">
+                <text>{{ t('content.about.version') }}</text>
+                <text class="version-value">{{ version }}</text>
+              </view>
             </view>
-            <text class="brand-name">薰风体育</text>
-            <text class="brand-slogan">{{ t('content.about.slogan') }}</text>
 
-            <!-- 版本信息 -->
-            <view class="version-info">
-              <text class="version-label">{{ t('content.about.version') }}</text>
-              <text class="version-value">{{ version }}</text>
-            </view>
           </view>
 
           <!-- 公司简介 -->
@@ -39,7 +38,7 @@
 
             <view class="contact-list">
               <view class="contact-item">
-                <text class="contact-icon">📍</text>
+                <AppIcon name="map-pin" :size="20" />
                 <view class="contact-detail">
                   <text class="contact-label">{{ t('content.about.address') }}</text>
                   <text class="contact-value">广州市番禺区南村镇万惠二路103号2栋209</text>
@@ -47,7 +46,7 @@
               </view>
 
               <view class="contact-item">
-                <text class="contact-icon">📞</text>
+                <AppIcon name="service" :size="20" />
                 <view class="contact-detail">
                   <text class="contact-label">{{ t('content.about.hotline') }}</text>
                   <text class="contact-value">86-(20)38106798</text>
@@ -56,7 +55,7 @@
 
 
               <view class="contact-item">
-                <text class="contact-icon">🌐</text>
+                <AppIcon name="globe" :size="20" />
                 <view class="contact-detail">
                   <text class="contact-label">{{ t('content.about.website') }}</text>
                   <text class="contact-value link" @click="openWebsite">www.kumpoo.com</text>
@@ -74,24 +73,14 @@
               @click="openLink(link)"
             >
               <text class="link-name">{{ link.name }}</text>
-              <text class="link-arrow">›</text>
+              <AppIcon name="chevron-right" :size="16" color="#92969f" />
             </view>
-          </view>
-
-          <!-- 法律信息 -->
-          <view class="legal-section">
-            <button class="legal-link" @click="viewPrivacy">{{ t('content.about.privacy') }}</button>
-            <text class="divider">|</text>
-            <button class="legal-link" @click="viewTerms">{{ t('content.about.agreement') }}</button>
           </view>
 
           <!-- 版权信息 -->
           <view class="copyright">
             <text class="copyright-text">© 2008-2026 薰风体育用品有限公司</text>
-            <text class="copyright-sub">All Rights Reserved</text>
           </view>
-
-          <view class="bottom-spacer"></view>
         </view>
       </AppContent>
     </template>
@@ -101,14 +90,17 @@
 <script setup>
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/content/i18n/register.js'
-import { computed, ref } from 'vue'
-import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
+import { computed } from 'vue'
+import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
+import AppImage from '@/shared/ui/AppImage/AppImage.vue'
+import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import { getAppVersionName } from '@/shared/utils/appVersion.js'
 
-const version = ref('1.0.0')
+const version = getAppVersionName()
 
 // 相关链接
 const links = computed(() => [
@@ -120,7 +112,7 @@ const links = computed(() => [
 /** 保留现有网站目标与跨端打开方式。 */
 function openWebsite() {
   // #ifdef H5
-  window.open('https://www.xunfeng.com', '_blank')
+  window.open('https://www.kumpoo.com', '_blank')
   // #endif
   // #ifndef H5
   uni.showToast({ title: t('content.about.browserHint'), icon: 'none' })
@@ -152,225 +144,41 @@ function viewTerms() {
 }
 </script>
 
+
 <style lang="scss" scoped>
-.content {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* 品牌卡片 */
-.brand-card {
-  background: linear-gradient(135deg, #D7192D, #E8384F);
-  border-radius: var(--radius-card, 14px);
-  padding: 24px 16px;
-  text-align: center;
-  margin-bottom: 12px;
-  color: white;
-}
-
-.brand-logo {
-  width: 70px;
-  height: 70px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 10px;
-}
-
-.logo-text {
-  font-size: var(--type-heading-size, 24px);
-  font-weight: var(--font-weight-bold, 700);
-  letter-spacing: -2px;
-}
-
-.brand-name {
-  font-size: var(--type-page-title-size, 20px);
-  font-weight: var(--font-weight-bold, 700);
-  display: block;
-  margin-bottom: 4px;
-}
-
-.brand-slogan {
-  font-size: var(--type-body-small-size, 13px);
-  opacity: 0.9;
-  display: block;
-  margin-bottom: 14px;
-}
-
-.version-info {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.15);
-  padding: 6px 14px;
-  border-radius: var(--radius-card, 14px);
-}
-
-.version-label {
-  font-size: var(--type-caption-size, 12px);
-  opacity: 0.85;
-}
-
-.version-value {
-  font-size: var(--type-body-small-size, 13px);
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-/* 信息卡片 */
-.info-card, .link-card {
-  background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: var(--radius-card, 14px);
-  padding: var(--module-padding, 16px);
-  margin-bottom: 12px;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-}
-
-.card-title {
-  font-size: var(--type-card-title-size, 16px);
-  font-weight: var(--font-weight-semibold, 600);
-  color: #111216;
-  display: block;
-  margin-bottom: 10px;
-}
-
-.card-text {
-  font-size: var(--type-body-size, 14px);
-  color: #5E626B;
-  line-height: 1.75;
-  display: block;
-
-  & + & {
-    margin-top: 8px;
-  }
-}
-
-/* 联系方式 */
-.contact-list {
-  display: grid;
-  gap: 12px;
-}
-
-.contact-item {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-}
-
-.contact-icon {
-  font-size: var(--type-section-title-size, 18px);
-  margin-top: 2px;
-}
-
-.contact-detail {
-  flex: 1;
-}
-
-.contact-label {
-  font-size: var(--type-body-small-size, 13px);
-  color: #989BA5;
-  display: block;
-  margin-bottom: 2px;
-}
-
-.contact-value {
-  font-size: var(--type-body-size, 14px);
-  color: #111216;
-  line-height: 1.5;
-  display: block;
-
-  &.link {
-    color: #D7192D;
-
-    &:active {
-      opacity: 0.7;
-    }
-  }
-}
-
-/* 链接列表 */
-.link-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid #F5F5F6;
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &:active {
-    opacity: 0.7;
-  }
-}
-
-.link-name {
-  font-size: var(--type-body-size, 14px);
-  color: #111216;
-}
-
-.link-arrow {
-  font-size: var(--type-card-title-size, 16px);
-  color: #989BA5;
-}
-
-/* 法律信息 */
-.legal-section {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 0;
-}
-
-.legal-link {
-  background: transparent;
-  border: none;
-  color: #5E626B;
-  font-size: var(--type-body-small-size, 13px);
-
-  &:active {
-    color: #D7192D;
-  }
-}
-
-.divider {
-  color: #DEDFE3;
-  font-size: var(--type-body-small-size, 13px);
-}
-
-/* 版权信息 */
-.copyright {
-  text-align: center;
-  padding: 16px 0;
-}
-
-.copyright-text {
-  font-size: var(--type-caption-size, 12px);
-  color: #989BA5;
-  display: block;
-}
-
-.copyright-sub {
-  font-size: var(--type-caption-size, 12px);
-  color: #C4C6CC;
-  display: block;
-  margin-top: 2px;
-}
-
-.bottom-spacer {
-  height: 24px;
-}
-
-/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
+.content { display: grid; gap: 12px; padding-bottom: 20px; }
 .brand-card, .info-card, .link-card {
-  border: 0 !important;
-  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
-  backdrop-filter: var(--glass-card-blur, blur(16px));
+  min-width: 0;
+  background: var(--surface-card, #fff);
+  border-radius: var(--radius-card, 14px);
+}
+.brand-card { display: flex; align-items: center; gap: 18px; padding: 24px 20px; }
+.brand-copy { flex: 1; min-width: 0; display: grid; gap: 6px; }
+.brand-name { font-size: var(--type-page-title-size, 20px); font-weight: 700; color: var(--type-title-color, #1b1c20); }
+.brand-slogan, .version-info { font-size: var(--type-body-small-size, 13px); line-height: 1.5; color: var(--type-secondary-color, #62666f); }
+.version-info { display: flex; gap: 8px; margin-top: 4px; }
+.version-value { font-variant-numeric: tabular-nums; }
+.info-card { padding: 18px 20px; }
+.card-title { display: block; font-size: var(--type-card-title-size, 16px); font-weight: 600; color: var(--type-title-color, #1b1c20); margin-bottom: 12px; }
+.card-text { display: block; font-size: var(--type-body-size, 14px); color: var(--type-secondary-color, #62666f); line-height: 1.8; }
+.card-text + .card-text { margin-top: 10px; }
+.contact-list { display: grid; gap: 16px; }
+.contact-item { display: flex; align-items: flex-start; gap: 12px; }
+.contact-item > .app-icon { margin-top: 3px; flex: none; }
+.contact-detail { min-width: 0; flex: 1; display: grid; gap: 4px; }
+.contact-label { font-size: var(--type-caption-size, 12px); line-height: 1.5; color: var(--type-tertiary-color, #92969f); }
+.contact-value { display: block; font-size: var(--type-body-size, 14px); color: var(--type-title-color, #1b1c20); line-height: 1.6; overflow-wrap: anywhere; }
+.contact-value.link { color: var(--color-brand, #d7192d); }
+.link-card { padding: 0 20px; }
+.link-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 50px; padding: 10px 0; box-sizing: border-box; }
+.link-item + .link-item { border-top: 1px solid var(--divider-color, #eceef2); }
+.link-name { font-size: var(--type-body-size, 14px); color: var(--type-title-color, #1b1c20); }
+.link-item:active, .contact-value.link:active { opacity: .65; }
+.copyright { padding: 12px 16px; text-align: center; }
+.copyright-text { display: block; font-size: var(--type-caption-size, 12px); color: var(--type-tertiary-color, #92969f); line-height: 1.6; }
+@media (max-width: 360px) {
+  .brand-card { padding: 20px 16px; gap: 14px; }
+  .info-card { padding: 16px; }
+  .link-card { padding: 0 16px; }
 }
 </style>

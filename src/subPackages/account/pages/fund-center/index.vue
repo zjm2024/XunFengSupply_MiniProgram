@@ -17,7 +17,7 @@
                     <AppIcon :name="balanceVisible ? 'eye' : 'eye-off'" :size="19" color="#fff" />
                   </button>
                 </view>
-                <AmountText class="balance-amount" :text="balanceVisible ? money(finance?.subjectAvailableBalance) : '••••••'" />
+                <AmountText class="balance-amount" :text="balanceVisible && finance?.canViewBalance ? money(finance.subjectAvailableBalance) : '••••••'" />
               </view>
             </view>
             <view class="credit-pair">
@@ -160,7 +160,6 @@ function open(url) { return navigator.navigateTo(url) }
 .tile-pressed { opacity: .76; }
 .hub-error { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 @media (min-width: 700px) {
-  .finance-hub { grid-template-columns: minmax(0, 1.07fr) minmax(0, 1fr); gap: 18px; }
   .balance-hero { min-height: 158px; padding-inline: 20px; }
 }
 

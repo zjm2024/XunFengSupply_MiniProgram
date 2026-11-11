@@ -14,7 +14,8 @@
             "delay" : 0
         },
         "modules" : {
-            "Payment" : {}
+            "Payment" : {},
+            "Push" : {}
         },
         "distribute" : {
             "android" : {
@@ -29,7 +30,22 @@
                 "dSYMs" : false
             },
             "sdkConfigs" : {
-                "payment" : {}
+                "payment" : {},
+                "push" : {
+                    "unipush" : {
+                        "version" : "2",
+                        "offline" : false,
+                        "icons" : {
+                            "small" : {
+                                "ldpi" : "C:/Users/PC/Pictures/238682b3-0f76-4299-90ac-04a0a898a6cf.png",
+                                "mdpi" : "C:/Users/PC/Pictures/238682b3-0f76-4299-90ac-04a0a898a6cf.png",
+                                "hdpi" : "C:/Users/PC/Pictures/238682b3-0f76-4299-90ac-04a0a898a6cf.png",
+                                "xhdpi" : "C:/Users/PC/Pictures/238682b3-0f76-4299-90ac-04a0a898a6cf.png",
+                                "xxhdpi" : "C:/Users/PC/Pictures/238682b3-0f76-4299-90ac-04a0a898a6cf.png"
+                            }
+                        }
+                    }
+                }
             },
             "icons" : {
                 "android" : {
