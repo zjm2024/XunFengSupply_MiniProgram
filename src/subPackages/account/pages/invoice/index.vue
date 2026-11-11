@@ -22,11 +22,8 @@
               <view class="title-entry"><AppButton size="sm" variant="ghost" @tap="openTitle">{{ t('account.invoice.titleEntry') }}<AppIcon name="chevron-right" :size="14" color="#737A84" /></AppButton></view>
             </view>
           </view>
-          <view class="record-panel">
-            <view class="tabs" role="tablist">
-              <button class="tab-item" role="tab" :aria-selected="activeTab === 'application'" :class="{ active: activeTab === 'application' }" @tap="changeTab('application')">{{ t('account.invoice.titles') }}</button>
-              <button class="tab-item" role="tab" :aria-selected="activeTab === 'archive'" :class="{ active: activeTab === 'archive' }" @tap="changeTab('archive')">{{ t('account.invoice.records') }}</button>
-            </view>
+          <view class="record-panel" :class="{ 'empty-data-surface': !loading && !listError && !records.length }">
+            <AppTabs class="tabs" :items="[{ value: 'application', label: t('account.invoice.titles') }, { value: 'archive', label: t('account.invoice.records') }]" :model-value="activeTab" @change="changeTab" />
             <view class="record-list">
               <AppPageState v-if="loading && !records.length" state="loading" compact />
               <AppPageState v-else-if="listError && !records.length" state="error" :description="listError" :action-text="t('common.retry')" compact @retry="refreshInvoices" />
@@ -81,6 +78,7 @@ import { computed, ref, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getLocale, t } from '@/shared/i18n/index.js'
 import '@/subPackages/account/i18n/register.js'
+import AppTabs from '@/shared/ui/AppTabs.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -110,6 +108,7 @@ const isRefreshing = ref(false)
 const formError = ref('')
 const summary = ref(null)
 const summaryError = ref('')
+const summaryLoading = ref(false)
 const user = useUserStore()
 watch(() => user.userId, () => { pdfVisible.value = false })
 let summarySequence = 0
@@ -149,12 +148,15 @@ function money(value) { return '¥' + Number(value).toFixed(2) }
 /** 从本人订单和开票记录读取金额，失败保留可重试错误而不伪造0元。 */
 async function loadSummary() {
   const sequence = ++summarySequence
+  summaryLoading.value = true
   summaryError.value = ''
   try {
     const result = await getInvoiceSummary()
     if (sequence === summarySequence) summary.value = result
   } catch (error) {
     if (sequence === summarySequence) summaryError.value = error?.message || t('account.invoice.loadFailed')
+  } finally {
+    if (sequence === summarySequence) summaryLoading.value = false
   }
 }
 
@@ -184,8 +186,28 @@ async function loadSavedTitle() {
   }
 }
 
-/** 原去开票按钮直接打开金额表单，不显示流程说明。 */
-function openApply() { formError.value = ''; showForm.value = true }
+/** 用最近一次成功获取的额度拦截零额度及超额申请。 */
+function invoiceAmountError(amount) {
+  if (summaryLoading.value || !summary.value || summaryError.value) return t('account.invoice.amountUnavailable')
+  const available = Math.round(Number(summary.value.availableAmount) * 100)
+  if (!Number.isFinite(available)) return t('account.invoice.amountUnavailable')
+  if (available <= 0) return t('account.invoice.noAvailableAmount')
+  if (Math.round(amount * 100) > available) {
+    return t('account.invoice.exceedsAvailableAmount', { amount: money(summary.value.availableAmount) })
+  }
+  return ''
+}
+
+/** 有可开票额度才打开申请表单。 */
+function openApply() {
+  const error = invoiceAmountError(0)
+  if (error) {
+    uni.showToast({ title: error, icon: 'none' })
+    return
+  }
+  formError.value = ''
+  showForm.value = true
+}
 
 /** 独立列表维护本人的多条抬头。 */
 function openTitle() { return navigator.navigateTo(routes.account.invoiceTitles()) }
@@ -269,6 +291,8 @@ async function submitApplication() {
     uni.showToast({ title: formError.value, icon: 'none' })
     return
   }
+  formError.value = invoiceAmountError(Number(form.value.amount))
+  if (formError.value) return
   const fingerprint = JSON.stringify(form.value)
   if (submittedFingerprint && submittedFingerprint !== fingerprint) clientRequestId = createInvoiceRequestId()
   submittedFingerprint = fingerprint
@@ -335,11 +359,7 @@ async function loadPdf() {
 .title-entry { margin-left:auto; }
 .title-entry :deep(.app-button) { gap:2px; color:var(--text-secondary,#737A84); font-weight:var(--font-weight-regular,400); }
 .record-panel { display:flex; flex:1; flex-direction:column; min-height:420px; overflow:hidden; }
-.tabs { display:flex; flex-shrink:0; border-bottom:1px solid var(--border-light,#EDEEF1); }
-.tab-item { position:relative; display:flex; flex:1; align-items:center; justify-content:center; min-width:0; min-height:52px; margin:0; padding:12px; border:0; border-radius:0; background:transparent; color:var(--text-secondary,#666); font-size:var(--type-body-size,14px); line-height:22px; transition:color 160ms ease; }
-.tab-item::after { display:none; }
-.tab-item.active { color:var(--text-primary,#1B1C20); font-weight:var(--font-weight-semibold,600); }
-.tab-item.active::before { position:absolute; bottom:0; left:50%; width:24px; height:3px; border-radius:3px; background:var(--primary-color,#D7192D); transform:translateX(-50%); content:''; }
+.tabs { margin-bottom: 10px; }
 .record-list { display:flex; flex:1; flex-direction:column; gap:12px; padding:16px; }
 .invoice-empty { display:flex; flex:1; flex-direction:column; }
 .invoice-empty :deep(.state-empty) { flex:1; min-height:300px; padding:40px 12px; justify-content:center; }
@@ -375,5 +395,5 @@ async function loadPdf() {
 .title-picker-copy { flex:1; min-width:0; overflow-wrap:anywhere; }
 .placeholder { color:var(--text-secondary,#737A84); }
 @media screen and (min-width:720px) { .summary-card { padding:24px 24px 12px; } .record-list { padding:20px; } }
-@media (prefers-reduced-motion:reduce) { .tab-item { transition:none; } }
+
 </style>

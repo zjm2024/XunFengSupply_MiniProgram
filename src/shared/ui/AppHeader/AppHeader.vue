@@ -110,16 +110,17 @@
           <AppIcon name="cart" :size="20" />
           <text class="cart-count-badge">{{ cartCount > 99 ? '99+' : cartCount }}</text>
         </view>
+        <slot name="before-action" />
         <button
           v-if="actionText"
-          class="header-action button-center"
+          class="header-action button-center" hover-class="none"
           :disabled="actionDisabled"
           @tap="handleAction"
         >
           {{ actionText }}
         </button>
         <!-- 占位 -->
-        <view v-if="!showMessage && !showSupplier && !showLanguage && !(showCart && cartCount > 0) && !actionText" class="placeholder" />
+        <view v-if="!showMessage && !showSupplier && !showLanguage && !(showCart && cartCount > 0) && !actionText && !$slots['before-action']" class="placeholder" />
       </view>
     </view>
   </view>
@@ -628,6 +629,9 @@ onUnmounted(() => {
   font-size: var(--type-body-size, 14px);
   font-weight: var(--font-weight-semibold, 600);
 }
+
+.header-action, .header-action[disabled], .header-action:active { background: transparent !important; box-shadow: none; }
+.header-action::after { border: 0; }
 
 .header-action[disabled] {
   color: var(--color-text-disabled, #B8BBC2);

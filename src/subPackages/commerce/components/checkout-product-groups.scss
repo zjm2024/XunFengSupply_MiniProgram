@@ -1,0 +1,73 @@
+.checkout-product-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  .checkout-spu-group {
+    overflow: hidden;
+    border: 1px solid var(--color-border, #e7e9ec);
+    border-radius: var(--radius-card, 14px);
+    background: var(--surface-card, #fff);
+  }
+
+  .product-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 0 12px;
+    padding: 0;
+    border-top: 1px solid var(--color-border, #e7e9ec);
+  }
+
+  .product-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 32%);
+    align-items: start;
+    gap: 8px;
+    padding: 10px 0;
+    border-radius: 0;
+  }
+
+  .product-row + .product-row { border-top: 1px dashed var(--color-border, #e7e9ec); }
+  .product-info { display: flex; min-width: 0; flex-direction: column; }
+  .product-name-line { flex-wrap: wrap; gap: 2px 6px; }
+  .product-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    color: var(--type-title-color, #111216);
+    font-size: var(--type-body-small-size, 13px);
+    font-weight: var(--font-weight-semibold, 600);
+    line-height: 20px;
+  }
+  .product-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px 8px;
+    margin-top: 2px;
+    color: var(--color-text-secondary, #676A73);
+    font-size: var(--type-caption-size, 12px);
+  }
+  .product-meta .amount-text { font-size: inherit; font-weight: 400; }
+  .strategy-discount { margin-top: 0; color: var(--color-brand, #D7192D); }
+  .product-amount {
+    display: flex;
+    min-width: 0;
+    grid-column: auto;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-start;
+    margin-top: 0;
+    color: var(--type-title-color, #111216);
+  }
+  .product-line-total { font-size: var(--type-body-size, 14px); font-weight: var(--font-weight-semibold, 600); }
+  .product-quantity { margin-top: 3px; color: var(--color-text-secondary, #676A73); font-size: 12px; font-weight: 400; }
+}
+
+.checkout-list-count {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-secondary, #676A73);
+  font-size: var(--type-caption-size, 12px);
+  line-height: 18px;
+  text-align: right;
+}

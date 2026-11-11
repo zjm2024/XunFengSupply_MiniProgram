@@ -54,7 +54,6 @@
       "submitted": "订单已提交",
       "confirmed": "订单已确认",
       "paid": "付款已完成",
-      "paidDescription": "付款信息已确认",
       "stockConfirmed": "商品已确认",
       "shipped": "商品已发出",
       "completed": "订单已完成",
@@ -215,7 +214,10 @@
     "qrCloseHint": "关闭弹框不会取消支付，付款结果以订单状态为准。",
     "qrFactMismatch": "支付记录金额或单号不一致，请联系客服处理。",
     "qrContextChanged": "订单金额或付款账户已变化，请先确认原支付结果。",
-    "qrAccountUnavailable": "当前付款账户未就绪或无付款权限，请检查默认资金账户配置。"
+    "qrAccountUnavailable": "当前付款账户未就绪或无付款权限，请检查默认资金账户配置。",
+    "checkoutConfirming": "订单确认中",
+    "checkoutConfirmationTimeout": "订单暂未确认，请点击重试",
+    "retryCheckout": "重试确认"
   },
   "cancel": {
     "orderNo": "订单编号：",

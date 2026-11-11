@@ -49,9 +49,6 @@
             </view>
           </template>
 
-          <template #illustration>
-            <AppSvgIllustration :svg="cartEmptySvg" size="lg" />
-          </template>
 
           <!-- 正常内容 -->
           <template #default>
@@ -62,9 +59,6 @@
                 <view class="cart-toolbar">
                   <view class="toolbar-left">
                     <text class="toolbar-title">{{ t('commerce.cart.list') }}</text>
-                    <text class="toolbar-desc">
-                      {{ t('common.search.sortDefault') }} · {{ t('commerce.cart.listCount', { products: visibleProductCount, skus: visibleItems.length, quantity: visibleQuantity }) }}
-                    </text>
                   </view>
                   <button v-if="!isManaging" class="outline-btn button-center" @click="goToProductList">{{ t('commerce.cart.continue') }}</button>
                 </view>
@@ -77,7 +71,7 @@
                   <text>{{ t(isManaging ? 'commerce.cart.hiddenManagement' : 'commerce.cart.hiddenSelected', { count: hiddenSelectedCount }) }}</text>
                 </view>
                 <view v-if="isSearching && !visibleItems.length" class="search-empty">
-                  <AppIcon name="search" :size="28" />
+                  <AppSvgIllustration name="no-search-result" size="sm" />
                   <text>{{ t('commerce.cart.noSearchResults') }}</text>
                   <button class="link-btn button-center" @tap.stop="clearSearch">{{ t('commerce.cart.showAll') }}</button>
                 </view>
@@ -95,11 +89,11 @@
                 </view>
 
                 <!-- 有效商品：SPU 分组，组内展示 SKU -->
-                <view class="spu-list">
-                  <view v-for="group in validGroups" :key="group.key" class="spu-card">
-                    <CartSpuHeader :name="group.name" :meta="t('commerce.cart.groupCount', { count:group.skuCount, quantity:group.totalQuantity })" :amount="'¥' + formatMoney(group.totalAmount)" :selected="group.allSelected" :partial="group.partiallySelected" :collapsed="isGroupCollapsed(group.key)" :expand-label="t('commerce.cart.expand')" :collapse-label="t('commerce.cart.collapse')" @select="onToggleGroup(group)" @product="goToDetail(group.productId)" @toggle="toggleGroup(group.key)" />
+                <view v-if="validGroups.length" class="spu-list cart-products">
+                  <view v-for="group in validGroups" :key="group.key" class="spu-card compact-product-card">
+                    <CartSpuHeader :name="group.name" :image="group.image" :subtotal-label="t('commerce.checkout.productSubtotal')" :meta="t('commerce.checkout.groupCount', { count: group.skuCount, quantity: group.totalQuantity })" :amount="'¥' + formatMoney(group.totalAmount)" :selected="group.allSelected" :partial="group.partiallySelected" :collapsed="isGroupCollapsed(group.key)" :expand-label="t('commerce.cart.expand')" :collapse-label="t('commerce.cart.collapse')" @select="onToggleGroup(group)" @product="goToDetail(group.productId)" @toggle="toggleGroup(group.key)" />
 
-                    <view v-show="!isGroupCollapsed(group.key)" class="sku-list">
+                    <view v-if="!isGroupCollapsed(group.key)" class="sku-list">
                       <view
                         v-for="item in group.items"
                         :key="item.cartItemId"
@@ -128,35 +122,28 @@
                             </view>
                           </label>
 
-                          <AppProductImage
-                            class="product-image"
-                            :src="item.image"
-                            :stock="item.stock"
-                            @click="goToDetail(item.productId)"
-                          />
 
                           <view class="product-info">
                             <text class="sku-title">{{ item.skuName || t('commerce.cart.defaultVariant') }}</text>
-                            <text class="product-code">SKU：{{ item.code || item.skuId }}</text>
                             <view class="price-line">
                               <AmountText class="price" :text="'¥' + (formatMoney(item.price))" />
                               <AmountText v-if="getPriceDisplay(item).showListPrice" class="list-price" :class="{ 'list-price--strike': getPriceDisplay(item).strikeListPrice }" :text="'¥' + formatMoney(item.listPrice)" />
                               <text class="unit">/ {{ unitText(item) }}</text>
                             </view>
                             <AmountText v-if="item.strategyDiscount + item.promotionDiscount > 0" class="strategy-discount" :text="t('commerce.cart.strategyAmount', { amount: formatMoney(item.strategyDiscount + item.promotionDiscount) })" />
-                            <view class="quantity-row">
-                              <QuantityStepper
-                                :model-value="item.quantity"
-                                :min="Number(item.minOrderQty) || 1"
-                                :max="Number(item.stock) || 9999"
-                                :step="1"
-                                size="sm"
-                                @change="(val) => onQuantityChange(item, val)"
-                                @plus="(val) => onQuantityChange(item, val)"
-                                @minus="(val) => onQuantityChange(item, val)"
-                              />
-                              <AmountText class="sku-subtotal" :text="t('commerce.cart.subtotal', { amount: subtotal(item) })" />
-                            </view>
+                          </view>
+                          <view class="compact-quantity">
+                            <AmountText class="sku-subtotal" :text="'¥' + subtotal(item)" />
+                            <QuantityStepper
+                              :model-value="item.quantity"
+                              :min="Number(item.minOrderQty) || 1"
+                              :max="Number(item.stock) || 9999"
+                              :step="1"
+                              size="compact"
+                              @change="(val) => onQuantityChange(item, val)"
+                              @plus="(val) => onQuantityChange(item, val)"
+                              @minus="(val) => onQuantityChange(item, val)"
+                            />
                           </view>
                         </view>
                       </view>
@@ -194,6 +181,7 @@
                   </view>
                 </view>
 
+                <text v-if="visibleItems.length" class="cart-list-count">{{ t('commerce.cart.listCount', { products: visibleProductCount, skus: visibleItems.length, quantity: visibleQuantity }) }}</text>
               </view>
 
               <!-- 侧栏汇总 -->
@@ -319,7 +307,6 @@ import AppProductImage from '../../../../shared/ui/AppProductImage/AppProductIma
 import AppSvgIllustration from '../../../../shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
 import { sortCartGroupsByStock, groupItemsBySpu, filterCartItems } from '../../model/cartGrouping.js'
-import cartEmptySvg from '../../../../shared/assets/illustrations/empty-cart.svg?raw'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
 
 // ==================== Cart Hook ====================
@@ -504,13 +491,13 @@ function toggleGroup(groupKey) {
   activeActionItemId.value = null
   collapsedGroupKeys.value = {
     ...collapsedGroupKeys.value,
-    [groupKey]: !collapsedGroupKeys.value[groupKey],
+    [groupKey]: !isGroupCollapsed(groupKey),
   }
 }
 
-/** 搜索命中时展开规格，清空搜索后恢复原有折叠偏好。 */
+/** 商品默认收起，用户展开后才挂载规格行。 */
 function isGroupCollapsed(groupKey) {
-  return !isSearching.value && Boolean(collapsedGroupKeys.value[groupKey])
+  return collapsedGroupKeys.value[groupKey] ?? true
 }
 
 function isItemActionOpen(cartItemId) {
@@ -753,5 +740,44 @@ function localError(messageKey) {
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
   -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
   backdrop-filter: var(--glass-card-blur, blur(16px));
+}
+
+.cart-toolbar { min-height: 42px; margin-bottom: 6px; padding: 0 2px; background: transparent; box-shadow: none; }
+.cart-toolbar .outline-btn { margin: 0; padding: 0 4px 0 12px; border: 0; background: transparent; font-size: 12px; }
+.toolbar-title { display: flex; align-items: center; gap: 7px; font-size: 15px; }
+.toolbar-title::before { width: 3px; height: 14px; flex: 0 0 3px; border-radius: 2px; background: var(--color-brand, #D7192D); content: ''; }
+.cart-products { gap: 0; overflow: hidden; border-radius: 16px; background: var(--surface-card, #fff); }
+.spu-card.compact-product-card { border-radius: 0; background: transparent !important; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+.compact-product-card + .compact-product-card { border-top: 1px solid #eceef1 !important; }
+.compact-product-card .sku-list { gap: 0; margin: 0 12px; padding: 0; }
+.compact-product-card .sku-action-shell { border-radius: 0; border-top: 1px solid #f0f1f3; }
+.compact-product-card .sku-row {
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  gap: 7px;
+  min-height: 66px;
+  padding: 2px 0;
+  border-radius: 0;
+  background: var(--surface-card, #fff);
+}
+.compact-product-card .sku-row .check-wrap { display: flex; min-height: 44px; align-items: center; justify-content: center; padding: 0; }
+.compact-product-card .sku-title { font-size: 13px; line-height: 18px; white-space: normal; overflow-wrap: anywhere; }
+.compact-product-card .price-line { flex-wrap: wrap; gap: 2px 5px; margin-top: 3px; }
+.compact-product-card .price, .compact-product-card .list-price, .compact-product-card .unit { color: var(--type-secondary-color, #676A73); font-size: 11px; }
+.compact-product-card .price { font-weight: 500; }
+.compact-product-card .strategy-discount { margin-top: 1px; color: var(--color-brand, #D7192D); font-size: 11px; line-height: 16px; }
+.compact-quantity { display: flex; min-width: 0; flex-direction: column; align-items: flex-end; }
+.compact-quantity .sku-subtotal { color: var(--type-title-color, #16181d); font-size: 13px; font-weight: 600; }
+.compact-quantity :deep(.quantity-stepper.size-compact) { position: relative; isolation: isolate; }
+.compact-quantity :deep(.quantity-stepper.size-compact::before) { position: absolute; z-index: -1; inset: 8px 5px; border-radius: 7px; background: #f3f4f6; pointer-events: none; content: ''; }
+.compact-quantity :deep(.size-compact .stepper-symbol) { background: transparent; font-size: 14px; }
+.compact-quantity :deep(.size-compact .stepper-value) { background: transparent; font-size: 12px; }
+.cart-list-count { display: block; padding: 0 4px; color: var(--type-secondary-color, #676A73); font-size: 11px; line-height: 18px; text-align: right; }
+
+@media (max-width: 599px) {
+  .summary-card { padding: 12px; }
+  .summary-heading { margin-bottom: 8px; }
+  .summary-title { font-size: 14px; }
+  .summary-row { margin-top: 5px; font-size: 12px; }
+  .summary-divider { margin-block: 7px; }
 }
 </style>

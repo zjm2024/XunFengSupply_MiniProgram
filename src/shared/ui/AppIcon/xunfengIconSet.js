@@ -63,6 +63,7 @@ import helpSvg from '../../assets/icon/help.svg?raw'
  * 统一规范：24 × 24 画布、圆角线条、默认 1.8px、单色 currentColor。
  */
 const coreIconPaths = Object.freeze({
+  broom: '<path d="m13 11 7-8M10 9l5 5-3 3-5-5z"/><path d="m7 12-4 5-1 5 5-1 5-4M5 18l3 3"/>',
   home: '<path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3.5 10.2 12 3l8.5 7.2v9.3A1.5 1.5 0 0 1 19 21H5a1.5 1.5 0 0 1-1.5-1.5zm5.5 4.3V21h6v-6.5z"/>',
   product: '<path d="m4 7.4 8-4.4 8 4.4v9.2L12 21l-8-4.4z"/><path d="m4 7.4 8 4.5 8-4.5M12 11.9V21"/><path d="m8 5.2 8 4.5"/>',
   category: '<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><path d="m17.5 14 3.5 3.5-3.5 3.5-3.5-3.5z"/>',

@@ -13,7 +13,7 @@
           <view class="login-main">
             <view class="brand-block">
               <image class="brand-logo" src="/static/images/logo.png" mode="aspectFit" />
-              <text class="brand-title">薰风体育</text>
+              <text class="brand-title">薰风</text>
 
             </view>
 

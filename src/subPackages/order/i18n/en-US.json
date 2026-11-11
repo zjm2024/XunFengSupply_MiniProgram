@@ -54,7 +54,6 @@
       "submitted": "Order placed",
       "confirmed": "Order confirmed",
       "paid": "Payment completed",
-      "paidDescription": "Payment details confirmed",
       "stockConfirmed": "Products confirmed",
       "shipped": "Products shipped",
       "completed": "Order completed",
@@ -215,7 +214,10 @@
     "qrCloseHint": "Closing this dialog does not cancel payment. Check the order for its final status.",
     "qrFactMismatch": "Payment amount or reference does not match. Contact support.",
     "qrContextChanged": "The amount or funding account changed. Check the original payment first.",
-    "qrAccountUnavailable": "The funding account is unavailable or lacks payment permission. Check the default account configuration."
+    "qrAccountUnavailable": "The funding account is unavailable or lacks payment permission. Check the default account configuration.",
+    "checkoutConfirming": "Confirming order",
+    "checkoutConfirmationTimeout": "Order not confirmed yet. Please retry.",
+    "retryCheckout": "Retry confirmation"
   },
   "cancel": {
     "orderNo": "Order no.: ",

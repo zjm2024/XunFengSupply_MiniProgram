@@ -45,7 +45,6 @@
           <!-- #ifdef H5 -->
           <template #refresher><view class="compact-refresher"><view class="compact-refresher-icon" :class="{ 'is-refreshing': refreshing }"><AppIcon name="refresh" :size="20" color="#737A84" /></view></view></template>
           <!-- #endif -->
-          <view class="category-default-sort">{{ t('common.search.sortDefault') }}</view>
           <view class="category-groups">
             <view
               v-for="section in categorySections"
@@ -74,7 +73,7 @@
               </view>
 
               <view v-else class="product-empty" hover-class="control--pressed" @click="openCategoryProducts(section)">
-                <AppIcon name="product" :size="24" />
+                <AppSvgIllustration class="category-empty-illustration" name="no-search-result" size="sm" />
                 <view class="product-empty-copy">
                   <text class="product-empty-title">{{ t('main.category.noPreview') }}</text>
                   <text class="product-empty-description">{{ t('main.category.openList') }}</text>
@@ -317,9 +316,9 @@ onBeforeUnmount(() => { generation++ })
 }
 
 .secondary-tab.is-active {
-  color: var(--primary-dark, #B91224);
+  color: #FFF;
   font-weight: var(--font-weight-semibold, 600);
-  background: var(--color-brand-soft, #FFF1F2);
+  background: var(--text-primary, #1B1C20);
 }
 
 .category-groups-scroll {
@@ -417,10 +416,10 @@ onBeforeUnmount(() => { generation++ })
   margin-top: 10px;
   padding: 0 12px;
   gap: 10px;
-  border-radius: var(--radius-card, 14px);
   color: #9b9ea5;
-  background: #f7f8f9;
 }
+
+.category-empty-illustration.is-sm { width: 52px; height: 52px; }
 
 .product-empty-copy {
   display: flex;
@@ -603,5 +602,4 @@ onBeforeUnmount(() => { generation++ })
   -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
   backdrop-filter: var(--glass-card-blur, blur(16px));
 }
-.category-default-sort { padding: 12px 16px 0; color: var(--brand-primary, #d7192d); font-size: var(--type-body-small-size, 13px); line-height: 20px; }
 </style>

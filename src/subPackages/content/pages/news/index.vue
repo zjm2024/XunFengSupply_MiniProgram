@@ -15,17 +15,7 @@
       >
         <view class="news-content">
           <!-- Tab 切换 -->
-          <scroll-view class="segment-tabs" scroll-x>
-            <view class="segment-tabs-inner">
-              <button
-                v-for="tab in tabs"
-                :key="tab.key"
-                class="tab-btn"
-                :class="{ 'is-active': activeTab === tab.key }"
-                @click="activeTab = tab.key"
-              >{{ tab.key === 'all' ? t('content.news.all') : tab.label }}</button>
-            </view>
-          </scroll-view>
+          <StatusTabBar class="segment-tabs" v-model="activeTab" :items="displayTabs" max-width="100%" />
 
           <!-- 新闻列表：使用 AppPageState 统一状态管理 -->
           <app-page-state
@@ -99,6 +89,7 @@ import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import { usePageState } from '@/shared/composables/usePageState.js'
 import { getNewsCategories, getNewsList } from '../../api/news.js'
+import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import { navigator } from '@/app/navigation/navigator.js'
@@ -112,6 +103,7 @@ const defaultTabs = Object.freeze([
 const tabs = ref([...defaultTabs])
 
 const activeTab = ref('all')
+const displayTabs = computed(() => tabs.value.map(tab => ({ ...tab, label: tab.key === 'all' ? t('content.news.all') : tab.label })))
 const isRefreshing = ref(false)
 
 // 使用 usePageState 管理列表数据加载状态
@@ -234,13 +226,7 @@ function goToDetail(item) {
   white-space: nowrap;
 }
 
-.segment-tabs-inner {
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: center;
-  gap: 8px;
-  width: max-content;
-}
+
 
 .result-bar {
   display: flex;
@@ -251,33 +237,6 @@ function goToDetail(item) {
   margin-bottom: 12px;
   color: #9699a1;
   font-size: var(--type-caption-size, 12px);
-}
-
-.tab-btn {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  min-height: 34px;
-  margin-right: 6px;
-  padding: 0 16px;
-  white-space: nowrap;
-  border: 1px solid #E5E6EB;
-  border-radius: 17px;
-  background: #FFFFFF;
-  color: #767a84;
-  font-size: var(--type-body-small-size, 13px);
-  line-height: 32px;
-
-  &::after { border: 0; }
-
-  &.is-active {
-    color: #FFFFFF;
-    border-color: #D7192D;
-    background: #D7192D;
-    box-shadow: 0 3px 10px rgba(215, 25, 45, .22);
-    font-weight: var(--font-weight-bold, 700);
-  }
 }
 
 /* 列表 */

@@ -123,7 +123,7 @@
               </view>
 
               <view id="field-landlinePhone" class="form-item">
-                <text class="field-label"><text class="required">*</text>{{ t('auth.apply.landline') }}</text>
+                <text class="field-label">{{ t('auth.apply.landline') }}<text class="optional">{{ t('auth.apply.optional') }}</text></text>
                 <input :placeholder-style="$inputPlaceholderStyle"
                   v-model="formData.landlinePhone"
                   class="form-control"

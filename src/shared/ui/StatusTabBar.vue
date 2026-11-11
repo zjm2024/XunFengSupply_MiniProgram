@@ -2,6 +2,7 @@
   <scroll-view
     class="status-tab-bar"
     scroll-x
+    role="group"
     :show-scrollbar="false"
     scroll-with-animation
     :style="{ maxWidth: typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth }"
@@ -14,6 +15,8 @@
         :key="String(getItemValue(item))"
         class="status-tab-item"
         :class="{ active: isActive(getItemValue(item)) }"
+        role="button"
+        :aria-pressed="isActive(getItemValue(item))"
         @tap="select(getItemValue(item))"
       >
         <text class="status-tab-label">{{ item.label }}</text>
@@ -94,7 +97,7 @@ function getPoint(touch) {
 </script>
 
 <style lang="scss" scoped>
-.status-tab-bar { display: block; width: 100%; margin: 0 auto; white-space: nowrap; }
+.status-tab-bar { display: block; min-width: 0; width: 100%; margin: 0 auto; white-space: nowrap; }
 
 /* 淘宝式顶部状态导航：保留页面底色，每个状态独立成胶囊按钮。 */
 .status-tab-track {
@@ -113,13 +116,15 @@ function getPoint(touch) {
   position: relative;
   z-index: 1;
   display: inline-flex;
-  height: 29px;
+  height: 34px;
   align-items: center;
   justify-content: center;
   flex: 0 0 auto;
   padding: 0 13px;
-  border-radius: var(--radius-small, 8px);
-  color: var(--type-secondary-color, #62666F);
+  border: 1px solid #E5E6EB;
+  border-radius: 10px;
+  box-sizing: border-box;
+  color: #767A84;
   background: var(--surface-card, #FFF);
   font-size: var(--type-caption-size, 12px);
   line-height: 18px;
@@ -127,7 +132,7 @@ function getPoint(touch) {
   transition: color .16s ease, background .16s ease, border-color .16s ease, transform .16s ease;
 }
 
-.status-tab-item.active { color: var(--primary-dark, #B91224); background: var(--color-brand-soft, #FFF1F2); font-weight: var(--font-weight-bold, 700); }
+.status-tab-item.active { color: #FFF; border-color: var(--color-brand, #D7192D); background: var(--color-brand, #D7192D); box-shadow: 0 3px 10px rgba(215,25,45,.22); font-weight: var(--font-weight-bold, 700); }
 .status-tab-item:active { transform: scale(.96); }
 
 .status-tab-label { line-height: 18px; }
@@ -149,10 +154,11 @@ function getPoint(touch) {
   line-height: 1;
 }
 
-.status-tab-count.active { color: var(--primary-dark, #B91224); background: var(--color-brand-100, #FFE0E3); }
+.status-tab-count.active { color: #FFF; background: rgba(255,255,255,.2); }
 
 @media screen and (max-width: 380px) {
   .status-tab-track { gap: 6px; }
   .status-tab-item { padding-right: 10px; padding-left: 10px; font-size: var(--type-caption-size, 12px); }
 }
+@media (prefers-reduced-motion: reduce) { .status-tab-item { transition: none; } }
 </style>

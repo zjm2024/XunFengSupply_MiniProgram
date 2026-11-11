@@ -5,7 +5,7 @@
     </template>
 
     <template #content>
-      <AppContent padding="16px var(--page-padding-x, 16px) 24px">
+      <AppContent padding="12px var(--page-padding-x, 16px) 24px">
         <AppPageState
           :state="pageState"
           :title="stateTitle"
@@ -30,14 +30,9 @@
               <view class="checkout-main">
                 <view class="section-card fulfillment-card">
                   <view class="section-heading">
-                    <view class="heading-icon">
-                      <AppIcon name="location" :size="20" />
-                    </view>
                     <view class="heading-copy">
-                      <text class="section-title">{{ t('commerce.checkout.receiver') }}</text>
-                      <text class="section-subtitle">{{ t('commerce.checkout.receiverHint') }}</text>
+                      <text class="section-title checkout-section-title">{{ t('commerce.checkout.receiver') }}</text>
                     </view>
-                    <text v-if="selectedAddress?.isDefault" class="section-badge">{{ t('commerce.checkout.default') }}</text>
                   </view>
 
                   <button class="address-entry" :class="{ empty: !hasAddress }" @click="goToAddress()">
@@ -46,6 +41,7 @@
                         <view class="contact-line">
                           <text class="contact-name">{{ receiverName }}</text>
                           <text v-if="receiverPhone" class="contact-phone">{{ receiverPhone }}</text>
+                          <text v-if="selectedAddress?.isDefault" class="section-badge">{{ t('commerce.checkout.default') }}</text>
                         </view>
                         <text class="contact-address">{{ receiverAddress }}</text>
                       </view>
@@ -69,62 +65,48 @@
 
                 <view class="section-card products-card">
                   <view class="section-heading product-heading">
-                    <view class="heading-icon">
-                      <AppIcon name="order" :size="20" />
-                    </view>
                     <view class="heading-copy">
-                      <text class="section-title">{{ t('commerce.checkout.products') }}</text>
-                      <text class="section-subtitle">{{ t('commerce.checkout.listCount', { products: checkoutGroups.length, skus: displayItems.length, quantity: totalQuantity }) }}</text>
-                    </view>
-                    <view class="verified-label">
-                      <AppIcon name="shield-check" :size="14" />
-                      <text>{{ t('commerce.checkout.details') }}</text>
+                      <text class="section-title checkout-section-title">{{ t('commerce.checkout.products') }}</text>
                     </view>
                   </view>
 
-                  <view class="checkout-spu-list">
+                  <view class="checkout-spu-list checkout-product-groups">
                     <view v-for="group in checkoutGroups" :key="group.key" class="checkout-spu-group">
-                      <CheckoutSpuHeader :name="group.name" :meta="t('commerce.checkout.groupCount', { count:group.skuCount, quantity:group.totalQuantity })" :amount="'¥' + formatMoney(group.totalAmount)" :collapsed="isCheckoutGroupCollapsed(group.key)" @toggle="toggleCheckoutGroup(group.key)" />
+                      <CheckoutSpuHeader :name="group.name" :image="group.image" :meta="t('commerce.checkout.groupCount', { count:group.skuCount, quantity:group.totalQuantity })" :amount="'¥' + formatMoney(group.totalAmount)" :subtotal-label="t('commerce.checkout.productSubtotal')" :collapsed="isCheckoutGroupCollapsed(group.key)" @toggle="toggleCheckoutGroup(group.key)" />
 
-                      <view v-show="!isCheckoutGroupCollapsed(group.key)" class="product-list">
+                      <view v-if="!isCheckoutGroupCollapsed(group.key)" class="product-list">
                         <view
                           v-for="item in group.items"
                           :key="item.lineKey || item.skuId"
                           class="product-row"
                           :class="{ 'has-stock-risk': item.stockInsufficient }"
                         >
-                          <AppProductImage
-                            class="product-image"
-                            :src="item.image"
-                            :stock="item.availableStock"
-                            :fallback-icon-size="26"
-                          />
                           <view class="product-info">
                             <view class="product-name-line">
                               <text class="product-name">{{ item.skuName || t('commerce.checkout.defaultVariant') }}</text>
                               <text v-if="item.isGift" class="gift-tag">{{ t('commerce.checkout.gift') }}</text>
                             </view>
-                            <text class="product-spec">SKU：{{ item.code || item.skuId }}</text>
                             <view class="product-meta">
                               <AmountText :text="'¥' + (formatMoney(item.salePrice)) + ' / ' + (item.unit)" />
-                              <AmountText v-if="item.strategyDiscount + item.promotionDiscount > 0" class="strategy-discount" :text="t('commerce.checkout.strategyAmount', { amount: formatMoney(item.strategyDiscount + item.promotionDiscount) })" />
-                              <text>× {{ item.quantity }}</text>
+                              <AmountText v-if="item.strategyDiscount + (item.promotionDiscount || 0) > 0" class="strategy-discount" :text="t('commerce.checkout.strategyAmount', { amount: formatMoney(item.strategyDiscount + (item.promotionDiscount || 0)) })" />
                             </view>
                             <text v-if="item.stockInsufficient" class="stock-risk">
                               {{ t('commerce.checkout.requiredStock', { stock: item.availableStock, quantity: item.quantity }) }}
                             </text>
                           </view>
                           <view class="product-amount">
-                            <AmountText :text="'¥' + (formatMoney(item.totalAmount))" />
+                            <AmountText class="product-line-total" :text="'¥' + (formatMoney(item.totalAmount))" />
+                            <text class="product-quantity">× {{ item.quantity }}</text>
                             <AmountText v-if="getPriceDisplay(item).showListPrice" class="list-price" :class="{ 'list-price--strike': getPriceDisplay(item).strikeListPrice }" :text="' ¥' + formatMoney(item.listPrice * item.quantity)" />
                           </view>
                         </view>
                       </view>
                     </view>
+                    <text class="checkout-list-count">{{ t('commerce.checkout.listCount', { products: checkoutGroups.length, skus: displayItems.length, quantity: totalQuantity }) }}</text>
                   </view>
 
                   <view v-if="!previewing && !previewError && previewData?.warehouseGroups.length > 1" class="checkout-spu-list">
-                    <text class="section-title">{{ t('commerce.checkout.warehousePreview') }}</text>
+                    <text class="section-title checkout-section-title">{{ t('commerce.checkout.warehousePreview') }}</text>
                     <view v-for="group in previewData.warehouseGroups" :key="group.code" class="checkout-spu-group">
                       <text class="section-subtitle">{{ t('commerce.checkout.warehouseGroup', { code: group.code }) }}</text>
                       <view v-if="group.payableAmount != null" class="product-meta">
@@ -155,7 +137,7 @@
               <view class="checkout-side">
                 <view class="section-card options-card">
                   <view class="compact-heading">
-                    <text class="section-title">{{ t('commerce.checkout.delivery') }}</text>
+                    <text class="section-title checkout-section-title">{{ t('commerce.checkout.delivery') }}</text>
                     <text v-if="previewing" class="refreshing-text">{{ t('commerce.checkout.repricing') }}</text>
                   </view>
                   <view class="delivery-fixed">
@@ -168,16 +150,16 @@
                     </view>
                     <text class="fixed-label">{{ t('commerce.checkout.default') }}</text>
                   </view>
-                  <view v-if="expressCompanyOptions.length" class="carrier-selector">
+                  <button v-if="expressCompanyOptions.length" class="carrier-selector" @tap="expressPickerVisible = true">
                     <view class="carrier-selector-copy">
                       <text class="choice-title">{{ t('commerce.checkout.carrier') }}</text>
                       <text class="choice-desc">{{ t('commerce.checkout.carrierHint') }}</text>
                     </view>
-                    <view class="carrier-picker-value" @tap="expressPickerVisible = true">
+                    <view class="carrier-picker-value">
                       <text>{{ selectedExpressCompany?.name || t('commerce.checkout.select') }}</text>
                       <AppIcon name="chevron-right" :size="16" color="#90939A" />
                     </view>
-                  </view>
+                  </button>
                   <view v-if="carrierError" class="preview-notice carrier-notice">
                     <AppIcon name="alert" :size="18" color="#B42318" />
                     <text>{{ carrierError }}</text>
@@ -185,20 +167,9 @@
                 </view>
 
                 <view class="section-card detail-card">
-                  <view class="setting-row">
-                    <view class="setting-label">
-                      <AppIcon name="invoice" :size="18" />
-                      <text>{{ t('commerce.checkout.invoice') }}</text>
-                    </view>
-                    <text class="setting-value">{{ t('commerce.checkout.invoiceHint') }}</text>
-                  </view>
-
                   <view class="remark-block">
                     <view class="remark-heading">
-                      <view class="setting-label">
-                        <AppIcon name="edit" :size="18" />
-                        <text>{{ t('commerce.checkout.remark') }}</text>
-                      </view>
+                      <text class="section-title checkout-section-title">{{ t('commerce.checkout.remark') }}</text>
                       <text class="remark-count">{{ customerRemark.length }}/200</text>
                     </view>
                     <textarea :placeholder-style="$inputPlaceholderStyle"
@@ -214,7 +185,7 @@
 
                 <view class="section-card summary-card">
                   <view class="compact-heading">
-                    <text class="section-title">{{ t('commerce.checkout.summary') }}</text>
+                    <text class="section-title checkout-section-title">{{ t('commerce.checkout.summary') }}</text>
                     <text class="verified-text">{{ t('commerce.checkout.verify') }}</text>
                   </view>
 
@@ -327,7 +298,6 @@ import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import ConfirmPopup from '@/shared/ui/ConfirmPopup/ConfirmPopup.vue'
 import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 import ExpressCompanyPicker from '../../components/ExpressCompanyPicker/ExpressCompanyPicker.vue'
-import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
@@ -564,7 +534,6 @@ function normalizePreview(raw = {}) {
       skuId,
       name: cartItem.name || valueOf(source, 'productName', 'ProductName') || valueOf(source, 'skuName', 'SkuName') || '商品',
       skuName: cartItem.skuName || valueOf(source, 'skuName', 'SkuName') || '',
-      code: cartItem.code || '',
       image: valueOf(source, 'imageUrl', 'ImageUrl') || cartItem.image,
       unit: cartItem.unit || '件',
       basePrice,
@@ -853,13 +822,4 @@ function copyDisplayError(source, fallbackKey) {
 
 <style lang="scss" scoped>
 @import "./presentation.scss";
-
-/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
-.section-card, .fulfillment-card, .products-card, .options-card, .detail-card, .summary-card {
-  border: 0 !important;
-  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
-  backdrop-filter: var(--glass-card-blur, blur(16px));
-}
 </style>

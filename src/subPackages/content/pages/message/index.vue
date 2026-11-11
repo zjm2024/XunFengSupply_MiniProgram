@@ -1,13 +1,13 @@
 <template>
   <AppPageShell class="message-shell">
     <template #header>
-      <AppHeader
-        :title="t('content.titles.messages')"
-        :show-back="true"
-        :transparent="true"
-        :action-text="t('content.messages.settingsAction')"
-        @action="goToNotificationSettings"
-      />
+      <AppHeader :title="t('content.titles.messages')" :show-back="true" :transparent="true" :action-text="t('content.messages.settingsAction')" @action="goToNotificationSettings">
+        <template #before-action>
+          <button class="mark-all-read-icon" hover-class="none" :disabled="markingAll || unreadCount <= 0" :aria-busy="markingAll" :aria-label="t(markingAll ? 'content.messages.markingAll' : 'content.messages.markAll')" @tap="handleMarkAllRead">
+            <AppIcon name="broom" :size="21" />
+          </button>
+        </template>
+      </AppHeader>
     </template>
 
     <template #content>
@@ -22,38 +22,7 @@
       >
         <view class="message-page">
           <view class="message-inbox">
-            <view class="inbox-controls">
-              <view class="inbox-toolbar">
-                <view class="inbox-summary">
-                  <view v-if="unreadCount > 0" class="unread-dot" aria-hidden="true" />
-                  <text aria-live="polite">{{ unreadCount > 0
-                    ? t('content.messages.unreadSummary', { count: unreadCount })
-                    : t('content.messages.noUnread') }}</text>
-                </view>
-                <button
-                  v-if="unreadCount > 0"
-                  class="mark-all-read"
-                  :disabled="markingAll"
-                  hover-class="mark-all-read--pressed"
-                  @click="handleMarkAllRead"
-                >{{ t(markingAll ? 'content.messages.markingAll' : 'content.messages.markAll') }}</button>
-              </view>
-
-              <view class="message-filters" role="group" :aria-label="t('content.messages.filterLabel')">
-                <button
-                  v-for="tab in messageTabs"
-                  :key="tab.value"
-                  class="message-filter"
-                  :class="{ 'is-active': currentType === tab.value }"
-                  :aria-pressed="currentType === tab.value"
-                  hover-class="message-control--pressed"
-                  @click="switchType(tab.value)"
-                >
-                  <text>{{ tab.label }}</text>
-                  <text v-if="tab.count > 0" class="filter-count">{{ tab.count > 99 ? '99+' : tab.count }}</text>
-                </button>
-              </view>
-            </view>
+            <StatusTabBar class="message-filters" :items="messageTabs" :model-value="currentType" max-width="100%" :aria-label="t('content.messages.filterLabel')" @change="switchType" />
 
             <view v-if="loading && !messageList.length" class="message-skeleton" :aria-label="t('content.messages.loadingList')">
               <view v-for="index in 3" :key="index" class="skeleton-row">
@@ -94,13 +63,8 @@
               </button>
             </view>
 
-            <view v-else class="message-empty">
-              <AppPageState state="empty" :title="t('content.messages.empty')" :description="t('content.messages.emptyHint')">
-                <template #illustration>
-                  <view class="inbox-empty-icon" aria-hidden="true"><AppIcon name="bell" :size="28" /></view>
-                </template>
-              </AppPageState>
-            </view>
+            <AppPageState v-else state="empty" icon-type="message"
+              :title="t('content.messages.empty')" :description="t('content.messages.emptyHint')" />
           </view>
 
           <AppLoadMore
@@ -123,6 +87,7 @@ import { getMessageList, getUnreadSummary, markAllAsRead } from '../../api/messa
 import { useMessageStore } from '../../model/messageStore.js'
 import { formatRelativeTime } from '../../../../shared/utils/format.js'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
+import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -179,7 +144,7 @@ const messageTabs = computed(() => {
   const businessCount = ['order', 'audit', 'bill']
     .reduce((sum, key) => sum + Number(counts[key] || 0), 0)
   const countMap = {
-    '': unreadCount.value,
+    '': 0,
     business: businessCount,
     1: Number(counts.order || 0),
     2: Number(counts.audit || 0),
@@ -345,18 +310,12 @@ async function handleMarkAllRead() {
 
 <style lang="scss" scoped>
 .message-shell {
-  --surface-page: #e9eaeb;
   --inbox-paper: #fff;
   --inbox-ink: #18191b;
   --inbox-muted: #575b62;
   --inbox-divider: rgba(27, 29, 32, .09);
   --inbox-soft: rgba(27, 29, 32, .06);
   --inbox-unread: #c6172b;
-  background-image:
-    radial-gradient(ellipse at 16% 1%, #fff 0, transparent 48%),
-    radial-gradient(ellipse at 98% 22%, #c9cbce 0, transparent 51%),
-    radial-gradient(ellipse at 12% 68%, #cfd1d3 0, transparent 49%),
-    linear-gradient(155deg, #e4e5e7 8%, #f5f5f6 57%, #e1e2e4 100%);
 }
 
 .message-page {
@@ -370,57 +329,24 @@ async function handleMarkAllRead() {
 
 .message-inbox {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
-
-.inbox-controls,
 .message-list,
-.message-skeleton,
-.message-empty {
+.message-skeleton {
   min-width: 0;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, .86);
   border-radius: 18px;
-  background: rgba(250, 250, 251, .9);
+  background: var(--surface-card, #FFF);
   box-shadow: 0 10px 30px rgba(23, 25, 28, .07), 0 1px 3px rgba(23, 25, 28, .04);
 }
 
-@supports ((backdrop-filter: blur(16px)) or (-webkit-backdrop-filter: blur(16px))) {
-  .inbox-controls,
-  .message-list,
-  .message-skeleton,
-  .message-empty {
-    background: linear-gradient(145deg, rgba(255, 255, 255, .66), rgba(255, 255, 255, .42));
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
-  }
-}
 
-.message-empty { padding: 12px; }
 
-.inbox-toolbar {
-  display: flex;
-  min-height: 48px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 8px 12px 0;
-}
 
-.inbox-summary {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 8px;
-  color: var(--inbox-ink);
-  font-size: 14px;
-  font-weight: 600;
-  line-height: 20px;
-  overflow-wrap: anywhere;
-}
 
-.mark-all-read,
-.message-filter,
+
 .message-item {
   margin: 0;
   border: 0;
@@ -429,73 +355,14 @@ async function handleMarkAllRead() {
   box-sizing: border-box;
 }
 
-.mark-all-read::after,
-.message-filter::after,
 .message-item::after { border: 0; }
 
-.mark-all-read {
-  display: flex;
-  min-height: 44px;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 12px;
-  border-radius: 9px;
-  color: var(--inbox-paper);
-  background: var(--inbox-unread);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 18px;
-}
 
-.mark-all-read[disabled] { opacity: .6; }
-.mark-all-read--pressed { opacity: .82; }
 
-.message-filters {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 4px;
-  margin: 8px 12px 12px;
-  padding: 4px;
-  border: 1px solid var(--inbox-divider);
-  border-radius: 12px;
-  background: var(--inbox-soft);
-}
 
-.message-filter {
-  display: flex;
-  min-width: 0;
-  min-height: 44px;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 2px 4px;
-  padding: 4px;
-  border-radius: 7px;
-  color: var(--inbox-muted);
-  background: transparent;
-  font-size: 13px;
-  line-height: 18px;
-  overflow-wrap: anywhere;
-}
 
-.message-filter.is-active {
-  color: var(--inbox-ink);
-  background: rgba(255, 255, 255, .9);
-  box-shadow: 0 1px 3px rgba(23, 25, 28, .14), inset 0 0 0 1px rgba(255, 255, 255, .82);
-  font-weight: 600;
-}
 
-.filter-count {
-  padding: 1px 4px;
-  border-radius: 4px;
-  color: var(--inbox-ink);
-  background: var(--inbox-soft);
-  font-size: 12px;
-  line-height: 16px;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
+.message-filters { margin: 0; }
 
 .message-item,
 .skeleton-row {
@@ -514,15 +381,13 @@ async function handleMarkAllRead() {
 .message-item + .message-item,
 .skeleton-row + .skeleton-row { border-top: 1px solid var(--inbox-divider); }
 .message-item.unread { background: rgba(255, 255, 255, .3); }
-.message-item.message-control--pressed,
-.message-filter:not(.is-active).message-control--pressed { background: rgba(27, 29, 32, .09); }
-.message-filter.is-active.message-control--pressed { opacity: .8; }
-.message-item:focus-visible,
-.message-filter:focus-visible,
-.mark-all-read:focus-visible { outline: 2px solid var(--inbox-ink); outline-offset: -3px; }
+.message-item.message-control--pressed { background: rgba(27, 29, 32, .09); }
 
-.message-icon,
-.inbox-empty-icon {
+
+.message-item:focus-visible,
+.mark-all-read-icon:focus-visible { outline: 2px solid var(--inbox-ink); outline-offset: -3px; }
+
+.message-icon {
   display: flex;
   width: 36px;
   height: 36px;
@@ -535,7 +400,6 @@ async function handleMarkAllRead() {
   background: rgba(255, 255, 255, .46);
 }
 
-.inbox-empty-icon { width: 56px; height: 56px; margin: 0 auto; border-radius: 14px; }
 .message-copy { min-width: 0; }
 .message-title-wrap { min-width: 0; }
 .unread-dot { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--inbox-unread); }
@@ -569,11 +433,14 @@ async function handleMarkAllRead() {
 .skeleton-line--meta { width: 26%; height: 12px; }
 
 @media (min-width: 640px) {
-  .inbox-toolbar { padding: 12px 20px 0; }
-  .message-filters { grid-template-columns: repeat(6, minmax(0, 1fr)); margin: 8px 20px 16px; }
+.message-filters { margin: 0; }
   .message-item, .skeleton-row { padding: 12px 20px; }
   .message-item { grid-template-columns: 36px minmax(0, 1fr) auto 16px; gap: 16px; }
   .message-time--wide { display: block; text-align: right; }
   .message-time--inline { display: none; }
 }
+.mark-all-read-icon { display: flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; margin: 0; padding: 0; border: 0; background: transparent; color: var(--text-primary, #1B1C20); line-height: 1; }
+.mark-all-read-icon::after { border: 0; }
+.mark-all-read-icon[disabled] { color: var(--color-text-disabled, #B8BBC2); }
+.mark-all-read-icon, .mark-all-read-icon[disabled], .mark-all-read-icon:active { background: transparent !important; box-shadow: none; }
 </style>

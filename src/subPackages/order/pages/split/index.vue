@@ -48,8 +48,8 @@
             </template>
             <template v-else>
               <view v-if="disabledReason" class="notice-card">{{ disabledReason }}</view>
-              <view v-if="!disabledReason && !addresses.length" class="empty-address-card">
-                <AppIcon name="location" :size="28" color="#d7192d" />
+              <view v-if="!disabledReason && !addresses.length" class="empty-address-card empty-data-surface">
+                <AppSvgIllustration name="no-address" size="sm" />
                 <text class="empty-title">{{ t('order.split.emptyAddress') }}</text><text class="empty-copy">{{ t('order.split.emptyAddressCopy') }}</text>
                 <button class="secondary-button button-center" @tap="openAddressManager">{{ t('order.split.addAddress') }}</button>
               </view>
@@ -195,6 +195,7 @@ import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppButton from '@/shared/ui/AppButton/AppButton.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import AppImage from '@/shared/ui/AppImage/AppImage.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import ConfirmPopup from '@/shared/ui/ConfirmPopup/ConfirmPopup.vue'
@@ -848,7 +849,7 @@ button::after { border: 0; }
 @media (prefers-reduced-motion: reduce) { * { transition: none; } }
 
 /* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
-.state-card, .notice-card, .split-progress-card, .split-card, .empty-address-card, .address-group-card, .readonly-card {
+.state-card, .notice-card, .split-progress-card, .split-card, .address-group-card, .readonly-card {
   border: 0 !important;
   background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));

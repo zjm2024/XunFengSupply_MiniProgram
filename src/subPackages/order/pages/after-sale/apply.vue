@@ -8,12 +8,12 @@
           <AppPageState v-else-if="loadError" state="error" :title="t('order.afterSale.loadFailed')" :description="loadError" :action-text="orderId ? t('common.retry') : ''" compact @retry="loadAfterSaleableItems(orderId)" />
           <template v-else>
             <view v-if="orderNo" class="order-context"><text>{{ t('order.afterSale.orderContext') }}</text><text class="order-number">{{ orderNo }}</text></view>
-            <view class="section-card">
+            <view class="section-card" :class="{ 'empty-data-surface': !afterSaleItems.length }">
               <view class="section-heading">
                 <text class="section-label">{{ t('order.afterSale.selectGoods') }}</text>
               </view>
               <text class="section-note">{{ t('order.afterSale.shippedOnly') }}</text>
-              <AppPageState v-if="!afterSaleItems.length" state="empty" :title="t('order.afterSale.noProducts')" compact />
+              <AppPageState v-if="!afterSaleItems.length" state="empty" :title="t('order.afterSale.noProducts')" icon-type="order" compact />
               <template v-else>
                 <view class="selection-summary">
                   <text>{{ t('order.afterSale.selectionCount', { count: selectedLines.length, quantity: totalQuantity }) }}</text>
@@ -228,7 +228,7 @@ button::after { border: 0; }
 .express-input { width:100%; height:44px; margin-top:12px; padding:0 12px; box-sizing:border-box; border-radius: var(--radius-control, 10px); background:#F6F8FA; color:#3F4C5C; font-size: var(--type-body-size, 14px); }
 
 /* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
-.section-card, .express-card, .refund-card {
+.section-card:not(.empty-data-surface), .express-card, .refund-card {
   border: 0 !important;
   background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));

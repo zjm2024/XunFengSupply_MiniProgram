@@ -63,4 +63,12 @@ function ensureSurfaceRoute() {
 @use './shared/styles/variable.scss';
 @use './shared/styles/reset.scss';
 @use './shared/styles/responsive.scss';
+
+.empty-data-surface {
+  border-color: transparent !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
 </style>

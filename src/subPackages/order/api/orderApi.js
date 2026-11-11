@@ -77,6 +77,7 @@ function normalizeOrder(order = {}) {
     stockConfirmedAt: order.stockConfirmedAt ?? order.StockConfirmedAt ?? null,
     shippedAt: order.shippedAt ?? order.ShippedAt ?? null,
     completedAt: order.completedAt ?? order.CompletedAt ?? null,
+    paymentCompletedAt: order.paymentCompletedAt ?? order.PaymentCompletedAt ?? null,
     cancelledAt: order.cancelledAt ?? order.CancelledAt ?? null,
     itemCount: number(order.itemCount ?? order.ItemCount),
     totalQuantity: number(order.totalQuantity ?? order.TotalQuantity),

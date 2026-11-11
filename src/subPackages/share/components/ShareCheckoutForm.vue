@@ -1,6 +1,6 @@
 <template>
   <view class="checkout-page share-checkout"><view class="checkout-grid"><view class="checkout-main">
-    <view class="section-card fulfillment-card"><view class="section-heading"><view class="heading-icon"><AppIcon name="location" :size="20" /></view><view class="heading-copy"><text class="section-title">收货信息</text></view></view>
+    <view class="section-card fulfillment-card"><view class="section-heading"><text class="section-title checkout-section-title">收货信息</text></view>
     <button class="address-entry" :class="{empty:!hasAddress}" :disabled="state.locked" @click="addressEditing=!addressEditing"><view v-if="hasAddress" class="contact-block"><view class="contact-line"><text class="contact-name">{{ form.contactName }}</text><text class="contact-phone">{{ form.contactPhone }}</text></view><text class="contact-address">{{ receiverSummary }}</text></view><view v-else class="contact-block"><text class="contact-name">添加收货信息</text></view><view class="address-action"><text>{{ addressEditing ? '收起' : hasAddress ? '修改' : '填写' }}</text><AppIcon name="chevron-right" :size="18" /></view></button>
     <view v-if="addressEditing && requestAddressParse" class="address-parser">
       <text class="label">{{ t('share.checkout.addressParse.title') }}</text>
@@ -23,13 +23,16 @@
 
     <view v-if="addressEditing" class="draft-actions"><text>{{ draftSaved ? '已保存' : '' }}</text><button :disabled="state.locked || parsingAddress" @click="clearAddress">清除</button></view>
     <view v-if="invalid" class="field-error" role="alert">{{ validationError }}</view></view>
-    <view v-if="checkoutItems.length" class="section-card products-card"><view class="section-heading"><view class="heading-icon"><AppIcon name="order" :size="20" /></view><view class="heading-copy"><text class="section-title">商品清单</text><text class="section-subtitle">{{ checkoutGroups.length }} 款商品 · {{ checkoutItems.length }} 个规格 · {{ totalQuantity }} 件</text></view><view class="verified-label"><AppIcon name="shield-check" :size="14" /><text>商品明细</text></view></view>
-      <view class="checkout-spu-list"><view v-for="group in checkoutGroups" :key="group.key" class="checkout-spu-group"><CheckoutSpuHeader :name="group.name" :meta="group.items.length + ' 个规格 · ' + group.quantity + ' 件'" :amount="'¥' + shareGroupAmount(group)" :collapsed="isCheckoutGroupCollapsed(group.key)" @toggle="toggleCheckoutGroup(group.key)" /><view v-show="!isCheckoutGroupCollapsed(group.key)" class="product-list"><view v-for="item in group.items" :key="item.skuId" class="product-row"><AppProductImage class="product-image" :src="item.imageUrl" :show-stock-badge="false" :fallback-icon-size="26" /><view class="product-info"><view class="product-name-line"><text class="product-name">{{ item.specDesc || item.productName }}</text></view><text class="product-spec">SKU：{{ item.skuCode || item.skuId }}</text><view class="product-meta"><AmountText :text="'¥' + item.unitPrice" /><text>× {{ item.quantity }}</text></view></view><view class="product-amount"><AmountText :text="'¥' + item.lineAmount" /></view></view></view></view></view>
+    <view v-if="checkoutItems.length" class="section-card products-card">
+      <view class="section-heading">
+        <text class="section-title checkout-section-title">{{ t('commerce.checkout.products') }}</text>
+      </view>
+      <ShareCheckoutProducts class="checkout-spu-list" :items="checkoutItems" />
     </view>
 
-  </view><view class="checkout-side"><view class="section-card share-payment-choice"><view class="compact-heading"><text class="section-title">支付方式</text></view><view class="share-pay-choice"><AppIcon name="pay-wechat" :size="24" use-original-color /><text>微信支付</text><text class="share-choice-mark">✓</text></view></view><view class="section-card options-card"><view class="compact-heading"><text class="section-title">配送方式</text></view><view class="delivery-fixed"><view class="choice-icon active-icon"><AppIcon name="truck" :size="20" /></view><view class="choice-copy"><text class="choice-title">物流配送</text></view><text class="fixed-label">默认</text></view><view class="carrier-selector"><view class="carrier-selector-copy"><text class="choice-title">承运商</text></view>      <button class="share-carrier-choice" :disabled="state.locked || !state.carriers.length" @click="carrierVisible=true"><text>{{ nameOf(state.carriers,carrier) || '请选择' }}</text><AppIcon name="chevron-right" :size="16" /></button></view></view>
-    <view class="section-card detail-card"><view class="remark-block"><view class="remark-heading"><view class="setting-label"><AppIcon name="edit" :size="18" /><text>订单备注</text></view><text class="remark-count">{{ remark.length }}/300</text></view><textarea :placeholder-style="$inputPlaceholderStyle" v-model="remark" class="remark-input" :maxlength="300" placeholder="选填" :disabled="state.locked || parsingAddress" @input="edited" /></view></view>
-    <view class="section-card summary-card share-checkout-summary"><view class="compact-heading"><text class="section-title">金额明细</text></view><template v-if="state.preview"><view class="amount"><text>商品金额</text><AmountText :text="'¥' + state.preview.goodsAmount" /></view><view class="amount"><text>运费</text><AmountText :text="'¥' + state.preview.freightAmount" /></view><view class="amount total"><text>应付金额</text><AmountText :text="'¥' + state.preview.payableAmount" /></view></template>
+  </view><view class="checkout-side"><view class="section-card share-payment-choice"><view class="compact-heading"><text class="section-title checkout-section-title">支付方式</text></view><view class="share-pay-choice"><AppIcon name="pay-wechat" :size="24" use-original-color /><text>微信支付</text><text class="share-choice-mark">✓</text></view></view><view class="section-card options-card"><view class="compact-heading"><text class="section-title checkout-section-title">配送方式</text></view><view class="delivery-fixed"><view class="choice-icon active-icon"><AppIcon name="truck" :size="20" /></view><view class="choice-copy"><text class="choice-title">物流配送</text></view><text class="fixed-label">默认</text></view><view class="carrier-selector"><view class="carrier-selector-copy"><text class="choice-title">承运商</text></view>      <button class="share-carrier-choice" :disabled="state.locked || !state.carriers.length" @click="carrierVisible=true"><text>{{ nameOf(state.carriers,carrier) || '请选择' }}</text><AppIcon name="chevron-right" :size="16" /></button></view></view>
+    <view class="section-card detail-card"><view class="remark-block"><view class="remark-heading"><text class="section-title checkout-section-title">订单备注</text><text class="remark-count">{{ remark.length }}/300</text></view><textarea :placeholder-style="$inputPlaceholderStyle" v-model="remark" class="remark-input" :maxlength="300" placeholder="选填" :disabled="state.locked || parsingAddress" @input="edited" /></view></view>
+    <view class="section-card summary-card share-checkout-summary"><view class="compact-heading"><text class="section-title checkout-section-title">金额明细</text></view><template v-if="state.preview"><view class="amount"><text>商品金额</text><AmountText :text="'¥' + state.preview.goodsAmount" /></view><view class="amount"><text>运费</text><AmountText :text="'¥' + state.preview.freightAmount" /></view><view class="amount total"><text>应付金额</text><AmountText :text="'¥' + state.preview.payableAmount" /></view></template>
     <text v-if="state.busy && !state.locked" class="note" role="status">正在更新金额…</text>
 <AppButton variant="secondary" block :disabled="state.locked" @tap="$emit('back')">返回购物车</AppButton></view></view></view></view>
   <ShareOverlayPortal :visible="areaVisible"><AreaCascadePickerPanel v-model:visible="areaVisible" v-model="region" :load-children="loadRegionChildren" @confirm="regionConfirmed" /></ShareOverlayPortal>
@@ -40,12 +43,10 @@ import AreaCascadePicker from '@/subPackages/auth/components/AreaCascadePicker/A
 import AreaCascadePickerPanel from '@/subPackages/auth/components/AreaCascadePicker/AreaCascadePickerPanel.vue'
 import ExpressCompanyPicker from '@/subPackages/commerce/components/ExpressCompanyPicker/ExpressCompanyPicker.vue'
 import ShareOverlayPortal from './ShareOverlayPortal.vue'
-import CheckoutSpuHeader from '../../commerce/components/CheckoutSpuHeader.vue'
-import { shareProductGroups, shareGroupAmount } from '../model/shareOrderPresentation.js'
+import ShareCheckoutProducts from './ShareCheckoutProducts.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppButton from '@/shared/ui/AppButton/AppButton.vue'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
-import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import { readReceiverDraft, saveReceiverDraft, clearReceiverDraft, receiverError } from '../model/shareReceiverDraft.js'
 import { t } from '@/shared/i18n/index.js'
 const props = defineProps({ state: { type: Object, required: true }, loadAreas: { type: Function, required: true }, items: { type:Array, default:()=>[] }, requestPreview:{type:Function,default:null}, requestAddressParse:{type:Function,default:null} })
@@ -55,14 +56,7 @@ watch(()=>props.state.error,error=>{if(error)toast(t('share.checkout.errors.'+er
 const addressText=ref(''),parsingAddress=ref(false),parseMessage=ref('')
 let parseVersion=0
 const addressEditing=ref(true)
-const collapsedCheckoutGroupKeys=ref({})
-const checkoutItems=computed(()=>props.state.preview?.items || props.items)
-const checkoutGroups=computed(()=>shareProductGroups(checkoutItems.value))
-const totalQuantity=computed(()=>checkoutItems.value.reduce((sum,item)=>sum+item.quantity,0))
-/** 结算SPU与经销商完全相同：默认折叠，主动点击后才展开。 */
-function isCheckoutGroupCollapsed(key) { return !Object.prototype.hasOwnProperty.call(collapsedCheckoutGroupKeys.value,key) || Boolean(collapsedCheckoutGroupKeys.value[key]) }
-/** 独立SPU伸缩保留其他分组状态和表单，不触发核价或提交。 */
-function toggleCheckoutGroup(key) { collapsedCheckoutGroupKeys.value={...collapsedCheckoutGroupKeys.value,[key]:!isCheckoutGroupCollapsed(key)} }
+const checkoutItems = computed(() => props.state.preview?.items || props.items)
 const emit = defineEmits(['preview', 'create', 'changed', 'back'])
 const form = reactive({ contactName: '', contactPhone: '', provinceCode: '', cityCode: '', districtCode: '', addressDetail: '', postalCode: '' })
 const validationError=ref(''),draftSaved=ref(false)

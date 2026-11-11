@@ -42,7 +42,7 @@
     <view v-else-if="state === 'empty'" class="state-empty">
       <view class="illustration">
         <slot name="illustration">
-          <AppSvgIllustration :name="emptyIllustrationName" size="md" />
+          <AppSvgIllustration :name="emptyIllustrationName" size="sm" />
         </slot>
       </view>
       <text class="state-title">{{ displayTitle }}</text>
@@ -305,6 +305,23 @@ export default {
     justify-content: center;
     padding: 96rpx $space-6;
     min-height: 400rpx;
+  }
+
+  &.state-empty {
+    padding: 0;
+
+    > .state-empty {
+      min-height: 340px;
+      padding: 32px 16px;
+      box-sizing: border-box;
+    }
+
+    &.is-compact > .state-empty {
+      min-height: 280px;
+      padding: 24px 16px;
+    }
+
+    &.is-fullscreen > .state-empty { flex: 1; }
   }
 
   .is-fullscreen & {

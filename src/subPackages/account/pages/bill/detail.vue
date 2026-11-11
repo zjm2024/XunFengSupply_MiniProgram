@@ -53,7 +53,7 @@
                   <view class="info-row"><text>{{ t('account.billing.itemCount') }}</text><text>{{ t('account.billing.entryCount', { count: bill.items.length }) }}</text></view>
                 </view>
 
-                <view class="items-card">
+                <view class="items-card" :class="{ 'empty-data-surface': !bill.items.length }">
                   <view class="items-head">
                     <view>
                       <text class="card-title">{{ t('account.billing.entries') }}</text>
@@ -325,7 +325,7 @@ async function submitRepayment(account, amount) {
 .item-result { justify-content: flex-end; }
 
 /* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
-.bill-hero, .settlement-notice, .info-card, .items-card {
+.bill-hero, .settlement-notice, .info-card, .items-card:not(.empty-data-surface) {
   border: 0 !important;
   background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));

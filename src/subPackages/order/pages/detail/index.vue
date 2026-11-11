@@ -53,56 +53,51 @@
           <!-- 商品列表 -->
           <view class="goods-card">
             <view class="card-title">{{ t('order.detail.productInfo') }}</view>
-            <view v-if="productGroups.length" class="spu-order-list">
-              <view v-for="group in productGroups" :key="group.key" class="spu-order-card">
-                <view class="spu-order-header" @tap="toggleProductGroup(group.key)">
-                  <view class="spu-image-link" @tap.stop="goToProductDetail(group.items[0])">
-                    <AppProductImage class="spu-image" :src="group.image" mode="aspectFill" />
-                  </view>
-                  <view class="spu-order-copy">
-                    <text class="spu-order-name">{{ group.name }}</text>
-                    <view class="spu-order-meta-row">
-                      <text class="spu-order-meta">{{ t('order.detail.productSummary', { count: group.items.length, quantity: group.totalQuantity }) }}</text>
-                      <AmountText class="spu-order-total" :text="'¥' + group.totalAmount.toFixed(2)" />
+            <view v-if="productGroups.length" class="checkout-product-groups">
+              <view v-for="group in productGroups" :key="group.key" class="checkout-spu-group">
+                <CheckoutSpuHeader
+                  :name="group.name"
+                  :image="group.image"
+                  :meta="t('commerce.checkout.groupCount', { count: group.items.length, quantity: group.totalQuantity })"
+                  :amount="'¥' + group.totalAmount.toFixed(2)"
+                  :subtotal-label="t('commerce.checkout.productSubtotal')"
+                  :collapsed="isProductGroupCollapsed(group.key)"
+                  @toggle="toggleProductGroup(group.key)"
+                >
+                  <template #thumbnail>
+                    <view class="order-product-thumbnail" @tap.stop="goToProductDetail(group.items[0])">
+                      <AppProductImage class="order-product-image" :src="group.image" :show-stock-badge="false" mode="aspectFill" />
                     </view>
-                    <text class="spu-shipping-summary">{{ group.shipmentSummary }}</text>
-                  </view>
-                  <view class="spu-collapse-button">
-                    <AppIcon
-                      name="chevron-right"
-                      :size="16"
-                      class="spu-collapse-icon"
-                      :class="{ expanded: !isProductGroupCollapsed(group.key) }"
-                    />
-                  </view>
-                </view>
-
-                <view v-show="!isProductGroupCollapsed(group.key)" class="sku-order-list">
-                  <view
-                    v-for="item in group.items"
-                    :key="item.orderItemId || item.skuId"
-                    class="goods-item"
-                  >
-                    <view class="goods-image-link" @tap="goToProductDetail(item)">
-                      <AppProductImage class="goods-image" :src="item.image" :lazy-load="true" mode="aspectFill" />
-                    </view>
-                    <view class="goods-info">
-                      <text class="goods-name">{{ item.skuName || t('order.detail.defaultVariant') }}</text>
-                      <text class="sku-name">SKU：{{ item.skuCode || item.skuId || '-' }}</text>
-                      <view class="price-row">
-                        <AmountText class="price" :text="'¥' + (Number(item.salePrice || 0).toFixed(2))" />
-                        <AmountText v-if="getPriceDisplay(item).showListPrice" class="list-price" :class="{ 'list-price--strike': getPriceDisplay(item).strikeListPrice }" :text="'¥' + Number(item.listPrice).toFixed(2)" />
-                        <text class="qty">x{{ item.quantity }}</text>
+                  </template>
+                </CheckoutSpuHeader>
+                <view v-if="!isProductGroupCollapsed(group.key)" class="product-list">
+                  <text class="order-product-shipment">{{ group.shipmentSummary }}</text>
+                  <view v-for="item in group.items" :key="item.orderItemId || item.skuId" class="product-row">
+                    <view class="product-info">
+                      <text class="product-name" @tap="goToProductDetail(item)">{{ item.skuName || t('order.detail.defaultVariant') }}</text>
+                      <view class="product-meta">
+                        <AmountText :text="'¥' + item.salePrice.toFixed(2) + (item.unit ? ' / ' + item.unit : '')" />
+                        <AmountText v-if="getPriceDisplay(item).showListPrice" class="list-price"
+                          :class="{ 'list-price--strike': getPriceDisplay(item).strikeListPrice }" :text="'¥' + item.listPrice.toFixed(2)" />
+                        <AmountText v-if="item.strategyDiscount + item.promotionDiscount > 0" class="strategy-discount"
+                          :text="t('order.detail.discount') + ' ¥' + (item.strategyDiscount + item.promotionDiscount).toFixed(2)" />
                       </view>
                       <view class="item-shipment" :class="'is-' + item.shipment.tone">
                         <text class="item-shipment-status">{{ item.shipment.text }}</text>
-                        <view v-if="item.shipment.known" class="item-shipment-quantities"><text>{{ t('order.detail.skuShipped', { quantity: item.shipment.sent }) }} {{ item.unit }}</text><text>{{ t('order.detail.skuUnshipped', { quantity: item.shipment.remaining }) }} {{ item.unit }}</text></view>
+                        <view v-if="item.shipment.known" class="item-shipment-quantities">
+                          <text>{{ t('order.detail.skuShipped', { quantity: item.shipment.sent }) }} {{ item.unit }}</text>
+                          <text>{{ t('order.detail.skuUnshipped', { quantity: item.shipment.remaining }) }} {{ item.unit }}</text>
+                        </view>
                       </view>
-                      <AmountText v-if="item.strategyDiscount + item.promotionDiscount > 0" class="strategy-discount" :text="t('order.detail.discount') + ' ¥' + (item.strategyDiscount + item.promotionDiscount).toFixed(2)" />
+                    </view>
+                    <view class="product-amount">
+                      <AmountText class="product-line-total" :text="'¥' + item.lineTotal.toFixed(2)" />
+                      <text class="product-quantity">× {{ item.quantity }}</text>
                     </view>
                   </view>
                 </view>
               </view>
+              <text class="checkout-list-count">{{ t('commerce.checkout.listCount', productListCount) }}</text>
             </view>
           </view>
 
@@ -197,7 +192,7 @@
               <view class="timeline-dot" />
               <view class="timeline-copy">
                 <text class="timeline-title">{{ item.title }}</text>
-                <text class="timeline-time">{{ item.time ? formatDateTime(item.time) : item.description }}</text>
+                <text v-if="item.time" class="timeline-time">{{ formatDateTime(item.time) }}</text>
               </view>
             </view>
           </view>
@@ -267,6 +262,7 @@ import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { getPriceDisplay, getOrderPriceSummary } from '@/shared/utils/priceDisplay.js'
 import { ref, computed, watch } from 'vue'
 import { locale, t } from '@/shared/i18n/index.js'
+import '@/subPackages/commerce/i18n/register.js'
 import { createLocaleReadCoordinator } from '@/shared/composables/localeReadCoordinator.js'
 import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 import '../../i18n/register.js'
@@ -278,6 +274,7 @@ import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
+import CheckoutSpuHeader from '../../../commerce/components/CheckoutSpuHeader.vue'
 import AppInitializing from '@/shared/ui/AppInitializing/AppInitializing.vue'
 import FixedActionBar from '@/shared/ui/FixedActionBar/FixedActionBar.vue'
 import OrderStatusProgress from '@/shared/ui/OrderStatusProgress/OrderStatusProgress.vue'
@@ -401,8 +398,8 @@ const customerTimeline = computed(() => {
   if (Number(order.erpReviewStatus) === ERP_REVIEW_STATUS.APPROVED) {
     timeline.push({ key: 'confirmed', title: t('order.detail.timeline.confirmed'), time: order.erpReviewedAt })
   }
-  if (Number(order.paymentStatus) === PAYMENT_STATUS.CONFIRMED) {
-    timeline.push({ key: 'paid', title: t('order.detail.timeline.paid'), description: t('order.detail.timeline.paidDescription') })
+  if (order.paymentCompletedAt || Number(order.paymentStatus) === PAYMENT_STATUS.CONFIRMED) {
+    timeline.push({ key: 'paid', title: t('order.detail.timeline.paid'), time: order.paymentCompletedAt })
   }
   if (order.stockConfirmedAt) {
     timeline.push({ key: 'stock-confirmed', title: t('order.detail.timeline.stockConfirmed'), time: order.stockConfirmedAt })
@@ -581,6 +578,8 @@ const productGroups = computed(() => {
         items: [],
       })
     }
+    const quantity = Number(item.quantity ?? item.Quantity ?? 0)
+    const salePrice = Number(item.salePrice ?? item.SalePrice ?? item.price ?? item.Price ?? 0)
     groups.get(key).items.push({
       ...item,
       orderItemId: item.orderItemId ?? item.OrderItemId,
@@ -590,14 +589,14 @@ const productGroups = computed(() => {
       skuName: item.skuName || item.SkuName || '',
       skuCode: item.skuCode || item.SkuCode || item.code || item.Code || '',
       basePrice: Number(item.basePrice ?? item.BasePrice ?? item.base_price ?? item.salePrice ?? item.SalePrice ?? 0),
-      salePrice: Number(item.salePrice ?? item.SalePrice ?? item.price ?? item.Price ?? 0),
+      salePrice,
       listPrice: Number(item.listPrice ?? item.ListPrice ?? 0),
       priceSource: item.priceSource ?? item.PriceSource ?? 'BASE',
       priceRuleId: item.priceRuleId ?? item.PriceRuleId ?? null,
-      quantity: Number(item.quantity ?? item.Quantity ?? 0),
+      quantity,
       strategyDiscount: Math.round(getPriceDisplay(item).strategyDiscount * Number(item.quantity ?? item.Quantity ?? 0) * 100) / 100,
       promotionDiscount: Number(item.discountAmount ?? item.DiscountAmount ?? 0),
-      lineTotal: Number(item.totalAmount ?? item.TotalAmount ?? item.subTotal ?? item.SubTotal ?? 0),
+      lineTotal: Number(item.totalAmount ?? item.TotalAmount ?? item.subTotal ?? item.SubTotal ?? salePrice * quantity),
       promotionSnapshot: item.promotionSnapshot ?? item.PromotionSnapshot ?? null,
       unit: item.unit ?? item.Unit ?? '',
       shipment: itemShipmentDisplay(item),
@@ -609,9 +608,15 @@ const productGroups = computed(() => {
       ? t('order.detail.skuShippingSummary', { sent: group.items.reduce((sum,item) => sum + item.shipment.sent,0), total: group.items.reduce((sum,item) => sum + item.quantity,0) })
       : t('order.detail.skuShippingUnknown'),
     totalQuantity: group.items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
-    totalAmount: group.items.reduce((sum, item) => sum + (Number(item.lineTotal) || (Number(item.salePrice) || 0) * (Number(item.quantity) || 0)), 0),
+    totalAmount: group.items.reduce((sum, item) => sum + item.lineTotal, 0),
   }))
 })
+
+const productListCount = computed(() => ({
+  products: productGroups.value.length,
+  skus: productGroups.value.reduce((sum, group) => sum + group.items.length, 0),
+  quantity: productGroups.value.reduce((sum, group) => sum + group.totalQuantity, 0),
+}))
 
 /** 建立订单行到SPU快照的索引，避免分单渲染反复扫描全部订单行。 */
 const productByOrderItemId = computed(() => {
@@ -644,10 +649,9 @@ function itemShipmentDisplay(item) {
   return { known:true,sent,remaining,text:t('order.detail.' + key),tone:sent <= 0 ? 'pending' : remaining > 0 ? 'partial' : 'shipped' }
 }
 
-/** 未拆单时默认展开规格，仍保留用户手动折叠和拆单订单的按需展开。 */
+/** 商品默认收起，仅挂载用户主动展开的规格。 */
 function isProductGroupCollapsed(groupKey) {
-  const selected = collapsedProductGroups.value[groupKey]
-  return selected == null ? Boolean(detail.value?.fulfillmentSplits?.length) : selected
+  return collapsedProductGroups.value[groupKey] ?? true
 }
 
 function toggleProductGroup(groupKey) {
@@ -709,32 +713,12 @@ function splitItemQuantityText(split, item) {
 .address-card .address-detail .address-text { color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); line-height: 20px; }
 .goods-card .card-title, .info-card .card-title { display: flex; margin-bottom: 10px; align-items: center; gap: 8px; color: var(--type-title-color); font-size: var(--type-card-title-size, 16px); line-height: var(--type-card-title-line-height, 24px); }
 .goods-card .card-title::before, .info-card .card-title::before { width: 3px; height: 16px; flex: 0 0 3px; border-radius: 2px; background: var(--color-brand, #D7192D); content: ''; }
-.spu-order-list { display: flex; flex-direction: column; gap: 12px; }
-.spu-order-card { overflow: hidden; border-radius: var(--radius-small, 12px); background: #FFF; box-shadow: none; }
-.spu-order-header { display: grid; grid-template-columns: 48px minmax(0, 1fr) 28px; align-items: center; gap: 10px; min-height: 76px; padding: 12px; box-sizing: border-box; background: var(--bg-secondary, #F3F4F6); }
-.spu-image-link { width: 48px; height: 48px; overflow: hidden; border-radius: var(--radius-small, 8px); background: #FFF; }
-.spu-image { width: 100%; height: 100%; }
-.spu-order-copy { min-width: 0; }
-.spu-order-name { display: block; color: var(--type-title-color); font-size: var(--type-body-size, 14px); font-weight: var(--font-weight-semibold, 600); line-height: 20px; overflow-wrap: anywhere; }
-.spu-order-meta-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 4px; }
-.spu-order-meta { display: block; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
-.spu-order-total { color: var(--type-title-color); font-size: var(--type-body-small-size, 13px); font-weight: var(--font-weight-semibold, 600); font-variant-numeric: tabular-nums; white-space: nowrap; }
-.spu-collapse-button { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 50%; color: var(--type-secondary-color); background: #FFF; }
-.spu-collapse-icon { transition: transform 180ms ease; }
-.spu-collapse-icon.expanded { transform: rotate(90deg); }
-.sku-order-list { padding: 0 12px; background: #FFF; }
-.goods-item { align-items: flex-start; min-height: 0; padding: 12px 0; border-bottom: 1px solid #EEF0F2; }
-.goods-item .goods-image-link { width: 40px; height: 40px; flex: 0 0 40px; }
-.goods-item .goods-image { width: 40px; height: 40px; border-radius: var(--radius-xs, 6px); }
-.goods-item .goods-info { display: flex; min-width: 0; flex-direction: column; margin-left: 10px; }
-.goods-item .goods-info .goods-name { color: var(--type-title-color); font-size: var(--type-body-size, 14px); line-height: 20px; }
-.goods-item .goods-info .sku-name { margin-top: 4px; color: var(--type-muted-color); font-size: var(--type-micro-size, 11px); }
-.goods-item .goods-info .strategy-discount { display: block; color: var(--color-brand, #D7192D); font-size: var(--type-caption-size, 12px); }
-.goods-item .goods-info .promotion-discount { display: block; color: #d96b24; font-size: var(--type-caption-size, 12px); }
-.goods-item .goods-info .price-row { margin-top: 6px; padding: 0; }
+@import '../../../commerce/components/checkout-product-groups.scss';
+.order-product-thumbnail { width: 48px; height: 48px; overflow: hidden; border-radius: var(--radius-xs, 6px); }
+.order-product-image { width: 100%; height: 100%; }
+.order-product-shipment { padding-top: 7px; color: var(--type-secondary-color); font-size: var(--type-caption-size, 12px); }
+@media (max-width: 360px) { .order-product-thumbnail { width: 38px; height: 38px; } }
 .summary-card .summary-discount .price-value { color: var(--color-brand, #D7192D); }
-.goods-item .goods-info .price-row .price { color: var(--color-brand, #D7192D); font-size: var(--type-label-size, 15px); }
-.goods-item .goods-info .price-row .qty { color: var(--type-secondary-color); font-size: var(--type-caption-size, 12px); }
 .info-row, .price-row { gap: 18px; padding: 9px 0; }
 .info-row .info-label, .price-row .price-label { flex: 0 0 76px; color: var(--type-secondary-color); font-size: var(--type-body-small-size, 13px); }
 .info-row .info-value, .price-row .price-value { min-width: 0; color: var(--type-title-color); font-size: var(--type-body-small-size, 13px); text-align: right; }
@@ -766,19 +750,14 @@ function splitItemQuantityText(split, item) {
 @media (min-width: 720px) and (max-width: 1023px) {
   .detail-columns { grid-template-columns: minmax(0, 1fr) minmax(260px, .78fr); gap: 8px 10px; }
   .logistics-card, .address-card, .goods-card, .split-card, .info-card, .price-card { padding: 12px; }
-  .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) 28px; gap: 8px; padding: 10px; }
   .spu-image-link { width: 48px; height: 48px; }
 }
 
 @media (max-width: 719px) {
   .logistics-card, .address-card, .goods-card, .split-card, .info-card, .price-card { padding: 12px; }
-  .spu-order-header { grid-template-columns: 48px minmax(0, 1fr) 28px; gap: 8px; padding: 10px; }
   .spu-image-link { width: 48px; height: 48px; }
-  .spu-order-total { font-size: var(--type-caption-size, 12px); }
-  .goods-item .goods-image { width: 40px; height: 40px; }
   .goods-item .goods-info { margin-left: 10px; }
   .goods-item .goods-info .goods-name { font-size: var(--type-body-small-size, 13px); line-height: 18px; }
-  .goods-item .goods-info .price-row .price { font-size: var(--type-body-size, 14px); }
 }
 
 /* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */

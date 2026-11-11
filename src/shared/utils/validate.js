@@ -91,9 +91,7 @@ export function validateSignForm(formData, formatMessage) {
     errors.confirmPassword = message('passwordMismatch', '两次输入的密码不一致')
   }
 
-  if (!formData.landlinePhone || !formData.landlinePhone.trim()) {
-    errors.landlinePhone = message('landlineRequired', '请输入固定电话')
-  } else if (!/^[0-9+()\-\s]{5,20}$/.test(formData.landlinePhone.trim())) {
+  if (formData.landlinePhone?.trim() && !/^[0-9+()\-\s]{5,20}$/.test(formData.landlinePhone.trim())) {
     errors.landlinePhone = message('landlineInvalid', '请输入正确的固定电话')
   }
 

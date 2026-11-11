@@ -8,12 +8,7 @@
       <AppContent>
         <view class="content">
           <!-- Tab 切换，改用带数量的renderTabs -->
-         <view class="segment-tabs">
-            <view class="tabs-inner">
-              <button v-for="tab in renderTabs" :key="tab.key" class="tab-btn"
-                :class="{ 'is-active': activeTab === tab.key }" @click="activeTab = tab.key">{{ tab.label }}</button>
-            </view>
-          </view>
+         <StatusTabBar class="segment-tabs" v-model="activeTab" :items="renderTabs" max-width="100%" />
 
           <!-- 优惠券列表 -->
           <view class="voucher-list">
@@ -86,6 +81,7 @@ import { ref, computed, watch } from 'vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import statusTagNew from '@/shared/ui/StatusTag/StatusTag.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
+import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
@@ -158,36 +154,7 @@ function onExchangeEnter() {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-.segment-tabs {
-  border-bottom: 1px solid #EFEFF1;
-  margin-bottom: 16px;
-}
-
-.tabs-inner {
-  display: flex;
-  justify-content: center; /* 核心：整体居中 */
-  gap: 32px; /* 增大tab之间距离，原来18px → 32px，更宽松好看 */
-}
-
-.tab-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 44px;
-  padding: 0 4px;
-  white-space: nowrap;
-  border: none;
-  background: transparent;
-  color: #5E626B;
-  font-size: var(--type-body-size, 14px);
-
-  &.is-active {
-    color: #D7192D;
-    border-bottom: 2px solid #D7192D;
-    font-weight: var(--font-weight-semibold, 600);
-  }
-}
-
+.segment-tabs { margin-bottom: 16px; }
 
 .voucher-list {
   display: grid;

@@ -13,11 +13,11 @@ export function createOrderQrPayment({ storage, createIntent, readStatus, confir
   async function settle(intent) {
     publish({ phase: 'confirming', error: '' })
     try {
-      await confirmOrder(intent)
+      const paymentResult = await confirmOrder(intent)
       if (!active()) return
       storage.remove()
-      publish({ phase: 'paid', intent, error: '' })
-      onPaid()
+      publish({ phase: 'paid', intent, paymentResult, error: '' })
+      onPaid(paymentResult)
     } catch (error) {
       publish({ phase: 'confirm-error', error: error?.message || '', intent })
     }

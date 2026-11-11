@@ -14,7 +14,7 @@
           <!-- 支付金额与付款时限 -->
           <view class="amount-section">
             <text class="pay-label">{{ payMode === PAYMENT_MODE.CREDIT ? t('order.pay.creditAmount') : t('order.pay.amountDue') }}</text>
-            <AmountText class="amount" :text="'¥' + (Number(payAmount || 0).toFixed(2))" />
+            <AmountText class="amount" :text="hasCheckoutSnapshot || !checkoutBatchId ? '¥' + Number(payAmount || 0).toFixed(2) : '—'" />
             <view v-if="checkoutBatchId">
               <view v-for="member in checkoutOrders" :key="member.orderId" class="checkout-member">
                 <view class="checkout-member-copy">
@@ -24,10 +24,15 @@
                 <AmountText class="checkout-member-amount" :text="'¥' + Number(member.payableAmount).toFixed(2)" />
               </view>
               <view v-if="!orderPayable" class="checkout-status" role="status">
-                <text>{{ t(batchStatusKey) }}</text>
-                <AppButton v-if="!batchPaid && !batchErpRejected" size="sm" variant="secondary" :disabled="loadingBatch" @tap="refreshCheckout">
-                  {{ t('order.pay.refreshCheckout') }}
-                </AppButton>
+                <view class="checkout-status-copy" :class="{ 'is-retry': canRetryCheckout }"
+                  :role="canRetryCheckout ? 'button' : undefined" :tabindex="canRetryCheckout ? 0 : undefined"
+                  @tap="canRetryCheckout && refreshCheckout()"
+                  @keydown.enter.prevent="canRetryCheckout && refreshCheckout()"
+                  @keydown.space.prevent="canRetryCheckout && refreshCheckout()">
+                  <text>{{ t(batchConfirming ? 'order.pay.checkoutConfirming' : batchStatusKey) }}</text>
+                  <view v-if="batchConfirming" class="checkout-confirming-dots" aria-hidden="true"><text>.</text><text>.</text><text>.</text></view>
+                </view>
+
               </view>
             </view>
             <text v-else class="order-no">{{ t('order.pay.orderNo') }} {{ orderNo }}</text>
@@ -104,7 +109,7 @@
               <view class="credit-rows">
             <view class="credit-row">
                 <text class="cr-label">{{ t('order.pay.creditAmountLabel') }}</text>
-                <AmountText class="cr-value primary" :text="'¥' + (Number(payAmount || 0).toFixed(2))" />
+                <AmountText class="cr-value primary" :text="hasCheckoutSnapshot || !checkoutBatchId ? '¥' + Number(payAmount || 0).toFixed(2) : '—'" />
               </view>
               <view class="credit-row">
                 <text class="cr-label">{{ t('order.pay.availableCredit') }}</text>
@@ -232,6 +237,12 @@ const checkoutBatchId = ref(null)
 const checkoutOrders = ref([])
 const batchPaid = ref(false)
 const loadingBatch = ref(false)
+const hasCheckoutSnapshot = ref(false)
+let checkoutReadPromise = null
+let checkoutReadAgain = false
+let paidResult = null
+let paidRedirected = false
+let checkoutDisposed = false
 const checkoutPaymentKeys = new Map()
 const payMode = ref(PAYMENT_MODE.COMBINATION)     // 默认使用单一余额账户支付
 const payAmount = ref(0)    // 单位：元（后端返回元）
@@ -298,7 +309,7 @@ async function openOrderQr() {
       createIntent: createNativeRecharge, readStatus: getRechargeStatus,
       isCurrent: () => userStore.token === token,
       onChange: value => { qrState.value = value },
-      onPaid: () => { if (checkoutVisible) handlePaid() },
+      onPaid: result => handlePaid(result),
       confirmOrder: intent => submitPayment({
         orderId: orderId.value, clientRequestId: 'order-qr-confirm-' + intent.rechargeNo,
         paymentMode: PAYMENT_MODE.COMBINATION, fundAccountCode: intent.fundAccountCode,
@@ -324,6 +335,10 @@ const allocationAmounts = ref({})
 const orderPayable = ref(false)
 let checkoutRefreshTimer = null
 let checkoutRefreshAttempts = 0
+const checkoutConfirmationTimedOut = ref(false)
+let checkoutConfirmationDeadline = 0
+let checkoutConfirmationTimer = null
+let checkoutConfirmationVersion = 0
 let checkoutVisible = true
 let countdownTimer = null
 let expireHandled = false
@@ -344,13 +359,20 @@ const hasSufficientBalance = computed(() => availableAccounts.value.some(account
 const batchErpRejected = computed(() => checkoutOrders.value.some(order => order.cancelledForErpRejection))
 const batchStatusKey = computed(() => {
   if (batchPaid.value) return 'order.pay.paid'
+  if (!hasCheckoutSnapshot.value && loadingBatch.value) return 'common.loading'
   if (batchErpRejected.value) return 'order.pay.stockInsufficientCancelled'
   if (checkoutOrders.value.some(order => order.isPaymentExpired)) return 'order.pay.paymentEnded'
+  if (checkoutConfirmationTimedOut.value) return 'order.pay.checkoutConfirmationTimeout'
   if (checkoutOrders.value.some(order => order.hasActivePayment)) return 'order.pay.confirmationPending'
   if (checkoutOrders.value.some(order => !order.erpReady && order.erpPending)) return 'order.pay.batchErpPending'
   if (checkoutOrders.value.some(order => order.erpReady === false)) return 'order.pay.batchErpUnavailable'
   return 'order.pay.checkoutUnavailable'
 })
+const batchConfirming = computed(() => !orderPayable.value && !checkoutConfirmationTimedOut.value && [
+  'common.loading', 'order.pay.batchErpPending', 'order.pay.batchErpUnavailable', 'order.pay.confirmationPending',
+].includes(batchStatusKey.value))
+const canRetryCheckout = computed(() => !batchConfirming.value && !batchPaid.value && !batchErpRejected.value
+  && !loadingBatch.value && batchStatusKey.value !== 'order.pay.paymentEnded')
 const allocationTotal = computed(() => selectedAccountIds.value.reduce(
   (sum, id) => sum + Number(allocationAmounts.value[id] || 0), 0,
 ))
@@ -375,8 +397,8 @@ onLoad(async (options) => {
   orderId.value = Number(options.orderId) || null
   checkoutBatchId.value = Number(options.checkoutBatchId) || null
   if (checkoutBatchId.value) {
-    await loadCheckoutInfo()
-    await loadFinanceContext()
+    startCheckoutConfirmation()
+    await Promise.all([loadCheckoutInfo(), loadFinanceContext()])
     return
   }
 
@@ -389,23 +411,27 @@ onLoad(async (options) => {
 
 onShow(() => {
   checkoutVisible = true
-  if (qrState.value.phase === 'paid') { handlePaid(); return }
+  if (paidResult || qrState.value.phase === 'paid') { handlePaid(paidResult || qrState.value.paymentResult); return }
   if (nativeQrVisible.value && qrPayment) { qrPayment.check().then(syncQrPolling); return }
-  if (checkoutBatchId.value && !paying.value) refreshCheckout()
+  if (checkoutBatchId.value && !paying.value) resumeCheckoutConfirmation()
   else if (orderId.value && !paying.value) loadOrderInfo()
 
 })
 
 onHide(() => {
   checkoutVisible = false
+  clearTimeout(checkoutConfirmationTimer)
+  checkoutReadAgain = false
   clearTimeout(qrPollTimer)
   clearTimeout(checkoutRefreshTimer)
 })
 
 onUnmounted(() => {
+  checkoutDisposed = true
   clearTimeout(qrPollTimer)
   qrPayment?.dispose()
   checkoutVisible = false
+  clearTimeout(checkoutConfirmationTimer)
   clearTimeout(checkoutRefreshTimer)
   if (countdownTimer) clearInterval(countdownTimer)
 })
@@ -485,6 +511,8 @@ function syncPaymentCountdown(order) {
 async function loadOrderInfo() {
   try {
     const res = await getOrderDetail(orderId.value)
+    if (checkoutDisposed || paidResult) return
+    if (Number(res.paymentStatus) === PAYMENT_STATUS.CONFIRMED) { handlePaid({ orderId: orderId.value }); return }
     orderNo.value = res.orderNo || ''
     payAmount.value = Number(res.payableAmount || 0)
     const canPay = Number(res.orderStatus) === ORDER_STATUS.PENDING_PAYMENT
@@ -508,29 +536,86 @@ async function loadOrderInfo() {
 /** 从批次快照恢复所有主单。未就绪时保持禁止支付。 */
 /** 手动刷新或重新进入页面时重启有限的批次状态检查。 */
 function refreshCheckout() {
+  startCheckoutConfirmation()
+  if (checkoutReadPromise) { checkoutReadAgain = true; return checkoutReadPromise }
+  return loadCheckoutInfo()
+}
+
+/** 每次主动重试开启独立的30秒确认窗口，不重建订单或重复提交支付。 */
+function startCheckoutConfirmation() {
+  clearTimeout(checkoutConfirmationTimer)
+  clearTimeout(checkoutRefreshTimer)
   checkoutRefreshAttempts = 0
+  checkoutConfirmationVersion++
+  checkoutConfirmationTimedOut.value = false
+  checkoutConfirmationDeadline = Date.now() + 30000
+  checkoutConfirmationTimer = setTimeout(expireCheckoutConfirmation, 30000)
+}
+
+/** 超时只代表本次等待结束，不把业务订单标记失败。 */
+function expireCheckoutConfirmation() {
+  clearTimeout(checkoutRefreshTimer)
+  clearTimeout(checkoutConfirmationTimer)
+  checkoutReadAgain = false
+  if (checkoutDisposed || orderPayable.value || batchPaid.value || batchErpRejected.value
+    || checkoutOrders.value.some(order => order.isPaymentExpired)) return
+  checkoutConfirmationTimedOut.value = true
+  checkoutReadPromise = null
+  loadingBatch.value = false
+}
+
+/** 后台时间也计入30秒，回到页面不悄悄开启新的等待窗口。 */
+function resumeCheckoutConfirmation() {
+  if (checkoutConfirmationTimedOut.value) return
+  if (!checkoutConfirmationDeadline || orderPayable.value) startCheckoutConfirmation()
+  else if (Date.now() >= checkoutConfirmationDeadline) { expireCheckoutConfirmation(); return }
+  else {
+    clearTimeout(checkoutConfirmationTimer)
+    checkoutConfirmationTimer = setTimeout(expireCheckoutConfirmation, checkoutConfirmationDeadline - Date.now())
+  }
+  if (checkoutReadPromise) { checkoutReadAgain = true; return checkoutReadPromise }
   return loadCheckoutInfo()
 }
 
 /** 为可能恢复的批次状态安排下一次只读查询。 */
 function scheduleCheckoutRefresh(retryRead = false) {
-  if (!checkoutVisible || paying.value || orderPayable.value || batchPaid.value || batchErpRejected.value || checkoutRefreshAttempts >= 12) return
+  if (!checkoutVisible || paying.value || orderPayable.value || batchPaid.value || batchErpRejected.value || checkoutConfirmationTimedOut.value) return
   if (batchStatusKey.value === 'order.pay.paymentEnded') return
   const waiting = ['order.pay.batchErpPending', 'order.pay.batchErpUnavailable', 'order.pay.confirmationPending']
   if (!retryRead && !waiting.includes(batchStatusKey.value)) return
+  const delay = Math.min(1000 * 2 ** Math.floor(checkoutRefreshAttempts / 3), 5000)
+  if (Date.now() >= checkoutConfirmationDeadline) { expireCheckoutConfirmation(); return }
   checkoutRefreshAttempts++
-  checkoutRefreshTimer = setTimeout(() => loadCheckoutInfo(true), 5000)
+  checkoutRefreshTimer = setTimeout(() => loadCheckoutInfo(true), delay)
 }
 
 /** 读取批次实时状态和服务端应付金额。 */
-async function loadCheckoutInfo(background = false) {
-  if (loadingBatch.value) return
+function loadCheckoutInfo(background = false) {
+  if (checkoutConfirmationTimedOut.value || checkoutDisposed) return Promise.resolve()
+  if (checkoutReadPromise) return checkoutReadPromise
+  const pending = readCheckoutInfo(background).finally(() => {
+    if (checkoutReadPromise !== pending) return
+    checkoutReadPromise = null
+    if (checkoutReadAgain && checkoutVisible && !checkoutDisposed && !paidResult) {
+      checkoutReadAgain = false
+      return loadCheckoutInfo(true)
+    }
+  })
+  checkoutReadPromise = pending
+  return pending
+}
+
+/** 单次读取只接受当前页面尚未确认付款的服务端快照。 */
+async function readCheckoutInfo(background) {
+  const version = checkoutConfirmationVersion
   clearTimeout(checkoutRefreshTimer)
   loadingBatch.value = true
   orderPayable.value = false
   let retryRead = false
   try {
     const result = await getCheckoutPayment(checkoutBatchId.value)
+    if (checkoutDisposed || paidResult || checkoutConfirmationTimedOut.value || version !== checkoutConfirmationVersion) return
+    hasCheckoutSnapshot.value = true
     checkoutOrders.value = (result.orders ?? result.Orders ?? []).map(order => ({
       orderId: order.orderId ?? order.OrderId,
       orderNo: order.orderNo ?? order.OrderNo,
@@ -541,17 +626,23 @@ async function loadCheckoutInfo(background = false) {
       cancelledForErpRejection: order.cancelledForErpRejection ?? order.CancelledForErpRejection,
       isPaymentExpired: order.isPaymentExpired ?? order.IsPaymentExpired,
       hasActivePayment: order.hasActivePayment ?? order.HasActivePayment,
+      isPaid: order.isPaid ?? order.IsPaid,
     }))
     payAmount.value = Number(result.totalPayable ?? result.TotalPayable ?? 0)
     batchPaid.value = Boolean(result.isPaid ?? result.IsPaid)
     orderPayable.value = Boolean(result.canPay ?? result.CanPay) && !batchPaid.value && !batchErpRejected.value
+    if (batchPaid.value) { handlePaid(result); return }
     if (payMode.value === PAYMENT_MODE.COMBINATION) autoAllocate()
   } catch (error) {
+    if (checkoutDisposed || checkoutConfirmationTimedOut.value || version !== checkoutConfirmationVersion) return
     retryRead = true
     if (!background) uni.showToast({ title: error?.message || t('order.pay.loadOrderFailed'), icon: 'none' })
   } finally {
-    loadingBatch.value = false
-    scheduleCheckoutRefresh(retryRead)
+    if (version === checkoutConfirmationVersion) loadingBatch.value = false
+    if (version === checkoutConfirmationVersion && (orderPayable.value || batchPaid.value || batchErpRejected.value || checkoutOrders.value.some(order => order.isPaymentExpired))) {
+      clearTimeout(checkoutConfirmationTimer)
+    }
+    if (version === checkoutConfirmationVersion) scheduleCheckoutRefresh(retryRead)
   }
 }
 
@@ -605,14 +696,14 @@ async function handleConfirmPay() {
   try {
     if (payMode.value === PAYMENT_MODE.CREDIT) {
       if (Number(finance.value.credit?.status) !== 1) throw localError('creditUnavailable')
-      await submitPayment({
+      const result = await submitPayment({
         orderId: orderId.value,
         clientRequestId: `credit-pay-${orderId.value}-${Date.now()}`,
         paymentMode: PAYMENT_MODE.CREDIT,
         fundAccountCode: finance.value.credit?.fundAccountCode || null,
         allocations: [{ payMethod: 'credit', accountCustomerId: null, amount: payAmount.value }],
       })
-      return handlePaid()
+      return handlePaid(result)
     }
     if (payMode.value === PAYMENT_MODE.COMBINATION) {
       if (selectedAccountIds.value.length === 0) throw localError('accountRequired')
@@ -628,7 +719,7 @@ async function handleConfirmPay() {
       if (Math.abs(allocationTotal.value - Number(payAmount.value)) >= 0.005) {
         throw localError('totalMismatch')
       }
-      await submitPayment({
+      const result = await submitPayment({
         orderId: orderId.value,
         clientRequestId: `balance-pay-${orderId.value}-${Date.now()}`,
         paymentMode: PAYMENT_MODE.COMBINATION,
@@ -639,7 +730,7 @@ async function handleConfirmPay() {
           amount: Number(allocationAmounts.value[id] || 0),
         })),
       })
-      return handlePaid()
+      return handlePaid(result)
     }
     if (payMode.value === PAYMENT_MODE.CASH) {
       await openOrderQr()
@@ -683,9 +774,28 @@ function autoAllocate() {
   selectedAccountIds.value = [account.accountCustomerId]
   allocationAmounts.value[account.accountCustomerId] = amount.toFixed(2)
 }
-function handlePaid() {
+/** 仅接受订单确认响应或已付款快照；立即停止收银并打开本次订单详情。 */
+function handlePaid(result) {
+  if (checkoutDisposed || paidRedirected) return
+  paidResult = result || paidResult || {}
+  batchPaid.value = true
+  orderPayable.value = false
+  nativeQrVisible.value = false
+  checkoutReadAgain = false
+  clearTimeout(checkoutRefreshTimer)
+  clearTimeout(checkoutConfirmationTimer)
+  clearTimeout(qrPollTimer)
+  clearInterval(countdownTimer)
+  countdownTimer = null
+  if (!checkoutVisible) return
+  const members = paidResult.orders ?? paidResult.Orders ?? checkoutOrders.value
+  const targetId = paidResult.orderId ?? paidResult.OrderId ?? members[0]?.orderId ?? members[0]?.OrderId ?? orderId.value
+  if (!targetId) return
+  paidRedirected = true
   uni.showToast({ title: t('order.pay.paid'), icon: 'success' })
-  setTimeout(() => navigator.redirectTo(checkoutBatchId.value ? routes.order.list() : routes.order.detail(orderId.value)), 500)
+  Promise.resolve(navigator.redirectTo(routes.order.detail(targetId)))
+    .then(success => { if (success === false) paidRedirected = false })
+    .catch(() => { paidRedirected = false })
 }
 
 /** 创建支付页本地校验错误，使用 messageKey 让已存在页面随语言切换重新取词。 */
