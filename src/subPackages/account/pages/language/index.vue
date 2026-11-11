@@ -5,58 +5,26 @@
     </template>
 
     <template #content>
-      <AppContent>
-        <view class="content">
-          <!-- 当前语言 -->
-          <view class="current-card">
-            <text class="current-label">{{ t('account.language.current') }}</text>
-            <view class="current-value">
-              <text class="current-text">{{ currentLanguage.name }}</text>
-              <text class="current-native">{{ currentLanguage.native }}</text>
-            </view>
+      <AppContent width-mode="standard" padding="18px var(--page-padding-x, 16px) 28px">
+        <view class="language-page">
+          <text class="section-label">{{ t('account.language.current') }}</text>
+          <view class="lang-list" role="radiogroup" :aria-label="t('account.language.title')">
+            <button v-for="lang in languages" :key="lang.code"
+              class="lang-item" :class="{ 'is-active': currentLang === lang.code }"
+              role="radio" :aria-checked="currentLang === lang.code" :disabled="saving"
+              @tap="selectLanguage(lang)">
+              <view class="lang-main"><text class="lang-name">{{ lang.name }}</text><text class="lang-native">{{ lang.native }}</text></view>
+              <view class="check-icon" :class="{ selected: currentLang === lang.code }">
+                <AppIcon v-if="currentLang === lang.code" name="check" :size="14" color="#FFFFFF" />
+              </view>
+            </button>
           </view>
-
-          <!-- 语言列表 -->
-          <view class="lang-list">
-            <view
-              v-for="lang in languages"
-              :key="lang.code"
-              class="lang-item"
-              :class="{ 'is-active': currentLang === lang.code }"
-              @click="selectLanguage(lang)"
-            >
-              <view class="lang-main">
-                <text class="lang-name">{{ lang.name }}</text>
-                <text class="lang-native">{{ lang.native }}</text>
-              </view>
-              <view v-if="currentLang === lang.code" class="check-icon">
-                <text>✓</text>
-              </view>
-            </view>
+          <view class="language-notes" aria-live="polite">
+            <text v-if="saving" class="sync-message">{{ t('account.language.saving') }}</text>
+            <text v-else-if="syncFailed" class="sync-message is-error">{{ t('account.language.syncFailed') }}</text>
+            <text>{{ t('account.language.immediate') }}</text>
+            <text>{{ t('account.language.original') }}</text>
           </view>
-
-          <!-- 提示信息 -->
-          <view class="tips-card">
-            <text class="tips-title">{{ t('account.language.tips') }}</text>
-            <text v-if="saving" class="tip-text">{{ t('account.language.saving') }}</text>
-            <text v-else-if="syncFailed" class="tip-text">{{ t('account.language.syncFailed') }}</text>
-            <view class="tips-list">
-              <view class="tip-item">
-                <text class="tip-dot">•</text>
-                <text class="tip-text">{{ t('account.language.immediate') }}</text>
-              </view>
-              <view class="tip-item">
-                <text class="tip-dot">•</text>
-                <text class="tip-text">{{ t('account.language.original') }}</text>
-              </view>
-              <view class="tip-item">
-                <text class="tip-dot">•</text>
-                <text class="tip-text">{{ t('account.language.status') }}</text>
-              </view>
-            </view>
-          </view>
-
-          <view class="bottom-spacer"></view>
         </view>
       </AppContent>
     </template>
@@ -65,6 +33,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import appHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -75,8 +44,8 @@ import '../../i18n/register.js'
 const currentLang = locale
 const { saving, syncFailed, selectLanguage: changeLanguage } = useLanguageSettings()
 const languages = computed(() => [
-  { code: 'zh-CN', name: t('account.language.zh'), native: 'ZH' },
-  { code: 'en-US', name: t('account.language.en'), native: 'EN' },
+  { code: 'zh-CN', name: t('account.language.zh'), native: '简体中文' },
+  { code: 'en-US', name: t('account.language.en'), native: 'English' },
 ])
 const currentLanguage = computed(() => languages.value.find(item => item.code === currentLang.value))
 
@@ -93,163 +62,22 @@ async function selectLanguage(lang) {
 }
 </script>
 
-<style lang="scss" scoped>
-.content {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-
-/* 当前语言卡片 */
-.current-card {
-  background: linear-gradient(135deg, #D7192D, #E8384F);
-  border-radius: var(--radius-card, 14px);
-  padding: 20px 16px;
-  margin-bottom: 12px;
-  color: white;
-}
-
-.current-label {
-  font-size: var(--type-body-small-size, 13px); /* 稳定 px */
-  opacity: 0.9;
-  display: block;
-  margin-bottom: 6px;
-}
-
-.current-value {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.current-text {
-  font-size: var(--type-page-title-size, 20px); /* 稳定 px */
-  font-weight: var(--font-weight-bold, 700);
-}
-
-.current-native {
-  font-size: var(--type-body-size, 14px);
-  opacity: 0.85;
-}
-
-/* 语言列表 */
-.lang-list {
-  background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: var(--radius-card, 14px);
-  overflow: hidden;
-  margin-bottom: 12px;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-}
-
-.lang-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #F5F5F6;
-
-  &:last-child {
-    border-bottom: none;
-  }
-
-  &.is-active {
-    background: #FEF3F4;
-
-    .lang-name {
-      color: #D7192D;
-      font-weight: var(--font-weight-semibold, 600);
-    }
-  }
-
-  &:active {
-    background: rgba(0, 0, 0, 0.02);
-  }
-}
-
-.lang-main {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-
-.lang-name {
-  font-size: var(--type-label-size, 15px);
-  color: #111216;
-}
-
-.lang-native {
-  font-size: var(--type-body-small-size, 13px);
-  color: #989BA5;
-}
-
-.check-icon {
-  width: 24px; /* 稳定 px */
-  height: 24px;
-  background: #D7192D;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  text {
-    color: white;
-    font-size: var(--type-body-size, 14px);
-    font-weight: var(--font-weight-bold, 700);
-  }
-}
-
-/* 提示卡片 */
-.tips-card {
-  background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: var(--radius-card, 14px);
-  padding: var(--module-padding, 16px);
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
-}
-
-.tips-title {
-  font-size: var(--type-card-title-size, 16px); /* 稳定 px */
-  font-weight: var(--font-weight-semibold, 600);
-  color: #111216;
-  display: block;
-  margin-bottom: 10px;
-}
-
-.tips-list {
-  display: grid;
-  gap: 8px;
-}
-
-.tip-item {
-  display: flex;
-  gap: 6px;
-  align-items: flex-start;
-}
-
-.tip-dot {
-  color: #989BA5;
-  font-size: var(--type-body-size, 14px);
-  line-height: 1.6;
-}
-
-.tip-text {
-  font-size: var(--type-body-small-size, 13px);
-  color: #5E626B;
-  line-height: 1.6;
-  flex: 1;
-}
-
-.bottom-spacer {
-  height: 24px;
-}
-
-/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
-.current-card, .tips-card {
-  border: 0 !important;
-  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
-  backdrop-filter: var(--glass-card-blur, blur(16px));
-}
+<style scoped lang="scss">
+.language-page { max-width: 640px; margin: 0 auto; }
+.section-label { display: block; margin: 0 4px 10px; color: #858A94; font-size: 13px; line-height: 20px; }
+.lang-list { overflow: hidden; border-radius: 14px; background: var(--surface-card, #FFF); }
+.lang-item { display: flex; width: 100%; min-height: 78px; align-items: center; justify-content: space-between; gap: 16px; margin: 0; padding: 16px 18px; border: 0; border-radius: 0; background: transparent; text-align: left; line-height: normal; }
+.lang-item::after { border: 0; }
+.lang-item + .lang-item { border-top: 1px solid #F0F1F3; }
+.lang-item.is-active { background: #FFF8F9; }
+.lang-item[disabled] { opacity: .7; }
+.lang-main { display: flex; min-width: 0; flex-direction: column; gap: 5px; }
+.lang-name { color: #25282E; font-size: 15px; line-height: 21px; }
+.is-active .lang-name { color: var(--color-brand, #D7192D); font-weight: 600; }
+.lang-native { color: #9398A1; font-size: 12px; line-height: 18px; }
+.check-icon { display: flex; width: 22px; height: 22px; flex: none; align-items: center; justify-content: center; border: 1px solid #DBDEE3; border-radius: 50%; box-sizing: border-box; }
+.check-icon.selected { border-color: var(--color-brand, #D7192D); background: var(--color-brand, #D7192D); }
+.language-notes { display: flex; flex-direction: column; gap: 7px; padding: 16px 4px 0; color: #9398A1; font-size: 12px; line-height: 20px; }
+.sync-message { color: #646973; }
+.sync-message.is-error { color: #BE1830; }
 </style>

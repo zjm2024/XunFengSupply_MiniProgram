@@ -150,6 +150,7 @@ import {
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
 import { getOrderList, getOrderDetail, confirmReceipt, generateClientRequestId } from '@/subPackages/order/api/orderApi.js'
+import { useUserStore } from '@/shared/session/userStore.js'
 import { getOrderActionButtons } from '@/subPackages/order/model/orderActions.js'
 import { getOrderCustomerDisplay } from '../../model/orderDisplay.js'
 import { batchAddToCart } from '@/shared/api/cartApi.js'
@@ -185,6 +186,7 @@ const selectedTab = computed(() => allTabs.find(tab => tab.value === currentTab.
 const currentStatus = computed(() => selectedTab.value.orderStatus)
 const currentErpReviewStatus = computed(() => selectedTab.value.erpReviewStatus)
 const currentExcludePendingErpReview = computed(() => selectedTab.value.excludePendingErpReview)
+const userStore = useUserStore()
 const orderList = ref([])
 const loading = ref(false)
 const isRefreshing = ref(false)
@@ -374,8 +376,8 @@ function formatMoney(value) {
 }
 /** 订单列表只展示服务端允许的动作，并把本地再来一单置于首屏。 */
 function getOrderActions(order) {
-  const actions = getOrderActionButtons(order?.allowedActions)
-  if (order?.salesScene !== 1 && Number(order?.itemCount || 0) > 0) {
+  const actions = getOrderActionButtons(order?.allowedActions, userStore.hasPermission('ORDER_CREATE'))
+  if (userStore.hasPermission('ORDER_CREATE') && order?.salesScene !== 1 && Number(order?.itemCount || 0) > 0) {
     actions.push({
       key: 'reorder',
       label: reorderingOrderId.value === order.orderId ? t('order.list.reordering') : t('order.list.reorder'),

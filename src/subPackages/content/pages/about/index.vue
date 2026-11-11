@@ -9,7 +9,7 @@
         <view class="content">
           <!-- 品牌信息 -->
           <view class="brand-card">
-            <AppImage src="/static/images/logo.png" width="72px" height="72px" mode="aspectFit" radius="16px" />
+            <view class="brand-logo" aria-hidden="true" />
             <view class="brand-copy">
               <text class="brand-name">薰风体育</text>
               <text class="brand-slogan">{{ t('content.about.slogan') }}</text>
@@ -96,7 +96,6 @@ import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
-import AppImage from '@/shared/ui/AppImage/AppImage.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import { getAppVersionName } from '@/shared/utils/appVersion.js'
 
@@ -153,6 +152,7 @@ function viewTerms() {
   border-radius: var(--radius-card, 14px);
 }
 .brand-card { display: flex; align-items: center; gap: 18px; padding: 24px 20px; }
+.brand-logo { display: block; width: 72px; height: 72px; flex: none; border-radius: 16px; background: url("@/static/images/logo.png") center / contain no-repeat; }
 .brand-copy { flex: 1; min-width: 0; display: grid; gap: 6px; }
 .brand-name { font-size: var(--type-page-title-size, 20px); font-weight: 700; color: var(--type-title-color, #1b1c20); }
 .brand-slogan, .version-info { font-size: var(--type-body-small-size, 13px); line-height: 1.5; color: var(--type-secondary-color, #62666f); }
@@ -166,7 +166,7 @@ function viewTerms() {
 .contact-item { display: flex; align-items: flex-start; gap: 12px; }
 .contact-item > .app-icon { margin-top: 3px; flex: none; }
 .contact-detail { min-width: 0; flex: 1; display: grid; gap: 4px; }
-.contact-label { font-size: var(--type-caption-size, 12px); line-height: 1.5; color: var(--type-tertiary-color, #92969f); }
+.contact-label { font-size: var(--type-caption-size, 12px); line-height: 1.5; color: var(--type-secondary-color, #62666f); }
 .contact-value { display: block; font-size: var(--type-body-size, 14px); color: var(--type-title-color, #1b1c20); line-height: 1.6; overflow-wrap: anywhere; }
 .contact-value.link { color: var(--color-brand, #d7192d); }
 .link-card { padding: 0 20px; }
@@ -175,7 +175,7 @@ function viewTerms() {
 .link-name { font-size: var(--type-body-size, 14px); color: var(--type-title-color, #1b1c20); }
 .link-item:active, .contact-value.link:active { opacity: .65; }
 .copyright { padding: 12px 16px; text-align: center; }
-.copyright-text { display: block; font-size: var(--type-caption-size, 12px); color: var(--type-tertiary-color, #92969f); line-height: 1.6; }
+.copyright-text { display: block; font-size: var(--type-caption-size, 12px); color: var(--type-secondary-color, #62666f); line-height: 1.6; }
 @media (max-width: 360px) {
   .brand-card { padding: 20px 16px; gap: 14px; }
   .info-card { padding: 16px; }

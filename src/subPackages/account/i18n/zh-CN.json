@@ -330,6 +330,7 @@
     "retailShareViewHint": "查看本人分享记录并重显有效二维码。",
     "retailShareRevoke": "撤销本人分享",
     "retailShareRevokeHint": "撤销未成单授权，需同时有查看分享权限。",
+    "balanceViewRequired": "使用主体余额付款及还款时，请同时勾选“余额对账”。",
     "shareViewRequired": "生成或撤销分享时，请同时勾选“查看本人分享”。"
   },
   "subAccountForm": {
@@ -516,6 +517,7 @@
     "loadFailed": "资金流水加载失败，请稍后重试",
     "businessNo": "业务单号 {number}",
     "account": "账户 {id}",
+    "recordBalance": "余额 ¥{amount}",
     "afterBalance": "变动后余额 ¥{amount}",
     "frozenBalance": "冻结 ¥{amount}"
   },

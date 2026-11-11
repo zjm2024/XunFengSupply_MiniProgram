@@ -62,7 +62,7 @@
             <TabCategory v-show="activeTab === 'category'" :active="activeTab === 'category'" />
             <TabNews v-show="activeTab === 'news'" :active="activeTab === 'news'" />
             <TabCart v-show="activeTab === 'cart'" :active="activeTab === 'cart'" />
-            <TabAccount v-show="activeTab === 'account'" :active="activeTab === 'account'" />
+            <TabAccount ref="accountTab" v-show="activeTab === 'account'" :active="activeTab === 'account'" />
           </view>
         </scroll-view>
       </view>
@@ -101,6 +101,7 @@ const messageStore = useMessageStore()
 const { cartStore, loadCart } = useCart({ autoSchedule: false })
 
 const activeTab = ref('home')
+const accountTab = ref(null)
 const isLargeScreen = ref(false)
 const hasUnread = computed(() => messageStore.hasUnread)
 const cartCount = computed(() => cartStore.cartBadgeCount)
@@ -157,6 +158,7 @@ onMounted(() => {
 
 onShow(() => {
   notificationSessionReady()
+  if (activeTab.value === 'account') accountTab.value?.loadDashboard()
   loadCart({ silent: true }).catch(() => {})
 })
 

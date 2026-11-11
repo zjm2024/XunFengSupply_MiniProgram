@@ -330,6 +330,7 @@
     "retailShareViewHint": "View your records and show valid QR codes.",
     "retailShareRevoke": "Revoke own sharing links",
     "retailShareRevokeHint": "Revoke unbound links; viewing permission is also required.",
+    "balanceViewRequired": "Also grant balance viewing when enabling balance payments and repayments.",
     "shareViewRequired": "Also select “View own sharing records” when granting creation or revocation."
   },
   "subAccountForm": {
@@ -516,6 +517,7 @@
     "loadFailed": "Unable to load transactions. Please try again later.",
     "businessNo": "Reference {number}",
     "account": "Account {id}",
+    "recordBalance": "Balance ¥{amount}",
     "afterBalance": "Balance after ¥{amount}",
     "frozenBalance": "Frozen ¥{amount}"
   },

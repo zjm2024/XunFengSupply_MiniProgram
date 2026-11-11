@@ -19,7 +19,7 @@
         <view class="profile-copy">
           <view class="name-row">
             <text class="profile-name">{{ displayName }}</text>
-            <AppIcon name="chevron-right" :size="18" color="#59697A" />
+            <AppIcon name="chevron-right" :size="18" color="#63666D" />
           </view>
           <view class="identity-row">
             <text class="level-tag">{{ dealerLevel }}</text>
@@ -29,7 +29,7 @@
       </view>
 
       <view v-if="!userStore.isAccountNormal || finance.credit?.isFrozen" class="account-notice">
-        <AppIcon name="alert-circle" :size="16" color="#9A3B35" />
+        <AppIcon name="alert-circle" :size="16" color="#B31227" />
         <text>{{ accountNoticeText }}</text>
       </view>
 
@@ -68,35 +68,13 @@
       </view>
 
       <view class="function-card">
-      <view class="card-heading" hover-class="item--pressed" @tap="functionsExpanded = !functionsExpanded">
-        <view>
+        <view class="card-heading">
           <text class="card-title">{{ accountCopy.sections.functions }}</text>
         </view>
-        <view class="collapse-button">
-          <text>{{ functionsExpanded ? accountCopy.actions.collapse : accountCopy.actions.expand }}</text>
-          <AppIcon :name="functionsExpanded ? 'chevron-down' : 'chevron-right'" :size="16" />
-        </view>
-      </view>
-
-      <view v-show="functionsExpanded" class="function-grid" :class="{ 'function-grid--two': functionEntries.length === 4 || functionEntries.length === 2 }">
-        <button v-for="item in functionEntries" :key="item.key" class="function-item" hover-class="item--pressed" @tap="item.action">
-          <view class="function-icon" :class="item.tone"><AppIcon :name="item.icon" :size="24" /></view>
-          <text>{{ item.label }}</text>
-        </button>
-      </view>
-    </view>
-
-      <view class="service-card">
-        <view class="card-heading static">
-          <view>
-            <text class="card-title">{{ accountCopy.sections.service }}</text>
-          </view>
-        </view>
-        <view class="service-links">
-          <button v-for="item in serviceEntries" :key="item.key" class="service-link" hover-class="item--pressed" @tap="item.action">
-            <view class="service-link-icon"><AppIcon :name="item.icon" :size="24" /></view>
-            <view class="service-link-copy"><text>{{ item.label }}</text><text>{{ item.description }}</text></view>
-            <AppIcon name="chevron-right" :size="16" color="#727983" />
+        <view class="function-grid">
+          <button v-for="item in functionEntries" :key="item.key" class="function-item" hover-class="item--pressed" @tap="item.action">
+            <view class="function-icon"><AppIcon :name="item.icon" :size="24" /></view>
+            <text>{{ item.label }}</text>
           </button>
         </view>
       </view>
@@ -115,7 +93,7 @@ import { routes } from '@/app/config/routes.js'
 import { useUserStore } from '@/shared/session/userStore.js'
 import { getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import { formatFinanceAmount } from '@/shared/utils/financeAmount.js'
-import { getProfile } from '@/shared/api/auth.js'
+import { getBootstrapContext, getProfile } from '@/shared/api/auth.js'
 import { getDealerInventoryOverview } from '@/shared/api/inventory.js'
 import { getOrderCounts } from '@/shared/api/order.js'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
@@ -130,7 +108,6 @@ const dealerCode = ref(String(userStore.dealerInfo?.dealerCode || '').trim())
 const orderCounts = reactive({ allCount: 0, pendingReviewCount: 0, pendingPaymentCount: 0, processingCount: 0, completedCount: 0 })
 const dashboardLoading = ref(false)
 const dashboardInitialized = ref(false)
-const functionsExpanded = ref(true)
 
 const accountCopy = computed(() => ({
   loading: {
@@ -155,8 +132,8 @@ const accountCopy = computed(() => ({
     inventoryUnit: t('main.accountPanel.items'),
     scoreUnit: t('main.accountPanel.points'),
   },
-  sections: { orders: t('main.accountPanel.orders'), functions: t('main.accountPanel.functions'), service: t('main.accountPanel.service') },
-  actions: { allOrders: t('main.accountPanel.allOrders'), expand: t('main.accountPanel.expand'), collapse: t('main.accountPanel.collapse') },
+  sections: { orders: t('main.accountPanel.orders'), functions: t('main.accountPanel.functions') },
+  actions: { allOrders: t('main.accountPanel.allOrders') },
   services: {
     afterSales: t('main.accountPanel.afterSales'),
     afterSalesDescription: t('main.accountPanel.afterSalesDescription'),
@@ -177,7 +154,7 @@ const metricEntries = computed(() => [
   { key: 'credit', value: formatFinanceAmount(finance.value?.credit?.availableAmount), label: accountCopy.value.metrics.credit, action: goToCreditFlow },
   { key: 'balance', value: finance.value?.canViewBalance ? formatFinanceAmount(finance.value.subjectAvailableBalance) : '••••••', label: accountCopy.value.metrics.balance, action: goToFundCenter },
   { key: 'inventory', value: formatQuantity(inventoryOverview.value?.availableQuantity), unit: accountCopy.value.metrics.inventoryUnit, label: accountCopy.value.metrics.inventory, action: goToInventory },
-  { key: 'score', value: String(userStore.creditScore || 0), unit: accountCopy.value.metrics.scoreUnit, label: accountCopy.value.metrics.score },
+  { key: 'score', value: String(userStore.creditScore), unit: accountCopy.value.metrics.scoreUnit, label: accountCopy.value.metrics.score },
 ])
 const serviceEntries = computed(() => [
   /* 暂停售后服务入口，恢复时取消本段注释。
@@ -197,10 +174,21 @@ watch(() => props.active, active => {
   if (active) loadDashboard()
 }, { immediate: true })
 
+defineExpose({ loadDashboard })
+
 async function loadDashboard() {
   if (dashboardLoading.value) return
   dashboardLoading.value = true
   try {
+    if (userStore.token && !userStore.isMainAccount) {
+      const token = userStore.token
+      const userId = String(userStore.userId)
+      const context = await getBootstrapContext().catch(() => null)
+      if (token !== userStore.token || userId !== String(userStore.userId)) return
+      if (context?.isMaster === false && String(context.customerId) === userId && Array.isArray(context.permissions)) {
+        userStore.setLoginData({ token, userInfo: context })
+      }
+    }
     const tasks = [
       { key: 'profile', request: getProfile() },
       { key: 'finance', request: getDealerFinanceContext() },
@@ -264,9 +252,10 @@ const functionEntries = computed(() => [
   ...(userStore.hasPermission('BALANCE_VIEW') ? [
     { key: 'bill', label: t('main.accountPanel.bill'), icon: 'profile-bill', action: goToBill },
   ] : []),
-  { key: 'invoice', label: accountCopy.value.services.invoice, icon: 'profile-invoice', action: goToInvoice },
+  ...(userStore.isMainAccount ? [{ key: 'invoice', label: accountCopy.value.services.invoice, icon: 'profile-invoice', action: goToInvoice }] : []),
   { key: 'address', label: t('main.accountPanel.address'), icon: 'profile-address', action: goToAddress },
   ...(userStore.isMainAccount ? [{ key: 'sub-account', label: t('main.accountPanel.sub'), icon: 'profile-sub-account', action: goToSubAccount }] : []),
+  ...serviceEntries.value,
 ])
 
 </script>
@@ -285,19 +274,12 @@ const functionEntries = computed(() => [
 .profile-metrics { position: relative; z-index: 1; display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); row-gap: 12px; margin-top: 19px; }
 .profile-metric { position: relative; min-width: 0; padding: 6px 10px; text-align: center; }.profile-metric:nth-child(odd)::after { content: ''; position: absolute; top: 9px; bottom: 9px; right: 0; width: 1px; background: rgba(87,108,130,.13); }
 .metric-value, .metric-label { display: block; min-width: 0; white-space: normal; overflow-wrap: anywhere; }.metric-value { color: var(--type-title-color, #1B1C20); font-size: var(--type-label-size, 15px); font-weight: var(--font-weight-bold, 700); font-variant-numeric: tabular-nums; }.metric-unit { display: inline-block; margin-left: 4px; font-size: var(--type-micro-size, 11px); font-weight: var(--font-weight-semibold, 600); }.metric-label { margin-top: 5px; color: var(--type-secondary-color, #62666F); font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); }
-.core-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }.order-card, .service-card, .function-card, .account-service-card { border-radius: var(--radius-feature, 18px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-.order-card, .service-card { padding: var(--module-padding, 16px); }.card-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 12px; }.card-heading.static { pointer-events: none; }.card-title, .card-subtitle { display: block; }.card-title { color: var(--type-title-color, #1B1C20); font-size: var(--type-card-title-size, 16px); line-height: var(--type-card-title-line-height, 24px); font-weight: var(--font-weight-bold, 700); }.card-subtitle { margin-top: 4px; color: var(--type-muted-color, #969AA3); font-size: var(--type-micro-size, 11px); }.heading-link, .collapse-button { display: flex; align-items: center; gap: 2px; color: var(--type-secondary-color, #62666F); font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); }
-.order-card .card-title, .function-card .card-title, .order-card .heading-link, .function-card .collapse-button { color: #111216; }
+.core-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 14px; }.order-card, .function-card, .account-service-card { border-radius: var(--radius-feature, 18px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.order-card { padding: var(--module-padding, 16px); }.card-heading { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 8px 12px; }.card-heading.static { pointer-events: none; }.card-title, .card-subtitle { display: block; }.card-title { color: var(--type-title-color, #1B1C20); font-size: var(--type-card-title-size, 16px); line-height: var(--type-card-title-line-height, 24px); font-weight: var(--font-weight-bold, 700); }.card-subtitle { margin-top: 4px; color: var(--type-muted-color, #969AA3); font-size: var(--type-micro-size, 11px); }.heading-link { display: flex; align-items: center; gap: 2px; color: var(--type-secondary-color, #62666F); font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); }
+.order-card .card-title, .function-card .card-title, .order-card .heading-link { color: #111216; }
 .card-title { position: relative; padding-left: 10px; }.card-title::before { content: ''; position: absolute; top: 3px; bottom: 3px; left: 0; width: 3px; border-radius: 2px; background: #D7192D; }
-.heading-link, .collapse-button { min-height: 30px; padding: 0 2px 0 8px; }
+.heading-link { min-height: 30px; padding: 0 2px 0 8px; }
 .order-status-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); margin-top: 17px; padding: 15px 0 3px; border-top: 1px solid #EFF1F3; }.order-status { position: relative; display: flex; min-width: 0; min-height: 62px; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: #111216; font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); }.order-status:not(:last-child)::after { content: ''; position: absolute; top: 10px; right: 0; width: 1px; height: 34px; background: #F0F1F3; }.status-icon-wrap { position: relative; display: grid; width: var(--module-icon-box, 36px); height: var(--module-icon-box, 36px); place-items: center; color: #111216; }.order-card .order-status.has-count .status-icon-wrap { color: #111216; }.status-badge { position: absolute; top: -3px; right: -4px; display: inline-flex; min-width: 18px; height: 18px; align-items: center; justify-content: center; padding: 0 4px; border: 2px solid #FFF; border-radius: var(--radius-control, 10px); color: #FFF; background: #D7192D; box-sizing: border-box; font-size: var(--type-caption-size, 12px); font-weight: var(--font-weight-bold, 700); line-height: 1; font-variant-numeric: tabular-nums; }
-.service-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
-.service-link { display: grid; grid-template-columns: 32px minmax(0,1fr) 16px; flex: 1 1 100%; min-width: 0; box-sizing: border-box; align-items: center; gap: 9px; margin: 0; padding: 12px; border: 0; border-radius: var(--radius-control, 10px); background: var(--surface-page, #F4F5F8); text-align: left; line-height: 1.45; }
-.service-link-icon { display: grid; width: 32px; height: 36px; place-items: center; color: var(--icon-primary, #303238); }
-.service-link-copy { display: grid; min-width: 0; gap: 3px; }
-.service-link-copy text { display: block; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
-.service-link-copy text:first-child { color: var(--type-title-color, #1B1C20); font-size: var(--type-body-size, 14px); font-weight: 650; }
-.service-link-copy text:last-child { color: var(--type-secondary-color, #62666F); font-size: var(--type-body-small-size, 13px); }
 .function-card, .account-service-card { padding: var(--module-padding, 16px); }.function-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); row-gap: var(--module-gap, 12px); margin-top: 17px; padding-top: 13px; border-top: 1px solid #EFF1F3; }.function-item { position: relative; display: flex; min-width: 0; min-height: 68px; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: #111216; font-size: var(--type-caption-size, 12px); line-height: var(--type-caption-line-height, 18px); text-align: center; }.function-icon, .function-icon.primary { display: grid; width: var(--module-icon-box, 36px); height: var(--module-icon-box, 36px); place-items: center; color: #111216; }
 /* 入口文字保留完整内容，行高随内容增长，图标在同一行顶部对齐。 */
 .function-grid, .order-status-grid { font-size: var(--type-caption-size, 12px); }
@@ -314,42 +296,59 @@ const functionEntries = computed(() => [
   .core-grid { gap: 14px; }.function-grid { row-gap: 12px; }.account-service-grid { grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1px; background: #EFF0F2; }.account-service-item { padding: 0 11px; border-top: 0; background: #FFF; }
 }
 @media screen and (min-width: 820px) {
-  .profile-main { grid-template-columns: 72px minmax(0,1fr); }.avatar-wrap { width: 72px; height: 72px; }.profile-metrics { max-width: none; margin-top: 22px; }.core-grid { margin-top: 16px; }.order-card, .service-card, .function-card, .account-service-card { padding: 20px 22px; }.function-item { min-height: 72px; }.order-status { min-height: 68px; }.status-icon-wrap { width: var(--module-icon-box, 36px); height: var(--module-icon-box, 36px); }
+  .profile-main { grid-template-columns: 72px minmax(0,1fr); }.avatar-wrap { width: 72px; height: 72px; }.profile-metrics { max-width: none; margin-top: 22px; }.core-grid { margin-top: 16px; }.order-card, .function-card, .account-service-card { padding: 20px 22px; }.function-item { min-height: 72px; }.order-status { min-height: 68px; }.status-icon-wrap { width: var(--module-icon-box, 36px); height: var(--module-icon-box, 36px); }
 }
 @media screen and (max-width: 374px) {
-  .profile-main { grid-template-columns: 58px minmax(0,1fr); }.avatar-wrap { width: 58px; height: 58px; }.profile-name { font-size: var(--type-section-title-size, 18px); }.order-card, .service-card, .function-card, .account-service-card { padding: var(--module-padding, 16px); }.function-grid { row-gap: 18px; }.function-icon { width: var(--module-icon-box, 36px); height: var(--module-icon-box, 36px); }
+  .profile-main { grid-template-columns: 58px minmax(0,1fr); }.avatar-wrap { width: 58px; height: 58px; }.profile-name { font-size: var(--type-section-title-size, 18px); }.order-card, .function-card, .account-service-card { padding: var(--module-padding, 16px); }.function-grid { row-gap: 18px; }.function-icon { width: var(--module-icon-box, 36px); height: var(--module-icon-box, 36px); }
 }
 
 /* 金额按实际可用宽度缩字，父布局允许收缩。 */
 .profile-metric > .amount-text { margin-left: auto; margin-right: auto; }
 
 /* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
-.order-card, .function-card, .service-card, .account-service-card {
+.order-card, .function-card, .account-service-card {
   border: 0 !important;
   background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
   -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
   backdrop-filter: var(--glass-card-blur, blur(16px));
 }
-/* 入口随权限数量伸缩，每排等宽，长名称按内容换行。 */
-.function-item { box-sizing: border-box; margin: 0; padding: 10px 5px; min-height: 82px; border: 0; border-radius: var(--radius-control, 10px); background: var(--surface-page, #F4F5F8); font-size: var(--type-body-size, 14px); line-height: 1.4; }
-.function-grid { font-size: var(--type-body-size, 14px); }
-.function-item { min-width: min(100%, 5.5em); }
-.function-grid--two .function-item { flex-basis: calc(50% - 8px); }
-.function-item::after, .service-link::after { border: 0; }
-.function-item:focus-visible, .service-link:focus-visible { outline: 2px solid var(--color-brand, #D7192D); outline-offset: 2px; }
-.function-grid { padding-top: 12px; margin-top: 12px; }
-.metric-label, .heading-link, .collapse-button, .order-status { font-size: var(--type-body-small-size, 13px); line-height: 1.45; }
-.level-tag, .account-role { font-size: var(--type-body-small-size, 13px); line-height: 1.4; }
-.order-status-grid { grid-template-columns: repeat(4,minmax(0,1fr)); }
+/* 功能入口固定四列，末行保持列宽，图标与文字共用同一间距。 */
+.function-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px 4px;
+  margin-top: 10px;
+  padding-top: 9px;
+}
+.function-item {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  min-height: 68px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  margin: 0;
+  padding: 4px 2px 7px;
+  border: 0;
+  border-radius: 8px;
+  color: #34373D;
+  background: transparent;
+  font-size: 12px;
+  line-height: 17px;
+}
+.function-item::after { border: 0; }
+.function-item:focus-visible { outline: 2px solid var(--color-brand, #D7192D); outline-offset: 1px; }
+.function-icon { width: 34px; height: 34px; color: #2E3137; }
+.level-tag { color: #A91024; background: #FBECEF; }
+.account-role { color: #5E626A; background: #F2F3F5; }
+.account-notice { color: #A91024; border-color: #F2D5DA; background: #FFF5F6; }
+.metric-label, .heading-link, .order-status { font-size: var(--type-body-small-size, 13px); line-height: 1.45; }
+.order-status-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .order-status { min-height: 68px; }
-@media screen and (min-width: 600px) {
-  .function-item { flex-direction: row; justify-content: flex-start; gap: 10px; padding: 12px; min-height: 62px; }
-  .function-item > text { width: auto; text-align: left; }
+@media (min-width: 600px) {
+  .function-grid { gap: 10px; }
+  .function-item { min-height: 74px; font-size: 13px; }
 }
-@media screen and (min-width: 700px) {
-  .service-link { flex-basis: 190px; align-items: start; min-height: 94px; }
-  .service-link > :last-child { align-self: center; }
-}
-@media (prefers-reduced-motion: reduce) { .function-card, .function-grid { transition: none; } }
 </style>

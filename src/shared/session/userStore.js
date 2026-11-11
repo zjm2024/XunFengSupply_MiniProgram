@@ -71,7 +71,7 @@ export const useUserStore = defineStore('user', {
     financeContext: storage.get('financeContext', emptyFinanceContext()),
 
     // 兼容旧页面字段，数值全部由后端 Finance 上下文驱动。
-    creditScore: 0,
+    creditScore: 100,
     totalCreditLimit: 0,
     reservedCreditLimit: 0,
     usedCreditLimit: 0,
@@ -87,7 +87,6 @@ export const useUserStore = defineStore('user', {
     isSigned: () => true,
     canOrder: state => state.dealerStatus === 1
       && state.accountStatus === 1
-      && state.creditStatus !== 2
       && (state.isMainAccount || state.permissions.includes(DEALER_PERMISSIONS.ORDER_CREATE)),
     canUseCreditPay: state => state.creditStatus === 1 && state.availableCreditLimit > 0,
     displayName: state => state.dealerInfo.storeName

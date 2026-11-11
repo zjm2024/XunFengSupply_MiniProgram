@@ -89,7 +89,7 @@
                     </view>
                     <view class="detail-row">
                       <text class="detail-label">{{ t('account.subAccounts.createdAt') }}</text>
-                      <text class="detail-value">{{ item.createdAt }}</text>
+                      <text class="detail-value">{{ item.createdAt || '—' }}</text>
                     </view>
                   </view>
                 </view>

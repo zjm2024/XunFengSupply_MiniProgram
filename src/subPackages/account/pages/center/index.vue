@@ -210,14 +210,14 @@ const businessEntries = computed(() => [
     tone: 'inventory',
     action: goToInventory,
   }] : []),
-  {
+  ...(userStore.isMainAccount ? [{
     label: t('account.center.invoice'),
     value: t('account.center.companyInvoice'),
     help: t('account.center.invoiceHint'),
     icon: 'invoice',
     tone: 'invoice',
     action: goToInvoice,
-  },
+  }] : []),
 ])
 
 const serviceGroups = computed(() => [

@@ -18,7 +18,6 @@
         @scrolltolower="loadMore"
       >
         <view class="flow-page">
-          <FinanceFlowSummary kind="balance" :refreshing="isRefreshing" />
           <view class="filter-panel">
             <StatusTabBar :items="filters" :model-value="currentType" max-width="100%" @change="changeFilter" />
           </view>
@@ -38,22 +37,18 @@
             <template #default>
               <view class="flow-list">
                 <view v-for="item in flows" :key="item.transactionId" class="flow-card">
-                  <view class="flow-main">
-                    <view class="flow-heading">
-                      <text class="flow-title">{{ businessTitle(item.businessType) }}</text>
-                      <AmountText class="flow-amount" :class="amountClass(item)" :text="(formatChange(item))" />
-                    </view>
-                    <text v-if="item.remark || item.businessType === 'freeze' || item.businessType === 'unfreeze'" class="flow-desc">{{ item.remark || businessDescription(item.businessType) }}</text>
-                    <view class="flow-meta">
-                      <text>{{ formatDateTime(item.createdAt) }}</text>
-                      <text v-if="item.businessNo">{{ t('account.fundFlow.businessNo', { number: item.businessNo }) }}</text>
-                    </view>
+                  <view class="flow-heading">
+                    <text class="flow-title">{{ businessTitle(item.businessType) }}</text>
+                    <AmountText class="flow-amount" :class="amountClass(item)" :text="formatChange(item)" />
                   </view>
-                  <view class="balance-line">
-                    <text>{{ t('account.fundFlow.account', { id: item.accountId }) }}</text>
-                    <AmountText :text="t('account.fundFlow.afterBalance', { amount: formatMoney(item.balanceAfter) })" />
-                    <AmountText v-if="item.frozenAfter" :text="t('account.fundFlow.frozenBalance', { amount: formatMoney(item.frozenAfter) })" />
+                  <view class="flow-meta">
+                    <text>{{ formatDateTime(item.createdAt) }}</text>
+                    <AmountText :text="t('account.fundFlow.recordBalance', { amount: formatMoney(item.balanceAfter) })" />
                   </view>
+                  <text v-if="item.businessType === 'freeze' || item.businessType === 'unfreeze'"
+                    class="flow-status">{{ businessDescription(item.businessType) }}</text>
+                  <text v-if="item.businessNo" class="flow-no">{{ t('account.fundFlow.businessNo', { number: item.businessNo }) }}</text>
+                  <text v-if="item.remark" class="flow-desc">{{ item.remark }}</text>
                 </view>
 
               </view>
@@ -78,7 +73,6 @@ import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
-import FinanceFlowSummary from '../../components/FinanceFlowSummary.vue'
 import StatusTabBar from '@/shared/ui/StatusTabBar.vue'
 import { PageStatus } from '@/shared/model/pageState.js'
 import { getFundFlowList } from '../../api/settlement.js'
@@ -205,4 +199,24 @@ function formatMoney(value) {
 
 <style lang="scss" scoped>
 @import '../finance-flow.scss';
+
+.flow-page { min-width: 0; }
+.filter-panel { position: sticky; top: 0; z-index: 1; margin: -12px -16px 14px; padding: 10px 16px; background: var(--surface-page, #F4F5F8); }
+.filter-panel :deep(.status-tab-track) { gap: 8px; padding: 0; }
+.filter-panel :deep(.status-tab-item) { min-height: 32px; padding: 0 16px; border: 0; border-radius: 18px; background: #EBEDF0; box-shadow: none; }
+.filter-panel :deep(.status-tab-item.active) { color: #FFF; background: var(--color-brand, #D7192D); }
+.flow-list { display: grid; gap: 12px; background: transparent; border-radius: 0; }
+.flow-card { padding: 16px; border-radius: 14px; background: var(--surface-card, #FFF); }
+.flow-card + .flow-card { border-top: 0; }
+.flow-heading { align-items: baseline; gap: 4px 12px; }
+.flow-title { font-size: 14px; font-weight: 600; line-height: 21px; }
+.flow-amount { font-size: 18px; font-weight: 600; line-height: 24px; }
+.flow-amount.negative { color: var(--color-brand, #D7192D); }
+.flow-amount.positive { color: #00A870; }
+.flow-meta { justify-content: space-between; align-items: baseline; gap: 4px 12px; margin-top: 6px; color: #858A94; font-size: 12px; line-height: 18px; }
+.flow-meta .amount-text { margin-left: auto; }
+.flow-no, .flow-desc { margin-top: 5px; color: #969BA5; font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
+.flow-status { display: inline-block; max-width: 100%; box-sizing: border-box; margin-top: 7px; padding: 3px 7px; border-radius: 4px; color: #B76500; background: #FFF5E5; font-size: 11px; line-height: 16px; }
+@media (min-width: 700px) { .flow-card { padding: 18px 20px; } }
+
 </style>

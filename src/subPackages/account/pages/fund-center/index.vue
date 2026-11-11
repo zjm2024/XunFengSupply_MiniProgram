@@ -38,16 +38,17 @@
           <view class="hub-navigation">
             <view class="quick-grid" :class="{ 'single-action': quickActions.length === 1 }">
               <button v-for="item in quickActions" :key="item.label" class="quick-tile" hover-class="tile-pressed"
-                :class="{ 'quick-primary': item.primary }" @tap="open(item.url)">
+                @tap="open(item.url)">
                 <AppIcon :name="item.icon" :size="24" />
                 <text>{{ item.label }}</text>
+                <AppIcon v-if="quickActions.length === 1" name="chevron-right" :size="16" color="#696D75" />
               </button>
             </view>
             <view class="finance-panel hub-links">
               <button v-for="item in links" :key="item.label" class="hub-link" hover-class="tile-pressed" @tap="open(item.url)">
                 <AppIcon :name="item.icon" :size="21" />
                 <text>{{ item.label }}</text>
-                <AppIcon name="chevron-right" :size="16" color="#727983" />
+                <AppIcon name="chevron-right" :size="16" color="#696D75" />
               </button>
             </view>
           </view>
@@ -83,8 +84,8 @@ const loading = ref(false)
 const balanceVisible = ref(true)
 
 const quickActions = computed(() => [
-  ...(user.isMainAccount ? [{ label: t('account.withdrawal.apply'), icon: 'profile-fund-flow', url: routes.account.withdrawal({ mode: 'apply' }), primary: true }] : []),
-  { label: t('account.titles.recharge'), icon: 'profile-recharge', url: routes.account.recharge(), primary: !user.isMainAccount },
+  ...(user.isMainAccount ? [{ label: t('account.withdrawal.apply'), icon: 'profile-fund-flow', url: routes.account.withdrawal({ mode: 'apply' }) }] : []),
+  { label: t('account.titles.recharge'), icon: 'profile-recharge', url: routes.account.recharge() },
   ...(user.isMainAccount ? [{ label: t('account.fundCenter.bankCards'), icon: 'bank', url: routes.account.withdrawalBankCards() }] : []),
 ])
 const links = computed(() => [
@@ -135,7 +136,7 @@ function open(url) { return navigator.navigateTo(url) }
   padding: 16px;
   border-radius: var(--radius-feature, 18px);
   color: #fff;
-  background: linear-gradient(118deg, #b90d23 6%, #d7192d 66%, #ed4448);
+  background: linear-gradient(115deg, #AB1023, #D7192D);
 }
 .balance-orbit { position: absolute; right: -57px; bottom: -100px; width: 236px; height: 180px; border: 1px solid rgba(255,255,255,.42); border-radius: 50%; transform: rotate(-28deg); pointer-events: none; }
 .balance-orbit::after { content: ''; position: absolute; inset: 8px 13px 0; border: 1px solid rgba(255,255,255,.22); border-radius: 50%; }
@@ -145,15 +146,29 @@ function open(url) { return navigator.navigateTo(url) }
 .balance-amount { display: block; font-size: var(--type-display-size, 28px); line-height: 1.3; }
 .credit-pair, .quick-grid { display: grid; gap: 8px; min-width: 0; }
 .credit-pair { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.quick-grid.single-action { grid-template-columns: 1fr; }
-.credit-stat, .quick-tile { min-width: 0; padding: 12px; border-radius: var(--radius-card, 14px); background: var(--glass-card-background, #fff); }
+.quick-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: var(--radius-card, 14px);
+  background: var(--glass-card-background, #fff);
+}
+.credit-stat { min-width: 0; padding: 12px; border-radius: var(--radius-card, 14px); background: var(--glass-card-background, #fff); }
 .credit-stat { display: grid; gap: 4px; }
 .credit-amount { font-size: var(--type-card-title-size, 16px); line-height: 1.35; }
 .quick-tile, .hub-link { border: 0; margin: 0; width: 100%; box-sizing: border-box; color: var(--type-body-color, #1b1c20); text-align: start; font-size: var(--type-body-size, 14px); line-height: 1.4; }
 .quick-tile::after, .hub-link::after, .balance-visibility::after { border: 0; }
 .quick-tile { display: flex; min-height: 76px; flex-direction: column; justify-content: center; align-items: center; gap: 7px; font-weight: 600; text-align: center; padding-inline: 6px; }
-.quick-tile.quick-primary { color: #ad1024; background: var(--glass-card-background, #fff); }
+.quick-tile { background: transparent; color: #34373D; border-radius: 8px; font-size: 13px; }
+.quick-grid.single-action { grid-template-columns: minmax(0, 1fr); padding: 0 14px; }
+.single-action .quick-tile {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 16px;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0;
+  text-align: left;
+}
 .hub-links { padding: 0 14px; }
 .hub-link { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 12px 0; min-height: 48px; background: transparent; }
 .hub-link + .hub-link { border-top: 1px solid var(--border-color, #eceef1); }

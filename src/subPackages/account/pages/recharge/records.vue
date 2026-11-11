@@ -37,7 +37,7 @@
                       :aria-label="t(expandedId === record.rechargeId ? 'account.fundCenter.hideDetails' : 'account.fundCenter.showDetails') + ' ' + money(record.amount)"
                       @tap="toggleRecord(record.rechargeId)">
                       <view class="method-copy">
-                        <AmountText class="amount-value" :text="money(record.amount)" />
+                        <AmountText class="amount-value" :class="{ 'is-received': record.status === 2 }" :text="(record.status === 2 ? '+' : '') + money(record.amount)" />
                         <text class="record-channel">{{ payMethodText(record.payMethod) }}</text>
                         <text class="finance-meta">{{ record.createdAt ? formatDateTime(record.createdAt, 'YYYY-MM-DD HH:mm') : '—' }}</text>
                       </view>
@@ -209,6 +209,7 @@ function payMethodText(method) {
 .method-copy { display: grid; gap: 3px; min-width: 0; flex: 1; }
 .record-channel { color: var(--type-secondary-color, #62666f); font-size: 13px; line-height: 1.5; }
 .amount-value { font-size: 18px; }
+.amount-value.is-received { color: #00A870; }
 .status-wrap { display: flex; align-items: center; flex: 0 1 auto; gap: 6px; min-width: 0; }
 .status-tag { max-width: 117px; padding: 3px 7px; border-radius: 6px; color: #775020; background: #fff0d6; font-size: 13px; line-height: 1.35; }
 .status-0, .status-5 { color: #465a7c; background: #edf1f7; }

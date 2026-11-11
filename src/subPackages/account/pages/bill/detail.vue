@@ -35,7 +35,7 @@
                 </view>
               </view>
 
-              <view v-if="bill.outstandingAmount > 0 && bill.status === 0" class="settlement-notice">
+              <view v-if="canRepay && bill.outstandingAmount > 0 && bill.status === 0" class="settlement-notice">
                 <AppIcon name="info" :size="18" color="#735D35" />
                 <view>
                   <text class="notice-title">{{ t('account.billing.noticeTitle') }}</text>
@@ -125,6 +125,7 @@ import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { computed, reactive, ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getBillDetail, payBill } from '../../api/settlement.js'
+import { useUserStore } from '@/shared/session/userStore.js'
 import { getDealerFinanceContext } from '@/shared/api/dealerFinance.js'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
@@ -141,6 +142,9 @@ import { routes } from '@/app/config/routes.js'
 import { formatDate, formatDateTime, formatMonthDisplay } from '../../../../shared/utils/format.js'
 import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 
+const userStore = useUserStore()
+const canRepay = computed(() => userStore.hasPermission('BALANCE_VIEW')
+  && userStore.hasPermission('COMBINATION_PAY_PARTICIPATE'))
 const billId = ref(0)
 const pageState = ref(PageStatus.LOADING)
 const loadFailure = ref(null)

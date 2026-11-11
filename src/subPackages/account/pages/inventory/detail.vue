@@ -29,7 +29,7 @@
     </template>
     <template v-if="pageState === PageStatus.CONTENT" #footer>
       <FixedActionBar><button class="action-button secondary" @tap="openLedger">{{ t('account.inventory.ledger') }}</button><!-- 暂停售后入口，保留代码待恢复。
-<button v-if="userStore.hasPermission('INVENTORY_VIEW')" class="action-button" :disabled="detail.availableQuantity <= 0" @tap="openInventoryAfterSale">{{ t('account.inventory.applyAfterSale') }}</button>
+<button v-if="(userStore.hasPermission('INVENTORY_VIEW') && userStore.hasPermission('ORDER_CREATE'))" class="action-button" :disabled="detail.availableQuantity <= 0" @tap="openInventoryAfterSale">{{ t('account.inventory.applyAfterSale') }}</button>
 --></FixedActionBar>
     </template>
   </AppPageShell>
@@ -70,13 +70,13 @@ async function loadDetail() {
   finally { reading = false }
 }
 /** Use only the current SKU for an inventory return. */
-function openInventoryAfterSale() { if (detail.value?.availableQuantity > 0 && userStore.hasPermission('INVENTORY_VIEW')) return navigator.navigateTo(routes.order.inventoryAfterSaleApply({ skuId: detail.value.skuId })) }
+function openInventoryAfterSale() { if (detail.value?.availableQuantity > 0 && (userStore.hasPermission('INVENTORY_VIEW') && userStore.hasPermission('ORDER_CREATE'))) return navigator.navigateTo(routes.order.inventoryAfterSaleApply({ skuId: detail.value.skuId })) }
 /** Scope the full ledger to this SKU. */
 function openLedger() { return navigator.navigateTo(routes.account.inventoryLedger({ skuId: skuId.value })) }
 /** Respect order access before following a purchase source. */
 function canOpenOrder(item) { return item.sourceType === 'ORDER' && item.sourceId > 0 && userStore.hasPermission('ORDER_VIEW') }
 /** Permit inventory-return sources through the inventory permission. */
-// 暂停售后单据跳转：function canOpenSource(item) { return canOpenOrder(item) || (item.sourceType === 'AFTER_SALE' && item.sourceId > 0 && userStore.hasPermission('INVENTORY_VIEW')) }
+// 暂停售后单据跳转：function canOpenSource(item) { return canOpenOrder(item) || (item.sourceType === 'AFTER_SALE' && item.sourceId > 0 && (userStore.hasPermission('INVENTORY_VIEW') && userStore.hasPermission('ORDER_CREATE'))) }
 function canOpenSource(item) { return canOpenOrder(item) }
 /** Follow the actual source document type. */
 // 暂停售后单据跳转：function openSource(item) { if (canOpenOrder(item)) return navigator.navigateTo(routes.order.detail(item.sourceId)); if (canOpenSource(item)) return navigator.navigateTo(routes.order.afterSaleDetail(item.sourceId)) }

@@ -42,7 +42,6 @@
                   <view class="flow-heading">
                     <view class="flow-title-wrap">
                       <text class="flow-title">{{ usageTitle(item.usageType) }}</text>
-                      <text v-if="item.businessNo" class="flow-no">{{ item.businessNo }}</text>
                     </view>
                     <AmountText class="flow-amount" :class="amountClass(item)" :text="(formatChange(item))" />
                   </view>
@@ -51,6 +50,7 @@
                     <AmountText :text="t('account.creditFlow.usedAmount', { amount: formatMoney(item.afterUsedAmount) })" />
                     <AmountText :text="t('account.creditFlow.reservedAmount', { amount: formatMoney(item.afterReservedAmount) })" />
                   </view>
+                  <text v-if="item.businessNo" class="flow-no">{{ item.businessNo }}</text>
                 </view>
               </view>
               <AppLoadMore :status="loadMoreStatus" @retry="loadMore" />
@@ -174,10 +174,10 @@ function signedValue(item) {
   if (item.usageType === 1 || item.usageType === 4) return -Math.abs(item.changedAmount)
   return Math.abs(item.changedAmount)
 }
-function amountClass(item) { return signedValue(item) > 0 ? 'positive' : 'negative' }
+function amountClass(item) { return signedValue(item) > 0 ? 'positive' : signedValue(item) < 0 ? 'negative' : 'neutral' }
 function formatChange(item) {
   const value = signedValue(item)
-  return `${value > 0 ? '+' : '−'}¥${formatMoney(Math.abs(value))}`
+  return `${value > 0 ? '+' : value < 0 ? '−' : ''}¥${formatMoney(Math.abs(value))}`
 }
 function formatMoney(value) {
   const number = Number(value || 0)
@@ -187,4 +187,6 @@ function formatMoney(value) {
 
 <style lang="scss" scoped>
 @import '../finance-flow.scss';
+.flow-meta { justify-content: space-between; color: #858A94; font-size: 12px; }
+.flow-no { margin-top: 6px; color: #969BA5; font-size: 12px; }
 </style>

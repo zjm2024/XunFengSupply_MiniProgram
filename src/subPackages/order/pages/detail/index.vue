@@ -285,11 +285,13 @@ import { routes } from '@/app/config/routes.js'
 import { batchAddToCart } from '@/shared/api/cartApi.js'
 import { buildReorderCartItems } from '../../domain/reorderCart.js'
 import { formatDateTime } from '../../../../shared/utils/format.js'
+import { useUserStore } from '@/shared/session/userStore.js'
 import { getOrderActionButtons } from '../../model/orderActions.js'
 import { getOrderCustomerDisplay, getCustomerRefundDisplay, getSplitCustomerDisplay } from '../../model/orderDisplay.js'
 
 
 const orderId = ref(null)
+const userStore = useUserStore()
 const detail = ref(null)
 const reordering = ref(false)
 const collapsedProductGroups = ref({})
@@ -440,7 +442,7 @@ const actionButtons = computed(() => {
     priority: 2,
   }
 
-  const actions = [...(detail.value.salesScene === 1 ? [] : [reorderAction]), ...getOrderActionButtons(detail.value.allowedActions).filter(action => action.key !== 'viewLogistics' || primaryShipment.value?.trackingNo)]
+  const actions = [...(detail.value.salesScene === 1 || !userStore.hasPermission('ORDER_CREATE') ? [] : [reorderAction]), ...getOrderActionButtons(detail.value.allowedActions, userStore.hasPermission('ORDER_CREATE')).filter(action => action.key !== 'viewLogistics' || primaryShipment.value?.trackingNo)]
   const priority = { reorder: 0, pay: 1, cancel: 2, confirmReceipt: 3, viewLogistics: 4 }
   return actions.sort((left, right) => (priority[left.key] ?? 99) - (priority[right.key] ?? 99))
 })

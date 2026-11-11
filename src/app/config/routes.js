@@ -775,8 +775,8 @@ export const routes = {
     addressForm: ({ addressId, selectMode } = {}) =>
       withQuery(ADDRESS_FORM, { addressId, selectMode }),
     subAccount: () => SUB_ACCOUNT,
-    subAccountForm: ({ accountId, username, realName, mobile, status, permissions } = {}) =>
-      withQuery(SUB_ACCOUNT_FORM, { accountId, username, realName, mobile, status, permissions }),
+    subAccountForm: ({ accountId, username, realName, mobile, status, permissions, version, shareVersion } = {}) =>
+      withQuery(SUB_ACCOUNT_FORM, { accountId, username, realName, mobile, status, permissions, version, shareVersion }),
     inventory: ({ stockStatus } = {}) => withQuery(DEALER_INVENTORY, { stockStatus }),
     inventoryOverview: () => DEALER_INVENTORY_OVERVIEW,
     inventoryLedger: ({ skuId } = {}) => withQuery(DEALER_INVENTORY_LEDGER,

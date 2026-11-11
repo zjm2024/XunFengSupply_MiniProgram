@@ -262,7 +262,13 @@ const remainTime = ref(0)   // 剩余时间（秒）
 const paymentExpired = ref(false)
 const confirmationPending = ref(false)
 const finance = ref({ credit: {}, accounts: [] })
-const cashPaymentAvailable = true
+function canUseDefaultQrAccount(context) {
+  const account = context.currentAccount
+  return context.dealerId > 0 && account?.accountCustomerId === context.dealerId && account.accountId && account.accountStatus === 1 && account.financeStatus === 1
+    && account.fundAccountCode && account.canParticipateCombinationPay
+}
+
+const cashPaymentAvailable = computed(() => Boolean(canUseDefaultQrAccount(finance.value)))
 
 
 const nativeQrVisible = ref(false)
@@ -301,12 +307,11 @@ function syncQrPolling() {
   if (!checkoutVisible || !nativeQrVisible.value || qrPollCount >= 120 || !['pending','unknown'].includes(qrState.value.phase)) return
   qrPollTimer = setTimeout(async () => { qrPollCount++; await qrPayment?.check(); syncQrPolling() }, 3000)
 }
-/** 使用已建账的当前账户显式编码，不把空编码带到充值页再猜账户。 */
+/** 扫码款进入主体默认资金账户，服务端确认到账后再使用该账户结单。 */
 async function openOrderQr() {
   const context = await getDealerFinanceContext()
   const account = context.currentAccount
-  if (!account?.accountId || account.accountStatus !== 1 || account.financeStatus !== 1
-    || !account.fundAccountCode || !account.canParticipateCombinationPay) throw localError('qrAccountUnavailable')
+  if (!canUseDefaultQrAccount(context)) throw localError('qrAccountUnavailable')
   finance.value = context
   if (!qrPayment) {
     const token = userStore.token
@@ -391,9 +396,9 @@ const allocationTotal = computed(() => selectedAccountIds.value.reduce(
 ))
 const availableCreditAmount = computed(() => Math.max(0, Number(finance.value.credit?.availableAmount || 0)))
 const paymentModeOptions = computed(() => [
-  { value: PAYMENT_MODE.CASH, label: t('order.pay.cash'), description: t('order.pay.cashDescription'), icon: 'pay-cash', disabled: !cashPaymentAvailable },
+  { value: PAYMENT_MODE.CASH, label: t('order.pay.cash'), description: t(cashPaymentAvailable.value ? 'order.pay.cashDescription' : 'order.pay.qrAccountUnavailable'), icon: 'pay-cash', disabled: !cashPaymentAvailable.value },
   { value: PAYMENT_MODE.CREDIT, label: t('order.pay.credit'), description: t('order.pay.creditDescription'), icon: 'pay-credit', disabled: Number(finance.value.credit?.status) !== 1 },
-  { value: PAYMENT_MODE.COMBINATION, label: t('order.pay.balance'), description: t('order.pay.balanceDescription'), icon: 'pay-combine', disabled: false },
+  { value: PAYMENT_MODE.COMBINATION, label: t('order.pay.balance'), description: t('order.pay.balanceDescription'), icon: 'pay-combine', disabled: availableAccounts.value.length === 0 },
 ])
 const cashPaymentMethods = computed(() => [
   { key: 'wechat_native', label: t('order.pay.wechatNative'), description: t('order.pay.wechatNativeDescription'), icon: 'pay-wechat' },
@@ -403,7 +408,7 @@ const cashPaymentMethods = computed(() => [
 const confirmButtonText = computed(() => {
   if (paying.value) return t('order.pay.paying')
   if (paymentExpired.value) return t('order.pay.paymentEnded')
-  if (payMode.value === PAYMENT_MODE.CASH && !cashPaymentAvailable) return t('order.pay.cashUnavailable')
+  if (payMode.value === PAYMENT_MODE.CASH && !cashPaymentAvailable.value) return t('order.pay.cashUnavailable')
   return payMode.value === PAYMENT_MODE.CREDIT ? t('order.pay.confirmCredit') : t('order.pay.confirm')
 })
 onLoad(async (options) => {

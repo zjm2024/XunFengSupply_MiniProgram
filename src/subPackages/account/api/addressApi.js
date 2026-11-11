@@ -20,6 +20,7 @@ export function normalizeAddress(source = {}) {
     detail,
     fullAddress: String(valueOf(source, 'fullAddress', 'FullAddress', '') || '')
       || `${province}${city}${district}${detail}`,
+    canManage: Boolean(valueOf(source, 'canManage', 'CanManage', true)),
     isDefault: Boolean(valueOf(source, 'isDefault', 'IsDefault', false)),
   }
 }

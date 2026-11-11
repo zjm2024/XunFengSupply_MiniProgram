@@ -55,7 +55,7 @@
                     <text class="address-detail">{{ item.fullAddress }}</text>
                   </view>
                   <AppIcon v-if="selectMode" name="chevron-right" :size="18" color="#A2A5AC" />
-                  <button v-else class="manage-btn" :aria-label="t('account.address.manage')" @tap.stop="manageAddress(item)">
+                  <button v-else-if="item.canManage !== false" class="manage-btn" :aria-label="t('account.address.manage')" @tap.stop="manageAddress(item)">
                     <AppIcon name="more-v" :size="20" color="#5F646C" />
                   </button>
                 </view>

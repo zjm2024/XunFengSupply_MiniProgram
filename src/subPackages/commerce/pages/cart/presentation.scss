@@ -16,36 +16,6 @@
   min-width: 0;
 }
 
-// ==================== 顶部工具栏 ====================
-.cart-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: var(--module-gap, 12px);
-  padding: var(--module-padding, 16px);
-  border-radius: var(--radius-card, 14px);
-  background: tokens.$color-bg-card;
-  box-shadow: var(--shadow-sm);
-}
-
-.toolbar-left {
-  display: flex;
-  flex-direction: column;
-}
-
-.toolbar-title {
-  color: tokens.$color-text-primary;
-  font-size: var(--type-card-title-size, 16px);
-  font-weight: var(--font-weight-semibold, 600);
-}
-
-.toolbar-desc {
-  margin-top: 3px;
-  color: tokens.$color-gray-400;
-  font-size: var(--type-caption-size, 12px);
-}
-
 .outline-btn {
   height: 36px;
   padding: 0 13px;
@@ -310,13 +280,6 @@
   font-weight: var(--font-weight-regular, 400);
   line-height: 18px;
 }
-.sku-subtotal {
-  color: tokens.$color-gray-800;
-  font-size: var(--type-caption-size, 12px);
-  font-weight: var(--font-weight-medium, 500);
-  font-variant-numeric: tabular-nums;
-}
-
 
 .cart-card {
   position: relative;
@@ -801,7 +764,6 @@
 .summary-card, .summary-row, .price-line, .quantity-row { min-width: 0; }
 .price-line { flex-wrap: wrap; }
 .quantity-row { flex-wrap: wrap; }
-.quantity-row > .sku-subtotal { margin-left: auto; }
 .summary-row { gap: 10px; }
 .summary-row > text, .unit { flex: none; }
 .limit-amounts { display: flex; min-width: 0; flex-wrap: wrap; align-items: baseline; gap: 3px; }

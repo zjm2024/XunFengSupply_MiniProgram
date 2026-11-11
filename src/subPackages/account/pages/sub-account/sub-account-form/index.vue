@@ -210,6 +210,11 @@ async function submitForm() {
     return
   }
 
+  if (formData.permissions.includes('COMBINATION_PAY_PARTICIPATE') && !formData.permissions.includes('BALANCE_VIEW')) {
+    uni.showToast({ title: t('account.permissions.balanceViewRequired'), icon: 'none' })
+    return
+  }
+
   if (formData.permissions.some(code => ['RETAIL_SHARE_CREATE', 'RETAIL_SHARE_REVOKE'].includes(code)) && !formData.permissions.includes('RETAIL_SHARE_VIEW')) {
     uni.showToast({ title: t('account.permissions.shareViewRequired'), icon: 'none' })
     return

@@ -1,19 +1,89 @@
 <template>
   <view class="cart-layout">
     <view class="cart-main">
-      <view class="cart-toolbar"><view class="toolbar-left"><text class="toolbar-title">{{ t('commerce.checkout.products') }}</text></view><button class="outline-btn button-center" @click="emit('browse')">继续选购</button></view>
-      <AppPageState :state="busy && !rows.length ? 'loading' : !rows.length ? 'empty' : 'content'" title="购物车暂无商品" icon-type="cart">
-        <view class="spu-list"><view v-for="group in groups" :key="group.key" class="spu-card">
-          <CartSpuHeader :name="group.name" :meta="group.items.length + ' 个规格 · ' + group.quantity + ' 件'" :amount="groupAmount(group)" :selected="groupSelected(group)" :partial="groupPartial(group)" :collapsed="isGroupCollapsed(group.key)" :disabled="busy" @select="selectGroup(group)" @product="emit('product',group.items[0]?.quote?.productId)" @toggle="toggleGroup(group.key)" />
-          <view v-if="!isGroupCollapsed(group.key)" class="sku-list"><view v-for="item in group.items" :key="item.skuId" class="sku-action-shell" :class="{'action-open':activeItem===item.skuId}"><button class="sku-delete-action button-center" :disabled="busy" @tap.stop="emit('remove',item.skuId)"><AppIcon name="trash" :size="20" /><text>删除</text></button><view class="sku-row" @touchstart="startSwipe($event,item.skuId)" @touchend="endSwipe($event,item.skuId)" @contextmenu.prevent="activeItem=item.skuId">
-            <label class="check-wrap" :aria-label="item.selected ? '取消选择' : '选择商品'" :disabled="busy || !item.quote" @tap.stop="!busy && item.quote && emit('edit', item.skuId,item.quantity,!item.selected)"><view class="check" :class="{ checked: item.selected }"><text v-if="item.selected">✓</text></view></label>
-            <AppProductImage class="product-image" :src="item.quote?.imageUrl || ''" :show-stock-badge="false" @click="emit('product',item.quote?.productId)" />
-            <view class="product-info"><text class="sku-title">{{ item.quote?.specDesc || group.name }}</text><view class="price-line"><AmountText v-if="item.quote" class="price" :text="'¥' + item.quote.unitPrice" /><StatusTag v-else type="warning" text="商品已失效" /></view>
-              <view class="quantity-row"><QuantityStepper :model-value="item.quantity" size="sm" :min="1" :max="9999" allow-input :disabled="busy || !item.quote" @update:model-value="emit('edit',item.skuId,$event,item.selected)" /><AmountText class="sku-subtotal" :text="'小计 ¥' + (selectionAmount([{...item, selected:true}]) || '待核价')" /></view>
+      <view v-if="rows.length" class="cart-toolbar">
+        <text class="toolbar-title">{{ t('commerce.checkout.products') }}</text>
+        <button class="outline-btn button-center" @click="emit('browse')">继续选购</button>
+      </view>
+      <AppPageState
+        :state="busy && !rows.length ? 'loading' : !rows.length ? 'empty' : 'content'"
+        title="购物车暂无商品"
+        icon-type="cart"
+        :action-text="t('commerce.cart.browse')"
+        @action="emit('browse')"
+      >
+        <view class="spu-list cart-products">
+          <view v-for="group in groups" :key="group.key" class="spu-card">
+            <CartSpuHeader
+              toggle-on-header
+              :name="group.name"
+              :meta="t('commerce.cart.groupCount', { count: group.items.length, quantity: group.quantity })"
+              :amount="groupAmount(group)"
+              :selected="groupSelected(group)"
+              :partial="groupPartial(group)"
+              :collapsed="isGroupCollapsed(group.key)"
+              :disabled="busy || !group.items.some(item => item.quote)"
+              :expand-label="t('commerce.cart.expand')"
+              :collapse-label="t('commerce.cart.collapse')"
+              @select="selectGroup(group)"
+              @toggle="toggleGroup(group.key)"
+            />
+            <view v-if="!isGroupCollapsed(group.key)" class="sku-list">
+              <view
+                v-for="item in group.items"
+                :key="item.skuId"
+                class="sku-action-shell"
+                :class="{ 'action-open': activeItem === item.skuId }"
+              >
+                <button class="sku-delete-action button-center" :disabled="busy" @tap.stop="emit('remove', item.skuId)">
+                  <AppIcon name="trash" :size="20" color="#FFFFFF" />
+                  <text>{{ t('commerce.cart.delete') }}</text>
+                </button>
+                <view
+                  class="sku-row"
+                  @touchstart="startSwipe($event, item.skuId)"
+                  @touchend="endSwipe($event, item.skuId)"
+                  @touchcancel="swipeStart = null"
+                  @contextmenu.prevent="activeItem = item.skuId"
+                >
+                  <label
+                    class="check-wrap"
+                    :aria-label="item.selected ? '取消选择' : '选择商品'"
+                    :aria-disabled="busy || !item.quote"
+                    @tap.stop="!busy && item.quote && emit('edit', item.skuId, item.quantity, !item.selected)"
+                  >
+                    <view class="check" :class="{ checked: item.selected }"><text v-if="item.selected">✓</text></view>
+                  </label>
+                  <AppProductImage
+                    class="product-image"
+                    :src="item.quote?.imageUrl || ''"
+                    :show-stock-badge="false"
+                    @click="item.quote?.productId && emit('product', item.quote.productId)"
+                  />
+                  <view class="product-info">
+                    <text class="sku-title">{{ item.quote?.specDesc || t('commerce.cart.defaultVariant') }}</text>
+                    <text v-if="item.quote?.skuCode" class="product-code">SKU：{{ item.quote.skuCode }}</text>
+                    <view class="price-line">
+                      <AmountText v-if="item.quote" class="price" :text="'¥' + item.quote.unitPrice" />
+                      <StatusTag v-else type="warning" :text="t('commerce.cart.invalidHint')" />
+                    </view>
+                    <view class="quantity-row">
+                      <QuantityStepper
+                        :model-value="item.quantity"
+                        size="sm"
+                        :min="1"
+                        :max="9999"
+                        allow-input
+                        :disabled="busy || !item.quote"
+                        @update:model-value="emit('edit', item.skuId, $event, item.selected)"
+                      />
+                    </view>
+                  </view>
+                </view>
+              </view>
             </view>
-            </view>
-          </view></view>
-        </view></view>
+          </view>
+        </view>
       </AppPageState>
       <text v-if="rows.length" class="cart-list-count">{{ t('commerce.checkout.listCount', { products: groups.length, skus: rows.length, quantity: totalQuantity }) }}</text>
     </view>
@@ -61,21 +131,9 @@ const amount = computed(() => selectionAmount(props.rows))
 </script>
 <style scoped lang="scss">
 @import '../../commerce/pages/cart/presentation.scss';
+@import '../../commerce/pages/cart/product-rows.scss';
 
-
-/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
-.summary-card {
-  border: 0 !important;
-  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
-  backdrop-filter: var(--glass-card-blur, blur(16px));
-}
-.spu-card { border: 1px solid var(--color-border, #e7e9ec) !important; background: var(--surface-card, #fff) !important; box-shadow: none; }
-.sku-list { gap: 0; margin: 0 12px; padding: 0; border-top: 1px solid var(--color-border, #e7e9ec); }
-.sku-action-shell { border-radius: 0; }
-.sku-action-shell + .sku-action-shell { border-top: 1px dashed var(--color-border, #e7e9ec); }
-.sku-row { min-height: 88px; padding: 10px 0; border-radius: 0; background: var(--surface-card, #fff); }
+.cart-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .toolbar-title { display: flex; align-items: center; gap: 8px; }
 .toolbar-title::before { width: 3px; height: 16px; flex: 0 0 3px; border-radius: 2px; background: var(--color-brand, #D7192D); content: ""; }
 .cart-list-count { display: block; padding: 10px 0 0; color: var(--type-secondary-color); text-align: right; font-size: var(--type-caption-size, 12px); }

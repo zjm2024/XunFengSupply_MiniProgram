@@ -37,7 +37,7 @@ function normalizeSubAccount(item = {}) {
   const rawStatus = item.status ?? item.Status
   // 后端状态：0冻结/1正常 → 前端：inactive/active
   const status = Number(rawStatus) === 1 ? 'active' : 'inactive'
-  const createdAt = item.createdAt ?? item.CreatedAt ?? ''
+  const createdAt = String(item.createdAt ?? item.CreatedAt ?? '').slice(0, 10)
 
   return {
     id: customerId,
@@ -48,7 +48,7 @@ function normalizeSubAccount(item = {}) {
     phone: item.mobile ?? item.Mobile ?? '',
     email: item.email ?? item.Email ?? '',
     status,
-    createdAt: createdAt ? String(createdAt).slice(0, 10) : '',
+    createdAt: /^\d{4}-\d{2}-\d{2}$/.test(createdAt) && createdAt > '0001-01-01' ? createdAt : '',
     permissions: item.permissions ?? item.Permissions ?? [],
     version: item.version ?? item.Version ?? null,
     shareVersion: item.shareVersion ?? item.ShareVersion ?? null,
