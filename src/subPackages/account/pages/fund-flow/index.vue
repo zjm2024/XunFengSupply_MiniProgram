@@ -45,8 +45,8 @@
                     <text>{{ formatDateTime(item.createdAt) }}</text>
                     <AmountText :text="t('account.fundFlow.recordBalance', { amount: formatMoney(item.balanceAfter) })" />
                   </view>
-                  <text v-if="item.businessType === 'freeze' || item.businessType === 'unfreeze'"
-                    class="flow-status">{{ businessDescription(item.businessType) }}</text>
+                  <StatusTag v-if="item.businessType === 'freeze' || item.businessType === 'unfreeze'"
+                    class="flow-status" :type="item.businessType === 'freeze' ? 'warning' : 'success'" :text="businessDescription(item.businessType)" />
                   <text v-if="item.businessNo" class="flow-no">{{ t('account.fundFlow.businessNo', { number: item.businessNo }) }}</text>
                   <text v-if="item.remark" class="flow-desc">{{ item.remark }}</text>
                 </view>
@@ -62,6 +62,7 @@
 </template>
 
 <script setup>
+import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/account/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
@@ -203,8 +204,6 @@ function formatMoney(value) {
 .flow-page { min-width: 0; }
 .filter-panel { position: sticky; top: 0; z-index: 1; margin: -12px -16px 14px; padding: 10px 16px; background: var(--surface-page, #F4F5F8); }
 .filter-panel :deep(.status-tab-track) { gap: 8px; padding: 0; }
-.filter-panel :deep(.status-tab-item) { min-height: 32px; padding: 0 16px; border: 0; border-radius: 18px; background: #EBEDF0; box-shadow: none; }
-.filter-panel :deep(.status-tab-item.active) { color: #FFF; background: var(--color-brand, #D7192D); }
 .flow-list { display: grid; gap: 12px; background: transparent; border-radius: 0; }
 .flow-card { padding: 16px; border-radius: 14px; background: var(--surface-card, #FFF); }
 .flow-card + .flow-card { border-top: 0; }
@@ -216,7 +215,7 @@ function formatMoney(value) {
 .flow-meta { justify-content: space-between; align-items: baseline; gap: 4px 12px; margin-top: 6px; color: #858A94; font-size: 12px; line-height: 18px; }
 .flow-meta .amount-text { margin-left: auto; }
 .flow-no, .flow-desc { margin-top: 5px; color: #969BA5; font-size: 12px; line-height: 18px; overflow-wrap: anywhere; }
-.flow-status { display: inline-block; max-width: 100%; box-sizing: border-box; margin-top: 7px; padding: 3px 7px; border-radius: 4px; color: #B76500; background: #FFF5E5; font-size: 11px; line-height: 16px; }
+.flow-status { margin-top: 7px; }
 @media (min-width: 700px) { .flow-card { padding: 18px 20px; } }
 
 </style>

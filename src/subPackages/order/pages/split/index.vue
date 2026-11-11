@@ -31,7 +31,7 @@
                 <view v-for="split in existingSplits" :key="splitIdOf(split)" class="split-card readonly-card">
                   <view class="card-head">
                     <view><text class="card-title">{{ valueOf(split, 'splitName', 'SplitName', '') || t('order.split.deliveryFallback') }}</text><text class="card-subtitle">{{ valueOf(split, 'splitNo', 'SplitNo', '') }}</text></view>
-                    <text class="status-tag">{{ customerStatusText(split) }}</text>
+                    <StatusTag type="info" :text="customerStatusText(split)" />
                   </view>
                   <view class="readonly-address"><text class="address-person">{{ valueOf(split, 'receiverName', 'ReceiverName', '') }} {{ valueOf(split, 'receiverPhone', 'ReceiverPhone', '') }}</text><text class="address-detail">{{ valueOf(split, 'fullAddress', 'FullAddress', '') }}</text></view>
                   <view v-for="item in itemsOf(split)" :key="splitIdOf(split) + '-' + itemIdOf(item)" class="readonly-item">
@@ -186,6 +186,7 @@
 </template>
 
 <script setup>
+import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/order/i18n/register.js'
 import { computed, nextTick, ref, watch } from 'vue'
@@ -831,7 +832,6 @@ button::after { border: 0; }
 .card-title, .card-subtitle { display: block; overflow-wrap: anywhere; }
 .card-title { font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-semibold, 600); line-height: 21px; }
 .card-subtitle { margin-top: 3px; color: #828995; font-size: var(--type-caption-size, 12px); line-height: 18px; }
-.status-tag { max-width: 100%; padding: 3px 7px; border-radius: var(--radius-xs, 6px); color: #a34450; background: #fff1f3; font-size: var(--type-caption-size, 12px); line-height: 18px; overflow-wrap: anywhere; }
 .readonly-address { margin-top: 12px; padding: 10px; border-radius: var(--radius-small, 8px); background: #f7f8fa; }
 .address-person, .address-detail { display: block; font-size: var(--type-caption-size, 12px); line-height: 19px; overflow-wrap: anywhere; }
 .address-detail { margin-top: 3px; color: #747b86; }

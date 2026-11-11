@@ -1,7 +1,6 @@
 @use "@/uni.scss" as tokens;
 .spu-shipping-summary { display:block; margin-top:5px; color:#7D8997; font-size: var(--type-caption-size, 12px); line-height:1.5; }
 .item-shipment { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; margin-top:10px; }
-.item-shipment-status { padding:3px 7px; border-radius: 5px; background:#F0F2F5; color:#87929F; font-size: var(--type-caption-size, 12px); line-height:1.5; }
 .item-shipment.is-shipped .item-shipment-status { color:#287251; background:#EDF7F1; }
 .item-shipment.is-partial .item-shipment-status { color:#B47C24; background:#FFF6E7; }
 .item-shipment-quantities { display:flex; flex-wrap:wrap; gap:5px 12px; color:#7D8997; font-size: var(--type-caption-size, 12px); line-height:1.6; }

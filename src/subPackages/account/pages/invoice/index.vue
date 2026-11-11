@@ -32,7 +32,7 @@
                 <template #actions><AppButton size="sm" variant="secondary" @tap="openApply">{{ t('account.invoice.applyEmpty') }}</AppButton></template>
               </AppPageState>
               <view v-for="record in records" :key="record.invoiceId" class="record-item">
-                <view class="record-heading"><view class="record-money"><text class="record-currency">¥</text><AmountText class="record-amount" :text="record.amount.toFixed(2)" /></view><text class="status-tag" :class="'status-' + record.status">{{ statusText(record.status) }}</text></view>
+                <view class="record-heading"><view class="record-money"><text class="record-currency">¥</text><AmountText class="record-amount" :text="record.amount.toFixed(2)" /></view><StatusTag :type="statusType(record.status)" :text="statusText(record.status)" /></view>
                 <view class="record-info"><text class="record-title">{{ record.title }}</text><text v-if="invoiceTypeText(record.invoiceType)" class="record-type">{{ invoiceTypeText(record.invoiceType) }}</text></view>
                 <text v-if="record.invoiceNo" class="record-meta">{{ record.invoiceNo }}</text>
                 <text v-if="record.auditRemark" class="record-remark">{{ record.auditRemark }}</text>
@@ -74,6 +74,7 @@
 </template>
 
 <script setup>
+import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import { computed, ref, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { getLocale, t } from '@/shared/i18n/index.js'
@@ -313,6 +314,8 @@ async function submitApplication() {
 }
 
 /** 用双语资源显示既有状态编码。 */
+function statusType(status) { return ({ 0: 'warning', 1: 'warning', 2: 'success', 3: 'error' })[status] || 'default' }
+
 function statusText(status) {
   return t('account.invoice.status.' + ([0, 1, 2, 3, 4].includes(status) ? status : 'unknown'))
 }
@@ -376,10 +379,6 @@ async function loadPdf() {
 .record-info { display:flex; align-items:flex-start; justify-content:space-between; flex-wrap:wrap; gap:6px 12px; margin-top:12px; }
 .record-type { flex-shrink:0; color:var(--text-secondary,#737A84); font-size:var(--type-caption-size,12px); line-height:22px; }
 .record-amount { flex:1; min-width:0; color:var(--text-primary,#1B1C20); font-size:var(--type-page-title-size,20px); font-weight:var(--font-weight-semibold,600); line-height:28px; font-variant-numeric:tabular-nums; }
-.status-tag { flex-shrink:0; padding:3px 8px; border-radius:var(--radius-tag,6px); background:#ECEEF2; color:#596170; font-size:var(--type-caption-size,12px); line-height:18px; }
-.status-0, .status-1 { background:#FFF3DF; color:#946000; }
-.status-2 { background:#E8F5ED; color:#287C48; }
-.status-3 { background:#F0F2F5; color:#B42338; }
 .record-title { display:block; flex:1; min-width:0; margin-top:0; color:var(--text-primary,#1B1C20); font-size:var(--type-body-size,14px); line-height:22px; }
 .record-meta, .record-date { color:var(--text-secondary,#737A84); font-size:var(--type-caption-size,12px); line-height:18px; }
 .record-meta { display:block; margin-top:6px; }

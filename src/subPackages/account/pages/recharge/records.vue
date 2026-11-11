@@ -42,7 +42,7 @@
                         <text class="finance-meta">{{ record.createdAt ? formatDateTime(record.createdAt, 'YYYY-MM-DD HH:mm') : '—' }}</text>
                       </view>
                       <view class="status-wrap">
-                        <text class="status-tag" :class="'status-' + record.status">{{ statusText(record.status) }}</text>
+                        <StatusTag :type="statusType(record.status)" :text="statusText(record.status)" />
                         <AppIcon :name="expandedId === record.rechargeId ? 'chevron-down' : 'chevron-right'" :size="15" color="#727983" />
                       </view>
                     </button>
@@ -78,6 +78,7 @@
 </template>
 
 <script setup>
+import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import { t } from '@/shared/i18n/index.js'
 import { formatFinanceAmount as money } from '../../model/financeDisplay.js'
 import '@/subPackages/account/i18n/register.js'
@@ -179,6 +180,8 @@ async function fetchPage(append) {
   }
 }
 
+function statusType(status) { return ({ 0: 'default', 1: 'info', 2: 'success', 3: 'error', 4: 'error', 5: 'default' })[status] || 'default' }
+
 function statusText(status) {
   return t(Number(status) === 3 ? 'account.rechargeRecords.creditException'
     : Number(status) === 1 ? 'account.rechargeRecords.creditProcessing'
@@ -211,12 +214,6 @@ function payMethodText(method) {
 .amount-value { font-size: 18px; }
 .amount-value.is-received { color: #00A870; }
 .status-wrap { display: flex; align-items: center; flex: 0 1 auto; gap: 6px; min-width: 0; }
-.status-tag { max-width: 117px; padding: 3px 7px; border-radius: 6px; color: #775020; background: #fff0d6; font-size: 13px; line-height: 1.35; }
-.status-0, .status-5 { color: #465a7c; background: #edf1f7; }
-.status-1 { color: #315b96; background: #edf2f8; }
-.status-2 { color: #156b3c; background: #e0f4e8; }
-.status-3, .status-4 { color: #a4142c; background: #f0f2f5; }
-.status-tag { white-space: normal; overflow-wrap: anywhere; }
 .record-details { display: grid; gap: 9px; margin-bottom: 12px; padding: 12px; border-radius: var(--radius-control, 10px); background: var(--surface-page, #f4f5f8); }
 .detail-row { display: grid; grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); gap: 8px; color: var(--type-secondary-color, #62666f); font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
 .detail-row > :last-child { color: var(--type-body-color, #1b1c20); text-align: right; }

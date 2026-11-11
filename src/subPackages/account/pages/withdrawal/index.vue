@@ -56,7 +56,7 @@
                   <text class="finance-meta">{{ displayDate(item.createdAt) }}</text>
                 </view>
                 <view class="record-status">
-                  <text class="status-tag" :class="'status-' + item.status">{{ statusLabel(item.status) }}</text>
+                  <StatusTag :type="statusType(item.status)" :text="statusLabel(item.status)" />
                   <AppIcon :name="expandedId === item.withdrawalId ? 'chevron-down' : 'chevron-right'" :size="15" color="#727983" />
                 </view>
               </button>
@@ -81,6 +81,7 @@
 
 
 <script setup>
+import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import { computed, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { t } from '@/shared/i18n/index.js'
@@ -213,6 +214,8 @@ async function submit() {
 }
 
 /** 状态文案与审核状态编码对应。 */
+function statusType(status) { return ({ 0: 'warning', 1: 'info', 2: 'success', 3: 'error' })[status] || 'default' }
+
 function statusLabel(status) { return t('account.withdrawal.status.' + ([0, 1, 2, 3].includes(status) ? status : 'unknown')) }
 
 /** 预览页按登录主体重新读取本人打款凭证。 */
@@ -246,18 +249,12 @@ function displayDate(value) { return formatDateTime(value, 'YYYY-MM-DD HH:mm') |
 .record-copy { display: grid; min-width: 0; flex: 1; gap: 3px; }
 .record-amount { font-size: 18px; }
 .record-status { display: flex; flex: none; align-items: center; gap: 6px; }
-.status-tag { display: inline-block; max-width: 124px; padding: 3px 7px; border-radius: 6px; color: #505662; background: #eef0f3; font-size: 13px; line-height: 1.35; }
-.status-0 { color: #8a4a00; background: #fff0d6; }
-.status-1 { color: #1a51a4; background: #e6efff; }
-.status-2 { color: #156b3c; background: #e0f4e8; }
-.status-3 { color: #a4142c; background: #f0f2f5; }
 .record-detail { display: grid; gap: 10px; margin-bottom: 12px; padding: 12px; border-radius: var(--radius-control, 10px); background: var(--surface-page, #f4f5f8); }
 .record-detail .detail-line { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 8px; font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
 .detail-line > text:first-child { color: var(--type-secondary-color, #62666f); }
 .detail-line > text:last-child { text-align: right; }
 @media (max-width: 355px) {
   .record-status { gap: 3px; }
-  .status-tag { max-width: 96px; }
   .amount-field input { font-size: 20px; }
 }
 </style>

@@ -29,14 +29,17 @@ const tagClass = computed(() => `tag-${props.type}`)
   align-items: center;
   min-height: 22px;
   padding: 2px 8px;
-  border-radius: var(--radius-xs, 6px);
+  border-radius: 10px;
   font-size: var(--font-size-xs, 11px);
   font-weight: var(--font-weight-semibold, 600);
-  line-height: 1;
+  line-height: 16px;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .tag-text {
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 /* 默认 - 灰色 */

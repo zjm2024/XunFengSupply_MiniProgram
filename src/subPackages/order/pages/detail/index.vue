@@ -83,7 +83,7 @@
                           :text="t('order.detail.discount') + ' ¥' + (item.strategyDiscount + item.promotionDiscount).toFixed(2)" />
                       </view>
                       <view class="item-shipment" :class="'is-' + item.shipment.tone">
-                        <text class="item-shipment-status">{{ item.shipment.text }}</text>
+                        <StatusTag :text="item.shipment.text" />
                         <view v-if="item.shipment.known" class="item-shipment-quantities">
                           <text>{{ t('order.detail.skuShipped', { quantity: item.shipment.sent }) }} {{ item.unit }}</text>
                           <text>{{ t('order.detail.skuUnshipped', { quantity: item.shipment.remaining }) }} {{ item.unit }}</text>
@@ -258,6 +258,7 @@
 </template>
 
 <script setup>
+import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { getPriceDisplay, getOrderPriceSummary } from '@/shared/utils/priceDisplay.js'
 import { ref, computed, watch } from 'vue'
