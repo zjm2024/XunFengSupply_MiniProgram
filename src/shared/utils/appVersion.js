@@ -1,9 +1,16 @@
-import { versionName } from '@/manifest.json'
+import { versionName, versionCode } from '@/manifest.json'
 
-/** 原生客户端显示安装包版本，其他端显示当前构建版本。 */
+/** 开发运行使用项目版本，正式原生包使用实际安装包版本。 */
+export function getAppVersionInfo() {
+  const runtime = typeof plus !== 'undefined' ? plus.runtime : null
+  const useNative = !import.meta.env.DEV && runtime
+  return {
+    versionCode: Number(useNative ? runtime.versionCode : versionCode),
+    versionName: String(useNative ? runtime.version : versionName),
+    source: useNative ? 'native-package' : import.meta.env.DEV ? 'manifest-development' : 'manifest-build',
+  }
+}
+
 export function getAppVersionName() {
-  // #ifdef APP-PLUS
-  if (typeof plus !== 'undefined' && plus.runtime?.version) return plus.runtime.version
-  // #endif
-  return versionName
+  return getAppVersionInfo().versionName
 }

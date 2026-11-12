@@ -12,7 +12,7 @@
         <view class="facts"><text v-if="purchasable">{{ t('commerce.product.minimum', { count: 1, unit: unit || '件' }) }}</text><text v-if="purchasable" class="fact-dot">·</text><StatusTag :type="stockType(selectedStock)" :text="t('share.stock.' + selectedStock)" /><template v-if="categoryName"><text class="fact-dot">·</text><text>{{ categoryName }}</text></template></view>
       </view>
       <view v-if="sizeHtml" class="size-recommendation-card"><view class="section-title">{{ t('commerce.product.sizeRecommendation') }}</view><rich-text class="size-recommendation-rich-text" :nodes="sizeHtml" /></view>
-      <view v-if="purchasable" class="single-purchase-entry" :class="{ disabled: !canPurchase }" @tap="$emit('select', displaySku?.skuId)"><view><text class="section-title">{{ t('commerce.product.single') }}</text><text class="section-desc">{{ canPurchase ? t('commerce.product.selectedSummary', { name: selectedName, count: 1, unit: unit || '件' }) : t('commerce.product.noPurchasable') }}</text></view><view class="entry-action"><text>{{ canPurchase ? t('commerce.product.select') : '暂无库存' }}</text><AppIcon name="chevron-right" :size="16" /></view></view>
+      <view v-if="purchasable" class="single-purchase-entry" :class="{ disabled: !canPurchase }" @tap="$emit('select', displaySku?.skuId)"><view><text class="section-title">{{ t('commerce.product.single') }}</text><text class="section-desc">{{ hasStockOnLaterPage ? t('share.retail.moreStockVariants') : canPurchase ? t('commerce.product.selectedSummary', { name: selectedName, count: 1, unit: unit || '件' }) : t('commerce.product.noPurchasable') }}</text></view><view class="entry-action"><text>{{ canPurchase ? t('commerce.product.select') : '暂无库存' }}</text><AppIcon name="chevron-right" :size="16" /></view></view>
       <view class="section-card"><text class="section-title">{{ t('commerce.product.parameters') }}</text><view class="params-list"><view v-for="row in productParams" :key="row.label" class="param-row"><text class="param-label">{{ row.label }}</text><text class="param-value">{{ row.value }}</text></view></view></view>
       <view v-if="!purchasable" class="section-card"><view class="section-heading"><text class="section-title">规格库存</text><text class="section-count">{{ total }} 个规格</text></view><view v-for="sku in skus" :key="sku.skuId" class="spec-row" @tap="selectedSku = sku"><view class="spec-copy"><text>{{ sku.specDesc || sku.skuCode }}</text><text class="product-code">{{ sku.skuCode }}</text></view><StatusTag :type="stockType(sku.stockState)" :text="t('share.stock.' + sku.stockState)" /></view><AppButton v-if="hasMore" block variant="secondary" :loading="loading" @tap="$emit('more')">加载更多规格</AppButton><AppLoadMore v-else :status="loading ? 'loading' : 'no-more'" /></view>
       <view v-if="showPrice" class="detail-description"><view class="detail-description-heading"><view class="heading-line" /><text class="detail-description-title">{{ t('commerce.product.description') }}</text><view class="heading-line" /></view><rich-text v-if="detailHtml" class="detail-rich-text" :nodes="detailHtml" /><view v-else class="detail-empty"><text>{{ t('commerce.product.emptyDescription') }}</text></view></view>
@@ -41,9 +41,15 @@ const detailHtml = computed(() => normalizeDetailHtml(props.description))
 const sizeHtml = computed(() => normalizeDetailHtml(props.sizeRecommendation))
 const displaySku = computed(() => props.skus.find(sku => String(sku.skuId) === String(props.selectedSkuId)) || props.skus.find(sku => sku.stockState !== 'OUT_OF_STOCK') || props.skus[0] || null)
 const selectedPrice = computed(() => displaySku.value?.unitPrice || props.product.fromPrice)
-const selectedStock = computed(() => displaySku.value?.stockState || props.product.stockState)
+const selectedStock = computed(() => {
+  if (hasStockOnLaterPage.value) return props.product.stockState
+  return displaySku.value?.stockState || props.product.stockState
+})
 const selectedName = computed(() => displaySku.value?.specDesc || displaySku.value?.skuCode || '请选择规格')
-const canPurchase = computed(() => props.skus.some(sku => sku.stockState !== 'OUT_OF_STOCK'))
+const hasLoadedStock = computed(() => props.skus.some(sku => sku.stockState !== 'OUT_OF_STOCK'))
+const hasStockOnLaterPage = computed(() => props.purchasable && props.hasMore
+  && props.product.stockState !== 'OUT_OF_STOCK' && !hasLoadedStock.value)
+const canPurchase = computed(() => hasLoadedStock.value || hasStockOnLaterPage.value)
 const productParams = computed(() => [{label:'商品编码',value:props.product.productCode || '-'}, ...(props.categoryName ? [{label:'分类',value:props.categoryName}] : []), {label:'单位',value:props.unit || '件'}, {label:'规格',value:props.total + ' 个规格'}])
 const images = computed(() => { const values = [...new Set([displaySku.value?.imageUrl, props.product.imageUrl, ...props.skus.map(item => item.imageUrl)].filter(Boolean))]; return values.length ? values : [''] })
 /** 报价更新清理只读规格弹层，避免旧状态停留。 */

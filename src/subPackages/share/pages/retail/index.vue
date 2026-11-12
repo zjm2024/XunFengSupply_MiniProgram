@@ -38,7 +38,7 @@
         <ActionRow v-if="boundOrder" :actions="orderActions" :more-text="t('share.orderDetail.more')" @select="selectOrderAction" @overflow="orderActionMenu = $event" />
         <ShareCartFooter v-else-if="state.view === 'cart'" :rows="cartRows" :busy="state.busy" @edit="controller.edit" @checkout="controller.checkout()" />
         <ShareCheckoutFooter v-else-if="state.view === 'checkout'" :state="state.checkout" :items="checkoutItems" @pay="checkoutForm?.pay()" />
-        <AppButton v-else-if="state.view === 'detail'" block class="add-button" :disabled="state.busy || !purchaseProduct?.skus.some(sku => sku.canPurchase)" @tap="chooseSku()">加入购物车</AppButton>
+        <AppButton v-else-if="state.view === 'detail'" block class="add-button" :disabled="state.busy || (!purchaseProduct?.skus.some(sku => sku.canPurchase) && !(state.detail?.product.stockState !== 'OUT_OF_STOCK' && state.detail?.skus.items.length < state.detail?.skus.totalCount))" @tap="chooseSku()">加入购物车</AppButton>
         <template v-else><AppButton variant="secondary" @tap="controller.back()">继续选购</AppButton><text class="cart-selection">已选 {{ selectedCount }} 件</text><AppButton :disabled="state.busy || !selectedCount" @tap="controller.checkout()">结算</AppButton></template>
       </FixedActionBar>
     </template>

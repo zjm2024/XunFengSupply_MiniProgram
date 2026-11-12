@@ -127,6 +127,7 @@
     }
   },
   "retail": {
+    "moreStockVariants": "Open the variant selector and load more to find available variants",
     "title": "Shared selection",
     "cart": "Local cart",
     "browse": "Browse",

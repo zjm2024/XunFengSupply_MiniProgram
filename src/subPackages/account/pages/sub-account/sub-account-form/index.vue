@@ -68,15 +68,15 @@
 
             <view class="form-group">
               <text class="form-label">{{ t('account.subAccountForm.permissions') }}</text>
-              <view class="permission-list">
-                <view
+              <checkbox-group class="permission-list" @change="onPermissionsChange">
+                <label
                   v-for="item in permissionOptions"
                   :key="item.code"
                   class="permission-item"
                   :class="{ disabled: isReadOnly || (isEdit && formData.status !== 'active') }"
-                  @tap="togglePermission(item.code)"
                 >
                   <checkbox
+                    :value="item.code"
                     :checked="formData.permissions.includes(item.code)"
                     :disabled="isReadOnly || (isEdit && formData.status !== 'active')"
                     color="#D7192D"
@@ -85,8 +85,8 @@
                     <text class="permission-name">{{ item.name }}</text>
                     <text class="permission-description">{{ item.description }}</text>
                   </view>
-                </view>
-              </view>
+                </label>
+              </checkbox-group>
               <text v-if="isReadOnly || (isEdit && formData.status !== 'active')" class="frozen-tip">
                 {{ isReadOnly ? t('account.subAccountForm.mainFrozen') : t('account.subAccountForm.accountFrozen') }}
               </text>
@@ -95,6 +95,7 @@
 
           <!-- 底部按钮 -->
           <view class="bottom-actions">
+            <text v-if="formError" class="form-error" role="alert">{{ formError }}</text>
             <button class="submit-btn" @click="submitForm" :disabled="submitting || isReadOnly">
               {{ submitting ? t('account.subAccountForm.submitting') : t('account.subAccountForm.confirm') }}
             </button>
@@ -117,6 +118,7 @@ import { createSubAccount, updateSubAccount, toggleSubAccountStatus } from '../.
 import { useUserStore } from '@/shared/session/userStore.js'
 import { navigator } from '@/app/navigation/navigator.js'
 const submitting = ref(false)
+const formError = ref('')
 const userStore = useUserStore()
 const isReadOnly = computed(() => userStore.isFrozen)
 
@@ -172,11 +174,12 @@ onLoad((params = {}) => {
   }
 })
 
-function togglePermission(code) {
-  if (isReadOnly.value || (isEdit.value && formData.status !== 'active')) return
-  const index = formData.permissions.indexOf(code)
-  if (index >= 0) formData.permissions.splice(index, 1)
-  else formData.permissions.push(code)
+/** 由复选组统一同步状态，点击勾选框与整行采用同一事件来源。 */
+function onPermissionsChange(event) {
+  if (isReadOnly.value || submitting.value || (isEdit.value && formData.status !== 'active')) return
+  const selected = new Set(event.detail.value || [])
+  formData.permissions = permissionOptions.value.filter(item => selected.has(item.code)).map(item => item.code)
+  formError.value = ''
 }
 
 /**
@@ -198,25 +201,26 @@ function goBack() {
  * 提交表单
  */
 async function submitForm() {
-  if (isReadOnly.value) return
+  if (isReadOnly.value || submitting.value) return
+  formError.value = ''
   // 表单校验
   if (!formData.username.trim()) {
-    uni.showToast({ title: t('account.subAccountForm.usernameRequired'), icon: 'none' })
+    formError.value = t('account.subAccountForm.usernameRequired')
     return
   }
 
   if (!isEdit.value && !formData.password.trim()) {
-    uni.showToast({ title: t('account.subAccountForm.passwordRequired'), icon: 'none' })
+    formError.value = t('account.subAccountForm.passwordRequired')
     return
   }
 
   if (formData.permissions.includes('COMBINATION_PAY_PARTICIPATE') && !formData.permissions.includes('BALANCE_VIEW')) {
-    uni.showToast({ title: t('account.permissions.balanceViewRequired'), icon: 'none' })
+    formError.value = t('account.permissions.balanceViewRequired')
     return
   }
 
   if (formData.permissions.some(code => ['RETAIL_SHARE_CREATE', 'RETAIL_SHARE_REVOKE'].includes(code)) && !formData.permissions.includes('RETAIL_SHARE_VIEW')) {
-    uni.showToast({ title: t('account.permissions.shareViewRequired'), icon: 'none' })
+    formError.value = t('account.permissions.shareViewRequired')
     return
   }
 
@@ -256,7 +260,7 @@ async function submitForm() {
     }, 1000)
   } catch (err) {
     console.error('[SubAccountForm] 提交失败:', err)
-    uni.showToast({ title: err.message || t('account.subAccountForm.failed'), icon: 'none' })
+    formError.value = err.message || t('account.subAccountForm.failed')
   } finally {
     submitting.value = false
   }
@@ -359,6 +363,19 @@ async function submitForm() {
 .bottom-actions {
   margin-top: 24px;
   padding: 0;
+}
+
+.form-error {
+  display: block;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: #B42318;
+  background: #FFF1F0;
+  font-size: 13px;
+  line-height: 21px;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .submit-btn {

@@ -1,8 +1,0 @@
-{
-  "name": "notification-gateway",
-  "version": "1.0.0",
-  "main": "index.js",
-  "extensions": {
-    "uni-cloud-push": {}
-  }
-}

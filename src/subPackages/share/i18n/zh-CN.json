@@ -127,6 +127,7 @@
     }
   },
   "retail": {
+    "moreStockVariants": "请选择规格并加载更多，查看有库存的规格",
     "title": "分享选购",
     "cart": "本地购物车",
     "browse": "浏览商品",

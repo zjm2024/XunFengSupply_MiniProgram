@@ -24,6 +24,7 @@ import { useUserStore } from '../../shared/session/userStore.js'
 import { LOGIN, HOME, ACCOUNT_STATUS } from '../config/routes.js'
 import { APP_SURFACE } from '../config/shareSurface.js'
 import { AppError, ErrorKind } from '../../shared/api/appError.js'
+import { getAppVersionInfo } from '../../shared/utils/appVersion.js'
 import { initializeAppLocale } from '../i18n/localePersistence.js'
 
 // ==================== 配置常量 ====================
@@ -92,22 +93,13 @@ async function _performBootstrap(options = {}) {
   // 步骤 2: 规范化语言设置
   _normalizeLanguage()
 
-  // 步骤 3: 无 Token → 正常结果，目标为登录页
-  if (!userStore.token) {
-    return {
-      status: 'ready',
-      targetUrl: _getSafeLoginUrl(),
-      reason: 'no_token',
-      restoredSession: false
-    }
-  }
-
-  // 步骤 4: 有 Token → 版本检测 + 会话恢复并行执行
+  // 未登录也检查版本，账号恢复失败时仍优先处理已经确认的强制更新。
   try {
-    const [versionResult, userInfo] = await Promise.all([
+    const [versionOutcome, userOutcome] = await Promise.allSettled([
       _checkVersionSafe(),
-      _fetchBootstrapContext()
+      userStore.token ? _fetchBootstrapContext() : Promise.resolve(null),
     ])
+    const versionResult = versionOutcome.status === 'fulfilled' ? versionOutcome.value : null
 
     // 版本检测优先：强制更新 → 阻断
     if (versionResult && versionResult.forceUpdate) {
@@ -119,6 +111,17 @@ async function _performBootstrap(options = {}) {
         restoredSession: false
       }
     }
+
+    if (!userStore.token) {
+      return {
+        status: 'ready',
+        targetUrl: _getSafeLoginUrl(),
+        reason: 'no_token',
+        restoredSession: false,
+      }
+    }
+    if (userOutcome.status === 'rejected') throw userOutcome.reason
+    const userInfo = userOutcome.value
 
     // 更新 Store 中的用户信息
     userStore.setLoginData({
@@ -185,6 +188,11 @@ async function _checkVersionSafe() {
     if (!versionInfo) return null
 
     const result = await checkAppVersion(versionInfo)
+    console.info('[VersionCheck] result', JSON.stringify({
+      platform: versionInfo.Platform, currentCode: versionInfo.VersionCode,
+      latestCode: result?.latestVersionCode, minimumCode: result?.minSupportedVersionCode,
+      forceUpdate: result?.forceUpdate, hasDownloadUrl: Boolean(result?.downloadUrl),
+    }))
 
     // 判断是否需要强制更新
     if (result && result.forceUpdate && result.minSupportedVersionCode > versionInfo.VersionCode) {
@@ -215,17 +223,18 @@ function _getAppVersionInfo() {
   // #ifdef APP-PLUS
   return new Promise((resolve, reject) => {
     try {
-      const versionCode = plus.runtime.versionCode
-      const versionName = plus.runtime.version
-
-      if (!versionCode || !versionName) {
-        reject(new Error('无法获取版本信息'))
+      const version = getAppVersionInfo()
+      const versionCode = version.versionCode
+      const versionName = version.versionName
+      if (!Number.isSafeInteger(versionCode) || versionCode <= 0 || !versionName) {
+        reject(new Error('无法获取有效的 App 版本信息'))
         return
       }
-
-      // 判断平台
       const osName = plus.os.name?.toLowerCase()
       const platform = osName === 'ios' ? 'ios' : 'android'
+      console.info('[VersionCheck] request', JSON.stringify({
+        platform, versionCode, versionName, source: version.source,
+      }))
 
       resolve({
         Platform: platform,

@@ -1,4 +1,4 @@
-﻿<!--
+<!--
   经销商登录页（分包：authSub）
   安全策略：首次不展示验证码；凭证输错一次后，由服务端强制启用滑块拼图验证。
 -->
@@ -69,22 +69,6 @@
                      />
                    </view>
                  </view>
-               </view>
-
-               <view
-                 v-if="captchaRequired"
-                 class="captcha-entry"
-                 :class="{ verified: captchaVerified }"
-               >
-                 <AppIcon
-                   :name="captchaVerified ? 'shield-check' : 'shield'"
-                   :size="20"
-                   :color="captchaVerified ? '#027A48' : '#B54708'"
-                 />
-                 <text class="captcha-entry__title">{{ t('auth.login.verification') }}</text>
-                 <text class="captcha-entry__status">
-                   {{ captchaVerified ? t('auth.login.verified') : t('auth.login.unverified') }}
-                 </text>
                </view>
 
               <view v-if="formError" class="form-error" role="alert">
@@ -579,43 +563,6 @@ function goToApplySign() {
 
 .password-toggle {
   flex-shrink: 0;
-}
-
-.captcha-entry {
-  min-height: 36px;
-  margin-top: $space-4;
-  padding: 0 $space-3;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: $space-2;
-  color: #b54708;
-  background: #fffaeb;
-  border: 1px solid #fedf89;
-  border-radius: $radius-control;
-
-  &.verified {
-    color: #027a48;
-    background: #ecfdf3;
-    border-color: #abefc6;
-  }
-}
-
-.captcha-entry__title {
-  min-width: 0;
-  flex: 1;
-  color: $color-text-primary;
-  font-size: $font-size-caption;
-  line-height: $line-height-caption;
-  font-weight: $font-weight-semibold;
-}
-
-.captcha-entry__status {
-  flex-shrink: 0;
-  color: inherit;
-  font-size: $font-size-micro;
-  line-height: $line-height-micro;
-  font-weight: $font-weight-semibold;
 }
 
 .captcha-modal-mask {
