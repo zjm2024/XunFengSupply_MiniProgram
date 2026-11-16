@@ -74,6 +74,9 @@
     "clearInvalidResults": "清理当前失效项"
   },
   "checkout": {
+    "scopeChanged": "商品范围已变化",
+    "returnToCart": "返回购物车",
+    "stayHere": "留在此页",
     "priceChanged": "商品价格已按最新经销商价格重新核算，请确认后提交。",
     "reprice": "重新核价",
     "receiver": "收货信息",
@@ -200,6 +203,7 @@
     "currentVariant": "当前规格：{name}"
   },
   "catalog": {
+    "scopeEmpty": "暂未分配可采购商品，请联系业务人员",
     "searchProduct": "搜商品",
     "refreshing": "刷新中",
     "loading": "加载中...",

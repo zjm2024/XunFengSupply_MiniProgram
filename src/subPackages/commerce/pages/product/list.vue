@@ -1,4 +1,4 @@
-﻿﻿﻿<template>
+﻿<template>
   <view class="page">
     <AppCatalogHeader
       v-model:keyword="keyword"
@@ -67,8 +67,8 @@
         <view class="empty-illustration">
           <AppSvgIllustration :svg="noSearchResultSvg" size="lg" />
         </view>
-        <text class="empty-text">{{ searchMode ? t('commerce.catalog.notFound') : t('commerce.catalog.empty') }}</text>
-        <text class="empty-subtext">
+        <text class="empty-text">{{ scopeEmpty ? t('commerce.catalog.scopeEmpty') : searchMode ? t('commerce.catalog.notFound') : t('commerce.catalog.empty') }}</text>
+        <text v-if="!scopeEmpty" class="empty-subtext">
           {{ searchMode ? t('commerce.catalog.notFoundHint', { keyword }) : t('commerce.catalog.emptyHint') }}
         </text>
       </view>
@@ -122,8 +122,10 @@ import '@/subPackages/commerce/i18n/register.js'
 import { ref, computed, watch, onMounted } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { useCart } from '@/shared/composables/useCart.js'
+import { useUserStore } from '@/shared/session/userStore.js'
 import { navigator } from '../../../../app/navigation/navigator.js'
 import { routes } from '../../../../app/config/routes.js'
+import { getEmptyProductScope } from '@/shared/api/product.js'
 import { getCategoryList, getGoodsList } from '../../api/productApi.js'
 import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
 import AppCatalogHeader from '../../../../shared/ui/AppCatalogHeader/AppCatalogHeader.vue'
@@ -155,9 +157,12 @@ const SEARCH_HISTORY_LIMIT = 10
 
 
 const { cartStore, loadCart } = useCart()
+const user = useUserStore()
+const catalogPrincipal = computed(() => `${user.dealerId || ''}.${user.userId || ''}`)
 
 const keyword = ref('')
 const searchMode = ref(false)
+const scopeEmpty = ref(false)
 const hasSearched = ref(false)
 const keywordCommitted = ref(false)
 const searchHistory = ref([])
@@ -182,6 +187,7 @@ const listScrollTop = ref(0)
 const showBackToTop = ref(false)
 let currentListScrollTop = 0
 let productRequestId = 0
+let categoryRequestId = 0
 
 // 购物车数量
 const cartCount = computed(() => cartStore.cartBadgeCount)
@@ -252,13 +258,37 @@ onShow(() => {
   loadCart({ silent: true }).catch(() => {})
 })
 
+watch(catalogPrincipal, () => {
+  productRequestId += 1
+  categoryRequestId += 1
+  products.value = []
+  categoryTree.value = []
+  activeCategoryId.value = null
+  activeCategoryPath.value = []
+  keyword.value = ''
+  scopeEmpty.value = false
+  loading.value = false
+  total.value = 0
+  page.value = 1
+  hasMore.value = false
+  hasSearched.value = false
+  loadSearchHistory()
+  if (user.userId && user.dealerId) {
+    loadCategories()
+    if (!searchMode.value) loadProducts()
+  }
+})
+
 // 加载分类数据
 async function loadCategories() {
+  const request = ++categoryRequestId
   try {
     const list = await getCategoryList()
+    if (request !== categoryRequestId) return
     categoryTree.value = Array.isArray(list) ? list : []
     activeCategoryPath.value = findCategoryPath(categoryTree.value, activeCategoryId.value) || []
   } catch (err) {
+    if (request !== categoryRequestId) return
     console.error('[ProductList] 加载分类失败:', err)
     categoryTree.value = []
     activeCategoryPath.value = []
@@ -272,6 +302,7 @@ async function loadProducts(isLoadMore = false) {
   if (isLoadMore && !hasMore.value) return
 
   const requestId = ++productRequestId
+  if (!isLoadMore) scopeEmpty.value = false
   const targetPage = isLoadMore ? page.value + 1 : 1
   loading.value = true
   if (isLoadMore) loadMoreError.value = false
@@ -311,6 +342,11 @@ async function loadProducts(isLoadMore = false) {
       } else {
         products.value = items || []
         page.value = 1
+        if (!products.value.length) {
+          const empty = await getEmptyProductScope().catch(() => false)
+          if (requestId !== productRequestId) return
+          scopeEmpty.value = empty === true
+        }
         if (searchMode.value && params.keyword && products.value.length) saveSearchKeyword(params.keyword)
       }
 
@@ -399,7 +435,7 @@ function runSuggestedSearch(value) {
 
 function loadSearchHistory() {
   try {
-    const stored = uni.getStorageSync(SEARCH_HISTORY_KEY)
+    const stored = uni.getStorageSync(`${SEARCH_HISTORY_KEY}.${catalogPrincipal.value}`)
     searchHistory.value = Array.isArray(stored) ? stored.filter(Boolean).slice(0, SEARCH_HISTORY_LIMIT) : []
   } catch (_) {
     searchHistory.value = []
@@ -411,14 +447,14 @@ function saveSearchKeyword(value) {
   const nextHistory = [value, ...searchHistory.value.filter(item => item !== value)].slice(0, SEARCH_HISTORY_LIMIT)
   searchHistory.value = nextHistory
   try {
-    uni.setStorageSync(SEARCH_HISTORY_KEY, nextHistory)
+    uni.setStorageSync(`${SEARCH_HISTORY_KEY}.${catalogPrincipal.value}`, nextHistory)
   } catch (_) {}
 }
 
 function clearSearchHistory() {
   searchHistory.value = []
   try {
-    uni.removeStorageSync(SEARCH_HISTORY_KEY)
+    uni.removeStorageSync(`${SEARCH_HISTORY_KEY}.${catalogPrincipal.value}`)
   } catch (_) {}
 }
 

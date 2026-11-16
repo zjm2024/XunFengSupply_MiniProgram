@@ -6,8 +6,8 @@
       <view class="state-illustration">
         <AppSvgIllustration :svg="noSearchResultSvg" size="lg" />
       </view>
-      <text class="state-title">{{ t('main.category.empty') }}</text>
-      <text class="state-description">{{ t('main.category.retryHint') }}</text>
+      <text class="state-title">{{ emptyTitle || t('main.category.empty') }}</text>
+      <text v-if="!emptyTitle" class="state-description">{{ t('main.category.retryHint') }}</text>
       <view class="retry-button" hover-class="control--pressed" @click="refreshCategories">
         <AppIcon name="refresh" :size="16" />
         <text>{{ t('main.category.retry') }}</text>
@@ -111,7 +111,7 @@ import AppCategoryLayout from '@/shared/ui/AppCategoryLayout/AppCategoryLayout.v
 import AppSvgIllustration from '@/shared/ui/AppSvgIllustration/AppSvgIllustration.vue'
 import noSearchResultSvg from '@/shared/assets/illustrations/no-search-result.svg?raw'
 /** 经销商与分享入口共用三级分类展示；数据加载由所属业务注入。 */
-const props = defineProps({ categories: { type: Array, default: () => [] }, active: { type: Boolean, default: true }, loading: Boolean, failed: Boolean, refreshing: Boolean, showPrice: { type: Boolean, default: true }, loadProducts: { type: Function, required: true } })
+const props = defineProps({ categories: { type: Array, default: () => [] }, active: { type: Boolean, default: true }, loading: Boolean, failed: Boolean, refreshing: Boolean, emptyTitle: { type: String, default: '' }, showPrice: { type: Boolean, default: true }, loadProducts: { type: Function, required: true } })
 const emit = defineEmits(['product', 'category', 'refresh'])
 let generation = 0
 /** 重新读取分类由所属入口授权，展示层不调用业务API。 */

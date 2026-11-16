@@ -41,7 +41,8 @@
     "captchaPassed": "Verified",
     "captchaVerifying": "Verifying…",
     "captchaRelease": "Release when the piece fits the gap",
-    "captchaDrag": "Hold and drag the slider to the right"
+    "captchaDrag": "Hold and drag the slider to the right",
+    "captchaImageLoading": "Loading verification images…"
   },
   "titles": {
     "apply": "Submit registration details",

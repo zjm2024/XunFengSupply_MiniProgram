@@ -8,6 +8,11 @@ import { firstCatalogPrice, resolveCatalogPrice } from '@/shared/utils/catalogPr
  */
 import { dispatch } from './dispatchClient.js'
 
+/** 空态只读当前登录经销商，不传分组或经销商 ID。 */
+export function getEmptyProductScope() {
+  return dispatch('MallProduct', 'Mini.ProductController', 'GetEmptyProductScope', {})
+}
+
 const DEFAULT_IMAGE = ''
 
 function number(value, fallback = 0) {

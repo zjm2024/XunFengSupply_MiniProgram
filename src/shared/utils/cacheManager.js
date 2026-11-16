@@ -8,6 +8,7 @@ const CACHE_KEY_PREFIXES = Object.freeze([
 
 function isClearableKey(key) {
   return key === SEARCH_HISTORY_KEY
+    || key.startsWith(SEARCH_HISTORY_KEY + '.')
     || key.startsWith(RESOURCE_CACHE_PREFIX)
     || CACHE_KEY_PREFIXES.some(prefix => key.startsWith(prefix))
 }

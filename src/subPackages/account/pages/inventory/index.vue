@@ -7,36 +7,26 @@
     <template #content>
       <AppContent padding="16px var(--page-padding-x,16px) 28px" :refresher-enabled="true" :refresher-triggered="isRefreshing" @refresherrefresh="handleRefresh" @refresherrestore="handleRefresherRestore" @refresherabort="handleRefresherRestore" @scrolltolower="loadMore">
         <view class="inventory-wrap">
-          <view class="result-head"><text>{{ t('account.inventory.productTotalLabel', { count: totalCount }) }}</text><!-- 暂停售后入口，保留代码待恢复。
-<text class="link-text batch-toggle" @tap="toggleSelecting">{{ t(selecting ? 'account.inventory.finishSelection' : 'account.inventory.batchReturn') }}</text>
---></view>
-          <!-- 暂停售后入口，保留代码待恢复。
-<text v-if="selecting" class="selection-hint">{{ t('account.inventory.selectHint') }}</text>
--->
+          <view class="result-head"><text>{{ t('account.inventory.productTotalLabel', { count: totalCount }) }}</text><text v-if="canApplyAfterSale" class="link-text batch-toggle" @tap="toggleSelecting">{{ t(selecting ? 'account.inventory.finishSelection' : 'account.inventory.batchReturn') }}</text></view>
+          <text v-if="selecting" class="selection-hint">{{ t('account.inventory.selectHint') }}</text>
           <AppPageState :state="pageState" :title="t('account.inventory.empty')" :description="pageState === PageStatus.ERROR ? loadError : t('account.inventory.emptyHint')" @retry="reload" @action="reload">
             <view class="spu-list">
               <view v-for="product in items" :key="product.productId" class="spu-card">
                 <view class="spu-main" @tap="toggleProduct(product)">
                   <AppProductImage class="spu-image" :src="product.imageUrl" mode="aspectFit" />
-                  <view class="stock-copy"><text class="spu-name">{{ product.productName || t('account.inventory.unnamed') }}</text><text class="sku-code">{{ t('account.inventory.variantCount', { count: product.skuCount }) }}</text><!-- 暂停售后入口，保留代码待恢复。
-<text v-if="selectedFor(product.productId)" class="selected-mark">{{ t('account.inventory.selected') }} {{ selectedFor(product.productId) }}</text>
---></view>
+                  <view class="stock-copy"><text class="spu-name">{{ product.productName || t('account.inventory.unnamed') }}</text><text class="sku-code">{{ t('account.inventory.variantCount', { count: product.skuCount }) }}</text><text v-if="selectedFor(product.productId)" class="selected-mark">{{ t('account.inventory.selected') }} {{ selectedFor(product.productId) }}</text></view>
                   <view class="spu-quantity"><text>{{ t('account.inventory.currentAvailable') }}</text><text>{{ formatQty(product.availableQuantity) }}</text><text>{{ product.unit }}</text></view>
                 </view>
                 <view class="spu-bottom" @tap="toggleProduct(product)"><text>{{ t('account.inventory.physicalStock') }} {{ formatQty(product.onHandQuantity) }} · {{ t('account.inventory.reserved') }} {{ formatQty(product.reservedQuantity) }}</text><view><text>{{ t(variants[product.productId]?.expanded ? 'account.inventory.collapse' : 'account.inventory.expand') }}</text><AppIcon :name="variants[product.productId]?.expanded ? 'chevron-up' : 'chevron-down'" :size="14" /></view></view>
                 <view v-if="variants[product.productId]?.expanded" class="sku-panel">
                   <view v-for="sku in variants[product.productId].items" :key="sku.skuId" class="variant-row">
-                    <view class="variant-main" @tap="openDetail(sku.skuId)">
-                      <!-- 暂停售后入口，保留代码待恢复。
-<view v-if="selecting" class="select-circle" :class="{ checked: isSelected(sku.skuId), disabled: sku.availableQuantity <= 0 }"><AppIcon v-if="isSelected(sku.skuId)" name="check" :size="14" color="#fff" /></view>
--->
+                    <view class="variant-main" @tap="selecting ? toggleSku(sku) : openDetail(sku.skuId)">
+                      <view v-if="selecting" class="select-circle" :class="{ checked: isSelected(sku.skuId), disabled: sku.availableQuantity <= 0 }"><AppIcon v-if="isSelected(sku.skuId)" name="check" :size="14" color="#fff" /></view>
                       <view class="variant-copy"><text class="variant-name">{{ [sku.colorName, sku.sizeName].filter(Boolean).join(' / ') || sku.skuName }}</text><text class="sku-code">{{ sku.skuCode || ('SKU ' + sku.skuId) }}</text></view>
                       <view class="variant-stock"><text>{{ t('account.inventory.currentAvailable') }}</text><text>{{ formatQty(sku.availableQuantity) }} {{ sku.unit }}</text></view>
                       <AppIcon v-if="!selecting" name="chevron-right" :size="14" color="#9BA3AE" />
                     </view>
-                    <!-- 暂停售后入口，保留代码待恢复。
-<view v-if="selecting && isSelected(sku.skuId)" class="variant-edit"><text>{{ t('account.inventory.returnQuantity') }}</text><view class="quantity-control"><button class="step-button" :disabled="draft.state.pendingIntent || selectedQuantity(sku.skuId) <= 1" @tap="setQuantity(sku, selectedQuantity(sku.skuId)-1)">−</button><input type="number" class="quantity-input" :disabled="Boolean(draft.state.pendingIntent)" :value="selectedQuantity(sku.skuId)" @input="setQuantity(sku, $event.detail.value)" /><button class="step-button" :disabled="selectedQuantity(sku.skuId) >= sku.availableQuantity" @tap="setQuantity(sku, selectedQuantity(sku.skuId)+1)">＋</button></view></view>
--->
+                    <view v-if="selecting && isSelected(sku.skuId)" class="variant-edit"><text>{{ t('account.inventory.returnQuantity') }}</text><view class="quantity-control"><button class="step-button" :disabled="draft.state.pendingIntent || selectedQuantity(sku.skuId) <= 1" @tap="setQuantity(sku, selectedQuantity(sku.skuId)-1)">−</button><input type="number" class="quantity-input" :disabled="Boolean(draft.state.pendingIntent)" :value="selectedQuantity(sku.skuId)" @input="setQuantity(sku, $event.detail.value)" /><button class="step-button" :disabled="selectedQuantity(sku.skuId) >= sku.availableQuantity" @tap="setQuantity(sku, selectedQuantity(sku.skuId)+1)">＋</button></view></view>
                   </view>
                   <AppLoadMore v-if="variants[product.productId].loading || variants[product.productId].error || variants[product.productId].items.length < variants[product.productId].total" :status="variants[product.productId].error ? 'error' : variants[product.productId].loading ? 'loading' : 'idle'" @retry="loadVariants(product)" />
                   <button v-if="!variants[product.productId].loading && !variants[product.productId].error && variants[product.productId].items.length < variants[product.productId].total" class="more-variants" @tap="loadVariants(product)">{{ t('account.inventory.moreVariants') }}</button>
@@ -48,11 +38,9 @@
         </view>
       </AppContent>
     </template>
-<!-- 暂停售后入口，保留代码待恢复。
-    <template v-if="selecting || draft.state.items.length" #footer>
+    <template v-if="canApplyAfterSale && (selecting || draft.state.items.length)" #footer>
       <FixedActionBar><view class="selection-total"><text>{{ selectedSummary }}</text><text v-if="draft.state.items.length && !draft.state.pendingIntent" class="link-text" @tap="draft.clear()">{{ t('account.inventory.clearSelection') }}</text></view><button class="action-button review-selection" :disabled="!draft.state.items.length" @tap="reviewSelection">{{ t('account.inventory.reviewSelection') }}</button></FixedActionBar>
     </template>
--->
   </AppPageShell>
 </template>
 <script setup>
@@ -78,6 +66,7 @@ import { getDealerInventoryProducts, getDealerInventoryList } from '../../api/in
 import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
 
 const userStore = useUserStore()
+const canApplyAfterSale = computed(() => userStore.hasPermission('INVENTORY_VIEW') && userStore.hasPermission('ORDER_CREATE'))
 const owner = () => String(userStore.dealerId || '') + ':' + String(userStore.userId || '')
 let draft = useInventoryReturnDraft(owner())
 const tabs = computed(() => [{ key:'all',label:t('account.inventory.all') },{ key:'available',label:t('account.inventory.availableSku') },{ key:'low',label:t('account.inventory.low') },{ key:'out',label:t('account.inventory.outSku') }])
@@ -90,7 +79,7 @@ const loadMoreStatus=computed(()=>loadMoreError.value?'error':loadingMore.value?
 const selectedSummary=computed(()=>t('account.inventory.selectedSummary',{products:new Set(draft.state.items.map(item=>item.productId)).size,skus:draft.state.items.length}))
 let generation=0,disposed=false,reading=false
 onLoad(options=>{if(tabs.value.some(tab=>tab.key===options?.stockStatus))activeTab.value=options.stockStatus})
-onShow(()=>{draft=useInventoryReturnDraft(owner());if(!reading)reload()})
+onShow(()=>{draft=useInventoryReturnDraft(owner());if(!canApplyAfterSale.value)selecting.value=false;if(!reading)reload()})
 onUnload(()=>{disposed=true;generation++})
 
 /** Refresh SPUs; selection is independent of server pages and query changes. */
@@ -129,9 +118,9 @@ async function loadVariants(product){
  }catch(error){if(!disposed&&token===generation)group.error=true}finally{if(token===generation)group.loading=false}
 }
 /** Enter or leave multi-product selection without discarding already chosen SKUs. */
-function toggleSelecting(){if(draft.state.pendingIntent)return reviewSelection();selecting.value=!selecting.value}
+function toggleSelecting(){if(!canApplyAfterSale.value)return;if(draft.state.pendingIntent)return reviewSelection();selecting.value=!selecting.value}
 /** Toggle a positive-quantity SKU while retaining the rest of the selection. */
-function toggleSku(sku){if(draft.state.pendingIntent)return;if(isSelected(sku.skuId)){draft.remove(sku.skuId);return}if(sku.availableQuantity<=0)return;if(!draft.set(sku,1))uni.showToast({title:t('account.inventory.limitReached'),icon:'none'})}
+function toggleSku(sku){if(!canApplyAfterSale.value||draft.state.pendingIntent)return;if(isSelected(sku.skuId)){draft.remove(sku.skuId);return}if(sku.availableQuantity<=0)return;if(!draft.set(sku,1))uni.showToast({title:t('account.inventory.limitReached'),icon:'none'})}
 /** Update a selected SKU within its currently displayed returnable quantity. */
 function setQuantity(sku,quantity){draft.set(sku,quantity)}
 /** Read whether one variant is selected. */
@@ -141,7 +130,7 @@ function selectedQuantity(skuId){return draft.state.items.find(item=>item.skuId=
 /** Show a compact selection marker on collapsed products. */
 function selectedFor(productId){return draft.state.items.filter(item=>item.productId===productId).length}
 /** Review all selected products in one return, including rows on other pages. */
-function reviewSelection(){if(draft.state.items.length)return navigator.navigateTo(routes.order.inventoryAfterSaleApply())}
+function reviewSelection(){if(canApplyAfterSale.value&&draft.state.items.length)return navigator.navigateTo(routes.order.inventoryAfterSaleApply())}
 /** Use the shared refresh animation. */
 async function handleRefresh(){if(isRefreshing.value)return;const start=Date.now();isRefreshing.value=true;try{await reload()}finally{await waitForRefreshAnimation(start);if(!disposed)isRefreshing.value=false}}
 /** Restore the native refresher after a request completes. */

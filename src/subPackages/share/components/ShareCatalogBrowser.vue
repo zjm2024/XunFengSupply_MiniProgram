@@ -1,6 +1,6 @@
 <template>
   <view class="catalog-browser" :class="{ 'category-mode': mode === 'categories' }">
-    <AppCategoryBrowser v-if="mode === 'categories'" :categories="navigation" :loading="loading" :failed="failed" :refreshing="refreshing" :show-price="showPrice" :load-products="loadProducts" @refresh="emit('refresh')" @product="emit('product', $event)" @category="emit('results', $event)" />
+    <AppCategoryBrowser v-if="mode === 'categories'" :categories="navigation" :loading="loading" :failed="failed" :empty-title="!failed && !navigation.length ? t('share.retail.empty') : ''" :refreshing="refreshing" :show-price="showPrice" :load-products="loadProducts" @refresh="emit('refresh')" @product="emit('product', $event)" @category="emit('results', $event)" />
     <AppContent v-else padding="16px var(--page-padding-x,16px) 28px" :scroll-top="scrollTop" :refresher-enabled="true" :refresher-triggered="refreshing" @refresherrefresh="emit('refresh')" @scrolltolower="emit('more')">
       <ProductSearchLanding v-if="mode === 'search'" :recommendations="SEARCH_RECOMMENDATIONS" @search="emit('search', $event)" />
       <view v-else class="results-content">
@@ -31,7 +31,7 @@ const navigation = computed(() => categoryTree(props.categories))
 const categoryName = computed(() => props.categories.find(item => String(item.categoryId) === String(props.categoryId))?.name || '全部分类')
 const cards = computed(() => props.products.map(item => ({ ...item, name: item.productName, code: item.productCode, image: item.imageUrl, price: item.fromPrice, hasPriceRange: false })))
 const pageState = computed(() => props.failed ? 'error' : props.loading && !cards.value.length ? 'loading' : !cards.value.length ? 'empty' : 'content')
-const emptyTitle = computed(() => props.failed ? '暂时无法读取，请下拉重试' : '暂无相关商品')
+const emptyTitle = computed(() => props.failed ? '暂时无法读取，请下拉重试' : t('share.retail.empty'))
 const loadStatus = computed(() => props.loading ? 'loading' : props.hasMore ? 'idle' : 'no-more')
 const scrollTop = ref(0)
 /** 分类切换复位滚动，不改变已提交的查询条件。 */

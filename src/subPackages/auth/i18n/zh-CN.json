@@ -41,7 +41,8 @@
     "captchaPassed": "验证通过",
     "captchaVerifying": "正在验证…",
     "captchaRelease": "移到缺口后松开",
-    "captchaDrag": "按住滑块向右拖动"
+    "captchaDrag": "按住滑块向右拖动",
+    "captchaImageLoading": "正在加载验证图片…"
   },
   "titles": {
     "apply": "提交签约资料",

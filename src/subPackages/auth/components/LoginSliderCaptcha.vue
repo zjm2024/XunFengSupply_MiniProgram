@@ -1,18 +1,21 @@
 <template>
   <view class="slider-captcha">
     <view class="puzzle-stage">
-      <image v-if="hasChallenge && !imageLoadFailed" class="puzzle-background" :src="challenge.backgroundImageBase64" mode="scaleToFill" @error="handleImageError" />
+      <image v-if="hasChallenge && !imageLoadFailed" :key="challenge.captchaId + '-background'" class="puzzle-background" :data-captcha-id="challenge.captchaId" @load="handleImageLoad('background', $event)" :src="challenge.backgroundImageBase64" mode="scaleToFill" @error="handleImageError" />
       <image
         v-if="hasChallenge && !imageLoadFailed"
+        :key="challenge.captchaId + '-piece'"
         class="puzzle-piece"
+        :data-captcha-id="challenge.captchaId"
+        @load="handleImageLoad('piece', $event)"
         :src="challenge.pieceImageBase64"
         mode="scaleToFill"
         :style="pieceStyle"
       />
-      <view v-if="loading || !hasChallenge" class="stage-placeholder">
-        <text>{{ loading ? t('auth.login.captchaGenerating') : t('auth.login.captchaLoadError') }}</text>
+      <view v-if="loading || !imagesReady" class="stage-placeholder">
+        <text>{{ stageMessage }}</text>
       </view>
-      <view class="refresh-button" @click.stop="emit('refresh')">
+      <view class="refresh-button" :class="{ 'refresh-disabled': loading || verifying }" role="button" :aria-label="t('auth.login.captchaRefresh')" @click.stop="requestRefresh">
         <AppIcon name="refresh" :size="18" color="#FFFFFF" />
       </view>
     </view>
@@ -59,6 +62,8 @@ const componentProxy = getCurrentInstance()?.proxy
 const dragging = ref(false)
 const submitted = ref(false)
 const imageLoadFailed = ref(false)
+const backgroundLoaded = ref(false)
+const pieceLoaded = ref(false)
 const dragX = ref(0)
 const trackWidth = ref(0)
 const thumbWidth = ref(48)
@@ -75,14 +80,16 @@ const hasChallenge = computed(() => Boolean(
     && Number.isFinite(props.challenge?.pieceSize)
     && Number.isFinite(props.challenge?.pieceY),
 ))
+const imagesReady = computed(() => hasChallenge.value && backgroundLoaded.value && pieceLoaded.value && !imageLoadFailed.value)
 const isDisabled = computed(() => (
-  props.loading || props.verifying || props.verified || !hasChallenge.value || imageLoadFailed.value
+  props.loading || props.verifying || props.verified || !imagesReady.value
 ))
 
 const stageMessage = computed(() => {
   if (props.loading) return t('auth.login.captchaGenerating')
   if (imageLoadFailed.value) return t('auth.login.captchaImageError')
-  return t('auth.login.captchaRefresh')
+  if (hasChallenge.value) return t('auth.login.captchaImageLoading')
+  return t('auth.login.captchaLoadError')
 })
 
 const sourcePieceX = computed(() => {
@@ -116,6 +123,9 @@ const sliderLabel = computed(() => {
 watch(
   () => props.challenge?.captchaId,
   async () => {
+    imageLoadFailed.value = false
+    backgroundLoaded.value = false
+    pieceLoaded.value = false
     resetSlider()
     await nextTick()
     measureTrack()
@@ -131,11 +141,31 @@ watch(
 )
 
 /** 记录验证码图片加载失败并让父页面提供刷新入口。 */
-function handleImageError() {
-  if (imageLoadFailed.value) return
+function handleImageError(event) {
+  if (!matchesActiveChallenge(event) || imageLoadFailed.value) return
   imageLoadFailed.value = true
   emit('imageError')
 }
+/** 图片事件只更新当前挑战，忽略已替换图片的迟到回调。 */
+function matchesActiveChallenge(event) {
+  const id = event?.currentTarget?.dataset?.captchaId ?? event?.target?.dataset?.captchaId
+  return hasChallenge.value && (!id || id === props.challenge.captchaId)
+}
+
+/** 背景与拼图都完成加载后才允许拖动，失败时不能被随后到达的load事件恢复。 */
+function handleImageLoad(kind, event) {
+  if (!matchesActiveChallenge(event) || imageLoadFailed.value) return
+  if (kind === 'background') backgroundLoaded.value = true
+  if (kind === 'piece') pieceLoaded.value = true
+}
+
+/** 仅在不生成、不校验时请求换图。 */
+function requestRefresh() {
+  if (props.loading || props.verifying) return
+  emit('refresh')
+}
+
+/** 测量当前设备轨道和滑块尺寸，保持图片坐标换算一致。 */
 function measureTrack() {
   const query = uni.createSelectorQuery().in(componentProxy)
   query.select('.slider-track').boundingClientRect()
@@ -146,6 +176,7 @@ function measureTrack() {
   })
 }
 
+/** 读取触摸或鼠标横坐标。 */
 function getClientX(event) {
   return event?.touches?.[0]?.clientX
     ?? event?.changedTouches?.[0]?.clientX
@@ -153,6 +184,7 @@ function getClientX(event) {
     ?? 0
 }
 
+/** 仅对已完整加载的当前挑战启动拖动。 */
 function startDrag(event) {
   if (isDisabled.value || submitted.value) return
   if (!trackWidth.value) measureTrack()
@@ -161,14 +193,17 @@ function startDrag(event) {
   startDragX = dragX.value
 }
 
+/** 限制滑块位移在轨道范围内。 */
 function moveDrag(event) {
   if (!dragging.value || isDisabled.value) return
   const distance = getClientX(event) - startClientX
   dragX.value = Math.min(Math.max(startDragX + distance, 0), maxDragX.value)
 }
 
+/** 松手提交原图坐标，禁用或图片失败时取消提交。 */
 function finishDrag(event) {
   if (!dragging.value) return
+  if (isDisabled.value) { cancelDrag(); return }
   moveDrag(event)
   dragging.value = false
 
@@ -181,12 +216,14 @@ function finishDrag(event) {
   emit('verify', sourcePieceX.value)
 }
 
+/** 取消本次拖动并回到起点。 */
 function cancelDrag() {
   dragging.value = false
   submitted.value = false
   dragX.value = 0
 }
 
+/** 重置位置和提交状态，保留当前图片加载事实。 */
 function resetSlider() {
   dragging.value = false
   submitted.value = false
@@ -224,6 +261,11 @@ function resetSlider() {
 }
 
 .stage-placeholder {
+  z-index: 3;
+  background: $color-gray-100;
+  padding: $space-4;
+  box-sizing: border-box;
+  text-align: center;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -235,7 +277,7 @@ function resetSlider() {
   position: absolute;
   top: $space-2;
   right: $space-2;
-  z-index: 3;
+  z-index: 4;
   width: $touch-target-min;
   height: $touch-target-min;
   display: flex;
@@ -244,6 +286,8 @@ function resetSlider() {
   background: rgba(17, 18, 22, 0.5);
   border-radius: $radius-full;
 }
+
+.refresh-button.refresh-disabled { opacity: .5; }
 
 .slider-track {
   position: relative;

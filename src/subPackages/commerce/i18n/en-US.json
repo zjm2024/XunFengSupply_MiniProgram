@@ -74,6 +74,9 @@
     "clearInvalidResults": "Remove matching items"
   },
   "checkout": {
+    "scopeChanged": "Product availability changed",
+    "returnToCart": "Return to cart",
+    "stayHere": "Stay here",
     "priceChanged": "Prices have been updated using the latest dealer pricing. Review them before submitting.",
     "reprice": "Refresh prices",
     "receiver": "Shipping information",
@@ -200,6 +203,7 @@
     "currentVariant": "Variant: {name}"
   },
   "catalog": {
+    "scopeEmpty": "No products have been assigned. Please contact your sales representative.",
     "searchProduct": "Product",
     "refreshing": "Refreshing",
     "loading": "Loading…",

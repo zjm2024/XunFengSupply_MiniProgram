@@ -99,6 +99,7 @@
     }
   },
   "category": {
+    "scopeEmpty": "No products have been assigned. Please contact your sales representative.",
     "loading": "Loading categories...",
     "empty": "Categories are not available",
     "retryHint": "Check your connection and try again.",

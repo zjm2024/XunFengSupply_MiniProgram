@@ -662,8 +662,13 @@ async function refreshPreview({ silent = false, omitGifts = false } = {}) {
     return normalized
   } catch (error) {
     if (requestId === previewSequence) {
-      previewData.value = previousPreview
+      const scopeChanged = error?.errorCode === 'ORDER_PRODUCT_SCOPE_CHANGED'
+      previewData.value = scopeChanged ? null : previousPreview
       previewFailure.value = error?.message ? error : localError('commerce.checkout.quoteFailedRetry')
+      if (scopeChanged) {
+        if (!silent) await showProductScopeConflict(error.message)
+        return null
+      }
       if (!silent) uni.showToast({ title: previewError.value, icon: 'none' })
     }
     return null
@@ -776,6 +781,12 @@ async function confirmSubmit() {
       setTimeout(() => navigator.redirectTo(routes.order.list({ status: 20 })), 900)
       return
     }
+    if (error?.errorCode === 'ORDER_PRODUCT_SCOPE_CHANGED') {
+      previewData.value = null
+      previewFailure.value = error
+      await showProductScopeConflict(error.message)
+      return
+    }
     if (error?.errorCode === 'ORDER_GIFT_STOCK_INSUFFICIENT' && !omitUnavailableGifts.value) {
       submitting.value = false
       const confirmed = await confirmGiftOmission(error?.message || t('commerce.checkout.giftInsufficient'))
@@ -786,6 +797,17 @@ async function confirmSubmit() {
   } finally {
     submitting.value = false
   }
+}
+
+/** 提交期间撤权时返回购物车重新读取可购状态。 */
+async function showProductScopeConflict(message) {
+  const confirmed = await openAppDialog({
+    title: t('commerce.checkout.scopeChanged'),
+    description: message,
+    confirmText: t('commerce.checkout.returnToCart'),
+    cancelText: t('commerce.checkout.stayHere'),
+  })
+  if (confirmed) await navigator.redirectTo(routes.commerce.cart())
 }
 
 /** 显示赠品放弃确认，只有用户确认才沿用原下单分支。 */
