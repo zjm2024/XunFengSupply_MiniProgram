@@ -30,6 +30,7 @@ export const HOME = '/pages/home/index'
 
 export const LOGIN = '/subPackages/auth/pages/login/index'
 export const APPLY_SIGN = '/subPackages/auth/pages/apply-sign/index'
+export const APPLICATION_PROGRESS = '/subPackages/auth/pages/application-progress/index'
 export const AGREEMENT = '/subPackages/auth/pages/agreement/index'
 export const ACCOUNT_STATUS = '/subPackages/auth/pages/account-status/index'
 
@@ -111,7 +112,7 @@ export const DEALER_SHARE_RECORDS = '/subPackages/share/pages/dealer-records/ind
 
 export const REGISTERED_ROUTES = Object.freeze([
   STARTUP, HOME, PUBLIC_STOCK, PUBLIC_STOCK_SEARCH, SHARE_RETAIL_SEARCH, PUBLIC_STOCK_DETAIL, DEALER_SHARE, DEALER_SHARE_GENERATE, DEALER_SHARE_RECORDS, SHARE_RETAIL,
-  LOGIN, APPLY_SIGN, AGREEMENT, ACCOUNT_STATUS,
+  LOGIN, APPLY_SIGN, APPLICATION_PROGRESS, AGREEMENT, ACCOUNT_STATUS,
   HOME_SECTION, ANNOUNCEMENTS, ANNOUNCEMENT_DETAIL, PRODUCT_LIST, PRODUCT_DETAIL, PRODUCT_VARIANTS, CART, CHECKOUT,
   ORDER_LIST, ORDER_DETAIL, PAY_PAGE, FULFILLMENT_SPLIT, APPLY_AFTER_SALE, APPLY_INVENTORY_AFTER_SALE, AFTER_SALE_LIST, AFTER_SALE_DETAIL, CANCEL_ORDER,
   ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
@@ -159,6 +160,13 @@ export const ROUTE_META = Object.freeze({
   },
   [APPLY_SIGN]: {
     title: '申请成为经销商',
+    requireAuth: false,
+    requireSign: false,
+    allowFrozen: true,
+    owner: null,
+  },
+  [APPLICATION_PROGRESS]: {
+    title: '入驻进度查询',
     requireAuth: false,
     requireSign: false,
     allowFrozen: true,
@@ -707,7 +715,8 @@ export const routes = {
   auth: {
     login: ({ redirect, account } = {}) =>
       withQuery(LOGIN, { redirect, account }),
-    applySign: () => APPLY_SIGN,
+    applySign: ({ source } = {}) => withQuery(APPLY_SIGN, { source }),
+    applicationProgress: ({ identifier } = {}) => withQuery(APPLICATION_PROGRESS, { identifier }),
     agreement: ({ type = 'user' } = {}) =>
       withQuery(AGREEMENT, { type }),
     accountStatus: ({ reason } = {}) =>

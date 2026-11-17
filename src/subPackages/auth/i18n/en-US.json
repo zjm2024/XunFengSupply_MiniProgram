@@ -42,7 +42,9 @@
     "captchaVerifying": "Verifying…",
     "captchaRelease": "Release when the piece fits the gap",
     "captchaDrag": "Hold and drag the slider to the right",
-    "captchaImageLoading": "Loading verification images…"
+    "captchaImageLoading": "Loading verification images…",
+    "applyEntry": "Apply to join",
+    "progressEntry": "Check application status"
   },
   "titles": {
     "apply": "Submit registration details",
@@ -132,7 +134,8 @@
     "addressLimit": "The street address must not exceed 200 characters",
     "registeredLimit": "The registered address must not exceed 200 characters",
     "licenseRequired": "Upload a business license photo",
-    "agreementRequired": "Read and agree to the Dealer Agreement"
+    "agreementRequired": "Read and agree to the Dealer Agreement",
+    "submittedNotice": "Application submitted. Check its status from the query entry."
   },
   "accountStatus": {
     "possibleReasons": "Possible reasons:",
@@ -145,5 +148,32 @@
     "back": "Back",
     "contactTitle": "Contact support",
     "contactContent": "Please call the dealer service hotline"
+  },
+  "progress": {
+    "title": "Application status",
+    "identifier": "Mobile / Application number",
+    "placeholder": "Enter mobile or full application number",
+    "query": "Check status",
+    "querying": "Checking…",
+    "verificationNote": "Complete the picture slider after tapping Check status",
+    "captchaNote": "Your status will load after verification",
+    "invalidIdentifier": "Enter a valid mobile or full application number",
+    "frequent": "Please wait before trying again",
+    "cooldown": "Try again in {seconds}s",
+    "imageFailed": "Picture could not load. Please refresh after a moment.",
+    "expired": "Verification expired. Please try again.",
+    "verificationFailed": "Verification failed. Please try again.",
+    "notFound": "No application found",
+    "checkIdentifier": "Check the mobile or full application number and retry",
+    "flowTitle": "Application process",
+    "submit": "Submit application",
+    "submitNote": "Provide company and contact details",
+    "review": "Platform review",
+    "reviewNote": "The platform checks your application",
+    "result": "Review result",
+    "resultNote": "Check whether your application was approved",
+    "account": "Account activation",
+    "accountNote": "Once approved, sign in with your application mobile and password",
+    "openDetailFailed": "Could not open details. Please query again."
   }
 }

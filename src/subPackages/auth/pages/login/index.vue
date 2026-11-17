@@ -3,7 +3,7 @@
   安全策略：首次不展示验证码；凭证输错一次后，由服务端强制启用滑块拼图验证。
 -->
 <template>
-  <AppPageShell>
+  <AppPageShell style="--surface-page: #fff">
     <template #header>
       <AppStatusBarSpacer />
     </template>
@@ -96,9 +96,9 @@
                  {{ loginButtonText }}
               </button>
 
-              <view class="apply-entry">
-                <text class="apply-copy">{{ t('auth.login.noAccount') }}</text>
-                <text class="apply-link" @click="goToApplySign">{{ t('auth.login.apply') }}</text>
+              <view class="auth-entries">
+                <button class="auth-entry" @click="goToApplySign"><AppIcon name="users" :size="20" color="#626977" /><text>{{ t('auth.login.applyEntry') }}</text><AppIcon name="chevron-right" :size="18" color="#8A919C" /></button>
+                <button class="auth-entry" @click="goToApplicationProgress"><AppIcon name="search" :size="20" color="#626977" /><text>{{ t('auth.login.progressEntry') }}</text><AppIcon name="chevron-right" :size="18" color="#8A919C" /></button>
               </view>
             </view>
           </view>
@@ -416,6 +416,11 @@ async function handleLogin() {
 
 function openAgreement(type) {
   navigator.navigateTo(routes.auth.agreement({ type: type === 'privacy' ? 'privacy' : 'user' }))
+}
+
+/** 独立查询入口不复用入驻表单，也不提前请求验证码。 */
+function goToApplicationProgress() {
+  navigator.navigateTo(routes.auth.applicationProgress())
 }
 
 function goToApplySign() {
@@ -764,4 +769,23 @@ function goToApplySign() {
   -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
   backdrop-filter: var(--glass-card-blur, blur(16px));
 }
+
+/* 参考已选极简方向：白底、居中品牌与单一主动作，保留协议确认。 */
+.login-page { background: #fff; padding: 36px 24px 24px; justify-content: flex-start; }
+.login-main { max-width: 400px; }
+.brand-block { margin-bottom: 26px; }
+.brand-logo { width: 52px; height: 52px; margin-bottom: 10px; }
+.brand-title { font-size: 24px; line-height: 32px; }
+.login-card { padding: 0; background: transparent !important; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.card-heading { text-align: center; margin-bottom: 30px; gap: 8px; }
+.card-title { font-size: 22px; line-height: 30px; }
+.card-caption { font-size: 13px; line-height: 21px; }
+.auth-entries { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
+.auth-entry { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 10px 14px; background: #fff; border: 1px solid #E7E9EE; border-radius: 10px; color: $color-text-primary; font-size: 14px; line-height: 22px; text-align: left; transition: background .16s ease; }
+.auth-entry::after { border: 0; }
+.auth-entry:active { background: #F5F6F8; }
+.auth-entry text { flex: 1; }
+.security-note { margin-top: 28px; }
+@media (min-width: 768px) { .login-page { padding-top: 64px; } }
+@media (prefers-reduced-motion: reduce) { .auth-entry { transition: none; } }
 </style>

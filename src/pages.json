@@ -81,6 +81,13 @@
                         "navigationStyle": "custom",
                         "navigationBarTitleText": ""
                     }
+                },
+                {
+                    "path": "pages/application-progress/index",
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
                 }
             ]
         },
@@ -326,19 +333,28 @@
                 },
                 {
                     "path": "pages/fund-center/index",
-                    "style": { "navigationStyle": "custom" }
+                    "style": {
+                        "navigationStyle": "custom"
+                    }
                 },
                 {
                     "path": "pages/withdrawal/index",
-                    "style": { "navigationStyle": "custom" }
+                    "style": {
+                        "navigationStyle": "custom"
+                    }
                 },
                 {
                     "path": "pages/withdrawal/bank-cards",
-                    "style": { "navigationStyle": "custom" }
+                    "style": {
+                        "navigationStyle": "custom"
+                    }
                 },
                 {
                     "path": "pages/invoice/titles",
-                    "style": { "navigationStyle": "custom", "navigationBarTitleText": "" }
+                    "style": {
+                        "navigationStyle": "custom",
+                        "navigationBarTitleText": ""
+                    }
                 },
                 {
                     "path": "pages/invoice/index",

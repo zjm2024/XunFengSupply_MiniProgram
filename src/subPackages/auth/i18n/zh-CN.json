@@ -42,7 +42,9 @@
     "captchaVerifying": "正在验证…",
     "captchaRelease": "移到缺口后松开",
     "captchaDrag": "按住滑块向右拖动",
-    "captchaImageLoading": "正在加载验证图片…"
+    "captchaImageLoading": "正在加载验证图片…",
+    "applyEntry": "申请入驻",
+    "progressEntry": "查询入驻进度"
   },
   "titles": {
     "apply": "提交签约资料",
@@ -132,7 +134,8 @@
     "addressLimit": "详细地址不能超过200个字符",
     "registeredLimit": "工商注册地址不能超过200个字符",
     "licenseRequired": "请上传营业执照照片",
-    "agreementRequired": "请阅读并同意经销商签约协议"
+    "agreementRequired": "请阅读并同意经销商签约协议",
+    "submittedNotice": "申请提交成功，请从查询入口查看进度"
   },
   "accountStatus": {
     "possibleReasons": "可能的原因：",
@@ -145,5 +148,32 @@
     "back": "返回",
     "contactTitle": "联系客服",
     "contactContent": "请拨打经销商服务热线"
+  },
+  "progress": {
+    "title": "入驻进度查询",
+    "identifier": "手机号 / 申请编号",
+    "placeholder": "请输入手机号或完整申请编号",
+    "query": "查询进度",
+    "querying": "正在查询…",
+    "verificationNote": "点击查询后，完成图片滑块验证",
+    "captchaNote": "完成图片验证后自动查询",
+    "invalidIdentifier": "请输入有效的手机号或完整申请编号",
+    "frequent": "操作较频繁，请稍候再试",
+    "cooldown": "请在 {seconds} 秒后重试",
+    "imageFailed": "验证图片加载失败，请稍后点击换图",
+    "expired": "图片验证已过期，请重新查询",
+    "verificationFailed": "验证未通过，请重新查询",
+    "notFound": "暂未查询到入驻申请",
+    "checkIdentifier": "请核对手机号或完整申请编号后重试",
+    "flowTitle": "入驻流程",
+    "submit": "提交申请",
+    "submitNote": "填写企业及联系人资料",
+    "review": "平台审核",
+    "reviewNote": "平台核对申请资料",
+    "result": "审核结果",
+    "resultNote": "查询申请通过或未通过的结果",
+    "account": "开通账号",
+    "accountNote": "审核通过后，使用入驻手机号和设置的密码登录",
+    "openDetailFailed": "详情打开失败，请重新查询"
   }
 }

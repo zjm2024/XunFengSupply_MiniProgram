@@ -56,7 +56,7 @@ import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppStatusBarSpacer from '../../../../shared/ui/AppStatusBarSpacer/AppStatusBarSpacer.vue'
 import { navigator } from '@/app/navigation/navigator.js'
-import { APPLY_SIGN, LOGIN } from '@/app/config/routes.js'
+import { APPLICATION_PROGRESS, LOGIN } from '@/app/config/routes.js'
 import { openAppDialog } from '@/shared/composables/useAppDialog.js'
 
 const userStore = useUserStore()
@@ -92,7 +92,7 @@ async function resolveAccountState() {
 }
 
 function goToApplication() {
-  navigator.reLaunch(APPLY_SIGN)
+  navigator.reLaunch(APPLICATION_PROGRESS)
 }
 
 /**

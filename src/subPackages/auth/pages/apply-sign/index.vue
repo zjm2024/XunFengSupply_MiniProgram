@@ -23,7 +23,7 @@
             <view class="application-receipt">
               <view v-if="applicationState.companyName" class="receipt-row"><text class="receipt-label">{{ t('auth.apply.company') }}</text><text class="receipt-value">{{ applicationState.companyName }}</text></view>
               <view v-if="applicationState.mobile" class="receipt-row"><text class="receipt-label">{{ t('auth.apply.loginAccount') }}</text><text class="receipt-value">{{ applicationState.mobile }}</text></view>
-              <view v-if="applicationState.applicationId" class="receipt-row"><text class="receipt-label">{{ t('auth.apply.applicationNo') }}</text><text class="receipt-value">{{ applicationState.applicationId }}</text></view>
+              <view v-if="applicationState.applicationId" class="receipt-row"><text class="receipt-label">{{ t('auth.apply.applicationNo') }}</text><text class="receipt-value">{{ applicationState.applicationNo || applicationState.applicationId }}</text></view>
               <view v-if="applicationState.submittedAt" class="receipt-row"><text class="receipt-label">{{ t('auth.apply.submittedAt') }}</text><text class="receipt-value">{{ formatDateTime(applicationState.submittedAt) }}</text></view>
             </view>
             <view class="application-timeline">
@@ -302,7 +302,7 @@
       <view v-if="!applicationState" class="submit-footer">
         <button
           class="submit-button button-center"
-          :disabled="submitting || captchaVerifying"
+          :disabled="submitting || submissionCompleted || captchaVerifying"
           :loading="submitting"
           hover-class="submit-button-hover"
           @tap="handleSubmit"
@@ -320,7 +320,7 @@ import { AppError, ErrorKind } from '@/shared/api/appError.js'
 import '@/subPackages/auth/i18n/register.js'
 import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { onBackPress, onLoad, onUnload } from '@dcloudio/uni-app'
-import { applySign, getApplicationCaptcha, getSignStatus, queryApplicationStatus, verifyApplicationCaptcha } from '../../api/auth.js'
+import { applySign, getApplicationCaptcha, verifyApplicationCaptcha } from '../../api/auth.js'
 import { validateSignForm } from '../../../../shared/utils/validate.js'
 import { navigator } from '../../../../app/navigation/navigator.js'
 import { routes } from '../../../../app/config/routes.js'
@@ -333,7 +333,7 @@ import AreaCascadePickerPanel from '../../components/AreaCascadePicker/AreaCasca
 import FileUploader from '../../../../shared/ui/FileUploader/FileUploader.vue'
 import LoginSliderCaptcha from '../../components/LoginSliderCaptcha.vue'
 import storage from '../../../../shared/utils/storage.js'
-import { useUserStore } from '../../../../shared/session/userStore.js'
+import { takeApplicationProgressDetail, clearApplicationProgressDetail } from '../../model/applicationProgressHandoff.js'
 import { formatDateTime } from '../../../../shared/utils/format.js'
 
 const CAPTCHA_CHALLENGE_SAFETY_WINDOW_MS = 10 * 1000
@@ -344,12 +344,13 @@ const CAPTCHA_RECOVERABLE_ERRORS = new Set([
   'DEALER_LOGIN_CAPTCHA_EXPIRED',
 ])
 const submitting = ref(false)
+// 仅防止本次已确认请求重复提交，不落盘、不用于其他入口判断。
+const submissionCompleted = ref(false)
 const agreed = ref(false)
 const scrollTarget = ref('')
 const regionPickerVisible = ref(false)
 const licenseImages = ref([])
 const applicationState = ref(null)
-const applicationDetails = ref(null)
 const statusRefreshing = ref(false)
 const submitAfterVerification = ref(false)
 const captchaLoading = ref(false)
@@ -362,8 +363,6 @@ const captchaErrorText = computed(() => displayError(captchaError.value))
 const captchaChallengeExpiresAt = ref(0)
 const captchaTokenExpiresAt = ref(0)
 const showCaptchaModal = ref(false)
-const userStore = useUserStore()
-const APPLICATION_CACHE_KEY = 'dealerApplication'
 const APPLICATION_DRAFT_CACHE_KEY = 'dealerApplicationDraft'
 
 const applicationStatusTitle = computed(() => {
@@ -378,90 +377,50 @@ const applicationStatusDescription = computed(() => {
   return '资料已成功提交。审核通过后，即可使用手机号和设置的密码登录。'
 })
 
-/** 主动查询本次申请的审核结果，不用本地缓存代替远端审核事实。 */
+/** 详情刷新统一进入查询专用滑块，不在详情页轮询或绕过验证。 */
 async function refreshApplicationStatus() {
   const current = applicationState.value
-  if (!current?.mobile || statusRefreshing.value) return
-  statusRefreshing.value = true
-  try {
-    const result = await queryApplicationStatus(current.mobile)
-    if (!result || Number(result.applicationId) !== Number(current.applicationId)) {
-      uni.showToast({ title: t('auth.apply.notFound'), icon: 'none' })
-      return
-    }
-    const status = Number(result.status) === 1 ? 'approved' : Number(result.status) === 2 ? 'rejected' : 'pending'
-    applicationDetails.value = result
-    applicationState.value = { ...current, status }
-    storage.set(APPLICATION_CACHE_KEY, applicationState.value)
-    if (status === 'pending') uni.showToast({ title: t('auth.apply.pendingNotice'), icon: 'none' })
-  } catch (error) {
-    uni.showToast({ title: error?.message || t('auth.apply.statusFailed'), icon: 'none' })
-  } finally {
-    statusRefreshing.value = false
-  }
+  await navigator.navigateTo(routes.auth.applicationProgress({ identifier: current?.lookupIdentifier || current?.mobile || current?.applicationNo || '' }))
 }
 
 /** 携带申请手机号进入登录页，密码始终由用户重新输入。 */
 function goToLogin() {
-  navigator.reLaunch(routes.auth.login({ account: applicationState.value?.mobile || '' }))
+  navigator.reLaunch(routes.auth.login({ account: /^1[3-9]\d{9}$/.test(applicationState.value?.mobile || '') ? applicationState.value.mobile : '' }))
 }
 
-/** 返回登录页，保留申请回执供后续查询。 */
+/** 返回登录页，不持久化本次查询结果或申请状态。 */
 function leaveApplicationStatus() {
   goToLogin()
-}
-
-/** 根据当前账号或本机申请回执恢复审核界面。 */
-async function loadApplicationState() {
-  const cached = storage.get(APPLICATION_CACHE_KEY, null)
-  if (['pending', 'approved', 'rejected'].includes(cached?.status)) applicationState.value = cached
-  if (!userStore.isLogin) return
-  try {
-    const context = await getSignStatus({ authStrategy: 'passive' })
-    userStore.setLoginData({ token: userStore.token, refreshToken: userStore.refreshToken, expiresIn: userStore.tokenExpiresIn, userInfo: context })
-    const signStatus = Number(context?.signStatus ?? 0)
-    if (signStatus === 1) {
-      applicationState.value = { ...cached, status: 'pending' }
-      storage.set(APPLICATION_CACHE_KEY, applicationState.value)
-    } else if (signStatus === -1) {
-      applicationState.value = { ...cached, status: 'rejected' }
-      storage.remove(APPLICATION_CACHE_KEY)
-    } else if (signStatus === 2) {
-      applicationState.value = { ...cached, status: 'approved' }
-      storage.remove(APPLICATION_CACHE_KEY)
-    } else {
-      applicationState.value = null
-      storage.remove(APPLICATION_CACHE_KEY)
-    }
-  } catch (error) {
-    console.warn('[ApplySign] 查询申请状态失败，使用本地提交记录:', error)
-  }
 }
 
 /** 恢复被驳回申请的资料草稿，密码需重新输入并由服务端核验。 */
 async function resetApplicationState() {
   if (statusRefreshing.value) return
-  await refreshApplicationStatus()
   if (applicationState.value?.status !== 'rejected') return
   const receipt = applicationState.value
   applicationState.value = null
-  storage.remove(APPLICATION_CACHE_KEY)
-  restoreApplicationDraft()
+  restoreApplicationDraft(receipt)
   formData.applicationId = receipt.applicationId || null
-  const details = applicationDetails.value
-  if (details) {
-    for (const field of ['companyName', 'contactName', 'mobile', 'landlinePhone', 'taxNo', 'email', 'addressDetail', 'registeredAddress']) {
-      formData[field] = details[field] || ''
-    }
-    licenseImages.value = details.licenseUrl ? [details.licenseUrl] : []
-  }
   formData.password = ''
   formData.confirmPassword = ''
 }
 
-onLoad(async () => {
-  await loadApplicationState()
-  if (!applicationState.value || applicationState.value.status === 'rejected') restoreApplicationDraft()
+onLoad(options => {
+  // 旧版本已申请标记只清理不读取；普通申请入口始终展示申请表。
+  storage.remove('dealerApplication')
+  if (options?.source === 'query') {
+    applicationState.value = takeApplicationProgressDetail()
+    if (!applicationState.value) {
+      navigator.redirectTo(routes.auth.applicationProgress())
+      return
+    }
+    if (applicationState.value.status === 'rejected') restoreApplicationDraft()
+    return
+  }
+  applicationState.value = null
+  clearApplicationProgressDetail()
+  formData.applicationId = null
+  restoreApplicationDraft()
 })
 
 const regionValue = ref({
@@ -516,9 +475,10 @@ onBackPress(() => {
   return true
 })
 
-function restoreApplicationDraft() {
+function restoreApplicationDraft(receipt = applicationState.value) {
   const draft = storage.get(APPLICATION_DRAFT_CACHE_KEY, null)
   if (!draft || typeof draft !== 'object') return
+  if (receipt?.fromQuery && String(draft.applicationId || '') !== String(receipt.applicationId || '') && draft.mobile !== receipt.lookupIdentifier) return
 
   Object.assign(formData, {
     companyName: draft.companyName || '',
@@ -529,7 +489,6 @@ function restoreApplicationDraft() {
     email: draft.email || '',
     addressDetail: draft.addressDetail || '',
     registeredAddress: draft.registeredAddress || '',
-    applicationId: draft.applicationId || formData.applicationId,
   })
   Object.assign(regionValue.value, draft.regionValue || {})
   licenseImages.value = Array.isArray(draft.licenseImages) ? draft.licenseImages : []
@@ -537,7 +496,7 @@ function restoreApplicationDraft() {
 }
 
 function persistApplicationDraft() {
-  if (applicationState.value?.status === 'pending' || applicationState.value?.status === 'approved') return
+  if (submissionCompleted.value || applicationState.value) return
 
   storage.set(APPLICATION_DRAFT_CACHE_KEY, {
     companyName: formData.companyName,
@@ -548,7 +507,6 @@ function persistApplicationDraft() {
     email: formData.email,
     addressDetail: formData.addressDetail,
     registeredAddress: formData.registeredAddress,
-    applicationId: formData.applicationId,
     regionValue: { ...regionValue.value },
     licenseImages: [...licenseImages.value],
     agreed: agreed.value,
@@ -763,7 +721,7 @@ async function verifyCaptcha(offsetX) {
 }
 /** 校验完整资料，完成滑块验证后只提交一次入驻申请。 */
 async function handleSubmit() {
-  if (submitting.value || captchaVerifying.value || applicationState.value) return
+  if (submitting.value || submissionCompleted.value || captchaVerifying.value || applicationState.value) return
 
   const result = validateSignForm(validationData.value, key => localError(key))
   replaceErrors(result.errors)
@@ -785,7 +743,7 @@ async function handleSubmit() {
   submitting.value = true
   try {
     const data = validationData.value
-    const applicationId = await applySign({
+    await applySign({
       companyName: data.companyName.trim(),
       contactName: data.contactName.trim(),
       mobile: data.mobile.trim(),
@@ -803,13 +761,14 @@ async function handleSubmit() {
       applicationId: data.applicationId || null,
     })
     // 只有后端确认申请提交成功后，才清理本地申请草稿。
-    applicationState.value = { applicationId, companyName: data.companyName.trim(), mobile: data.mobile.trim(), status: 'pending', submittedAt: Date.now() }
-    storage.set(APPLICATION_CACHE_KEY, applicationState.value)
+    submissionCompleted.value = true
     storage.remove(APPLICATION_DRAFT_CACHE_KEY)
     formData.password = ''
     formData.confirmPassword = ''
     resetCaptchaVerification()
     scrollTarget.value = ''
+    uni.showToast({ title: t('auth.apply.submittedNotice'), icon: 'success' })
+    await navigator.reLaunch(routes.auth.login())
   } catch (error) {
     console.error('[ApplySign] 提交失败:', error)
     if (CAPTCHA_RECOVERABLE_ERRORS.has(error?.errorCode || '')) {

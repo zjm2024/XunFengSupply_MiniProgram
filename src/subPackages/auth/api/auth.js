@@ -171,9 +171,23 @@ export function submitApplication(params) {
   }, { anonymous: true })
 }
 
-/** 查询本次手机号对应的申请进度；页面只显示与本机申请编号一致的结果。 */
-export function queryApplicationStatus(mobile) {
-  return dispatch('MallDealer', 'Mini.ApplicationController', 'QueryApplicationStatus', { Mobile: mobile }, { anonymous: true })
+/** 获取查询用途图片挑战，按手机号或完整申请编号绑定。 */
+export function getProgressCaptcha(identifier) {
+  return dispatch('MallDealer', 'Mini.ApplicationController', 'GetProgressCaptcha', { Identifier: identifier }, { anonymous: true })
+}
+
+/** 校验查询图片挑战；凭证不能用于登录或提交入驻。 */
+export function verifyProgressCaptcha(identifier, captchaId, offsetX) {
+  return dispatch('MallDealer', 'Mini.ApplicationController', 'VerifyProgressCaptcha', {
+    Identifier: identifier, CaptchaId: captchaId, OffsetX: offsetX,
+  }, { anonymous: true })
+}
+
+/** 每次查询必须携带当前条件对应的一次性滑块凭证，不做自动轮询。 */
+export function queryApplicationStatus(identifier, captchaToken) {
+  return dispatch('MallDealer', 'Mini.ApplicationController', 'QueryApplicationStatus', {
+    Identifier: identifier, CaptchaToken: captchaToken,
+  }, { anonymous: true })
 }
 
 // ==================== 子账号管理接口 ====================
