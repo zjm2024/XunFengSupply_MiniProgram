@@ -2,12 +2,14 @@
   <AppPageShell>
     <template #header><AppHeader :title="t('order.afterSaleDetail.title')" :show-back="true" /></template>
     <template #content>
-      <AppContent width-mode="standard" padding="16px var(--page-padding-x, 16px) 28px">
+      <AppContent width-mode="standard" padding="16px var(--page-padding-x, 16px) 28px"
+        :refresher-enabled="!saving" :refresher-triggered="isRefreshing"
+        @refresherrefresh="handleRefresh" @refresherrestore="handleRefresherRestore" @refresherabort="handleRefresherRestore">
     <AppPageState v-if="loading && !detail" state="loading" :title="t('common.loading')" compact />
     <AppPageState v-else-if="error && !detail" state="error" :title="t('order.afterSaleDetail.loadFailed')" :description="error" :action-text="t('common.retry')" compact @retry="loadDetail" />
     <view v-else-if="detail" class="detail-body">
       <AppPageState v-if="error" state="error" :title="t('order.afterSaleDetail.loadFailed')" :description="error" :action-text="t('common.retry')" compact @retry="loadDetail" />
-      <view class="detail-summary"><text class="status-name">{{ statusName }}</text><button class="text-action" :disabled="saving || loading" @tap="loadDetail">{{ t('order.afterSaleDetail.refresh') }}</button></view>
+      <view class="detail-summary"><text class="status-name">{{ statusName }}</text></view>
       <text class="detail-number">{{ detail.afterSaleNo }}</text>
       <view class="detail-row"><text>{{ detail.orderId > 0 ? t('order.afterSaleList.orderNo') : t('order.afterSaleList.inventorySource') }}</text><text v-if="detail.orderId > 0">{{ detail.orderNo }}</text><text v-else>—</text></view>
       <view class="detail-row"><text>{{ t('order.afterSale.type') }}</text><text>{{ detail.afterSaleType === 2 ? t('order.afterSale.returnRefund') : t('order.afterSale.onlyRefund') }}</text></view>
@@ -67,12 +69,16 @@ import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { formatDateTime as formatDateTimeSec } from '@/shared/utils/format.js'
+import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
 
 const afterSaleId = ref(0)
 let disposed = false
 let readRevision = 0
 const detail = ref(null)
 const loading = ref(false)
+const isRefreshing = ref(false)
+let refreshInFlight = false
+let detailLoadPromise = null
 const saving = ref(false)
 const error = ref('')
 const saveError = ref('')
@@ -96,13 +102,40 @@ onLoad(options => {
   afterSaleId.value = Number.isSafeInteger(id) && id > 0 ? id : 0
 })
 onShow(() => { if (!saving.value) return loadDetail() })
-onUnload(() => { disposed = true; readRevision++ })
+onUnload(() => { disposed = true; readRevision++; isRefreshing.value = false })
 const unconfirmedAmount = computed(() => detail.value?.workflowVersion === 2 && detail.value?.sourceType === 2 && detail.value?.pricingStatus === 0)
 const closedUnpricedAmount = computed(() => unconfirmedAmount.value && [6, 7, 8, 9].includes(detail.value?.status))
 const awaitingPrice = computed(() => unconfirmedAmount.value && !closedUnpricedAmount.value)
 
-/** 每次打开或主动刷新时读取真实审核/物流结果，保留未提交物流草稿。 */
-async function loadDetail() {
+/** 复用正在进行的详情读取，下拉刷新需等待实际请求完成，保留未提交物流草稿。 */
+function loadDetail() {
+  if (detailLoadPromise) return detailLoadPromise
+  detailLoadPromise = fetchDetail().finally(() => { detailLoadPromise = null })
+  return detailLoadPromise
+}
+
+/** 下拉刷新读取最新业务进度，成功或失败均收回统一刷新指示器。 */
+async function handleRefresh() {
+  if (disposed || saving.value || refreshInFlight) return
+  const startedAt = Date.now()
+  refreshInFlight = true
+  isRefreshing.value = true
+  try {
+    await loadDetail()
+  } finally {
+    await waitForRefreshAnimation(startedAt)
+    refreshInFlight = false
+    isRefreshing.value = false
+  }
+}
+
+/** 原生滚动恢复/取消不能提前结束仍在请求或最小动画周期中的刷新。 */
+function handleRefresherRestore() {
+  if (!refreshInFlight) isRefreshing.value = false
+}
+
+/** 读取服务端审核/收货结果，旧页面响应不得覆盖当前内容。 */
+async function fetchDetail() {
   if (disposed || loading.value) return
   if (!afterSaleId.value) { error.value = t('order.afterSaleDetail.notFound'); return }
   const revision = ++readRevision
