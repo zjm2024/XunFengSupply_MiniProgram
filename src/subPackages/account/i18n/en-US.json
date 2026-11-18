@@ -489,7 +489,11 @@
     "clearSelection": "Clear",
     "limitReached": "Up to 500 variants per return",
     "notReturnable": "No returnable quantity",
-    "skuSearch": "Item / SKU / barcode"
+    "skuSearch": "Item / SKU / barcode",
+    "sourceDocument": "Source document",
+    "readFailed": "Unable to load",
+    "dateFilterTitle": "Date range",
+    "clearDates": "Clear dates"
   },
   "fundFlow": {
     "empty": "No transactions",

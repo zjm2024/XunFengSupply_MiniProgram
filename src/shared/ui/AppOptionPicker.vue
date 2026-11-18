@@ -2,6 +2,7 @@
   <ConfirmPopup
     :model-value="visible"
     :title="title"
+    :presentation="presentation"
     :description="description"
     :confirm-text="confirmText"
     :cancel-text="cancelText"
@@ -21,6 +22,8 @@ import AppOptionList from './AppOptionList.vue'
 
 const props = defineProps({
   visible: Boolean,
+  /** Keep existing dialogs by default; mobile filters can explicitly request a bottom sheet. */
+  presentation: { type: String, default: 'dialog' },
   modelValue: { type: [String, Number], default: null },
   options: { type: Array, required: true },
   title: { type: String, required: true },

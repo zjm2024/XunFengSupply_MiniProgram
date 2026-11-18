@@ -390,7 +390,12 @@
       "failed": "处理尚未完成，请联系客户服务。",
       "closed": "本次售后申请已关闭。",
       "unknown": "售后状态正在同步，请刷新进度。"
-    }
+    },
+    "numberLabel": "售后单号",
+    "productsTitle": "售后商品",
+    "copyNumber": "复制售后单号",
+    "copied": "售后单号已复制",
+    "copyFailed": "复制失败，请重试"
   },
   "afterSaleList": {
     "filters": {

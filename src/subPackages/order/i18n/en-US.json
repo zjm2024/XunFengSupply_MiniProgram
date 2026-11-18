@@ -390,7 +390,12 @@
       "failed": "Processing is incomplete. Please contact support.",
       "closed": "This request has been closed.",
       "unknown": "The status is being updated. Please refresh."
-    }
+    },
+    "numberLabel": "Request no.",
+    "productsTitle": "Returned products",
+    "copyNumber": "Copy request number",
+    "copied": "Request number copied",
+    "copyFailed": "Unable to copy. Please try again."
   },
   "afterSaleList": {
     "filters": {

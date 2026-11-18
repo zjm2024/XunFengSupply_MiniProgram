@@ -9,31 +9,68 @@
     <AppPageState v-else-if="error && !detail" state="error" :title="t('order.afterSaleDetail.loadFailed')" :description="error" :action-text="t('common.retry')" compact @retry="loadDetail" />
     <view v-else-if="detail" class="detail-body">
       <AppPageState v-if="error" state="error" :title="t('order.afterSaleDetail.loadFailed')" :description="error" :action-text="t('common.retry')" compact @retry="loadDetail" />
-      <view class="detail-summary"><text class="status-name">{{ statusName }}</text></view>
-      <text class="detail-number">{{ detail.afterSaleNo }}</text>
-      <view class="detail-row"><text>{{ detail.orderId > 0 ? t('order.afterSaleList.orderNo') : t('order.afterSaleList.inventorySource') }}</text><text v-if="detail.orderId > 0">{{ detail.orderNo }}</text><text v-else>—</text></view>
-      <view class="detail-row"><text>{{ t('order.afterSale.type') }}</text><text>{{ detail.afterSaleType === 2 ? t('order.afterSale.returnRefund') : t('order.afterSale.onlyRefund') }}</text></view>
-      <view v-if="detail.workflowVersion === 2" class="workflow-block">
-        <text class="note-title">{{ t('order.afterSaleDetail.workflow.title') }}</text>
-        <view class="detail-row"><text>{{ t('order.afterSaleDetail.workflow.reviewLabel') }}</text><text>{{ workflowLabel('review', detail.erpReviewStatus) }}</text></view>
-        <view v-if="detail.status !== 7" class="detail-row"><text>{{ t('order.afterSaleDetail.workflow.receiptLabel') }}</text><text>{{ workflowLabel('receiptStatus', detail.receiptStatus) }}</text></view>
+      <view class="detail-card summary-card">
+        <view class="summary-heading">
+          <text class="status-name">{{ statusName }}</text>
+          <text class="type-badge">{{ detail.afterSaleType === 2 ? t('order.afterSale.returnRefund') : t('order.afterSale.onlyRefund') }}</text>
+        </view>
+        <text class="status-description">{{ statusDescription }}</text>
+        <view class="detail-row number-row">
+          <text>{{ t('order.afterSaleDetail.numberLabel') }}</text>
+          <button class="number-copy" :disabled="!detail.afterSaleNo" :aria-label="t('order.afterSaleDetail.copyNumber')" @tap="copyAfterSaleNo">{{ detail.afterSaleNo || '—' }}</button>
+        </view>
+        <view class="detail-row refund-row">
+          <text>{{ t('order.afterSaleList.refundRequested') }}</text>
+          <text v-if="awaitingPrice || closedUnpricedAmount" class="awaiting-price">{{ closedUnpricedAmount ? '—' : t('order.afterSaleList.awaitingPrice') }}</text>
+          <AmountText v-else class="summary-amount" :text="'¥' + detail.refundAmount.toFixed(2)" />
+        </view>
       </view>
-      <view class="detail-row"><text>{{ t('order.afterSaleList.refundRequested') }}</text><text v-if="awaitingPrice || closedUnpricedAmount" class="awaiting-price">{{ closedUnpricedAmount ? '—' : t('order.afterSaleList.awaitingPrice') }}</text><AmountText v-else :text="'¥' + detail.refundAmount.toFixed(2)" /></view>
-      <view class="note-block"><text class="note-title">{{ t('order.afterSale.reason') }}</text><text>{{ detail.reason }}</text></view>
-      <view v-if="detail.auditRemark" class="note-block audit-note"><text class="note-title">{{ t('order.afterSaleDetail.auditRemark') }}</text><text>{{ detail.auditRemark }}</text></view>
-      <view v-for="item in detail.items" :key="item.afterSaleItemId || item.orderItemId" class="detail-product">
-        <AppProductImage class="product-image" :src="item.imageUrl" mode="aspectFit" />
-        <view class="product-copy"><text class="product-name">{{ item.productName }}</text><text>{{ item.skuName }}</text><text>{{ t('order.afterSaleDetail.itemQuantity', { quantity: item.applyQuantity, received: item.receivedQuantity }) }}</text></view>
-        <text v-if="awaitingPrice || closedUnpricedAmount" class="product-amount awaiting-price">{{ closedUnpricedAmount ? '—' : t('order.afterSaleList.awaitingPrice') }}</text><AmountText v-else class="product-amount" :text="'¥' + item.refundAmount.toFixed(2)" />
+      <view v-if="detail.workflowVersion === 2" class="detail-card workflow-block">
+        <text class="section-title">{{ t('order.afterSaleDetail.workflow.title') }}</text>
+        <view class="progress-step" :class="{ 'is-current': detail.erpReviewStatus === 0, 'is-complete': detail.erpReviewStatus === 1, 'is-alert': detail.erpReviewStatus === 2, 'is-last': detail.status === 7 }">
+          <view class="progress-track"><view class="progress-dot" /></view>
+          <text class="progress-label">{{ t('order.afterSaleDetail.workflow.reviewLabel') }}</text>
+          <text class="progress-badge">{{ workflowLabel('review', detail.erpReviewStatus) }}</text>
+        </view>
+        <view v-if="detail.status !== 7" class="progress-step is-last" :class="{ 'is-current': detail.erpReviewStatus === 1 && detail.receiptStatus < 2, 'is-complete': detail.receiptStatus === 2, 'is-alert': detail.receiptStatus === 3 }">
+          <view class="progress-track"><view class="progress-dot" /></view>
+          <text class="progress-label">{{ t('order.afterSaleDetail.workflow.receiptLabel') }}</text>
+          <text class="progress-badge">{{ workflowLabel('receiptStatus', detail.receiptStatus) }}</text>
+        </view>
       </view>
-      <view class="time-block">
+      <view class="detail-card products-card">
+        <text class="section-title">{{ t('order.afterSaleDetail.productsTitle') }}</text>
+        <view v-for="item in detail.items" :key="item.afterSaleItemId || item.orderItemId" class="detail-product">
+          <AppProductImage class="product-image" :src="item.imageUrl" mode="aspectFit" />
+          <view class="product-copy">
+            <text class="product-name">{{ item.productName }}</text>
+            <text>{{ item.skuName }}</text>
+            <text>{{ t('order.afterSaleDetail.itemQuantity', { quantity: item.applyQuantity, received: item.receivedQuantity }) }}</text>
+          </view>
+          <text v-if="awaitingPrice || closedUnpricedAmount" class="product-amount awaiting-price">{{ closedUnpricedAmount ? '—' : t('order.afterSaleList.awaitingPrice') }}</text>
+          <AmountText v-else class="product-amount" :text="'¥' + item.refundAmount.toFixed(2)" />
+        </view>
+      </view>
+      <view class="detail-card reason-card">
+        <text class="section-title">{{ t('order.afterSale.reason') }}</text>
+        <text class="reason-content">{{ detail.reason }}</text>
+      </view>
+      <view v-if="detail.auditRemark" class="detail-card audit-note">
+        <text class="section-title">{{ t('order.afterSaleDetail.auditRemark') }}</text>
+        <text class="note-content">{{ detail.auditRemark }}</text>
+      </view>
+      <view class="detail-card time-block">
+        <view class="detail-row"><text>{{ detail.orderId > 0 ? t('order.afterSaleList.orderNo') : t('order.afterSaleList.inventorySource') }}</text><text>{{ detail.orderId > 0 ? detail.orderNo : '—' }}</text></view>
         <view class="detail-row"><text>{{ t('order.afterSaleDetail.createdAt') }}</text><text>{{ formatDateTimeSec(detail.createdAt) }}</text></view>
         <view v-if="detail.auditedAt" class="detail-row"><text>{{ t('order.afterSaleDetail.auditedAt') }}</text><text>{{ formatDateTimeSec(detail.auditedAt) }}</text></view>
         <view v-if="detail.receivedAt" class="detail-row"><text>{{ t('order.afterSaleDetail.receivedAt') }}</text><text>{{ formatDateTimeSec(detail.receivedAt) }}</text></view>
         <view v-if="detail.completedAt" class="detail-row"><text>{{ t('order.afterSaleDetail.completedAt') }}</text><text>{{ formatDateTimeSec(detail.completedAt) }}</text></view>
       </view>
-      <view v-if="detail.returnTrackingNo" class="note-block"><text class="note-title">{{ t('order.afterSaleDetail.returnLogistics') }}</text><text>{{ [detail.returnCarrierCode, detail.returnTrackingNo].filter(Boolean).join(' · ') }}</text></view>
-      <view v-if="detail.status === 2 && detail.afterSaleType === 2" class="return-form">
+      <view v-if="detail.returnTrackingNo" class="detail-card">
+        <text class="section-title">{{ t('order.afterSaleDetail.returnLogistics') }}</text>
+        <text class="note-content">{{ [detail.returnCarrierCode, detail.returnTrackingNo].filter(Boolean).join(' · ') }}</text>
+      </view>
+      <view v-if="detail.status === 2 && detail.afterSaleType === 2" class="detail-card return-form">
         <text class="note-title">{{ t('order.afterSaleDetail.returnLogistics') }}</text>
         <text class="return-note">{{ t('order.afterSaleDetail.returnNote') }}</text>
         <text class="field-label">{{ t('order.afterSaleDetail.carrier') }}</text>
@@ -91,6 +128,24 @@ const carrierError = ref('')
 const selectedCarrierName = computed(() => carriers.value.find(item => item.code === logistics.carrierCode)?.name || '')
 const canSave = computed(() => Boolean(selectedCarrierName.value) && logistics.trackingNo.trim())
 const statusName = computed(() => (getLocale() === 'en-US' ? detail.value?.statusNameEn || detail.value?.statusName : detail.value?.statusName) || t('order.afterSaleDetail.statusUpdating'))
+
+/** 用服务端售后状态展示对应说明，不把退款中描述为已到账。 */
+const statusDescription = computed(() => {
+  const key = ['applied', 'review', 'toReturn', 'returning', 'received', 'refunding', 'completed', 'rejected', 'failed', 'closed'][detail.value?.status] || 'unknown'
+  return t('order.afterSaleDetail.help.' + key)
+})
+
+/** 点击售后单号复制完整原值，成功与失败均给出明确反馈。 */
+function copyAfterSaleNo() {
+  const number = detail.value?.afterSaleNo
+  if (!number) return
+  uni.setClipboardData({
+    data: number,
+    showToast: false,
+    success: () => uni.showToast({ title: t('order.afterSaleDetail.copied'), icon: 'none' }),
+    fail: () => uni.showToast({ title: t('order.afterSaleDetail.copyFailed'), icon: 'none' }),
+  })
+}
 
 /** 将闭环状态码映射为当前语言的简短节点文案。 */
 function workflowLabel(axis, value) {
@@ -195,36 +250,62 @@ async function saveLogistics() {
 </script>
 
 <style lang="scss" scoped>
-.awaiting-price { color: #A36A20; font-size: var(--type-caption-size, 12px); font-weight: var(--font-weight-semibold, 600); }
-.detail-body { width: 100%; box-sizing: border-box; padding: 18px 16px; border-radius: var(--radius-feature, 18px); background: var(--surface-card, #fff); min-width: 0; color: var(--text-primary, #22262C); font-size: var(--type-body-small-size, 13px); }
-.detail-summary { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
-.status-name { font-size: var(--type-section-title-size, 18px); font-weight: var(--font-weight-semibold, 600); overflow-wrap: anywhere; }
-.text-action { margin: 0; padding: 6px 0 6px 8px; color: #D7192D; background: transparent; font-size: var(--type-caption-size, 12px); }
-button::after { border: 0; }
-.detail-number { display: block; margin: 3px 0 16px; color: #969AA3; font-size: var(--type-caption-size, 12px); overflow-wrap: anywhere; }
-.detail-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 7px 0; line-height: 1.5; }
-.detail-row > :first-child { flex: 0 0 34%; color: #737A84; }
+.detail-body { display: flex; flex-direction: column; gap: 12px; width: 100%; min-width: 0; box-sizing: border-box; color: var(--text-primary, #22262C); font-size: var(--type-body-size, 14px); }
+.detail-card { min-width: 0; padding: 16px; border-radius: var(--radius-card, 16px); background: var(--surface-card, #fff); box-shadow: var(--glass-card-shadow, 0 2px 12px rgba(25, 31, 42, .025)); }
+.summary-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.status-name { min-width: 0; font-size: var(--type-heading-size, 24px); font-weight: var(--font-weight-bold, 700); line-height: 1.3; overflow-wrap: anywhere; }
+.type-badge { flex-shrink: 0; max-width: 45%; padding: 5px 10px; border-radius: 20px; background: var(--surface-muted, #F2F3F5); font-size: var(--type-caption-size, 12px); line-height: 1.5; text-align: center; }
+.status-description { display: block; margin-top: 6px; color: var(--text-secondary, #737A84); font-size: var(--type-body-small-size, 13px); line-height: 1.6; }
+.detail-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; min-width: 0; padding: 12px 0; line-height: 1.5; }
+.detail-row > :first-child { flex-shrink: 0; color: var(--text-secondary, #737A84); }
 .detail-row > :last-child { min-width: 0; text-align: right; overflow-wrap: anywhere; }
-.note-block { padding: 12px; margin-top: 12px; border-radius: var(--radius-control, 10px); background: #F6F7F9; line-height: 1.6; overflow-wrap: anywhere; }
-.note-block text { display: block; white-space: pre-wrap; }
-.note-title { display: block; margin-bottom: 6px; font-weight: var(--font-weight-semibold, 600); }
-.workflow-block { margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-control, 10px); background: #F6F7F9; }
-.workflow-block .detail-row { padding: 5px 0; font-size: var(--type-caption-size, 12px); }
-.audit-note { background: #FFF8EE; }
-.detail-product { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 8px 12px; padding: 14px 0; border-bottom: 1px solid #EEF0F2; }
+.number-row { margin-top: 14px; padding: 3px 0; border-top: 1px solid var(--border-light, #EEF0F2); border-bottom: 1px solid var(--border-light, #EEF0F2); }
+.number-row > :first-child { font-size: var(--type-body-small-size, 13px); }
+.number-copy { display: flex; align-items: center; justify-content: flex-end; flex: 1; min-width: 0; min-height: 44px; margin: 0; padding: 7px 0; border: 0; border-radius: 6px; color: inherit; background: transparent; font-size: var(--type-body-small-size, 13px); line-height: 1.5; text-align: right; overflow-wrap: anywhere; white-space: normal; }
+.number-copy:active { opacity: .65; }
+.number-copy:focus-visible { outline: 2px solid var(--primary-color, #D7192D); outline-offset: 3px; }
+button::after { border: 0; }
+.refund-row { padding-bottom: 0; }
+.refund-row > :first-child { color: var(--text-primary, #22262C); font-size: var(--type-card-title-size, 15px); }
+.summary-amount { font-size: var(--type-money-total-size, 28px); font-weight: var(--font-weight-bold, 700); }
+.section-title, .note-title { display: block; margin-bottom: 12px; font-size: var(--type-section-title-size, 16px); font-weight: var(--font-weight-semibold, 600); line-height: 1.4; }
+.progress-step { display: flex; align-items: center; gap: 12px; min-height: 40px; }
+.progress-track { position: relative; display: flex; align-items: center; justify-content: center; align-self: stretch; width: 16px; flex-shrink: 0; }
+.progress-track::after { position: absolute; top: 50%; bottom: -50%; left: 7px; width: 1px; background: #DDE0E4; content: ''; }
+.is-last .progress-track::after { display: none; }
+.progress-dot { position: relative; z-index: 1; width: 12px; height: 12px; border: 2px solid #C3C7CD; border-radius: 50%; background: var(--surface-card, #fff); box-sizing: border-box; }
+.progress-label { flex: 1; min-width: 0; font-size: var(--type-body-size, 14px); line-height: 1.5; }
+.progress-badge { flex-shrink: 0; max-width: 48%; padding: 3px 10px; border-radius: 20px; background: #F2F3F5; color: #737A84; font-size: var(--type-caption-size, 12px); line-height: 1.5; text-align: center; }
+.is-current .progress-dot, .is-complete .progress-dot, .is-alert .progress-dot { border-color: var(--primary-color, #D7192D); }
+.is-complete .progress-dot { background: var(--primary-color, #D7192D); }
+.is-current .progress-label { font-weight: var(--font-weight-semibold, 600); }
+.is-current .progress-badge, .is-alert .progress-badge { background: #FFF0F1; color: var(--primary-color, #D7192D); }
+.detail-product { display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-width: 0; padding: 14px 0; border-top: 1px solid var(--border-light, #EEF0F2); }
+.detail-product:first-of-type { padding-top: 0; border-top: 0; }
+.detail-product:last-child { padding-bottom: 0; }
 .product-image { width: 64px; height: 64px; border-radius: var(--radius-small, 8px); overflow: hidden; }
-.product-copy { flex: 1; min-width: 0; }
-.product-copy text { display: block; margin-bottom: 4px; color: #737A84; font-size: var(--type-caption-size, 12px); line-height: 1.5; overflow-wrap: anywhere; }
-.product-copy .product-name { color: #22262C; font-size: var(--type-body-small-size, 13px); font-weight: var(--font-weight-semibold, 600); }
-.product-amount { grid-column: 2; min-width: 0; font-size: var(--type-caption-size, 12px); font-weight: var(--font-weight-semibold, 600); }
-.time-block { padding-top: 10px; font-size: var(--type-caption-size, 12px); }
-.return-form { margin-top: 16px; padding-top: 16px; border-top: 1px solid #EEF0F2; }
-.return-note { display: block; color: #737A84; font-size: var(--type-caption-size, 12px); line-height: 1.6; }
-.field-label { display: block; margin: 14px 0 8px; font-size: var(--type-body-small-size, 13px); }
+.product-copy { min-width: 0; }
+.product-copy text { display: block; margin-top: 3px; color: var(--text-secondary, #737A84); font-size: var(--type-body-small-size, 13px); line-height: 1.5; overflow-wrap: anywhere; }
+.product-copy .product-name { margin-top: 0; color: var(--text-primary, #22262C); font-size: var(--type-card-title-size, 15px); font-weight: var(--font-weight-semibold, 600); }
+.product-amount { max-width: 100%; font-size: var(--type-price-size, 18px); font-weight: var(--font-weight-semibold, 600); }
+.awaiting-price { color: #95621D; font-size: var(--type-body-small-size, 13px); font-weight: var(--font-weight-semibold, 600); }
+.reason-content { display: block; padding: 10px 12px; border-radius: var(--radius-control, 10px); background: var(--surface-muted, #F6F7F9); line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.note-content { display: block; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.audit-note { background: #FFFBF5; }
+.time-block { padding-top: 4px; padding-bottom: 4px; font-size: var(--type-body-small-size, 13px); }
+.time-block .detail-row + .detail-row { border-top: 1px solid var(--border-light, #EEF0F2); }
+.time-block .detail-row > :last-child { flex: 1; }
+.return-note { display: block; color: var(--text-secondary, #737A84); font-size: var(--type-body-small-size, 13px); line-height: 1.6; }
+.field-label { display: block; margin: 14px 0 8px; font-size: var(--type-body-size, 14px); }
 .field-input { width: 100%; height: 44px; padding: 0 12px; box-sizing: border-box; border: 1px solid #E5E7EB; border-radius: var(--radius-control, 10px); background: #F9FAFB; font-size: var(--type-body-size, 14px); }
-.carrier-picker { display: flex; align-items: center; height: auto; min-height: 44px; padding-top: 10px; padding-bottom: 10px; line-height: 1.5; overflow-wrap: anywhere; }
-.carrier-picker::after { border: 0; }
-.return-submit { display: flex; width: 100%; min-height: 44px; align-items: center; justify-content: center; margin: 16px 0 0; padding: 10px 14px; border-radius: var(--radius-control, 10px); color: #fff; background: #D7192D; font-size: var(--type-body-size, 14px); line-height: 1.5; }
+.carrier-picker { display: flex; align-items: center; height: auto; min-height: 44px; margin: 0; padding-top: 10px; padding-bottom: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+.text-action { margin: 0; padding: 6px 0; color: var(--primary-color, #D7192D); background: transparent; font-size: var(--type-body-small-size, 13px); }
+.return-submit { display: flex; width: 100%; min-height: 44px; align-items: center; justify-content: center; margin: 16px 0 0; padding: 10px 14px; border-radius: var(--radius-control, 10px); color: #fff; background: var(--primary-color, #D7192D); font-size: var(--type-body-size, 14px); line-height: 1.5; }
 .return-submit[disabled] { color: #969AA3; background: #E9EAED; }
-.save-error { display: block; color: #D7192D; margin-top: 10px; font-size: var(--type-caption-size, 12px); line-height: 1.5; }
+.save-error { display: block; color: var(--primary-color, #D7192D); margin-top: 10px; font-size: var(--type-body-small-size, 13px); line-height: 1.5; }
+@media (max-width: 359px) {
+  .detail-product { grid-template-columns: 56px minmax(0, 1fr); gap: 8px 10px; }
+  .product-image { width: 56px; height: 56px; grid-row: span 2; }
+  .product-amount { grid-column: 2; }
+}
 </style>

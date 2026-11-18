@@ -489,7 +489,11 @@
     "clearSelection": "清空",
     "limitReached": "每张售后单最多选择500个规格",
     "notReturnable": "暂无可退数量",
-    "skuSearch": "商品名称 / SKU / 条码"
+    "skuSearch": "商品名称 / SKU / 条码",
+    "sourceDocument": "来源单据",
+    "readFailed": "加载失败",
+    "dateFilterTitle": "选择时间范围",
+    "clearDates": "清除时间"
   },
   "fundFlow": {
     "empty": "暂无资金流水",

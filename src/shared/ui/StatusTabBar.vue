@@ -99,7 +99,7 @@ function getPoint(touch) {
 <style lang="scss" scoped>
 .status-tab-bar { display: block; min-width: 0; width: 100%; margin: 0 auto; white-space: nowrap; }
 
-/* 淘宝式顶部状态导航：保留页面底色，每个状态独立成胶囊按钮。 */
+/* 无描边状态导航：保留页面底色，以浅底和品牌填色区分状态，不使用投影。 */
 .status-tab-track {
   position: relative;
   display: flex;
@@ -121,19 +121,20 @@ function getPoint(touch) {
   justify-content: center;
   flex: 0 0 auto;
   padding: 0 13px;
-  border: 1px solid #E5E6EB;
+  border: 0;
+  box-shadow: none;
   border-radius: 10px;
   box-sizing: border-box;
-  color: #767A84;
-  background: var(--surface-card, #FFF);
+  color: var(--text-secondary, #62666F);
+  background: var(--surface-subtle, #F2F3F5);
   font-size: var(--type-caption-size, 12px);
   line-height: 18px;
   white-space: nowrap;
-  transition: color .16s ease, background .16s ease, border-color .16s ease, transform .16s ease;
+  transition: color .16s ease, background .16s ease, opacity .16s ease;
 }
 
-.status-tab-item.active { color: #FFF; border-color: var(--color-brand, #D7192D); background: var(--color-brand, #D7192D); box-shadow: 0 3px 10px rgba(215,25,45,.22); font-weight: var(--font-weight-bold, 700); }
-.status-tab-item:active { transform: scale(.96); }
+.status-tab-item.active { color: #FFF; background: var(--color-brand, #D7192D); box-shadow: none; font-weight: var(--font-weight-bold, 700); }
+.status-tab-item:active { opacity: .8; }
 
 .status-tab-label { line-height: 18px; }
 
