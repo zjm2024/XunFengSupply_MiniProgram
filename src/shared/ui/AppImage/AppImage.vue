@@ -161,7 +161,7 @@ onBeforeUnmount(() => { sourceVersion += 1 })
 .app-image-wrapper {
   position: relative;
   overflow: hidden;
-  background: var(--surface-page, #F4F5F8);
+  background: var(--app-image-background, var(--surface-page, #F4F5F8));
   flex-shrink: 0;
 }
 
@@ -179,7 +179,7 @@ onBeforeUnmount(() => { sourceVersion += 1 })
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--surface-page, #F4F5F8);
+  background: var(--app-image-background, var(--surface-page, #F4F5F8));
   color: var(--text-tertiary, #9DA1A8);
 }
 

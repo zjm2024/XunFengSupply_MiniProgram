@@ -90,7 +90,7 @@ function handleImageError() {
   place-items: center;
   overflow: hidden;
   box-sizing: border-box;
-  background: #f5f6f7;
+  background: var(--product-image-background, #f5f6f7);
 }
 
 .app-product-image__source,
@@ -118,7 +118,7 @@ function handleImageError() {
   display: grid;
   place-items: center;
   gap: 8px;
-  background: #f3f4f5;
+  background: var(--product-image-background, #f3f4f5);
 }
 
 .app-product-image__spinner {
@@ -140,7 +140,7 @@ function handleImageError() {
   display: grid;
   place-items: center;
   color: #b6b9c0;
-  background: #f3f4f5;
+  background: var(--product-image-background, #f3f4f5);
 }
 
 @keyframes app-product-image-spin {

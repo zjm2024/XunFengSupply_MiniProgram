@@ -39,15 +39,13 @@ $content-max-width-landscape: 1120px;   // iPad 横屏/大屏
 
   @media screen and (min-width: $breakpoint-medium) {
     max-width: $content-max-width-landscape;
-    padding-left: 24px;
-    padding-right: 24px;
+    padding-inline: var(--page-content-gutter, 16px);
     box-sizing: border-box;
   }
 
   @media screen and (min-width: $breakpoint-compact) and (max-width: #{$breakpoint-medium - 1}) {
     max-width: $content-max-width-portrait;
-    padding-left: 20px;
-    padding-right: 20px;
+    padding-inline: var(--page-content-gutter, 16px);
     box-sizing: border-box;
   }
 }
@@ -57,13 +55,7 @@ $content-max-width-landscape: 1120px;   // iPad 横屏/大屏
  * 手机端 16px，平板端 24px
  */
 @mixin content-padding {
-  padding-left: 16px;
-  padding-right: 16px;
-
-  @media screen and (min-width: $breakpoint-compact) {
-    padding-left: 24px;
-    padding-right: 24px;
-  }
+  padding-inline: var(--page-content-gutter, 16px);
 }
 
 // ==================== 已废弃的 Mixins（保留向后兼容，标记 deprecated）====================

@@ -1,5 +1,5 @@
 @use "@/uni.scss" as tokens;
-.pay-page { width: 100%; max-width: 760px; min-height: 100%; margin: 0 auto; padding: 12px 14px 28px; box-sizing: border-box; }
+.pay-page { width: 100%; max-width: 760px; min-height: 100%; margin: 0 auto; padding: 12px 0 28px; box-sizing: border-box; }
 .amount-section { padding: 24px 20px 18px; border-radius: var(--radius-feature, 18px); color: #FFF; background: linear-gradient(145deg, #C9152B 0%, #A50F22 100%); box-shadow: 0 12px 28px rgba(174, 20, 38, .16); text-align: center; }
 .pay-label, .amount, .order-no, .deadline-label, .deadline-note { display: block; }
 .pay-label { color: rgba(255,255,255,.8); font-size: var(--type-caption-size, 12px); }
@@ -48,7 +48,7 @@
 .bottom-space { height: 74px; }
 .confirm-pay-btn { display: flex; width: 100%; height: 48px; align-items: center; justify-content: center; margin: 0; border: 0; border-radius: var(--radius-card, 14px); color: #FFF; background: var(--color-brand, #D7192D); font-size: var(--type-button-size, 14px); font-weight: var(--font-weight-bold, 700); line-height: 1; }
 .confirm-pay-btn[disabled] { color: #A8ABB2; background: #ECEEF2; opacity: 1; }
-@media (min-width: 800px) { .pay-page { padding: 20px 20px 40px; } .amount-section { padding: 30px 28px 22px; } .pay-methods, .credit-info { padding: 20px 22px; } }
+@media (min-width: 800px) { .pay-page { padding: 20px 0 40px; } .amount-section { padding: 30px 28px 22px; } .pay-methods, .credit-info { padding: 20px 22px; } }
 
 /* 金额按实际可用宽度缩字，父布局允许收缩。 */
 .credit-card-display, .credit-rows, .allocation-summary { min-width: 0; }

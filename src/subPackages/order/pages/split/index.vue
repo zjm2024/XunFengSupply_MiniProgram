@@ -722,7 +722,7 @@ async function submitSplits() {
 
 <style lang="scss" scoped>
 /* 手机端以地址和规格数量为主，编辑区只保留一层卡片。 */
-.allocation-page { width: 100%; max-width: 720px; margin: 0 auto; padding: 10px 14px 24px; box-sizing: border-box; color: #1b1c20; }
+.allocation-page { width: 100%; max-width: 720px; margin: 0 auto; padding: 10px var(--page-content-gutter, 16px) 24px; box-sizing: border-box; color: #1b1c20; }
 .order-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 2px 2px 10px; }
 .eyebrow { min-width: 0; color: #747b86; font-size: var(--type-caption-size, 12px); line-height: 18px; overflow-wrap: anywhere; }
 .order-summary-total { flex: none; color: #62666f; font-size: var(--type-caption-size, 12px); white-space: nowrap; }

@@ -21,7 +21,49 @@
       </view>
     </view>
     <view v-else-if="component.componentType === 4 && items.length" class="home-ad-list"><view v-for="item in items" :key="item.homeItemId" class="home-ad" @click="$emit('target', item)"><AppImage :src="item.imageUrl" width="100%" height="100%" mode="aspectFill" radius="0" /><view class="ad-copy"><text>{{ item.title }}</text><text v-if="item.subtitle" class="ad-subtitle">{{ item.subtitle }}</text></view></view></view>
-    <view v-else-if="component.componentType === 5" class="home-product-floor" :data-component-id="component.homeComponentId"><view class="home-block-heading"><text>{{ component.title }}</text><view v-if="component.config.showMore" @click="$emit('more', component)">{{ t('common.homePage.more') }} ›</view></view><view v-if="section?.state === 'ready' && section.items.length" class="home-product-grid" :style="{ '--floor-columns': component.config.columns }"><HomeProductTile v-for="product in section.items" :key="product.productId" :product="product" :can-purchase="canPurchase" @detail="$emit('detail', $event)" @buy="$emit('buy', $event)" /></view><view v-else-if="section?.state === 'ready'" class="home-floor-state">{{ t('common.homePage.emptyFloor') }}</view><view v-else-if="section?.state === 'loading'" class="home-floor-skeleton"><view v-for="n in 2" :key="n" /></view><view v-else class="home-floor-state" @click="$emit('retry', component.homeComponentId)">{{ section?.state === 'error' ? t('common.homePage.retry') : t('common.homePage.loadFloor') }}<AppIcon name="refresh" :size="16" /></view></view>
+    <view
+      v-else-if="component.componentType === 5"
+      class="home-product-floor"
+      :style="{ '--floor-columns': component.config.columns }"
+      :data-component-id="component.homeComponentId"
+    >
+      <view class="home-floor-heading">
+        <text class="home-floor-title">{{ component.title }}</text>
+        <button
+          v-if="component.config.showMore"
+          class="home-floor-more"
+          hover-class="entry--pressed"
+          @tap="$emit('more', component)"
+        >
+          <text>{{ t('common.homePage.more') }}</text>
+          <AppIcon name="chevron-right" :size="14" />
+        </button>
+      </view>
+      <view v-if="section?.state === 'ready' && section.items.length" class="home-product-grid">
+        <HomeProductTile
+          v-for="product in section.items"
+          :key="product.productId"
+          :product="product"
+          :can-purchase="canPurchase"
+          @detail="$emit('detail', $event)"
+          @buy="$emit('buy', $event)"
+        />
+      </view>
+      <view v-else-if="section?.state === 'ready'" class="home-floor-state">
+        {{ t('common.homePage.emptyFloor') }}
+      </view>
+      <view v-else-if="section?.state === 'loading'" class="home-product-grid home-floor-skeleton">
+        <view v-for="n in Math.max(2, Number(component.config.columns) || 4)" :key="n" class="home-floor-placeholder">
+          <view class="home-floor-placeholder-image" />
+          <view class="home-floor-placeholder-label" />
+          <view class="home-floor-placeholder-price" />
+        </view>
+      </view>
+      <view v-else class="home-floor-state" @click="$emit('retry', component.homeComponentId)">
+        {{ section?.state === 'error' ? t('common.homePage.retry') : t('common.homePage.loadFloor') }}
+        <AppIcon name="refresh" :size="16" />
+      </view>
+    </view>
   </view>
 </template>
 <script setup>
@@ -43,16 +85,104 @@ watch(()=>[props.active,props.component.homeComponentId],observe,{immediate:true
 onBeforeUnmount(()=>{disposed=true;observer?.disconnect()})
 </script>
 <style lang="scss" scoped>
-.home-content-block{min-width:0}.home-banner{height:200px;border-radius: var(--radius-card, 14px);overflow:hidden}.home-banner-item{height:100%;position:relative;background:#a44338}.banner-copy{position:absolute;left:20px;right:20px;top:23px;color:#fff;display:flex;flex-direction:column;gap:11px;text-shadow:0 1px 8px #0003;pointer-events:none}.banner-brand{font-size: var(--type-caption-size, 12px);letter-spacing:2px;opacity:.75}.banner-title{font-size: var(--type-heading-size, 24px);font-weight: var(--font-weight-bold, 700);line-height:1.4;max-width:85%;white-space:pre-line}.banner-subtitle{font-size: var(--type-caption-size, 12px);line-height:1.6}.home-notices{padding:15px;border-radius: var(--radius-control, 10px);background:var(--glass-card-background,#fff);height:100%;min-height:130px;box-sizing:border-box}.home-block-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;font-size: var(--type-section-title-size, 18px);font-weight: var(--font-weight-semibold, 600);color:var(--color-text-primary,#2d3440)}.home-block-heading>view{font-size: var(--type-caption-size, 12px);font-weight: var(--font-weight-regular, 400);color:#959eab;padding:6px 0 6px 12px}.home-notice-line{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;color:#7f8997;font-size: var(--type-caption-size, 12px)}.home-notice-line text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}.home-inline-empty{color:#a0a8b3;font-size: var(--type-caption-size, 12px);display:block;padding:13px 0}.home-ad-list{display:grid;gap:10px}.home-ad{height:105px;position:relative;overflow:hidden;border-radius: var(--radius-control, 10px);background:#eae4d6}.ad-copy{position:absolute;left:17px;right:17px;top:20px;display:flex;flex-direction:column;gap:8px;color:#937340;text-shadow:0 1px 5px #fff8;font-size: var(--type-section-title-size, 18px);font-weight: var(--font-weight-semibold, 600);pointer-events:none}.ad-subtitle{font-size: var(--type-caption-size, 12px);font-weight: var(--font-weight-regular, 400)}.home-product-floor{padding-top:2px}.home-product-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.home-floor-state{padding:25px 12px;display:flex;justify-content:center;align-items:center;gap:10px;background:#ffffff75;border-radius: var(--radius-small, 8px);font-size: var(--type-caption-size, 12px);color:#9ca4b0}.home-floor-skeleton{display:grid;grid-template-columns:1fr 1fr;gap:12px}.home-floor-skeleton>view{aspect-ratio:1 / 1;background:#ebedf1;border-radius:9px}@media(min-width:768px){.home-product-grid{grid-template-columns:repeat(var(--floor-columns,4),minmax(0,1fr));gap:18px}.home-banner{height:240px}.banner-title{font-size: var(--type-display-size, 28px)}.home-ad{height:115px}}
+.home-content-block{min-width:0}.home-banner{height:200px;border-radius: var(--radius-card, 14px);overflow:hidden}.home-banner-item{height:100%;position:relative;background:#a44338}.banner-copy{position:absolute;left:20px;right:20px;top:23px;color:#fff;display:flex;flex-direction:column;gap:11px;text-shadow:0 1px 8px #0003;pointer-events:none}.banner-brand{font-size: var(--type-caption-size, 12px);letter-spacing:2px;opacity:.75}.banner-title{font-size: var(--type-heading-size, 24px);font-weight: var(--font-weight-bold, 700);line-height:1.4;max-width:85%;white-space:pre-line}.banner-subtitle{font-size: var(--type-caption-size, 12px);line-height:1.6}.home-notices{padding:15px;border-radius: var(--radius-control, 10px);background:var(--glass-card-background,#fff);height:100%;min-height:130px;box-sizing:border-box}.home-block-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:16px;font-size: var(--type-section-title-size, 18px);font-weight: var(--font-weight-semibold, 600);color:var(--color-text-primary,#2d3440)}.home-block-heading>view{font-size: var(--type-caption-size, 12px);font-weight: var(--font-weight-regular, 400);color:#959eab;padding:6px 0 6px 12px}.home-notice-line{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 0;color:#7f8997;font-size: var(--type-caption-size, 12px)}.home-notice-line text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}.home-inline-empty{color:#a0a8b3;font-size: var(--type-caption-size, 12px);display:block;padding:13px 0}.home-ad-list{display:grid;gap:10px}.home-ad{height:105px;position:relative;overflow:hidden;border-radius: var(--radius-control, 10px);background:#eae4d6}.ad-copy{position:absolute;left:17px;right:17px;top:20px;display:flex;flex-direction:column;gap:8px;color:#937340;text-shadow:0 1px 5px #fff8;font-size: var(--type-section-title-size, 18px);font-weight: var(--font-weight-semibold, 600);pointer-events:none}.ad-subtitle{font-size: var(--type-caption-size, 12px);font-weight: var(--font-weight-regular, 400)}@media(min-width:768px){.home-banner{height:240px}.banner-title{font-size: var(--type-display-size, 28px)}.home-ad{height:115px}}
+
+
+.home-product-floor {
+  padding-top: 4px;
+}
+
+.home-floor-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  margin-bottom: 6px;
+}
+
+.home-floor-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-primary, #1b1c20);
+  font-size: var(--type-page-title-size, 20px);
+  font-weight: var(--font-weight-bold, 700);
+  line-height: 1.3;
+}
+
+.home-floor-more {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 3px;
+  min-height: 44px;
+  margin: 0;
+  padding: 0 0 0 10px;
+  color: var(--text-secondary, #62666f);
+  background: transparent;
+  font-size: var(--type-body-small-size, 13px);
+  line-height: 1.4;
+}
+
+.home-floor-more::after {
+  border: 0;
+}
+
+.home-product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.home-floor-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px 12px;
+  border-radius: var(--radius-card, 16px);
+  color: var(--text-secondary, #62666f);
+  background: var(--surface-card, #fff);
+  font-size: var(--type-body-small-size, 13px);
+  text-align: center;
+}
+
+.home-floor-placeholder {
+  overflow: hidden;
+  border-radius: var(--radius-card, 16px);
+  background: var(--surface-card, #fff);
+}
+
+.home-floor-placeholder-image,
+.home-floor-placeholder-label,
+.home-floor-placeholder-price {
+  background: var(--bg-subtle, #f4f5f8);
+}
+
+.home-floor-placeholder-image { aspect-ratio: 1 / 1; }
+.home-floor-placeholder-label { width: 68%; height: 12px; margin: 18px auto 24px; border-radius: 6px; }
+.home-floor-placeholder-price { width: 35%; height: 12px; margin: 0 auto 20px; border-radius: 6px; }
+
+@media (max-width: 767px) {
+  .home-floor-skeleton .home-floor-placeholder:nth-child(n + 3) { display: none; }
+}
+
+@media (min-width: 768px) {
+  .home-product-grid {
+    grid-template-columns: repeat(var(--floor-columns, 4), minmax(0, 1fr));
+    gap: 14px;
+  }
+}
 
 .home-quick-entries {
   --entry-columns: var(--entry-phone-columns);
   --quick-entry-icon-size: 44px;
+  --app-image-background: transparent;
   display: flex;
   flex-wrap: wrap;
   gap: 16px 12px;
   padding: 14px 12px;
-  background: var(--glass-card-background, #fff);
+  background: var(--surface-card, #fff);
   border-radius: var(--radius-card, 14px);
 }
 .home-quick-entry {
@@ -77,7 +207,7 @@ onBeforeUnmount(()=>{disposed=true;observer?.disconnect()})
   justify-content: center;
   overflow: hidden;
   border-radius: var(--radius-control, 10px);
-  background: var(--surface-muted, #f4f5f8);
+  background: transparent;
   color: var(--text-tertiary, #9da1a8);
 }
 .entry--pressed { opacity: .6; }

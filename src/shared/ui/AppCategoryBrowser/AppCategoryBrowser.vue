@@ -270,7 +270,7 @@ onBeforeUnmount(() => { generation++ })
   height: 100%;
   min-height: 0;
   margin: 0 auto;
-  padding: 4px 12px 0;
+  padding: 4px var(--page-content-gutter, 16px) 0;
   flex-direction: column;
   box-sizing: border-box;
 }
@@ -328,7 +328,7 @@ onBeforeUnmount(() => { generation++ })
 }
 
 .category-groups {
-  padding: 0 10px 18px;
+  padding-bottom: 18px;
 }
 
 .category-group {
@@ -518,11 +518,6 @@ onBeforeUnmount(() => { generation++ })
 }
 
 @media screen and (max-width: 360px) {
-  .category-groups {
-    padding-right: 7px;
-    padding-left: 7px;
-  }
-
   .category-group {
     padding-right: 8px;
     padding-left: 8px;
@@ -538,7 +533,7 @@ onBeforeUnmount(() => { generation++ })
 
 @media screen and (min-width: 821px) {
   .tab-page {
-    padding: 6px 0 20px;
+    padding: 6px var(--page-content-gutter, 16px) 20px;
   }
 
   .secondary-tabs,
@@ -564,7 +559,7 @@ onBeforeUnmount(() => { generation++ })
   }
 
   .category-groups {
-    padding: 0 16px 24px;
+    padding-bottom: 24px;
   }
 
   .category-group {

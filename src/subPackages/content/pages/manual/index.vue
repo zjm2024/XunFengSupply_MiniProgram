@@ -182,7 +182,7 @@ async function preview(item) {
 </script>
 
 <style lang="scss" scoped>
-.manual-page { width: 100%; max-width: 1120px; padding: 12px 16px calc(30px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+.manual-page { width: 100%; max-width: 1120px; padding: 12px 0 calc(30px + env(safe-area-inset-bottom)); box-sizing: border-box; }
 .category-tabs { width: 100%; margin-bottom: 14px; white-space: nowrap; }
 .category-tabs-inner { display: flex; gap: 8px; width: max-content; }
 .category-btn { min-height:var(--list-action-height,32px);padding:0 12px;border:1px solid #E5E6EB;border-radius:var(--list-action-radius,8px); color: #666A73; background: #FFF; font-size:var(--list-action-font-size,12px);line-height: 30px; }

@@ -214,9 +214,8 @@ watch(() => props.theme, applyStatusBarStyle)
 
 .header-content {
   width: 100%;
-  max-width: 1240px;
   margin: 0 auto;
-  padding: 8px 14px 10px;
+  padding: 8px var(--page-content-gutter, 16px) 10px;
   box-sizing: border-box;
 }
 
@@ -535,11 +534,6 @@ watch(() => props.theme, applyStatusBarStyle)
 }
 
 @media screen and (max-width: 380px) {
-  .header-content {
-    padding-right: 9px;
-    padding-left: 9px;
-  }
-
   .search-nav {
     gap: 6px;
   }
@@ -565,7 +559,8 @@ watch(() => props.theme, applyStatusBarStyle)
 
 @media screen and (min-width: 768px) {
   .header-content {
-    padding: 10px 28px 0;
+    padding-top: 10px;
+    padding-bottom: 0;
   }
 
   .search-box {
@@ -596,11 +591,5 @@ watch(() => props.theme, applyStatusBarStyle)
   }
 }
 
-@media screen and (min-width: 1180px) {
-  .header-content {
-    padding-right: 36px;
-    padding-left: 36px;
-  }
-}
 .has-result-count{justify-content:space-between}.catalog-result-count{margin-right:auto;font-size: var(--type-caption-size, 12px);line-height: 20px;color:var(--text-secondary,#737a84)}.has-result-count .filter-entry{flex:none;margin-left:16px}@media screen and (max-width: 599px) { .search-entry-placeholder { font-size: var(--input-placeholder-size, 13px); } }
 </style>

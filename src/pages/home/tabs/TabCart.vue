@@ -68,7 +68,7 @@ async function openProductList() { await navigator.navigateTo(routes.commerce.pr
 </script>
 
 <style lang="scss" scoped>
-.tab-page { width: 100%; min-height: 100%; margin: 0 auto; padding: 18px 16px 0; box-sizing: border-box; }
+.tab-page { width: 100%; min-height: 100%; margin: 0 auto; padding: 18px var(--page-content-gutter, 16px) 0; box-sizing: border-box; }
 .page-heading, .section-heading, .cart-item, .item-price-row, .cart-action, .primary-button { display: flex; align-items: center; }
 .page-heading { justify-content: space-between; gap: 18px; padding: 20px; border-radius: var(--radius-feature, 18px); background: linear-gradient(145deg, rgba(255,255,255,.82), rgba(255,246,229,.7)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .heading-copy { display: flex; min-width: 0; flex-direction: column; }
@@ -112,7 +112,7 @@ async function openProductList() { await navigator.navigateTo(routes.commerce.pr
 .primary-button { min-height: 44px; margin-top: 8px; padding: 0 20px; justify-content: center; gap: 7px; border-radius: var(--radius-card, 14px); color: #fff; font-size: var(--type-body-small-size, 13px); font-weight: var(--font-weight-bold, 700); background: linear-gradient(100deg, #ef4555, #d7192d); }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media screen and (min-width: 800px) {
-  .tab-page { padding: 18px 24px 18px; }
+  .tab-page { padding-bottom: 18px; }
   .page-heading { padding: 24px 28px; }
   .summary-grid { gap: 16px; }
   .summary-card { min-height: 128px; }

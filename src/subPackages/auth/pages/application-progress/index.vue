@@ -79,7 +79,7 @@ async function showExistingDetail(result, lookupIdentifier) {
 </script>
 
 <style lang="scss" scoped>
-.progress-page { min-height: 100%; background: #fff; padding: 28px 24px 32px; box-sizing: border-box; }
+.progress-page { min-height: 100%; background: #fff; padding: 28px var(--page-content-gutter, 16px) 32px; box-sizing: border-box; }
 .progress-main { width: 100%; max-width: 400px; margin: 0 auto; }
 .field-label { display: block; margin-bottom: 10px; font-size: 14px; line-height: 22px; font-weight: 600; color: $color-text-primary; }
 .field-control { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 0 12px; background: #F8F9FB; border: 1px solid #E0E4EB; border-radius: $radius-control; box-sizing: border-box; transition: border-color .16s ease, background .16s ease; }

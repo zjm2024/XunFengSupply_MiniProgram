@@ -189,7 +189,6 @@
                     <text class="summary-title">{{ t('commerce.cart.summary') }}</text>
                     <text class="summary-subtitle">{{ t('commerce.cart.summaryHint') }}</text>
                   </view>
-                  <view class="summary-badge">{{ t('commerce.cart.productCount', { count: cartStore.summary.selectedCount }) }}</view>
                 </view>
                 <view class="summary-row">
                   <text>{{ t('commerce.cart.selectedItems') }}</text>
@@ -199,7 +198,7 @@
                   <text>{{ t('commerce.cart.selectedQuantity') }}</text>
                   <text>{{ t('commerce.cart.quantityCount', { count: cartStore.summary.selectedQuantity }) }}</text>
                 </view>
-                <view class="summary-row">
+                <view v-if="cartStore.summary.totalQuantity > cartStore.summary.selectedQuantity" class="summary-row">
                   <text>{{ t('commerce.cart.unselectedQuantity') }}</text>
                   <text>{{ t('commerce.cart.quantityCount', { count: cartStore.summary.totalQuantity - cartStore.summary.selectedQuantity }) }}</text>
                 </view>
@@ -216,7 +215,7 @@
                   <text>{{ t('commerce.cart.invalidItems') }}</text>
                   <text>{{ t('commerce.cart.quantityCount', { count: cartStore.summary.invalidCount }) }}</text>
                 </view>
-                <view v-if="cartStore.summary.remainingLimit < 100000" class="limit-hint">
+                <view v-if="cartStore.summary.selectedAmount > 0 && !cartStore.summary.isOverLimit" class="limit-hint">
                   <view class="limit-amounts"><text>{{ t('commerce.cart.limitBefore') }}</text><AmountText text="¥100,000" /><text>{{ t('commerce.cart.limitAfter') }}</text><AmountText :text="'¥' + cartStore.summary.remainingLimit.toLocaleString('zh-CN', { minimumFractionDigits: 2 })" /></view>
                 </view>
                 <text v-if="cartStore.summary.isOverLimit" class="risk-text">{{ t('commerce.cart.overLimit') }}</text>

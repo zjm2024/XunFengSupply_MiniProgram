@@ -1,13 +1,9 @@
 <template>
   <AppPageShell>
     <template #header>
-      <app-header
-        :title="t('commerce.titles.productDetail')"
-        :show-back="true"
-        :show-cart="true"
-        :cart-count="cartStore.cartBadgeCount"
-        @cart="goToCart"
-      />
+      <view :class="{ 'detail-header-overlay': pageState === PageStatus.CONTENT }">
+        <app-header :show-back="true" transparent />
+      </view>
     </template>
 
     <template #content>
@@ -20,7 +16,7 @@
           icon-type="product"
           @retry="loadProduct"
         >
-          <view v-if="product" class="detail-layout">
+          <view v-if="product" class="detail-layout product-detail-layout">
             <!-- 商品主图 -->
             <view class="media-card">
               <swiper
@@ -32,7 +28,7 @@
               >
                 <swiper-item v-for="(image, idx) in displayImages" :key="idx">
                   <view class="main-image-wrap" @click="previewImage(idx)">
-                    <AppProductImage class="main-image" :src="image" :stock="detailImageStock" />
+                    <AppProductImage class="main-image" :src="image" mode="aspectFill" :stock="detailImageStock" />
                   </view>
                 </swiper-item>
               </swiper>
@@ -442,11 +438,52 @@ function localError(messageKey) {
 @import '@/shared/styles/productDetail.scss';
 
 /* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
-.media-card, .info-card, .promotion-card, .size-recommendation-card, .section-card {
+.info-card, .promotion-card, .size-recommendation-card, .section-card {
   border: 0 !important;
   background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
   -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
   backdrop-filter: var(--glass-card-blur, blur(16px));
 }
+
+.detail-header-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: calc(40px + var(--page-content-gutter, 16px));
+}
+
+.product-detail-layout .media-card {
+  background: var(--surface-card, #fff) !important;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+@media screen and (max-width: 959px) {
+  .product-detail-layout {
+    max-width: none;
+    padding: 0 0 12px;
+  }
+
+  .product-detail-layout .media-card {
+    border-radius: 0;
+  }
+
+  .product-detail-layout .image-swiper {
+    height: min(100vw, 540px);
+  }
+
+  .product-detail-layout .detail-main {
+    padding: 12px var(--page-content-gutter, 16px) 20px;
+  }
+}
+
+@media screen and (min-width: 960px) {
+  .product-detail-layout {
+    max-width: none;
+    padding-inline: var(--page-content-gutter, 24px);
+  }
+}
+
 </style>

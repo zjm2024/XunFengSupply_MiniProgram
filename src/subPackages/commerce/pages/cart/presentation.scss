@@ -479,15 +479,6 @@
   font-size: var(--type-caption-size, 12px);
 }
 
-.summary-badge {
-  padding: 4px 9px;
-  border-radius: 999px;
-  color: tokens.$color-brand-500;
-  background: tokens.$color-brand-50;
-  font-size: var(--type-caption-size, 12px);
-  font-weight: var(--font-weight-semibold, 600);
-}
-
 .summary-row {
   display: flex;
   justify-content: space-between;
@@ -521,10 +512,7 @@
 
 .limit-hint {
   margin-top: 8px;
-  padding: 6px 10px;
-  background: tokens.$color-brand-50;
-  border-radius: var(--radius-xs, 6px);
-  color: tokens.$color-brand-700;
+  color: tokens.$color-text-secondary;
   font-size: var(--type-caption-size, 12px);
 }
 

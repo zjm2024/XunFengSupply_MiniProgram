@@ -194,7 +194,7 @@ function goToDetail(item) {
 
 <style lang="scss" scoped>
 .news-content {
-  padding: 8px 16px calc(30px + env(safe-area-inset-bottom));
+  padding: 8px 0 calc(30px + env(safe-area-inset-bottom));
   box-sizing: border-box;
 }
 
@@ -317,7 +317,6 @@ function goToDetail(item) {
 }
 
 @media screen and (min-width: 700px) {
-  .news-content { padding-left: 24px; padding-right: 24px; }
   .news-item {
     display: flex;
     align-items: stretch;

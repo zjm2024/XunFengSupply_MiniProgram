@@ -90,6 +90,9 @@
 
               <button
                 class="login-button button-center"
+                :hover-class="canLogin && !logging ? 'login-button--pressed' : 'none'"
+                :hover-start-time="0"
+                :hover-stay-time="90"
                 :disabled="!canLogin || logging"
                 @click="handleLogin"
               >
@@ -432,7 +435,7 @@ function goToApplySign() {
 <style lang="scss" scoped>
 .login-page {
   min-height: 100%;
-  padding: $space-8 $page-padding-mobile calc(#{$space-6} + env(safe-area-inset-bottom));
+  padding: $space-8 var(--page-content-gutter, 16px) calc(#{$space-6} + env(safe-area-inset-bottom));
   box-sizing: border-box;
   background: $color-bg-page;
   display: flex;
@@ -756,8 +759,6 @@ function goToApplySign() {
 @media (min-width: 768px) {
   .login-page {
     padding-top: 64px;
-    padding-left: $page-padding-tablet;
-    padding-right: $page-padding-tablet;
   }
 }
 
@@ -771,15 +772,16 @@ function goToApplySign() {
 }
 
 /* 参考已选极简方向：白底、居中品牌与单一主动作，保留协议确认。 */
-.login-page { background: #fff; padding: 36px 24px 24px; justify-content: flex-start; }
+.login-page { background: #fff; padding: 36px var(--page-content-gutter, 16px) 24px; justify-content: flex-start; }
 .login-main { max-width: 400px; }
-.brand-block { margin-bottom: 26px; }
+.brand-block { margin-bottom: 18px; }
 .brand-logo { width: 52px; height: 52px; margin-bottom: 10px; }
 .brand-title { font-size: 24px; line-height: 32px; }
 .login-card { padding: 0; background: transparent !important; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
-.card-heading { text-align: center; margin-bottom: 30px; gap: 8px; }
+.card-heading { text-align: center; margin-bottom: 22px; gap: 8px; }
 .card-title { font-size: 22px; line-height: 30px; }
 .card-caption { font-size: 13px; line-height: 21px; }
+.login-button--pressed { background: $color-brand-600; }
 .auth-entries { display: flex; flex-direction: column; gap: 10px; margin-top: 24px; }
 .auth-entry { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 48px; padding: 10px 14px; background: #fff; border: 1px solid #E7E9EE; border-radius: 10px; color: $color-text-primary; font-size: 14px; line-height: 22px; text-align: left; transition: background .16s ease; }
 .auth-entry::after { border: 0; }

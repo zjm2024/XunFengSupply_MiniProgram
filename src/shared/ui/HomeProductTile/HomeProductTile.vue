@@ -1,7 +1,7 @@
 <template>
-  <view class="home-product-tile" hover-class="home-product-tile--pressed" @click="$emit('detail', product)">
+  <view class="home-product-tile" hover-class="home-product-tile--pressed" :hover-start-time="0" :hover-stay-time="90" @click="$emit('detail', product)">
     <view class="home-product-image">
-      <AppProductImage :src="product.image" :show-stock-badge="false" :fallback-icon-size="30" />
+      <AppProductImage class="home-product-media" :src="product.image" :show-stock-badge="false" :fallback-icon-size="30" />
     </view>
     <view class="home-product-copy">
       <view class="home-product-name">{{ product.name || t('common.productCard.fallbackName') }}</view>
@@ -21,17 +21,70 @@ const priceText = computed(() => '¥' + Number(props.product.price || 0).toFixed
 </script>
 
 <style scoped>
-.home-product-tile { min-width: 0; height: 100%; overflow: hidden; background: var(--surface-card, #FFFFFF); border-radius: var(--radius-card, 16px); box-shadow: 0 2px 8px rgba(28,33,42,.035); }
-.home-product-tile--pressed { opacity: .85; }
-.home-product-image { width: 100%; aspect-ratio: 1 / 1; padding: 6px; box-sizing: border-box; background: var(--surface-subtle, #F7F8FA); }
-.home-product-image :deep(.app-product-image) { width: 100%; height: 100%; }
-.home-product-copy { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 10px 12px 12px; }
-.home-product-name { display: block; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--text-primary, #1B1C20); font-size: var(--type-body-size, 14px); line-height: 20px; font-weight: 500; }
-.home-product-price { max-width: 100%; color: var(--primary-color, #D7192D); font-size: var(--type-money-size, 18px); line-height: 24px; font-weight: 700; }
-@media (min-width: 600px) { .home-product-name { display: -webkit-box; white-space: normal; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; } }
-@media (max-width: 599px) {
-  .home-product-name { font-size: var(--type-body-small-size, 13px); line-height: 18px; }
-  .home-product-price { font-size: var(--type-price-tile-size, 16px); line-height: 22px; }
-  .home-product-copy { gap: 4px; }
+.home-product-tile {
+  --product-image-background: var(--surface-card, #fff);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--product-image-background);
+  border-radius: var(--radius-card, 16px);
+  transition: transform 160ms ease, opacity 160ms ease;
+}
+
+.home-product-tile--pressed {
+  opacity: .88;
+  transform: scale(.985);
+}
+
+.home-product-image {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  box-sizing: border-box;
+}
+
+.home-product-media {
+  width: 100%;
+  height: 100%;
+}
+
+.home-product-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px 10px 14px;
+  text-align: center;
+}
+
+.home-product-name {
+  display: -webkit-box;
+  width: 100%;
+  height: 40px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  color: var(--text-primary, #1B1C20);
+  font-size: var(--type-body-size, 14px);
+  font-weight: var(--font-weight-semibold, 600);
+  line-height: 20px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.home-product-price {
+  max-width: 100%;
+  margin-top: auto;
+  color: var(--color-brand, #D7192D);
+  font-size: var(--type-price-tile-size, 16px);
+  font-weight: var(--font-weight-bold, 700);
+  line-height: 22px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-product-tile { transition: none; }
+  .home-product-tile--pressed { transform: none; }
 }
 </style>

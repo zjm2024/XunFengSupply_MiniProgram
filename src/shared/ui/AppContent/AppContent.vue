@@ -102,7 +102,7 @@ const props = defineProps({
 
 const emit = defineEmits(['scroll', 'scrolltolower', 'refresherrefresh', 'refresherrestore', 'refresherabort'])
 
-const { layout, contentMaxWidth, pagePaddingX } = useResponsive()
+const { layout, contentMaxWidth } = useResponsive()
 
 /** 容器样式：最大宽度 + 居中 */
 const containerStyle = computed(() => {
@@ -125,7 +125,7 @@ const containerStyle = computed(() => {
 const padding = computed(() => {
   if (props.padding) return props.padding
   // 默认：使用 CSS px 保持 H5、iOS、Android、平板端尺寸稳定
-  return `var(--module-gap, 16px) ${pagePaddingX.value}`
+  return `var(--module-gap, 16px) var(--page-content-gutter, 16px)`
 })
 
 function handleScroll(e) {

@@ -126,7 +126,7 @@ function goBack() { navigator.back() }
 <style lang="scss" scoped>
 .page { display: flex; height: 100vh; height: 100dvh; overflow: hidden; flex-direction: column; background: #F4F5F7; }
 .page-scroll { flex: 1; min-height: 0; }
-.content { min-height: calc(100% - 24px); margin: 12px; padding: 26px 22px calc(52px + env(safe-area-inset-bottom)); box-sizing: border-box; border-radius: var(--radius-feature, 18px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.content { min-height: calc(100% - 24px); margin: 12px var(--page-content-gutter, 16px); padding: 26px 22px calc(52px + env(safe-area-inset-bottom)); box-sizing: border-box; border-radius: var(--radius-feature, 18px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .cover { display: block; width: 100%; height: 360px; margin-bottom: 22px; border-radius: var(--radius-card, 14px); background: #EEF0F3; }
 .manual-title { display: block; color: #17191E; font-size: var(--type-heading-size, 24px); font-weight: var(--font-weight-bold, 700); line-height: 1.4; }
 .manual-meta { display: block; margin-top: 9px; color: #8A919C; font-size: var(--type-caption-size, 12px); }

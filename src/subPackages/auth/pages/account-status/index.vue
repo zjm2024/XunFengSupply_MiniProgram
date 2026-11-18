@@ -121,7 +121,7 @@ function goBack() {
 <style lang="scss" scoped>
 .frozen-page {
   min-height: 100%;
-  padding: 24px 16px 32px;
+  padding: 24px 0 32px;
   box-sizing: border-box;
   background: var(--bg-color);
   display: flex;

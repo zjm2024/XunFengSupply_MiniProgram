@@ -130,7 +130,7 @@ function copySourceUrl() {
 <style lang="scss" scoped>
 .page { height: 100vh; height: 100dvh; display: flex; overflow: hidden; flex-direction: column; background: #F4F5F7; }
 .page-scroll { flex: 1; min-height: 0; }
-.content { min-height: calc(100% - 24rpx); margin: 12rpx; padding: 34rpx 30rpx calc(60rpx + env(safe-area-inset-bottom)); box-sizing: border-box; border-radius: 20rpx; background: rgba(255,255,255,.74); box-shadow: 0 10px 28px rgba(55,65,80,.07); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+.content { min-height: calc(100% - 24rpx); margin: 12rpx var(--page-content-gutter, 16px); padding: 34rpx 30rpx calc(60rpx + env(safe-area-inset-bottom)); box-sizing: border-box; border-radius: 20rpx; background: rgba(255,255,255,.74); box-shadow: 0 10px 28px rgba(55,65,80,.07); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 
 .article-category { display: block; color: #C61D32; font-size: var(--type-caption-size, 12px); font-weight: var(--font-weight-bold, 700); }
 .article-title { display: block; margin-top: 18rpx; color: #1B1F24; font-size: var(--type-page-title-size, 20px); font-weight: var(--font-weight-bold, 700); line-height: 1.35; }
@@ -164,7 +164,7 @@ function copySourceUrl() {
 .article-image { width: 100%; border-radius: 16rpx; margin-bottom: 24rpx; }
 
 @media screen and (min-width: 700px) {
-  .content { margin: 24rpx; padding: 42rpx 7vw 72rpx; }
+  .content { margin-block: 24rpx; padding: 42rpx 7vw 72rpx; }
   .article-cover { height: 420rpx; }
 }
 </style>

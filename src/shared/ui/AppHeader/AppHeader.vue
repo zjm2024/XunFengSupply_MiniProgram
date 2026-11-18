@@ -42,6 +42,7 @@
     <!-- 导航栏内容 -->
     <view
       class="nav-bar"
+      :class="{ 'nav-bar--with-back': showBack }"
       :style="navBarStyle"
     >
       <!-- 左侧区域 -->
@@ -407,7 +408,7 @@ onUnmounted(() => {
   }
 
   // 宽屏时居中并限制最大宽度
-  &.is-landscape.breakpoint-expanded .nav-bar {
+  &.is-landscape.breakpoint-expanded .nav-bar:not(.nav-bar--with-back) {
     max-width: 1240px;
     margin: 0 auto;
   }
@@ -428,6 +429,18 @@ onUnmounted(() => {
   --header-side-padding: 12px;
   padding: 6px var(--header-side-padding);
   box-sizing: border-box;
+}
+
+/* 返回入口与页面边缘对齐，标题、搜索和右侧操作沿用原有导航宽度。 */
+.app-header .nav-bar.nav-bar--with-back {
+  --header-content-inset: max(0px, calc((100% - 1240px) / 2));
+  max-width: none;
+  padding-left: var(--page-content-gutter, 16px);
+  padding-right: calc(var(--header-side-padding) + var(--header-content-inset));
+}
+
+.nav-bar--with-back .nav-search {
+  max-width: calc(1240px - 2 * (var(--header-side-padding) + 48px));
 }
 
 .nav-left,
@@ -641,7 +654,8 @@ onUnmounted(() => {
 
 @media screen and (max-width: 380px) {
   .nav-bar {
-    padding: 5px 9px;
+    --header-side-padding: 9px;
+    padding: 5px var(--header-side-padding);
   }
 
   .icon-btn {

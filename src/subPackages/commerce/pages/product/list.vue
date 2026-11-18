@@ -628,9 +628,8 @@ function goToDetail(item) {
 
 .scroll-inner {
   width: 100%;
-  max-width: 1240px;
   margin: 0 auto;
-  padding: 12px 12px 28px;
+  padding: 12px var(--page-content-gutter, 16px) 28px;
   box-sizing: border-box;
 }
 
@@ -1060,7 +1059,8 @@ function goToDetail(item) {
   }
 
   .scroll-inner {
-    padding: 18px 28px 40px;
+    padding-top: 18px;
+    padding-bottom: 40px;
   }
 
   .back-to-top {
@@ -1114,9 +1114,5 @@ function goToDetail(item) {
     padding-right: 36px;
   }
 
-  .scroll-inner {
-    padding-left: 36px;
-    padding-right: 36px;
-  }
 }
 </style>

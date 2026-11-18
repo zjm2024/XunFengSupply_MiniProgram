@@ -90,7 +90,7 @@ async function openNewsList() {
 </script>
 
 <style lang="scss" scoped>
-.tab-page { width: 100%; min-height: 100%; margin: 0 auto; padding: 18px 16px 0; box-sizing: border-box; }
+.tab-page { width: 100%; min-height: 100%; margin: 0 auto; padding: 18px var(--page-content-gutter, 16px) 0; box-sizing: border-box; }
 .news-intro { display: flex; flex-direction: column; padding: 8px 2px 10px; }
 .news-kicker { color: var(--color-brand, #d7192d); font-size: var(--type-caption-size, 12px); font-weight: var(--font-weight-bold, 700); letter-spacing: 1.8px; }
 .news-title { margin-top: 6px; color: #17191e; font-size: var(--type-heading-size, 24px); font-weight: var(--font-weight-bold, 700); line-height: 1.3; }
@@ -145,7 +145,7 @@ async function openNewsList() {
 .card--pressed { opacity: .9; transform: scale(.985); }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media screen and (min-width: 800px) {
-  .tab-page { padding: 18px 24px 18px; }
+  .tab-page { padding-bottom: 18px; }
   .news-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
   .large-card-media { height: 220px; }
   .page-heading { padding: 24px 28px; }

@@ -1,6 +1,6 @@
 <template>
   <view class="quantity-stepper" :class="[`size-${size}`, { 'is-disabled': disabled }]">
-    <button class="stepper-button" :disabled="minusDisabled" :aria-label="buttonLabel('common.ui.decrease')" @tap="decrease">
+    <button class="stepper-button" :hover-class="minusDisabled ? 'none' : 'stepper-pressed'" :hover-start-time="0" :hover-stay-time="80" :disabled="minusDisabled" :aria-label="buttonLabel('common.ui.decrease')" @tap="decrease">
       <text class="stepper-symbol">−</text>
     </button>
     <input
@@ -15,7 +15,7 @@
       @blur="handleBlur"
     />
     <text v-else class="stepper-value">{{ modelValue }}</text>
-    <button class="stepper-button" :disabled="plusDisabled" :aria-label="buttonLabel('common.ui.increase')" @tap="increase">
+    <button class="stepper-button" :hover-class="plusDisabled ? 'none' : 'stepper-pressed'" :hover-start-time="0" :hover-stay-time="80" :disabled="plusDisabled" :aria-label="buttonLabel('common.ui.increase')" @tap="increase">
       <text class="stepper-symbol">＋</text>
     </button>
   </view>
@@ -150,7 +150,7 @@ function handleBlur(event) {
   background: var(--surface-page, #f4f5f8);
 
   &::after { border: 0; }
-  &:active:not(:disabled) { background: var(--bg-pressed, #eceef2); }
+  &.stepper-pressed, &:active:not(:disabled) { background: var(--bg-pressed, #eceef2); }
   &:disabled {
     color: var(--text-placeholder, #969aa3);
     opacity: .35;
@@ -158,6 +158,7 @@ function handleBlur(event) {
   }
 }
 
+.stepper-pressed .stepper-symbol { opacity: .72; }
 .stepper-symbol { color: inherit; line-height: 1; }
 .stepper-value {
   display: flex;
