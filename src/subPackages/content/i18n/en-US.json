@@ -17,6 +17,7 @@
     "unreadSummary": "{count} unread",
     "noUnread": "No unread messages",
     "unreadLabel": "Unread",
+    "viewDetail": "View details",
     "markingAll": "Marking…",
     "filterLabel": "Message categories",
     "settingsAction": "Settings",
@@ -58,7 +59,16 @@
     "readSynced": "Read status synced",
     "readOnOpen": "Marked as read when opened",
     "viewInvoice": "View invoices",
-    "viewAfterSale": "View after-sales request"
+    "viewAfterSale": "View after-sales request",
+    "heroTitle": "Stay on top of what matters",
+    "heroDescription": "Keep up with orders, returns and approvals.",
+    "businessDescription": "Orders, after-sales and delivery updates",
+    "orderDescription": "Purchases, payments and deliveries",
+    "auditDescription": "Applications, credentials and approvals",
+    "billDescription": "Payments, refunds, invoices and statements",
+    "announcementDescription": "Platform policies and important notices",
+    "categoryListHint": "All messages, newest first",
+    "unreadCountLabel": "{count} unread messages"
   },
   "manual": {
     "reload": "Reload",

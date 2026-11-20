@@ -5,50 +5,42 @@
     </template>
 
     <template #content>
-      <AppContent padding="12px var(--page-padding-x, 16px) 32px">
+      <AppContent width-mode="standard" padding="12px var(--page-padding-x, 16px) 32px">
         <view class="message-detail-page">
-          <view v-if="loading" class="detail-state">
+          <view v-if="loading && !detail" class="detail-state" role="status" aria-live="polite">
             <view class="detail-spinner" />
             <text>{{ t('content.messages.loading') }}</text>
           </view>
 
-          <view v-else-if="errorText" class="detail-state detail-state--error" @tap="loadDetail">
+          <button v-else-if="errorText" class="detail-state detail-state--error" @click="loadDetail">
             <text>{{ errorText }}</text>
             <text class="detail-retry">{{ t('content.messages.retry') }}</text>
-          </view>
+          </button>
 
-          <view v-else-if="detail" class="message-detail-card">
-            <view class="detail-topline">
-              <view class="detail-type" :class="`tone-${getTypeMeta(detail.type).tone}`">
-                <AppIcon :name="getTypeMeta(detail.type).icon" :size="20" :stroke-width="1.8" />
-                <text>{{ getTypeMeta(detail.type).label }}</text>
+          <view v-else-if="detail">
+            <view class="message-detail-card">
+              <text class="detail-title" role="heading" aria-level="1">{{ detail.title }}</text>
+              <view class="detail-topline">
+                <text class="detail-time">{{ formatDateTime(detail.createdAt) || t('content.messages.unknownTime') }}</text>
+                <view class="detail-type">
+                  <image class="detail-type-art" alt="" aria-hidden="true" :src="messageIcon(detail.type)" mode="aspectFit" />
+                  <text>{{ getTypeMeta(detail.type).label }}</text>
+                </view>
+                <view class="read-status" aria-live="polite" :class="{ unread: !detail.isRead }">
+                  <view class="read-status-dot" aria-hidden="true" />
+                  <text>{{ detail.isRead ? t('content.messages.read') : t('content.messages.unread') }}</text>
+                </view>
               </view>
-              <view class="read-status" :class="{ unread: !detail.isRead }">
-                <view class="read-status-dot" />
-                <text>{{ detail.isRead ? t('content.messages.read') : t('content.messages.unread') }}</text>
-              </view>
+
+              <view class="detail-divider" />
+              <text class="detail-content">{{ detail.content || t('content.messages.emptyContent') }}</text>
             </view>
 
-            <text class="detail-title">{{ detail.title }}</text>
-            <text class="detail-time">{{ formatDateTime(detail.createdAt) || t('content.messages.unknownTime') }}</text>
-
-            <view class="detail-divider" />
-            <text class="detail-content">{{ detail.content || t('content.messages.emptyContent') }}</text>
-
-            <view v-if="relatedAction" class="related-entry" hover-class="related-entry--pressed" @tap="openRelatedBusiness">
-              <view class="related-entry-icon">
-                <AppIcon :name="relatedAction.icon" :size="20" :stroke-width="1.8" />
-              </view>
-              <view class="related-entry-copy">
+            <view v-if="relatedAction" class="message-detail-actions">
+              <button class="related-entry" role="link" hover-class="related-entry--pressed" @click="openRelatedBusiness">
                 <text class="related-entry-title">{{ relatedAction.title }}</text>
-                <text class="related-entry-desc">{{ t('content.messages.relatedHint') }}</text>
-              </view>
-              <AppIcon name="chevron-right" :size="18" color="#9AA1AA" />
-            </view>
-
-            <view class="read-hint">
-              <AppIcon name="check" :size="14" :stroke-width="1.8" />
-              <text>{{ detail.isRead ? t('content.messages.readSynced') : t('content.messages.readOnOpen') }}</text>
+                <AppIcon name="chevron-right" :size="16" aria-hidden="true" />
+              </button>
             </view>
           </view>
         </view>
@@ -60,8 +52,9 @@
 <script setup>
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/content/i18n/register.js'
+import { messageIcon } from '../../model/messageCategories.js'
 import { computed, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
+import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { getMessageDetail, getUnreadSummary, markAsRead } from '../../api/message.js'
 import { useMessageStore } from '../../model/messageStore.js'
 import { formatDateTime } from '../../../../shared/utils/format.js'
@@ -79,6 +72,7 @@ const sessionKey = () => String(userStore.userId) + ':' + String(userStore.deale
 const messageId = ref('')
 const detail = ref(null)
 const loading = ref(false)
+let disposed = false
 const loadFailure = ref(null)
 const errorText = computed(() => loadFailure.value?.message
   || (loadFailure.value?.messageKey ? t(loadFailure.value.messageKey) : ''))
@@ -107,6 +101,7 @@ onLoad((options) => {
   messageId.value = String(options?.messageId || '')
   loadDetail()
 })
+onUnload(() => { disposed = true })
 
 function pick(source, camelKey, pascalKey, fallback) {
   return source?.[camelKey] ?? source?.[pascalKey] ?? fallback
@@ -121,10 +116,10 @@ async function loadDetail() {
 
   loading.value = true
   loadFailure.value = null
+  const key = sessionKey()
   try {
-    const key = sessionKey()
     const result = await getMessageDetail(messageId.value)
-    if (key !== sessionKey()) return
+    if (disposed || key !== sessionKey()) return
     detail.value = result
 
     if (!detail.value) {
@@ -132,8 +127,13 @@ async function loadDetail() {
       return
     }
 
-    try { await markDetailAsRead() } catch { uni.showToast({ title: t('content.messages.operationFailed'), icon: 'none' }) }
+    try {
+      await markDetailAsRead()
+    } catch {
+      if (!disposed && key === sessionKey()) uni.showToast({ title: t('content.messages.operationFailed'), icon: 'none' })
+    }
   } catch (error) {
+    if (disposed || key !== sessionKey()) return
     console.error('[MessageDetail] 加载消息失败:', error)
     loadFailure.value = error?.message ? error : { messageKey: 'content.messages.loadFailed' }
   } finally {
@@ -144,16 +144,17 @@ async function loadDetail() {
 async function markDetailAsRead() {
   if (!detail.value || detail.value.isRead) return
   const key = sessionKey()
-  await markAsRead({ messageId: detail.value.messageId })
+  const openedMessage = detail.value
+  await markAsRead({ messageId: openedMessage.messageId })
   if (key !== sessionKey()) return
-  detail.value.isRead = true
+  openedMessage.isRead = true
+  const cached = messageStore.messageList.find(item => item.messageId === openedMessage.messageId)
+  if (cached) cached.isRead = true
   try {
     const summary = await getUnreadSummary()
     if (key !== sessionKey()) return
     messageStore.applySummary(summary)
   } catch { /* A failed background badge refresh must not hide an already loaded message. */ }
-  const cached = messageStore.messageList.find(item => item.messageId === detail.value.messageId)
-  if (cached) cached.isRead = true
 }
 
 /** 仅翻译消息类型标签，不生成或改写消息正文。 */
@@ -174,42 +175,144 @@ function openRelatedBusiness() {
 </script>
 
 <style lang="scss" scoped>
-.message-detail-shell { --surface-page: #f2f4f7; }
-.message-detail-page { width: 100%; min-height: 100%; padding-bottom: env(safe-area-inset-bottom); box-sizing: border-box; }
-.message-detail-card { padding: 20px; border-radius: var(--radius-feature, 18px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-.detail-topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-.detail-type { display: inline-flex; align-items: center; gap: 7px; font-size: var(--type-caption-size, 12px); font-weight: var(--font-weight-semibold, 600); }
-.tone-order { color: #496f9b; }
-.tone-audit { color: #168a52; }
-.tone-bill { color: #9a6b22; }
-.tone-system { color: var(--primary-color, #d7192d); }
-.tone-default { color: var(--icon-secondary, #62666f); }
-.read-status { display: inline-flex; align-items: center; gap: 5px; padding: 4px 8px; border-radius: 999px; color: #7d858f; background: rgba(125,133,143,.1); font-size: var(--type-caption-size, 12px); line-height: 18px; }
-.read-status.unread { color: var(--primary-color, #d7192d); background: rgba(215,25,45,.1); }
+.message-detail-page {
+  max-width: 600px;
+  margin: 0 auto;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.message-detail-card {
+  padding: 16px;
+  border-radius: var(--radius-feature, 18px);
+  background: var(--surface-card);
+  overflow-wrap: anywhere;
+}
+
+.detail-topline,
+.detail-type,
+.read-status {
+  display: flex;
+  align-items: center;
+}
+
+.detail-topline { flex-wrap: wrap; gap: 4px 12px; margin-top: 8px; }
+.detail-type {
+  gap: 8px;
+  min-width: 0;
+  color: var(--type-secondary-color);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line-height);
+}
+.detail-type-art { flex: none; width: 16px; height: 16px; }
+.read-status {
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--type-secondary-color);
+  background: rgba(27, 29, 32, .05);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line-height);
+}
+.read-status.unread { color: var(--primary-color, #d7192d); background: rgba(215, 25, 45, .07); }
 .read-status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.detail-title { display: block; margin-top: 18px; color: var(--type-title-color, #1b1c20); font-size: var(--type-page-title-size, 20px); font-weight: var(--font-weight-bold, 700); line-height: 28px; }
-.detail-time { display: block; margin-top: 8px; color: var(--type-muted-color, #969aa3); font-size: var(--type-caption-size, 12px); line-height: 18px; }
-.detail-divider { height: 1px; margin: 18px 0; background: rgba(130,138,148,.16); }
-.detail-content { display: block; color: var(--type-body-color, #1b1c20); font-size: var(--type-label-size, 15px); line-height: 26px; white-space: pre-wrap; word-break: break-word; }
-.related-entry { display: flex; min-height: 58px; align-items: center; gap: 11px; margin-top: 24px; padding: 12px 13px; border-radius: var(--radius-card, 14px); background: rgba(215,25,45,.06); }
-.related-entry--pressed { opacity: .66; }
-.related-entry-icon { display: grid; width: 34px; height: 34px; flex: none; place-items: center; border-radius: var(--radius-control, 10px); color: var(--primary-color, #d7192d); background: rgba(215,25,45,.1); }
-.related-entry-copy { min-width: 0; flex: 1; }
-.related-entry-title { display: block; color: var(--type-title-color, #1b1c20); font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-semibold, 600); line-height: 20px; }
-.related-entry-desc { display: block; margin-top: 2px; color: var(--type-muted-color, #969aa3); font-size: var(--type-caption-size, 12px); line-height: 18px; }
-.read-hint { display: flex; align-items: center; gap: 5px; margin-top: 24px; color: var(--type-muted-color, #969aa3); font-size: var(--type-caption-size, 12px); line-height: 18px; }
-.detail-state { display: flex; min-height: 220px; align-items: center; justify-content: center; gap: 9px; color: var(--type-muted-color, #969aa3); font-size: var(--type-body-small-size, 13px); }
-.detail-state--error { flex-direction: column; color: var(--primary-color, #d7192d); }
-.detail-retry { color: var(--type-muted-color, #969aa3); }
-.detail-spinner { width: 17px; height: 17px; border: 2px solid #e3e6ea; border-top-color: var(--primary-color, #d7192d); border-radius: 50%; animation: detail-spin .8s linear infinite; }
+
+.detail-title {
+  display: block;
+  text-wrap: balance;
+  color: var(--type-title-color);
+  font-size: var(--type-page-title-size);
+  line-height: var(--type-page-title-line-height);
+  font-weight: var(--font-weight-bold, 700);
+}
+.detail-time {
+  display: block;
+  color: var(--type-secondary-color);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line-height);
+  font-variant-numeric: tabular-nums;
+}
+.detail-divider { height: 1px; margin: 16px 0; background: var(--border-color, rgba(27, 29, 32, .09)); }
+.detail-content {
+  display: block;
+  color: var(--type-body-color);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line-height);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.message-detail-actions {
+  --message-glass-blur: blur(16px);
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: var(--radius-feature, 18px);
+  background: rgba(255, 255, 255, .76);
+  box-shadow: var(--glass-card-shadow);
+  -webkit-backdrop-filter: var(--message-glass-blur);
+  backdrop-filter: var(--message-glass-blur);
+}
+
+.related-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: var(--radius-card, 14px);
+  box-sizing: border-box;
+  text-align: left;
+  color: var(--type-title-color);
+  background: transparent;
+}
+.related-entry--pressed,
+.related-entry:active { opacity: .65; }
+@media (hover: hover) {
+  .related-entry:hover { opacity: .8; }
+}
+.related-entry-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line-height);
+  font-weight: var(--font-weight-semibold, 600);
+}
+
+.detail-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 220px;
+  color: var(--type-secondary-color);
+  font-size: var(--type-body-small-size);
+  line-height: var(--type-body-small-line-height);
+}
+.detail-state--error { width: 100%; flex-direction: column; border: 0; background: transparent; }
+.detail-retry { color: var(--primary-color, #d7192d); }
+.related-entry::after, .detail-state--error::after { border: 0; }
+.related-entry:focus-visible, .detail-state--error:focus-visible {
+  outline: 2px solid var(--primary-color, #d7192d);
+  outline-offset: -2px;
+}
+.detail-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(27, 29, 32, .12);
+  border-top-color: var(--primary-color, #d7192d);
+  border-radius: 50%;
+  animation: detail-spin .8s linear infinite;
+}
 @keyframes detail-spin { to { transform: rotate(360deg); } }
 
-/* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
-.message-detail-card {
-  border: 0 !important;
-  background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
-  backdrop-filter: var(--glass-card-blur, blur(16px));
+@media (min-width: 768px) {
+  .message-detail-card { padding: 32px; }
+  .message-detail-actions { padding-inline: 32px; }
 }
+@media (prefers-reduced-motion: reduce) { .detail-spinner { animation: none; } }
 </style>

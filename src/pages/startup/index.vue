@@ -33,7 +33,7 @@
           :desc="displayMessage(errorDesc)"
           :primary-text="displayMessage(errorPrimaryText)"
           :secondary-text="displayMessage(errorSecondaryText)"
-          :show-primary="errorShowPrimary"
+          :show-primary="errorShowPrimary && !updateBusy"
           :show-secondary="errorShowSecondary"
           @retry="onRetry"
           @update="onUpdate"
@@ -72,6 +72,7 @@ import { onLoad, onReady, onUnload, onBackPress } from '@dcloudio/uni-app'
 import StartupBrand from './components/StartupBrand.vue'
 import StartupLoading from './components/StartupLoading.vue'
 import StartupError from './components/StartupError.vue'
+import { createOnlineUpdater } from '../../app/bootstrap/onlineUpdater.js'
 import { bootstrapOnce, resetBootstrapState } from '../../app/bootstrap/appBootstrap.js'
 import { STARTUP_CONFIG } from '../../app/config/startupConfig.js'
 import { APP_SURFACE } from '../../app/config/shareSurface.js'
@@ -114,6 +115,8 @@ const nativeSplashClosed = ref(false)
 
 // ==================== 错误状态 ====================
 
+const updateBusy = ref(false)
+const onlineUpdater = createOnlineUpdater(applyUpdateState)
 const errorMode = ref('error')
 const errorTitle = ref('')
 const errorDesc = ref('')
@@ -124,7 +127,7 @@ const errorShowSecondary = ref(false)
 
 /** UI 提示延迟取词；更新日志正文仍按服务端原始内容展示。 */
 function displayMessage(value) {
-  return value?.key ? t(value.key) : (value ?? '')
+  return value?.key ? t(value.key, value.params) : (value ?? '')
 }
 
 // ==================== 加载文案 ====================
@@ -213,6 +216,7 @@ onReady(() => {
 onUnload(() => {
   log('page unloaded')
   isUnloaded.value = true
+  onlineUpdater.dispose()
   _clearAllTimers()
 })
 
@@ -573,49 +577,35 @@ function onRetry() {
 
 // ==================== 立即更新 ====================
 
-/**
- * 用户点击立即更新
- */
+/** 保留强更场景；失败在原入口重试，不重新启动业务初始化。 */
 function onUpdate() {
+  if (isUnloaded.value || updateBusy.value) return
+  onlineUpdater.start(bootResult.value?.updateInfo?.downloadUrl)
+}
+
+/** 原生任务状态映射为双语反馈，不把打开安装器表述为升级成功。 */
+function applyUpdateState(result) {
   if (isUnloaded.value) return
-  log('update triggered')
-
-  const result = bootResult.value
-  const downloadUrl = result?.updateInfo?.downloadUrl
-
-  if (!downloadUrl) {
-    log('no download url available')
-    // 展示明确错误，不能重新执行 bootstrap
-    currentScene.value = 'error'
-    errorMode.value = 'error'
-    errorTitle.value = { key: 'main.startup.updateFailed' }
-    errorDesc.value = { key: 'main.startup.downloadUnavailable' }
-    errorPrimaryText.value = { key: 'common.retry' }
-    errorShowPrimary.value = true
-    errorShowSecondary.value = false
+  updateBusy.value = ['downloading', 'installing'].includes(result.state)
+  errorMode.value = 'force-update'
+  currentScene.value = 'force-update'
+  errorTitle.value = { key: 'main.startup.newVersion' }
+  errorShowPrimary.value = true
+  errorShowSecondary.value = false
+  if (result.state === 'downloading') {
+    errorDesc.value = result.progress === null
+      ? { key: 'main.startup.downloading' }
+      : { key: 'main.startup.downloadProgress', params: { progress: result.progress } }
     return
   }
-
-  // #ifdef APP-PLUS
-  try {
-    // iOS 打开 App Store URL，Android 使用 plus.runtime.openURL
-    const osName = plus.os.name?.toLowerCase()
-    if (osName === 'ios') {
-      plus.runtime.openURL(downloadUrl)
-    } else {
-      plus.runtime.openURL(downloadUrl)
-    }
-    log(`open update url: ${downloadUrl}`)
-  } catch (error) {
-    console.error('[Startup] open update url failed', error)
-    uni.showToast({ title: t('main.startup.manualUpdate'), icon: 'none' })
+  if (result.state === 'failed') {
+    errorTitle.value = { key: 'main.startup.updateFailed' }
+    errorDesc.value = { key: 'main.startup.' + result.code }
+    errorPrimaryText.value = { key: 'common.retry' }
+    return
   }
-  // #endif
-
-  // #ifndef APP-PLUS
-  // H5 环境下尝试打开链接
-  window.open(downloadUrl, '_blank')
-  // #endif
+  errorDesc.value = { key: 'main.startup.' + result.state }
+  errorPrimaryText.value = { key: result.state === 'installerOpened' ? 'main.startup.installAgain' : 'main.startup.updateNow' }
 }
 
 // ==================== 次按钮 ====================

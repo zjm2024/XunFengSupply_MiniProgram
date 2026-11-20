@@ -14,7 +14,8 @@
             "delay" : 0
         },
         "modules" : {
-            "Payment" : {}
+            "Payment" : {},
+            "Push" : {}
         },
         "distribute" : {
             "android" : {
@@ -36,10 +37,7 @@
                         "offline" : false,
                         "icons" : {
                             "small" : {
-                                "hdpi" : "C:/Users/PC/Pictures/238682b3-0f76-4299-90ac-04a0a898a6cf.png",
-                                "ldpi" : "C:/Users/PC/Pictures/238682b3-0f76-4299-90ac-04a0a898a6cf.png",
-                                "mdpi" : "C:/Users/PC/Pictures/238682b3-0f76-4299-90ac-04a0a898a6cf.png",
-                                "xxhdpi" : "C:/Users/PC/Pictures/238682b3-0f76-4299-90ac-04a0a898a6cf.png"
+                                "hdpi" : "C:/Users/PC/Pictures/238682b3-0f76-4299-90ac-04a0a898a6cf.png"
                             }
                         }
                     }
@@ -100,5 +98,10 @@
             "subPackages" : true
         }
     },
-    "vueVersion" : "3"
+    "vueVersion" : "3",
+    "app-harmony" : {
+        "distribute" : {
+            "bundleName" : "xunfeng.hm.huawei"
+        }
+    }
 }

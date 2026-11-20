@@ -17,6 +17,7 @@
     "unreadSummary": "{count} 条未读",
     "noUnread": "暂无未读消息",
     "unreadLabel": "未读",
+    "viewDetail": "查看详情",
     "markingAll": "正在标记…",
     "filterLabel": "消息分类",
     "settingsAction": "设置",
@@ -58,7 +59,16 @@
     "readSynced": "已同步阅读状态",
     "readOnOpen": "打开后将自动标记为已读",
     "viewInvoice": "查看发票",
-    "viewAfterSale": "查看售后详情"
+    "viewAfterSale": "查看售后详情",
+    "heroTitle": "及时掌握重要动态",
+    "heroDescription": "订单、售后、审核等关键消息不错过",
+    "businessDescription": "订单进展、售后处理、发货通知等",
+    "orderDescription": "下单、支付、发货、签收等通知",
+    "auditDescription": "入驻审核、资质审核、变更审核等",
+    "billDescription": "结算、退款、发票、对账等通知",
+    "announcementDescription": "平台规则、活动政策、重要通知等",
+    "categoryListHint": "按时间查看全部消息",
+    "unreadCountLabel": "{count} 条未读消息"
   },
   "manual": {
     "reload": "重新加载",

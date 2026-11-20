@@ -94,6 +94,7 @@ export const MANUAL = '/subPackages/content/pages/manual/index'
 export const MANUAL_PREVIEW = '/subPackages/content/pages/manual/preview'
 export const MANUAL_PDF_PREVIEW = '/subPackages/content/pages/manual/pdf-preview'
 export const MESSAGE = '/subPackages/content/pages/message/index'
+export const MESSAGE_LIST = '/subPackages/content/pages/message/list'
 export const MESSAGE_DETAIL = '/subPackages/content/pages/message/detail'
 export const HELP = '/subPackages/content/pages/help/index'
 export const ABOUT = '/subPackages/content/pages/about/index'
@@ -118,7 +119,7 @@ export const REGISTERED_ROUTES = Object.freeze([
   ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
   DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, DEALER_INVENTORY_OVERVIEW, DEALER_INVENTORY_LEDGER, SECURITY,
   FUND_CENTER, RECHARGE, RECHARGE_RECORDS, FUND_FLOW, CREDIT_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, INVOICE_TITLES, WITHDRAWAL, WITHDRAWAL_BANK_CARDS, VOUCHER, LANGUAGE, SETTINGS, NOTIFICATION_SETTINGS,
-  NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MANUAL_PDF_PREVIEW, MESSAGE, MESSAGE_DETAIL, HELP, ABOUT,
+  NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MANUAL_PDF_PREVIEW, MESSAGE, MESSAGE_LIST, MESSAGE_DETAIL, HELP, ABOUT,
 ])
 
 // ==================== 内部集合（用于高效查询）====================
@@ -514,6 +515,7 @@ export const ROUTE_META = Object.freeze({
     allowFrozen: false,
     owner: null,
   },
+  [MESSAGE_LIST]: { title: '分类消息', requireAuth: true, requireSign: false, allowFrozen: false, owner: null },
   [MESSAGE_DETAIL]: {
     title: '消息详情',
     requireAuth: true,
@@ -855,6 +857,7 @@ export const routes = {
       return withQuery(MANUAL_PDF_PREVIEW, { manualId: id })
     },
     messages: () => MESSAGE,
+    messageList: (type = 'business') => withQuery(MESSAGE_LIST, { type: ['business', '1', '2', '3', '4'].includes(String(type)) ? String(type) : 'business' }),
     messageDetail: (messageId) => {
       const id = assertValidId(messageId, 'content.messageDetail')
       return withQuery(MESSAGE_DETAIL, { messageId: id })

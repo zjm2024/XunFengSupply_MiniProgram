@@ -440,6 +440,10 @@
                     }
                 },
                 {
+                    "path": "pages/message/list",
+                    "style": { "navigationStyle": "custom", "navigationBarTitleText": "" }
+                },
+                {
                     "path": "pages/message/detail",
                     "style": {
                         "navigationStyle": "custom",
