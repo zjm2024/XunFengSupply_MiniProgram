@@ -258,6 +258,8 @@
 </template>
 
 <script setup>
+import { useSystemFeatures } from '@/shared/composables/useSystemFeatures.js'
+const { afterSaleEnabled } = useSystemFeatures()
 import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { getPriceDisplay, getOrderPriceSummary } from '@/shared/utils/priceDisplay.js'
@@ -443,7 +445,7 @@ const actionButtons = computed(() => {
     priority: 2,
   }
 
-  const actions = [...(detail.value.salesScene === 1 || !userStore.hasPermission('ORDER_CREATE') ? [] : [reorderAction]), ...getOrderActionButtons(detail.value.allowedActions, userStore.hasPermission('ORDER_CREATE')).filter(action => action.key !== 'viewLogistics' || primaryShipment.value?.trackingNo)]
+  const actions = [...(detail.value.salesScene === 1 || !userStore.hasPermission('ORDER_CREATE') ? [] : [reorderAction]), ...getOrderActionButtons(detail.value.allowedActions, userStore.hasPermission('ORDER_CREATE'), afterSaleEnabled.value).filter(action => action.key !== 'viewLogistics' || primaryShipment.value?.trackingNo)]
   const priority = { reorder: 0, pay: 1, cancel: 2, confirmReceipt: 3, viewLogistics: 4 }
   return actions.sort((left, right) => (priority[left.key] ?? 99) - (priority[right.key] ?? 99))
 })

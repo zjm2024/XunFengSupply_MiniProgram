@@ -80,6 +80,8 @@
 </template>
 
 <script setup>
+import { useSystemFeatures } from '@/shared/composables/useSystemFeatures.js'
+useSystemFeatures()
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { onShow, onResize } from '@dcloudio/uni-app'
 import { navigator } from '@/app/navigation/navigator.js'

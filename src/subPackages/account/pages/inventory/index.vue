@@ -44,6 +44,8 @@
   </AppPageShell>
 </template>
 <script setup>
+import { useSystemFeatures } from '@/shared/composables/useSystemFeatures.js'
+const { afterSaleEnabled } = useSystemFeatures()
 import { computed, reactive, ref } from 'vue'
 import { onLoad, onShow, onUnload } from '@dcloudio/uni-app'
 import { t } from '@/shared/i18n/index.js'
@@ -67,7 +69,7 @@ import { getDealerInventoryProducts, getDealerInventoryList } from '../../api/in
 import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
 
 const userStore = useUserStore()
-const canApplyAfterSale = computed(() => userStore.hasPermission('INVENTORY_VIEW') && userStore.hasPermission('ORDER_CREATE'))
+const canApplyAfterSale = computed(() => afterSaleEnabled.value && userStore.hasPermission('INVENTORY_VIEW') && userStore.hasPermission('ORDER_CREATE'))
 const owner = () => String(userStore.dealerId || '') + ':' + String(userStore.userId || '')
 let draft = useInventoryReturnDraft(owner())
 const tabs = computed(() => [{ key:'all',label:t('account.inventory.all') },{ key:'available',label:t('account.inventory.availableSku') },{ key:'low',label:t('account.inventory.low') },{ key:'out',label:t('account.inventory.outSku') }])

@@ -18,10 +18,10 @@ const ACTION_BUTTONS = Object.freeze({
  * @param {string[]} actions 服务端 AllowedActions
  * @returns {Array<{key:string, label:string, type:string}>}
  */
-export function getOrderActionButtons(actions, canOperate = true) {
+export function getOrderActionButtons(actions, canOperate = true, afterSaleEnabled = true) {
   if (!Array.isArray(actions)) return []
   return actions
     .map(action => Object.prototype.hasOwnProperty.call(ACTION_BUTTONS, action) ? ACTION_BUTTONS[action] : null)
-    .filter(action => action && (canOperate || action.key === 'viewLogistics'))
+    .filter(action => action && (canOperate || action.key === 'viewLogistics') && (afterSaleEnabled || action.key !== 'afterSale'))
     .map(action => ({ key: action.key, label: t(action.labelKey), type: action.type, priority: action.priority }))
 }

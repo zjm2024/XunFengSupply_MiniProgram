@@ -34,13 +34,15 @@
         </view>
       </AppContent>
     </template>
-    <template v-if="pageState === PageStatus.CONTENT" #footer><FixedActionBar><button class="submit-button" :disabled="!canSubmit" :loading="submitting" @tap="submit">{{ t(pending ? 'order.afterSale.inventoryApply.retrySubmit' : 'order.afterSale.inventoryApply.submit') }}</button></FixedActionBar></template>
+    <template v-if="pageState === PageStatus.CONTENT && (afterSaleEnabled || pending)" #footer><FixedActionBar><button class="submit-button" :disabled="!canSubmit" :loading="submitting" @tap="submit">{{ t(pending ? 'order.afterSale.inventoryApply.retrySubmit' : 'order.afterSale.inventoryApply.submit') }}</button></FixedActionBar></template>
     <template #overlay>
       <AppOptionPicker v-model:visible="accountPickerVisible" :model-value="form.refundAccountId" :options="accountOptions" :title="t('order.afterSale.inventoryApply.chooseAccount')" :disabled="locked" @confirm="selectAccount" />
     </template>
   </AppPageShell>
 </template>
 <script setup>
+import { useSystemFeatures } from '@/shared/composables/useSystemFeatures.js'
+const { afterSaleEnabled } = useSystemFeatures()
 import { computed, reactive, ref } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { t } from '@/shared/i18n/index.js'
@@ -74,7 +76,7 @@ function selectAccount(accountId) {
   saveForm()
 }
 const selectedAccount=computed(()=>accounts.value.find(item=>item.accountId===form.refundAccountId)||null)
-const canSubmit=computed(()=>draft.owns()&&!submitting.value&&!submitted.value&&(pending.value||(rows.value.length>0&&rows.value.every(validItem)&&selectedAccount.value&&form.reason.trim())))
+const canSubmit=computed(()=>(afterSaleEnabled.value || pending.value)&&draft.owns()&&!submitting.value&&!submitted.value&&(pending.value||(rows.value.length>0&&rows.value.every(validItem)&&selectedAccount.value&&form.reason.trim())))
 const selectionSummary=computed(()=>t('order.afterSale.inventoryApply.summary',{products:new Set(rows.value.map(item=>item.productId)).size,skus:rows.value.length}))
 const productGroups=computed(()=>{
  const groups=[]

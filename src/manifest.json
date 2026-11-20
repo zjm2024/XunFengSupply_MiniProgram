@@ -2,13 +2,13 @@
     "name" : "薰风经销商采购平台（测试版）",
     "appid" : "__UNI__C336BB6",
     "description" : "薰风羽毛球B2B经销商签约采购对账售后全流程平台",
-    "versionName" : "1.0.0",
-    "versionCode" : "100",
+    "versionName" : "1.0.1",
+    "versionCode" : 101,
     "transformPx" : false,
     "app-plus" : {
         "usingComponents" : true,
         "splashscreen" : {
-            "alwaysShowBeforeRender" : true,
+            "alwaysShowBeforeRender" : false,
             "waiting" : false,
             "autoclose" : false,
             "delay" : 0
@@ -23,7 +23,8 @@
                     "<uses-permission android:name=\"android.permission.CAMERA\"/>",
                     "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>",
                     "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>",
-                    "<uses-permission android:name=\"android.permission.INTERNET\"/>"
+                    "<uses-permission android:name=\"android.permission.INTERNET\"/>",
+                    "<uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\"/>"
                 ]
             },
             "ios" : {
@@ -34,12 +35,15 @@
                 "push" : {
                     "unipush" : {
                         "version" : "2",
-                        "offline" : false,
+                        "offline" : true,
                         "icons" : {
                             "small" : {
-                                "hdpi" : "C:/Users/PC/Pictures/238682b3-0f76-4299-90ac-04a0a898a6cf.png"
+                                "hdpi" : "C:/Users/PC/Pictures/下单系统UI/logo/小尺寸/icon_transparent_18_24_36_48_72/icon_36x36.png",
+                                "xxhdpi" : "C:/Users/PC/Pictures/下单系统UI/logo/小尺寸/icon_transparent_18_24_36_48_72/icon_72x72.png",
+                                "xhdpi" : "C:/Users/PC/Pictures/下单系统UI/logo/小尺寸/icon_transparent_18_24_36_48_72/icon_48x48.png"
                             }
-                        }
+                        },
+                        "fcm" : {}
                     }
                 }
             },
@@ -76,7 +80,7 @@
                 }
             },
             "splashscreen" : {
-                "androidStyle" : "common",
+                "androidStyle" : "default",
                 "android" : {
                     "hdpi" : "C:/Users/PC/Pictures/下单系统UI/新建文件夹/.9.png开屏页/splash-hdpi.9.png",
                     "xhdpi" : "C:/Users/PC/Pictures/下单系统UI/新建文件夹/.9.png开屏页/splash-xhdpi.9.png",

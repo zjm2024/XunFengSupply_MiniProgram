@@ -18,7 +18,7 @@ const USER_KEYS = [
   'isAdmin', 'roleIds', 'permissions', 'dealerInfo', 'creditScore',
   'dealerId', 'dealerStatus', 'accountStatus', 'signStatus', 'isMainAccount', 'financeContext'
 ]
-const BUSINESS_KEYS = ['cart_items', 'order_pending', 'order_detail_cache']
+const BUSINESS_KEYS = ['cart_items', 'order_pending', 'order_detail_cache', 'home_layout_cache']
 
 /** 登出清理完整清单 */
 const LOGOUT_CLEAR_KEYS = [...AUTH_KEYS, ...USER_KEYS, ...BUSINESS_KEYS]

@@ -1,6 +1,6 @@
 <template>
   <view class="home-tab-container">
-    <view v-if="loading && home.mode !== 'custom'" class="home-layout-loading"><view /><view /><view /></view>
+    <view v-if="loading && !hasContent" class="home-layout-loading"><view /><view /><view /></view>
     <DynamicHome v-else-if="home.mode === 'custom'" :home="home" :sections="sections" :active="active" @target="openTarget" @announcements="go(routes.content.announcements())" @more="openSection" @detail="go(routes.commerce.productDetail($event.productId))" @buy="go(routes.commerce.productPurchase($event.productId))" @retry="requestSection($event, true)" @visible="requestSection($event)" />
     <LegacyHome v-else :active="active" @select-tab="$emit('select-tab', $event)" />
   </view>
@@ -16,7 +16,7 @@ import DynamicHome from '../components/DynamicHome.vue'
 import LegacyHome from './LegacyHome.vue'
 const props=defineProps({active:{type:Boolean,default:false}})
 defineEmits(['select-tab'])
-const {home,loading,sections,refresh,requestSection}=useHomePage(toRef(props,'active'))
+const {home,loading,hasContent,sections,refresh,requestSection}=useHomePage(toRef(props,'active'))
 onShow(()=>{if(props.active)refresh()})
 /** 复用统一路由守卫，权限和签约由原有链路校验。 */
 function go(url){if(url)navigator.navigateTo(url).catch(()=>{})}

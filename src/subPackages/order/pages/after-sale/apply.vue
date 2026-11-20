@@ -62,7 +62,7 @@
         </view>
       </AppContent>
     </template>
-    <template #footer>
+    <template v-if="afterSaleEnabled || pendingRetry" #footer>
       <FixedActionBar width-mode="standard">
         <button class="submit-btn" :disabled="submitting || submitted || !canSubmit" @tap="handleSubmit">{{ submitting ? t('order.afterSale.submitting') : t('order.afterSale.submit') }}</button>
       </FixedActionBar>
@@ -71,6 +71,8 @@
 </template>
 
 <script setup>
+import { useSystemFeatures } from '@/shared/composables/useSystemFeatures.js'
+const { afterSaleEnabled } = useSystemFeatures()
 import { reactive, ref, computed } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { t } from '@/shared/i18n/index.js'
@@ -109,7 +111,7 @@ const selectedLines = computed(() => afterSaleItems.value
   .sort((a, b) => a.orderItemId - b.orderItemId))
 const totalQuantity = computed(() => selectedLines.value.reduce((sum, item) => sum + item.quantity, 0))
 const allSelected = computed(() => afterSaleItems.value.length > 0 && selectedLines.value.length === afterSaleItems.value.length)
-const canSubmit = computed(() => !loading.value && !loadError.value && Number(orderId.value) > 0
+const canSubmit = computed(() => (afterSaleEnabled.value || pendingRetry.value) && !loading.value && !loadError.value && Number(orderId.value) > 0
   && form.type === 2 && form.reason.trim().length > 0 && selectedLines.value.length > 0)
 
 /** 逐行按分计算预估金额，完整申请一行时保留服务端剩余净额。 */
@@ -170,11 +172,18 @@ function toggleAll() {
   afterSaleItems.value.forEach(item => { quantities[item.orderItemId] = clear ? 0 : item.availableQuantity })
 }
 
+/** 构造当前申请意图，关闭后只允许重试原已发送快照。 */
+function buildApplyPayload() {
+  return { orderId: Number(orderId.value), afterSaleType: form.type,
+    reason: form.reason.trim(), expressNo: form.expressNo.trim(), items: selectedLines.value.map(item => ({ ...item })) }
+}
+const pendingRetry = computed(() => !submitted.value && Boolean(clientRequestId.value)
+  && requestFingerprint.value === JSON.stringify(buildApplyPayload()))
+
 /** 固定本次提交快照；失败重试复用请求号，成功后锁住按钮并打开新单详情。 */
 async function handleSubmit() {
   if (submitting.value || submitted.value || !canSubmit.value) return
-  const payload = { orderId: Number(orderId.value), afterSaleType: form.type,
-    reason: form.reason.trim(), expressNo: form.expressNo.trim(), items: selectedLines.value.map(item => ({ ...item })) }
+  const payload = buildApplyPayload()
   const fingerprint = JSON.stringify(payload)
   if (fingerprint !== requestFingerprint.value) {
     requestFingerprint.value = fingerprint
