@@ -173,7 +173,7 @@
     "rangeInvalid": "PDF 分片响应范围无效",
     "rangeLength": "PDF 分片响应长度不一致",
     "lazyPage": "滑动到此处时加载本页",
-    "pageFailed": "本页加载失败，请稍后重试",
+    "pageFailed": "本页加载失败，点击重试",
     "relayout": "正在按当前屏幕重新排版",
     "missingUrl": "缺少 PDF 地址",
     "checkingRange": "检查分片",

@@ -16,6 +16,12 @@ let progressState = { key: 'preparing', parameters: {} }
 let errorState = null
 let documentZoom = 1
 let renderGeneration = 0
+let pageAspectRatio = 1.414
+let activeRenders = 0
+let renderQueue = []
+let pageObserver = null
+let scrollTimer = null
+let lastLayoutWidth = 0
 
 /** 从宿主接收 JSON 显示资源；只更新文字，不启动 PDF 或网络流程。 */
 function setViewerLocale(payload) {
@@ -30,6 +36,8 @@ function setViewerLocale(payload) {
   const title = document.querySelector('.viewer-title')
   if (title) title.textContent = viewerText('title')
   document.getElementById('backButton')?.setAttribute('aria-label', viewerText('back'))
+  const embeddedBack = document.getElementById('embeddedBackButton')
+  if (embeddedBack) embeddedBack.textContent = viewerText('back')
   if (progressState) setProgressMessage(progressState.key, progressState.parameters)
   if (errorState && errorBox) errorBox.textContent = viewerText('previewFailed')
   document.querySelectorAll('[data-viewer-message]').forEach(element => {
@@ -68,10 +76,20 @@ window.addEventListener('message', event => {
 try {
   setViewerLocale(JSON.parse(params.get('ui') || 'null'))
 } catch (error) {
-  console.warn('[PdfViewer] Invalid display resource payload', error)
+  console.warn('[PdfViewer] 显示资源格式无效', error)
 }
 
 document.body.classList.toggle('is-embedded', params.get('embedded') === '1')
+document.body.classList.toggle('is-native', params.get('native') === '1')
+/** 安全区来自宿主窗口；只更新布局变量，不重载文档或导航。 */
+function setViewerInsets(insets = {}) {
+  for (const edge of ['top', 'bottom']) {
+    const value = Math.max(0, Math.min(200, Number(insets[edge]) || 0))
+    document.body.style.setProperty('--viewer-safe-' + edge, value + 'px')
+  }
+}
+window.setPdfViewerInsets = setViewerInsets
+if (params.get('native') === '1') setViewerInsets({ top: params.get('insetTop'), bottom: params.get('insetBottom') })
 if (params.get('document') === '1') {
   document.body.classList.toggle('is-document', true)
   const toolbar = document.getElementById('zoomToolbar')
@@ -93,9 +111,17 @@ function updateDocumentWidths() {
   pageStates.forEach(state => { state.element.style.width = width + 'px'; state.element.style.flexShrink = '0' })
 }
 
-document.getElementById('backButton')?.addEventListener('click', () => {
-  window.history.back()
-})
+/** 嵌入阅读器交回宿主统一导航；独立页面才使用浏览器历史。 */
+function requestBack() {
+  if (params.get('embedded') !== '1') { window.history.back(); return }
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: 'pdf-viewer-back' }, window.location.origin)
+  } else {
+    window.uni?.postMessage({ data: { type: 'pdf-viewer-back' } })
+  }
+}
+document.getElementById('backButton')?.addEventListener('click', requestBack)
+document.getElementById('embeddedBackButton')?.addEventListener('click', requestBack)
 
 /** 显示原始数值下载进度，语言更新不重置该数值。 */
 function setProgress(text) {
@@ -178,87 +204,123 @@ function createPageElement(pageNumber) {
   section.dataset.page = String(pageNumber)
   pagePlaceholder(section, 'lazyPage')
   pagesElement.appendChild(section)
-  pageStates.set(pageNumber, { element: section, rendered: false, rendering: false })
-  updateDocumentWidths()
+  pageStates.set(pageNumber, { element: section, rendered: false, rendering: false, failed: false, aspectRatio: pageAspectRatio })
+  sizePageSlot(pageStates.get(pageNumber))
   return section
 }
 
-/** 按当前容器尺寸绘制单页，保留防重绘门禁和原 canvas 精度。 */
+/** 在绘制前预留整页高度，避免上方页面加载时把正在阅读的内容推走。 */
+function sizePageSlot(state) {
+  const width = Math.max(1, pagesElement.clientWidth - 16) * (params.get('document') === '1' ? documentZoom : 1)
+  state.element.style.width = width + 'px'
+  state.element.style.height = Math.floor(Math.max(1, width - 32) * state.aspectRatio) + 32 + 'px'
+}
+
+/** 按当前尺寸绘制到离屏 canvas，成功且代际一致后才替换页面。 */
 async function renderPage(pageNumber) {
   const state = pageStates.get(pageNumber)
   if (!state || state.rendered || state.rendering || !pdfDocument) return
   state.rendering = true
   const generation = renderGeneration
-
   try {
     const page = await pdfDocument.getPage(pageNumber)
+    if (generation !== renderGeneration) return
     const baseViewport = page.getViewport({ scale: 1 })
-    const availableWidth = Math.max(1, state.element.clientWidth - 32)
-    const scale = availableWidth / baseViewport.width
+    state.aspectRatio = baseViewport.height / baseViewport.width
+    sizePageSlot(state)
+    const width = parseFloat(state.element.style.width) - 32
+    const scale = Math.max(1, width) / baseViewport.width
     const viewport = page.getViewport({ scale })
-    const ratio = Math.min(window.devicePixelRatio || 1, 2)
+    // 限制大屏及高像素密度画布，避免同时翻阅时分配过大的位图。
+    const ratio = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(8000000 / (viewport.width * viewport.height)))
     const canvas = document.createElement('canvas')
-    const context = canvas.getContext('2d', { alpha: false })
-    canvas.width = Math.floor(viewport.width * ratio)
-    canvas.height = Math.floor(viewport.height * ratio)
-    canvas.style.width = `${Math.floor(viewport.width)}px`
-    canvas.style.height = `${Math.floor(viewport.height)}px`
+    canvas.width = Math.max(1, Math.floor(viewport.width * ratio))
+    canvas.height = Math.max(1, Math.floor(viewport.height * ratio))
+    canvas.style.width = Math.floor(viewport.width) + 'px'
+    canvas.style.height = Math.floor(viewport.height) + 'px'
+    state.renderTask = page.render({ canvasContext: canvas.getContext('2d', { alpha: false }), viewport: page.getViewport({ scale: scale * ratio }) })
+    await state.renderTask.promise
+    if (generation !== renderGeneration) return
     state.element.replaceChildren(canvas)
-
-    await page.render({
-      canvasContext: context,
-      viewport: page.getViewport({ scale: scale * ratio }),
-    }).promise
     state.rendered = true
+    state.failed = false
   } catch (error) {
-    pagePlaceholder(state.element, 'pageFailed')
-    console.error(`[PdfViewer] 第 ${pageNumber} 页渲染失败`, error)
+    if (generation !== renderGeneration) return
+    state.failed = true
+    const retry = document.createElement('button')
+    retry.type = 'button'
+    retry.className = 'page-placeholder page-retry'
+    retry.dataset.viewerMessage = 'pageFailed'
+    retry.textContent = viewerText('pageFailed')
+    retry.addEventListener('click', () => {
+      state.failed = false
+      scheduleVisiblePages()
+    })
+    state.element.replaceChildren(retry)
+    console.error('[PdfViewer] 第 ' + pageNumber + ' 页渲染失败', error)
   } finally {
     state.rendering = false
-    if (generation !== renderGeneration) { state.rendered = false; void renderPage(pageNumber) }
+    state.renderTask = null
   }
 }
 
-/** 只在屏幕尺寸变化时重新排版已渲染页面。 */
-function rerenderPagesAfterResize() {
-  renderGeneration += 1
-  pageStates.forEach((state, pageNumber) => {
-    if (!state.rendered) return
-    state.rendered = false
-    state.element.replaceChildren()
-    pagePlaceholder(state.element, 'relayout')
-    void renderPage(pageNumber)
+/** 当前可见页优先，随后预取上下邻页；始终只并发绘制两页。 */
+function scheduleVisiblePages() {
+  const bounds = pagesElement.getBoundingClientRect?.() || { top: 0, bottom: window.innerHeight || 800 }
+  const height = bounds.bottom - bounds.top
+  const candidates = []
+  pageStates.forEach((state, number) => {
+    const rect = state.element.getBoundingClientRect?.() || { top: 0, bottom: 1 }
+    if (state.rendered || state.rendering || state.failed || rect.bottom < bounds.top - height || rect.top > bounds.bottom + height) return
+    const visible = rect.bottom > bounds.top && rect.top < bounds.bottom
+    candidates.push({ number, priority: (visible ? 0 : height * 3) + Math.abs(rect.top - bounds.top) })
   })
+  renderQueue = candidates.sort((a, b) => a.priority - b.priority).map(item => item.number)
+  pumpRenderQueue()
+}
+
+function pumpRenderQueue() {
+  while (activeRenders < 2 && renderQueue.length) {
+    const number = renderQueue.shift()
+    activeRenders += 1
+    void renderPage(number).finally(() => {
+      activeRenders -= 1
+      scheduleVisiblePages()
+    })
+  }
+}
+
+/** 宽度确实变化才重绘；保留旧画布，离屏页等重新进入阅读范围再绘制。 */
+function rerenderPagesAfterResize() {
+  const width = pagesElement.clientWidth * documentZoom
+  if (lastLayoutWidth === width) return
+  lastLayoutWidth = width
+  renderGeneration += 1
+  pageStates.forEach(state => {
+    state.rendered = false
+    sizePageSlot(state)
+  })
+  scheduleVisiblePages()
 }
 
 function handleViewerResize() {
   if (resizeTimer) clearTimeout(resizeTimer)
-  resizeTimer = setTimeout(() => {
-    resizeTimer = null
-    updateDocumentWidths()
-    rerenderPagesAfterResize()
-  }, 160)
+  resizeTimer = setTimeout(() => { resizeTimer = null; rerenderPagesAfterResize() }, 160)
 }
-
 window.addEventListener('resize', handleViewerResize)
 window.addEventListener('orientationchange', handleViewerResize)
 
 function observePages() {
-  if (!('IntersectionObserver' in window)) {
-    pageStates.forEach((_, pageNumber) => void renderPage(pageNumber))
-    return
+  if ('IntersectionObserver' in window) {
+    // 持续观察，首次进入范围不再永久退订；布局或失败重试后仍可重新调度。
+    pageObserver = new IntersectionObserver(scheduleVisiblePages, { root: pagesElement, rootMargin: '100% 0px' })
+    pageStates.forEach(state => pageObserver.observe(state.element))
   }
-
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return
-      const pageNumber = Number(entry.target.dataset.page)
-      void renderPage(pageNumber)
-      observer.unobserve(entry.target)
-    })
-  }, { rootMargin: '720px 0px' })
-
-  pageStates.forEach((state) => observer.observe(state.element))
+  pagesElement.addEventListener('scroll', () => {
+    if (scrollTimer) return
+    scrollTimer = setTimeout(() => { scrollTimer = null; scheduleVisiblePages() }, 50)
+  }, { passive: true })
+  scheduleVisiblePages()
 }
 
 /** 检查首分片后按原 Range 配置打开 PDF，并建立分页观察。 */
@@ -268,7 +330,7 @@ async function openPdf() {
   // 发票等普通文档兼容200响应；手册仍保持分片校验和懒加载。
   if (params.get('document') === '1') {
     pdfDocument = await pdfjsLib.getDocument({ url: pdfUrl, isEvalSupported: false }).promise
-    mountPdfPages()
+    await mountPdfPages()
     return
   }
   setProgressMessage('checkingRange')
@@ -298,11 +360,15 @@ async function openPdf() {
   }
 
   pdfDocument = await Promise.race([loadingTask.promise, rangeError])
-  mountPdfPages()
+  await mountPdfPages()
 }
 
 /** 根据已加载文档创建懒加载页面。 */
-function mountPdfPages() {
+async function mountPdfPages() {
+  const firstPage = await pdfDocument.getPage(1)
+  const viewport = firstPage.getViewport({ scale: 1 })
+  pageAspectRatio = viewport.height / viewport.width
+  lastLayoutWidth = pagesElement.clientWidth * documentZoom
   for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber += 1) {
     createPageElement(pageNumber)
   }
@@ -320,7 +386,7 @@ if (new URLSearchParams(window.location.search).get('private') === '1') {
     try {
       const bytes = Uint8Array.from(atob(data), char => char.charCodeAt(0))
       pdfDocument = await pdfjsLib.getDocument({ data: bytes, isEvalSupported: false }).promise
-      mountPdfPages()
+      await mountPdfPages()
     } catch (error) { showError(error) }
     finally { opening = false }
   }

@@ -4,12 +4,59 @@
  */
 const CACHE_PREFIX = 'remote-resource-cache:v1:'
 const inflight = new Map()
+const loadedImages = new Map()
+const MAX_LOADED_IMAGES = 256
+let webResourcePlatform
 const DEFAULT_MAX_AGE = 24 * 60 * 60 * 1000
 
 export const RESOURCE_CACHE_PREFIX = CACHE_PREFIX
 
-function isH5() {
-  return typeof window !== 'undefined' && typeof document !== 'undefined'
+/** APP-VUE也可能有DOM，优先使用uni运行平台，不能因此跳过原生文件缓存。 */
+export function isWebResourcePlatform() {
+  if (webResourcePlatform !== undefined) return webResourcePlatform
+  try {
+    const platform = typeof uni !== 'undefined'
+      ? (uni.getAppBaseInfo?.()?.uniPlatform || uni.getSystemInfoSync?.()?.uniPlatform) : ''
+    if (platform) {
+      webResourcePlatform = platform === 'web' || platform === 'h5'
+      return webResourcePlatform
+    }
+  } catch (_) { /* 旧运行时仍可按原生plus与DOM能力判断。 */ }
+  return typeof plus === 'undefined' && typeof window !== 'undefined' && typeof document !== 'undefined'
+}
+
+/** 只记住本进程真正显示成功的精确图片地址，不合并签名或业务版本参数。 */
+export function hasLoadedImage(url) {
+  const key = String(url || '').trim()
+  const at = loadedImages.get(key)
+  if (at !== undefined && Date.now() - at < DEFAULT_MAX_AGE) return true
+  loadedImages.delete(key)
+  return false
+}
+
+export function markImageLoaded(url) {
+  const key = String(url || '').trim()
+  if (!key) return
+  loadedImages.delete(key)
+  loadedImages.set(key, Date.now())
+  if (loadedImages.size > MAX_LOADED_IMAGES) loadedImages.delete(loadedImages.keys().next().value)
+}
+
+export function forgetLoadedImage(url) { loadedImages.delete(String(url || '').trim()) }
+
+/** 图片解码失败时只移除仍指向该旧文件的索引，不误删并发写入的新缓存。 */
+export function invalidateCachedResource(url, { kind = 'image', localPath } = {}) {
+  forgetLoadedImage(url)
+  forgetLoadedImage(localPath)
+  if (!localPath || !isRemoteUrl(url) || isWebResourcePlatform()) return
+  const key = cacheKey(url, kind)
+  try {
+    const record = uni.getStorageSync(key)
+    if (record?.localPath === localPath) {
+      uni.removeStorageSync(key)
+      void removeSavedFile(localPath)
+    }
+  } catch (error) { console.warn('[ResourceCache] 移除失效缓存索引失败:', error) }
 }
 
 function isRemoteUrl(url) {
@@ -61,14 +108,14 @@ function saveCachedPath(key, localPath, maxAge) {
 /** 读取已经持久化的本地资源路径，供 PDF 直接打开时复用。 */
 export function getCachedResourcePath(url, options = {}) {
   const sourceUrl = String(url || '').trim()
-  if (!sourceUrl || !isRemoteUrl(sourceUrl) || isH5()) return ''
+  if (!sourceUrl || !isRemoteUrl(sourceUrl) || isWebResourcePlatform()) return ''
   return readCachedPath(cacheKey(sourceUrl, options.kind || 'resource'))
 }
 
 /** 获取远程资源的本地缓存路径；失败时回退原始 URL。 */
 export function getCachedResource(url, options = {}) {
   const sourceUrl = String(url || '').trim()
-  if (!sourceUrl || !isRemoteUrl(sourceUrl) || isH5()) return Promise.resolve(sourceUrl)
+  if (!sourceUrl || !isRemoteUrl(sourceUrl) || isWebResourcePlatform()) return Promise.resolve(sourceUrl)
 
   const kind = options.kind || 'resource'
   const key = cacheKey(sourceUrl, kind)
@@ -114,7 +161,7 @@ function normalizeRichText(source) {
 /** 先把富文本图片替换为占位图，避免 APP 首次渲染直接请求失效的第三方地址。 */
 export function sanitizeRichTextImages(content, fallbackUrl = '') {
   const source = normalizeRichText(typeof content === 'string' ? content : '')
-  if (!source || !fallbackUrl || isH5()) return source
+  if (!source || !fallbackUrl || isWebResourcePlatform()) return source
   return source.replace(imageSourcePattern, (full, prefix, quote, url) => (
     isRemoteUrl(url) ? `${prefix}${quote}${fallbackUrl}${quote}` : full
   ))
@@ -123,7 +170,7 @@ export function sanitizeRichTextImages(content, fallbackUrl = '') {
 /** 下载并替换富文本中的图片地址，失败时保留原始 URL。 */
 export async function cacheRichTextImages(content, options = {}) {
   const source = normalizeRichText(typeof content === 'string' ? content : '')
-  if (!source || isH5()) return source
+  if (!source || isWebResourcePlatform()) return source
 
   const matches = [...source.matchAll(imageSourcePattern)]
   const urls = [...new Set(matches.map((match) => match[3]).filter(isRemoteUrl))]
@@ -174,6 +221,7 @@ export async function clearResourceCache() {
     try { uni.removeStorageSync(key) } catch (_) { /* ignore */ }
   })
   inflight.clear()
+  loadedImages.clear()
 
   return { count: keys.length }
 }

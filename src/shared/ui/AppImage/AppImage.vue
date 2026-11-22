@@ -14,7 +14,7 @@
 <template>
   <view class="app-image-wrapper" :style="wrapperStyle">
     <image
-      v-if="hasSource && !hasError"
+      v-if="displaySrc && !hasError"
       :key="displaySrc"
       class="app-image"
       :class="{ 'is-loading': isLoading }"
@@ -37,7 +37,7 @@
 <script setup>
 import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import AppIcon from '../AppIcon/AppIcon.vue'
-import { getCachedResource, getCachedResourcePath } from '@/shared/utils/resourceCache.js'
+import { getCachedResource, getCachedResourcePath, isWebResourcePlatform, hasLoadedImage, markImageLoaded, invalidateCachedResource } from '@/shared/utils/resourceCache.js'
 
 const props = defineProps({
   // 图片地址
@@ -89,7 +89,7 @@ const hasError = ref(false)
 const displaySrc = ref('')
 let sourceVersion = 0
 let alternateSource = null
-const hasSource = computed(() => Boolean(displaySrc.value?.trim()))
+const hasSource = computed(() => Boolean(String(props.src || '').trim()))
 
 // 规范化尺寸单位
 const normalizeSize = (value) => {
@@ -116,6 +116,8 @@ const errorStyle = computed(() => ({
 }))
 
 function handleLoad(event) {
+  markImageLoaded(props.src)
+  markImageLoaded(displaySrc.value)
   isLoading.value = false
   hasError.value = false
   emit('load', event)
@@ -124,6 +126,7 @@ function handleLoad(event) {
 async function handleError(event) {
   const version = sourceVersion
   const failedSource = displaySrc.value
+  invalidateCachedResource(props.src, { kind: 'image', localPath: failedSource })
   const alternate = alternateSource
   alternateSource = null
   isLoading.value = false
@@ -142,16 +145,22 @@ async function handleError(event) {
 }
 
 watch(() => props.src, (source) => {
-  sourceVersion += 1
+  const version = ++sourceVersion
   const original = String(source || '').trim()
   const cached = getCachedResourcePath(original, { kind: 'image' })
-  displaySrc.value = cached || original
+  const remote = /^https?:\/\//i.test(original)
+  const isWeb = isWebResourcePlatform()
+  // 命中本地文件或已显示过的同图不再透明/转圈；首次下载仍保留加载反馈。
+  isLoading.value = remote && !cached && (!isWeb || !hasLoadedImage(original))
   hasError.value = false
-  isLoading.value = Boolean(original)
+  displaySrc.value = cached || (remote && !isWeb ? '' : original)
   alternateSource = cached ? original : null
   if (original && !cached) {
-    // 预缓存成功后不切换已经正常显示的图片。
-    alternateSource = getCachedResource(original, { kind: 'image' }).catch(() => '')
+    const pending = getCachedResource(original, { kind: 'image' }).catch(() => original)
+    alternateSource = pending
+    void pending.then(path => {
+      if (version === sourceVersion && !displaySrc.value) displaySrc.value = path
+    })
   }
 }, { immediate: true })
 onBeforeUnmount(() => { sourceVersion += 1 })

@@ -1,7 +1,7 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader :title="pageTitle" :show-back="true" @back="goBack" />
+      <AppHeader v-if="showHostHeader" :title="pageTitle" :show-back="true" @back="goBack" />
     </template>
     <template #content>
       <view class="pdf-page">
@@ -19,6 +19,7 @@
           class="pdf-viewer"
           :src="viewerUrl"
           @load="handleViewerLoad"
+          @message="handleViewerMessage"
         />
       </view>
     </template>
@@ -51,32 +52,39 @@ const errorText = computed(() => loadFailure.value?.message
   || (loadFailure.value?.messageKey ? t(loadFailure.value.messageKey) : ''))
 const viewerUrl = ref('')
 const viewerComponent = ref(null)
+let nativeReader = false
+// #ifdef APP-PLUS
+nativeReader = true
+// #endif
+// 原生PDF自带同窗体导航；准备中或失败时仍由统一AppHeader提供返回。
+const showHostHeader = computed(() => !nativeReader || loading.value || !!errorText.value || !viewerUrl.value)
 const viewerMessageKeys = ['title', 'back', 'preparing', 'failed', 'previewFailed', 'rangeRequired',
   'rangeInvalid', 'rangeLength', 'lazyPage', 'pageFailed', 'relayout', 'missingUrl', 'checkingRange', 'pages']
 
 const { layout, safeArea } = useResponsive()
 
-// APP-VUE 中的 web-view 是原生子窗体，必须在渲染完成后调整到 AppHeader 下方。
+// APP-VUE的PDF是独立原生子窗体，标题/返回由阅读器同层承载。
 let nativePdfWebview = null
 let nativeLayoutTimer = null
 let nativeLayoutAttempts = 0
 
-const headerHeight = () => {
-  const topInset = Math.max(
-    Number(layout.value.statusBarHeight) || 0,
-    Number(safeArea.value.top) || 0,
-  )
-  const navBarHeight = layout.value.isPhone ? 48 : 52
-  return topInset + navBarHeight
+/** 原生窗体铺满页面，阅读器在同一层内处理状态栏与底部安全区。 */
+function viewerInsets() {
+  return { top: Math.max(Number(layout.value.statusBarHeight) || 0, Number(safeArea.value.top) || 0),
+    bottom: Math.max(Number(safeArea.value.bottom) || 0, 0) }
 }
 
-const bottomSafeHeight = () => Math.max(Number(safeArea.value.bottom) || 0, 8)
+function nativeViewerQuery() {
+  if (!nativeReader) return ''
+  const insets = viewerInsets()
+  return `&native=1&insetTop=${insets.top}&insetBottom=${insets.bottom}`
+}
 
 onLoad((options = {}) => {
   invoiceId.value = String(options.invoiceId || '')
   withdrawalId.value = String(options.withdrawalId || '')
   // #ifdef H5
-  if (withdrawalId.value && typeof window !== 'undefined') window.addEventListener('message', handlePrivateViewerReady)
+  if (typeof window !== 'undefined') window.addEventListener('message', handleViewerWindowMessage)
   // #endif
   manualId.value = String(options.manualId || '')
   loadDetail()
@@ -114,7 +122,7 @@ async function loadDetail() {
       // #ifndef MP-WEIXIN
       receiptBase64 = data
       viewerUrl.value = '/subPackages/content/static/pdf-viewer/index.html?embedded=1&private=1&ui='
-        + encodeURIComponent(JSON.stringify(viewerLanguagePayload()))
+        + encodeURIComponent(JSON.stringify(viewerLanguagePayload())) + nativeViewerQuery()
       // #endif
       return
     }
@@ -127,7 +135,7 @@ async function loadDetail() {
       return
     }
 
-    viewerUrl.value = `/subPackages/content/static/pdf-viewer/index.html?embedded=1&url=${encodeURIComponent(detail.fileUrl)}&ui=${encodeURIComponent(JSON.stringify(viewerLanguagePayload()))}`
+    viewerUrl.value = `/subPackages/content/static/pdf-viewer/index.html?embedded=1&url=${encodeURIComponent(detail.fileUrl)}&ui=${encodeURIComponent(JSON.stringify(viewerLanguagePayload()))}${nativeViewerQuery()}`
   } catch (error) {
     console.error('[ManualPdfPreview] 加载 PDF 地址失败:', error)
     loadFailure.value = error?.message ? error : { messageKey: 'content.manual.pdfFailed' }
@@ -137,7 +145,20 @@ async function loadDetail() {
   }
 }
 
-function goBack() { navigator.back() }
+let navigatingBack = false
+async function goBack() {
+  if (navigatingBack) return
+  navigatingBack = true
+  try { await navigator.back() } finally { navigatingBack = false }
+}
+
+/** 原生阅读器只回传返回意图，业务导航仍由统一 navigator 执行。 */
+function handleViewerMessage(event) {
+  if (!active) return
+  const data = event.detail?.data
+  const messages = Array.isArray(data) ? data : [data]
+  if (messages.some(message => message?.type === 'pdf-viewer-back')) void goBack()
+}
 
 // #ifdef MP-WEIXIN
 /** 通过小程序原生PDF预览打开凭证并清理临时文件。 */
@@ -157,7 +178,7 @@ async function openMiniReceipt(data) {
 function sendPrivateReceipt() {
   if (!receiptBase64) return
   // #ifdef H5
-  const iframe = receiptFrame()
+  const iframe = viewerFrame()
   if (iframe?.contentWindow) iframe.contentWindow.postMessage({ type: 'pdf-viewer-private', data: receiptBase64 }, window.location.origin)
   // #endif
   // #ifdef APP-PLUS
@@ -167,23 +188,24 @@ function sendPrivateReceipt() {
 
 // #ifdef H5
 /** 获取当前页面的嵌入阅读器，兼容 uni-app 返回原生元素或组件实例。 */
-function receiptFrame() {
+function viewerFrame() {
   const element = viewerComponent.value?.$el || viewerComponent.value
   if (element?.tagName === 'IFRAME') return element
-  return element?.querySelector?.('iframe') || document.querySelector('iframe[src*="pdf-viewer/index.html?embedded=1&private=1"]')
+  return element?.querySelector?.('iframe') || document.querySelector('iframe[src*="pdf-viewer/index.html?embedded=1"]')
 }
 
-/** 等待同源私有阅读器完成监听后传递本次凭证。 */
-function handlePrivateViewerReady(event) {
-  if (event.origin === window.location.origin && event.source === receiptFrame()?.contentWindow
-      && event.data?.type === 'pdf-viewer-private-ready') sendPrivateReceipt()
+/** 同源且来自当前阅读器的消息才能传递凭证或触发宿主返回。 */
+function handleViewerWindowMessage(event) {
+  if (!active || event.origin !== window.location.origin || event.source !== viewerFrame()?.contentWindow) return
+  if (event.data?.type === 'pdf-viewer-private-ready') sendPrivateReceipt()
+  if (event.data?.type === 'pdf-viewer-back') void goBack()
 }
 // #endif
 
 /** 从 content JSON 取出独立阅读器文案，不向 HTML 传递会话或修改附件签名地址。 */
 function viewerLanguagePayload() {
   return { type: 'pdf-viewer-locale', locale: getLocale(),
-    messages: Object.fromEntries(viewerMessageKeys.map(key => [key, t('content.pdfViewer.' + key)])) }
+    messages: { ...Object.fromEntries(viewerMessageKeys.map(key => [key, t('content.pdfViewer.' + key)])), title: pageTitle.value } }
 }
 
 /** 阅读器加载完成后同步语言和原生位置，已加载文档不重建。 */
@@ -215,7 +237,6 @@ function syncViewerLanguage() {
 
 watch(getLocale, syncViewerLanguage)
 
-/** 等待本页 PDF 子窗体创建后同步显示资源并校准布局。 */
 /** 等待本页 PDF 子窗体创建后同步显示资源并校准布局。 */
 function scheduleNativePdfLayout() {
   // #ifdef APP-PLUS
@@ -259,17 +280,15 @@ function applyNativePdfLayout() {
   // #ifdef APP-PLUS
   if (!nativePdfWebview) return
 
-  const top = headerHeight()
-  const bottom = bottomSafeHeight()
-  const height = Math.max(1, (Number(layout.value.windowHeight) || 0) - top - bottom)
-
+  // 标题和返回放入原生阅读器，不依赖跨窗体z-index或延迟缩小子窗体。
   nativePdfWebview.setStyle({
-    top: `${top}px`,
-    height: `${height}px`,
+    top: '0px',
+    height: '100%',
     width: '100%',
     left: '0px',
     background: '#f3f4f6',
   })
+  nativePdfWebview.evalJS?.('window.setPdfViewerInsets?.(' + JSON.stringify(viewerInsets()) + ')')
 
   // 给 iOS WKWebView 一个明确的 resize 事件，触发 PDF canvas 按新宽度重绘。
   setTimeout(() => {
@@ -305,7 +324,7 @@ onUnload(() => {
   active = false
   receiptBase64 = ''
   // #ifdef H5
-  if (withdrawalId.value && typeof window !== 'undefined') window.removeEventListener('message', handlePrivateViewerReady)
+  if (typeof window !== 'undefined') window.removeEventListener('message', handleViewerWindowMessage)
   // #endif
   resetNativePdfWebview()
 })

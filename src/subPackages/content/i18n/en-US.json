@@ -173,7 +173,7 @@
     "rangeInvalid": "The PDF range response is invalid",
     "rangeLength": "The PDF range response length does not match",
     "lazyPage": "Scroll here to load this page",
-    "pageFailed": "Unable to load this page. Please try again later.",
+    "pageFailed": "Page failed to load. Tap to retry",
     "relayout": "Adjusting to the current screen",
     "missingUrl": "The PDF URL is missing",
     "checkingRange": "Checking file access",

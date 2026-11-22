@@ -1,0 +1,17 @@
+{
+  "properties": {
+    "_id": {
+      "bsonType": "string"
+    }
+  },
+  "bsonType": "object",
+  "permission": {
+    "delete": false,
+    "read": false,
+    "create": false,
+    "update": false
+  },
+  "required": [
+    "_id"
+  ]
+}

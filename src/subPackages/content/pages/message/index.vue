@@ -1,6 +1,14 @@
 <template>
   <AppPageShell class="message-center-shell">
-    <template #header><AppHeader :title="t('content.titles.messages')" :show-back="true" :action-text="t('content.messages.settingsAction')" @action="goToNotificationSettings" /></template>
+    <template #header>
+      <AppHeader :title="t('content.titles.messages')" :show-back="true" :action-text="t('content.messages.settingsAction')" @action="goToNotificationSettings">
+        <template #before-action>
+          <button class="mark-all-read-icon" hover-class="none" :disabled="markingAll || loading || failed || store.unreadCount <= 0" :aria-busy="markingAll" :aria-label="t(markingAll ? 'content.messages.markingAll' : 'content.messages.markAll')" @tap="handleMarkAllRead">
+            <AppIcon name="broom" :size="20" />
+          </button>
+        </template>
+      </AppHeader>
+    </template>
     <template #content>
       <AppContent width-mode="standard" padding="16px var(--page-padding-x, 16px) 32px" :refresher-enabled="true" :refresher-triggered="refreshing" @refresherrefresh="handleRefresh" @refresherrestore="restoreRefresh" @refresherabort="restoreRefresh">
         <view class="message-center">
@@ -13,11 +21,10 @@
             <button v-for="category in categories" :key="category.type" class="category-row" hover-class="category-row--pressed" @tap="openCategory(category.type)">
               <image class="category-art" :src="messageIcon(category.type)" mode="aspectFit" aria-hidden="true" />
               <view class="category-copy"><text class="category-title">{{ t('content.messages.' + category.key) }}</text><text class="category-description">{{ t('content.messages.' + category.key + 'Description') }}</text></view>
-              <text v-if="category.count > 0" class="category-badge" :aria-label="t('content.messages.unreadCountLabel', { count: category.count })">{{ category.count > 99 ? '99+' : category.count }}</text>
+              <text v-if="category.count > 0" class="category-badge" :class="{ 'category-badge--multiple': category.count > 9 }" :aria-label="t('content.messages.unreadCountLabel', { count: category.count })">{{ category.count > 99 ? '99+' : category.count }}</text>
               <AppIcon name="chevron-right" :size="18" color="#89909B" />
             </button>
           </view>
-          <button class="read-all" hover-class="category-row--pressed" :disabled="markingAll || loading || failed || store.unreadCount <= 0" @tap="handleMarkAllRead"><AppIcon name="check" :size="17" /><text>{{ t(markingAll ? 'content.messages.markingAll' : 'content.messages.markAll') }}</text></button>
         </view>
       </AppContent>
     </template>
@@ -99,14 +106,16 @@ async function handleMarkAllRead() {
 .hero-art { position:absolute; width:138px; height:144px; right:-7px; bottom:0; }
 .category-list { display:flex; flex-direction:column; gap:12px; }
 .category-row { display:flex; align-items:center; gap:13px; width:100%; min-height:92px; padding:16px; margin:0; border:0; border-radius:18px; background:#fff; text-align:left; line-height:1.5; box-shadow:0 5px 20px rgba(42,52,78,.035); transition:background .15s; }
-.category-row::after,.read-all::after { border:0; }
+.category-row::after,.mark-all-read-icon::after { border:0; }
 .category-art { width:54px; height:54px; flex:none; }
 .category-copy { flex:1; min-width:0; }
 .category-title { display:block; font-size:17px; font-weight:650; color:#20232b; }
 .category-description { display:block; margin-top:4px; color:#737984; font-size:13px; line-height:1.6; }
-.category-badge { flex:none; min-width:19px; padding:1px 6px; border-radius:20px; background:#d7192d; color:white; text-align:center; font-size:12px; line-height:19px; }
+.category-badge { display:inline-flex; flex:0 0 auto; align-items:center; justify-content:center; width:20px; height:20px; padding:0; box-sizing:border-box; border-radius:50%; background:#d7192d; color:#fff; text-align:center; font-size:12px; line-height:1; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.category-badge--multiple { width:auto; min-width:24px; padding:0 6px; border-radius:10px; }
 .category-row--pressed { background:#f7f8fa; }
-.read-all { display:flex; align-items:center; justify-content:center; gap:8px; min-height:44px; margin:20px auto 0; background:transparent; color:#737984; font-size:13px; }
+.mark-all-read-icon { display:flex; flex:none; align-items:center; justify-content:center; width:44px; height:44px; padding:0; margin:0; border:0; background:transparent; color:var(--text-primary,#20232b); line-height:1; }
+.mark-all-read-icon[disabled] { opacity:.4; }
 .summary-error { padding:12px; margin-bottom:12px; border-radius:12px; background:#fff; color:#b7172b; font-size:13px; }
 @media (min-width:768px) { .message-hero { min-height:194px; padding:32px; margin-bottom:24px; } .hero-title { font-size:30px; } .hero-desc { max-width:none; font-size:15px; } .hero-art { width:220px; height:190px; right:24px; } .category-row { min-height:104px; padding:20px 24px; gap:20px; } .category-art { width:62px; height:62px; } .category-title { font-size:18px; } .category-description { font-size:14px; } }
 @media (prefers-reduced-motion:reduce) { .category-row { transition:none; } }

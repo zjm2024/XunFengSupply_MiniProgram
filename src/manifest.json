@@ -2,8 +2,8 @@
     "name" : "薰风经销商采购平台（测试版）",
     "appid" : "__UNI__C336BB6",
     "description" : "薰风羽毛球B2B经销商签约采购对账售后全流程平台",
-    "versionName" : "1.0.1",
-    "versionCode" : 101,
+    "versionName" : "1.0.2",
+    "versionCode" : 102,
     "transformPx" : false,
     "app-plus" : {
         "usingComponents" : true,
@@ -23,8 +23,7 @@
                     "<uses-permission android:name=\"android.permission.CAMERA\"/>",
                     "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>",
                     "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>",
-                    "<uses-permission android:name=\"android.permission.INTERNET\"/>",
-                    "<uses-permission android:name=\"android.permission.POST_NOTIFICATIONS\"/>"
+                    "<uses-permission android:name=\"android.permission.INTERNET\"/>"
                 ]
             },
             "ios" : {
@@ -42,8 +41,7 @@
                                 "xxhdpi" : "C:/Users/PC/Pictures/下单系统UI/logo/小尺寸/icon_transparent_18_24_36_48_72/icon_72x72.png",
                                 "xhdpi" : "C:/Users/PC/Pictures/下单系统UI/logo/小尺寸/icon_transparent_18_24_36_48_72/icon_48x48.png"
                             }
-                        },
-                        "fcm" : {}
+                        }
                     }
                 }
             },
@@ -82,9 +80,9 @@
             "splashscreen" : {
                 "androidStyle" : "default",
                 "android" : {
-                    "hdpi" : "C:/Users/PC/Pictures/下单系统UI/新建文件夹/.9.png开屏页/splash-hdpi.9.png",
-                    "xhdpi" : "C:/Users/PC/Pictures/下单系统UI/新建文件夹/.9.png开屏页/splash-xhdpi.9.png",
-                    "xxhdpi" : "C:/Users/PC/Pictures/下单系统UI/新建文件夹/.9.png开屏页/splash-xxhdpi.9.png"
+                    "hdpi" : "",
+                    "xhdpi" : "",
+                    "xxhdpi" : ""
                 }
             }
         }
@@ -107,5 +105,6 @@
         "distribute" : {
             "bundleName" : "xunfeng.hm.huawei"
         }
-    }
+    },
+    "fallbackLocale" : "zh-Hans"
 }

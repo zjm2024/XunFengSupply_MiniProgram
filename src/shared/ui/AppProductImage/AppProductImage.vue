@@ -2,6 +2,7 @@
   <view class="app-product-image" :class="{ 'is-out-of-stock': isUnavailable }">
     <image
       v-if="hasImageSource && !imageFailed"
+      :key="displaySrc"
       class="app-product-image__source"
       :class="{ 'is-loading': isLoading }"
       :src="displaySrc"
@@ -18,7 +19,7 @@
       <view class="app-product-image__spinner" />
       <text class="app-product-image__loading-text">图片加载中</text>
     </view>
-    <view v-if="!hasImageSource || imageFailed" class="app-product-image__fallback">
+    <view v-if="!hasImageRequest || imageFailed" class="app-product-image__fallback">
       <AppIcon name="image" :size="fallbackIconSize" :stroke-width="1.6" />
     </view>
     <text v-if="showStockBadge && isUnavailable" class="app-product-image__stock-badge">{{ t('common.productCard.stockEmpty') }}</text>
@@ -26,11 +27,11 @@
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { t } from '@/shared/i18n/index.js'
 import { isProductOutOfStock } from '@/shared/utils/productAvailability.js'
 import AppIcon from '../AppIcon/AppIcon.vue'
-import { getCachedResource, getCachedResourcePath } from '@/shared/utils/resourceCache.js'
+import { getCachedResource, getCachedResourcePath, isWebResourcePlatform, hasLoadedImage, markImageLoaded, invalidateCachedResource } from '@/shared/utils/resourceCache.js'
 
 const props = defineProps({
   src: { type: String, default: '' },
@@ -46,40 +47,55 @@ const imageFailed = ref(false)
 const isLoading = ref(false)
 const displaySrc = ref('')
 let cacheRequestId = 0
+let alternateSource = null
 const hasImageSource = computed(() => Boolean(displaySrc.value?.trim()))
 const hasImageRequest = computed(() => Boolean(String(props.src || '').trim()))
 const isUnavailable = computed(() => props.unavailable || isProductOutOfStock({ stock: props.stock }))
 
-watch(() => props.src, async (source) => {
+watch(() => props.src, (source) => {
   const requestId = ++cacheRequestId
   const remoteUrl = String(source || '').trim()
-  imageFailed.value = false
-  isLoading.value = Boolean(remoteUrl)
   const cachedPath = getCachedResourcePath(remoteUrl, { kind: 'image' })
-  // APP 端不要在本地缓存完成前直接渲染远程地址，否则原生 image 会先进入失败态，
-  // 用户看到的是“图片不可用”，而不是加载中的状态。
   const isRemote = /^https?:\/\//i.test(remoteUrl)
-  const isH5 = typeof window !== 'undefined' && typeof document !== 'undefined'
-  displaySrc.value = cachedPath || (isRemote && !isH5 ? '' : remoteUrl)
-  if (!remoteUrl) {
-    isLoading.value = false
-    return
+  const isWeb = isWebResourcePlatform()
+  imageFailed.value = false
+  isLoading.value = isRemote && !cachedPath && (!isWeb || !hasLoadedImage(remoteUrl))
+  displaySrc.value = cachedPath || (isRemote && !isWeb ? '' : remoteUrl)
+  alternateSource = cachedPath ? remoteUrl : null
+  if (remoteUrl && !cachedPath) {
+    const pending = getCachedResource(remoteUrl, { kind: 'image' }).catch(() => remoteUrl)
+    alternateSource = pending
+    void pending.then(path => {
+      if (requestId === cacheRequestId && !displaySrc.value) displaySrc.value = path
+    })
   }
-
-  const cachedUrl = await getCachedResource(remoteUrl, { kind: 'image' })
-  if (requestId === cacheRequestId && cachedUrl) displaySrc.value = cachedUrl
 }, { immediate: true })
+onBeforeUnmount(() => { cacheRequestId += 1 })
 
 /** 图片加载成功。 */
 function handleImageLoad() {
+  markImageLoaded(props.src)
+  markImageLoaded(displaySrc.value)
   isLoading.value = false
   imageFailed.value = false
 }
 
 /** 图片加载失败。 */
-function handleImageError() {
+async function handleImageError() {
+  const requestId = cacheRequestId
+  const failedSource = displaySrc.value
+  const alternate = alternateSource
+  alternateSource = null
+  invalidateCachedResource(props.src, { kind: 'image', localPath: failedSource })
   imageFailed.value = true
   isLoading.value = false
+  const nextSource = await alternate
+  if (requestId !== cacheRequestId) return
+  if (nextSource && nextSource !== failedSource) {
+    displaySrc.value = nextSource
+    imageFailed.value = false
+    isLoading.value = true
+  }
 }
 </script>
 

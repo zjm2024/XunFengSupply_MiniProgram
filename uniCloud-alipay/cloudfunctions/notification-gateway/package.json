@@ -1,0 +1,14 @@
+{
+  "name": "notification-gateway",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.js",
+  "extensions": {
+    "uni-cloud-push": {}
+  },
+  "cloudfunction-config": {
+    "timeout": 20,
+    "memorySize": 256
+  },
+  "dependencies": {}
+}
