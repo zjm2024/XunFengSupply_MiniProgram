@@ -83,3 +83,11 @@ body.is-embedded.is-native:not(.is-document) .viewer-header {
 .is-native .viewer-progress { padding-bottom: 0; margin-left: auto; }
 .is-embedded.is-native:not(.is-document) .embedded-back { display: none; }
 .is-embedded.is-native:not(.is-document) .pdf-pages { padding-bottom: 28px; }
+
+/* 手册显示实际缓存比例与本次读取量，H5嵌入时也能看见，不遮挡返回或画布。 */
+.cache-status { flex-shrink: 0; padding: 6px 12px; color: #69717d; background: #f3f4f6; font-size: 11px; line-height: 1.5; text-align: center; overflow-wrap: anywhere; }
+.cache-status[hidden] { display: none; }
+
+.pdf-page img { display: block; width: 100%; height: auto; max-height: 100%; object-fit: contain; }
+.original-button { flex-shrink: 0; align-self: flex-end; min-height: 36px; margin: 0 12px 4px; padding: 4px 12px; border: 0; border-radius: 8px; background: #fff; color: #414854; font: inherit; font-size: 12px; }
+.original-button[hidden] { display: none; }

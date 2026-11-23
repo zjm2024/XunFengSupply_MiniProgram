@@ -12,16 +12,18 @@
       <div class="viewer-title">产品手册</div>
       <div id="progressText" class="viewer-progress">准备中</div>
     </header>
+    <div id="cacheStatus" class="cache-status" role="status" aria-live="polite" hidden></div>
     <nav id="zoomToolbar" class="zoom-toolbar" hidden>
       <button id="zoomOut" type="button">−</button>
       <span id="zoomLevel" aria-live="polite">100%</span>
       <button id="zoomIn" type="button">＋</button>
       <button id="zoomFit" type="button"></button>
     </nav>
+    <button id="originalButton" class="original-button" type="button" hidden></button>
     <main id="pages" class="pdf-pages"></main>
     <div id="errorBox" class="error-box" hidden></div>
     <button id="embeddedBackButton" class="embedded-back" type="button">返回</button>
     <script src="./uniWebview.js"></script>
-    <script type="module" src="./viewer.js"></script>
+    <script type="module" src="./bootstrap.js"></script>
   </body>
 </html>

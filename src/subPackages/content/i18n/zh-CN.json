@@ -177,6 +177,21 @@
     "relayout": "正在按当前屏幕重新排版",
     "missingUrl": "缺少 PDF 地址",
     "checkingRange": "检查分片",
-    "pages": "{count} 页"
+    "pages": "{count} 页",
+    "cacheProgress": "本地已缓存 {percent}% · 本次应用缓存 {local} MB / 资源请求 {requests} 次 / {network} MB",
+    "cacheComplete": "已完整缓存 · 本次应用缓存 {local} MB / 资源请求 {requests} 次 / {network} MB",
+    "cacheUnavailable": "本地缓存不可用 · 本次资源请求 {requests} 次 / {network} MB",
+    "cacheShortProgress": "已缓存 {percent}%",
+    "cacheShortComplete": "缓存完成",
+    "cacheShortOnline": "在线读取",
+    "previewReadyShort": "页面就绪",
+    "previewReady": "已准备 {count} 页，正在使用本地页面预览",
+    "previewOriginal": "高清预览",
+    "previewPage": "第 {page} 页",
+    "previewPartial": "已保存 {ready}/{count} 页，剩余页面尚未准备完成，重新打开可继续",
+    "previewPrepared": "已准备全部 {count} 页，下次可直接打开本地页面",
+    "previewPreparing": "正在准备页面 {ready}/{count}，请保持阅读器打开直到页面就绪",
+    "previewPartialShort": "部分就绪",
+    "previewPreparingShort": "准备 {ready}/{count}"
   }
 }

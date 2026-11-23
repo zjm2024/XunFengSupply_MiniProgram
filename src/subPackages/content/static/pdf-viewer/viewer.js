@@ -1,4 +1,6 @@
 import * as pdfjsLib from './pdfjs.js'
+import { createManualPdfCache } from './pdfCache.js'
+import { createPagePreparer, encodePreviewCanvas, previewScale } from './pagePreviewCache.js'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = '../../../auth/static/pdf-worker/pdfjsworker.js'
 
@@ -22,6 +24,66 @@ let renderQueue = []
 let pageObserver = null
 let scrollTimer = null
 let lastLayoutWidth = 0
+let manualPdfCache = null
+let activeRangeTransport = null
+let documentLoadingTask = null
+let readerClosed = false
+let pagePreviewStore = null
+let pagePreparer = null
+let previewRenderTask = null
+let previewRendering = false
+
+/** 只有分片落盘后才记录complete，不把预下载等同于全部页面已绘制。 */
+function updateCacheState(state) {
+  window.pdfCacheState = state
+  renderCacheStatus()
+  const percent = state.total ? Math.floor(state.cachedBytes / state.total * 100) : 0
+  const key = !state.persistent ? 'cacheShortOnline' : !state.total ? 'preparing'
+    : state.complete ? 'cacheShortComplete' : 'cacheShortProgress'
+  if (!window.pdfPreviewState?.pageCount) setProgressMessage(key, { percent })
+}
+
+/** 展示真正的磁盘命中与网络读取，不把PDF.js请求分片等同于联网下载。 */
+function renderCacheStatus() {
+  const element = document.getElementById('cacheStatus'), state = window.pdfCacheState
+  if (!element) return
+  const preview = window.pdfPreviewState
+  if (preview?.pageCount) {
+    element.hidden = false
+    const key = !preview.available ? 'previewPartial' : preview.complete ? 'previewPrepared' : 'previewPreparing'
+    element.textContent = viewerText(key, { ready: preview.readyPages, count: preview.pageCount })
+    setProgressMessage(!preview.available ? 'previewPartialShort' : preview.complete ? 'previewReadyShort' : 'previewPreparingShort',
+      { ready: preview.readyPages, count: preview.pageCount })
+    return
+  }
+  if (!state) return
+  element.hidden = false
+  const key = !state.persistent ? 'cacheUnavailable' : state.complete ? 'cacheComplete' : 'cacheProgress'
+  const values = { requests: state.networkRequests, percent: state.total ? Math.floor(state.cachedBytes / state.total * 100) : 0,
+    local: (state.localBytes / 1048576).toFixed(1), network: (state.networkBytes / 1048576).toFixed(1) }
+  element.textContent = viewerText(key, values)
+  element.dataset.cacheComplete = String(state.complete)
+  element.dataset.networkRequests = String(state.networkRequests)
+}
+function prefetchManual() {
+  if (!readerClosed && manualPdfCache && pageStates.get(1)?.rendered && !document.hidden) {
+    void manualPdfCache.prefetch(() => document.hidden || readerClosed)
+    void pagePreparer?.warm()
+  }
+}
+window.addEventListener('pagehide', () => {
+  readerClosed = true
+  pagePreparer?.close()
+  previewRenderTask?.cancel()
+  pagePreviewStore?.close()
+  manualPdfCache?.close()
+  activeRangeTransport?.abort()
+  void documentLoadingTask?.destroy()
+  pageObserver?.disconnect()
+  if (resizeTimer) clearTimeout(resizeTimer)
+  if (scrollTimer) clearTimeout(scrollTimer)
+})
+document.addEventListener('visibilitychange', prefetchManual)
 
 /** 从宿主接收 JSON 显示资源；只更新文字，不启动 PDF 或网络流程。 */
 function setViewerLocale(payload) {
@@ -38,6 +100,7 @@ function setViewerLocale(payload) {
   document.getElementById('backButton')?.setAttribute('aria-label', viewerText('back'))
   const embeddedBack = document.getElementById('embeddedBackButton')
   if (embeddedBack) embeddedBack.textContent = viewerText('back')
+  renderCacheStatus()
   if (progressState) setProgressMessage(progressState.key, progressState.parameters)
   if (errorState && errorBox) errorBox.textContent = viewerText('previewFailed')
   document.querySelectorAll('[data-viewer-message]').forEach(element => {
@@ -154,9 +217,14 @@ function parseContentRange(value) {
 async function fetchRange(url, begin, end, signal) {
   const response = await fetch(url, {
     headers: { Range: `bytes=${begin}-${end - 1}` },
-    cache: 'no-store',
+    cache: 'default',
     signal,
   })
+  if ((response.status === 401 || response.status === 403) && params.get('cache') === 'manual') {
+    const message = { type: 'pdf-source-expired' }
+    if (window.parent !== window) window.parent.postMessage(message, window.location.origin)
+    else window.uni?.postMessage({ data: message })
+  }
   const contentRange = parseContentRange(response.headers.get('Content-Range'))
   if (response.status !== 206 || !contentRange) {
     throw viewerError('rangeRequired')
@@ -168,7 +236,7 @@ async function fetchRange(url, begin, end, signal) {
   const bytes = new Uint8Array(await response.arrayBuffer())
   const expectedLength = contentRange.end - contentRange.begin + 1
   if (bytes.byteLength !== expectedLength) throw viewerError('rangeLength')
-  return { bytes, contentRange }
+  return { bytes, contentRange, validator: response.headers.get('ETag') || response.headers.get('Last-Modified') || '' }
 }
 
 class HttpRangeTransport extends pdfjsLib.PDFDataRangeTransport {
@@ -182,7 +250,8 @@ class HttpRangeTransport extends pdfjsLib.PDFDataRangeTransport {
   requestDataRange(begin, end) {
     const controller = new AbortController()
     this.controllers.add(controller)
-    fetchRange(this.url, begin, end, controller.signal)
+    const request = manualPdfCache ? manualPdfCache.read(begin, end) : fetchRange(this.url, begin, end, controller.signal)
+    request
       .then(({ bytes }) => {
         this.onDataRange(begin, bytes)
         this.onDataProgress(Math.min(this.length, begin + bytes.byteLength), this.length)
@@ -192,8 +261,37 @@ class HttpRangeTransport extends pdfjsLib.PDFDataRangeTransport {
   }
 
   abort() {
+    manualPdfCache?.close()
     this.controllers.forEach(controller => controller.abort())
     this.controllers.clear()
+  }
+}
+
+/** 逐页生成固定清晰度预览，最多一个后台画布，优先让可见页完成。 */
+async function renderPagePreview(number) {
+  while (activeRenders > 0 && !readerClosed) await new Promise(resolve => setTimeout(resolve, 30))
+  if (readerClosed) throw new DOMException('阅读器已关闭', 'AbortError')
+  previewRendering = true
+  const canvas = document.createElement('canvas')
+  let page
+  try {
+    page = await pdfDocument.getPage(number)
+    const base = page.getViewport({ scale: 1 }), scale = previewScale(base.width, base.height)
+    const viewport = page.getViewport({ scale })
+    canvas.width = Math.max(1, Math.floor(viewport.width)); canvas.height = Math.max(1, Math.floor(viewport.height))
+    const context = canvas.getContext('2d', { alpha: false })
+    const visible = pageStates.get(number)?.element.querySelector?.('canvas')
+    if (visible && visible.width >= canvas.width && visible.height >= canvas.height) context.drawImage(visible, 0, 0, canvas.width, canvas.height)
+    else {
+      previewRenderTask = page.render({ canvasContext: context, viewport, background: '#ffffff' })
+      await previewRenderTask.promise
+    }
+    return { blob: await encodePreviewCanvas(canvas), width: canvas.width, height: canvas.height }
+  } finally {
+    canvas.width = canvas.height = 1
+    previewRenderTask = null; previewRendering = false
+    if (!pageStates.get(number)?.rendering) page?.cleanup?.()
+    pumpRenderQueue()
   }
 }
 
@@ -243,6 +341,7 @@ async function renderPage(pageNumber) {
     if (generation !== renderGeneration) return
     state.element.replaceChildren(canvas)
     state.rendered = true
+    if (pageNumber === 1) prefetchManual()
     state.failed = false
   } catch (error) {
     if (generation !== renderGeneration) return
@@ -280,7 +379,7 @@ function scheduleVisiblePages() {
 }
 
 function pumpRenderQueue() {
-  while (activeRenders < 2 && renderQueue.length) {
+  while (activeRenders + (previewRendering ? 1 : 0) < 2 && renderQueue.length) {
     const number = renderQueue.shift()
     activeRenders += 1
     void renderPage(number).finally(() => {
@@ -333,14 +432,21 @@ async function openPdf() {
     await mountPdfPages()
     return
   }
+  const previewBoot = await window.manualPreviewBoot
+  pagePreviewStore = previewBoot?.store || null
   setProgressMessage('checkingRange')
-  const firstChunk = await fetchRange(pdfUrl, 0, RANGE_CHUNK_SIZE)
+  if (params.get('cache') === 'manual' && params.get('manualId')) {
+    manualPdfCache = createManualPdfCache({ url: pdfUrl, scope: params.get('manualId'), epoch: params.get('cacheEpoch') || '', fetchRange, onState: updateCacheState })
+  }
+  const firstChunk = manualPdfCache ? await manualPdfCache.read(0, RANGE_CHUNK_SIZE)
+    : await fetchRange(pdfUrl, 0, RANGE_CHUNK_SIZE)
   const rangeTransport = new HttpRangeTransport(
     pdfUrl,
     firstChunk.contentRange.total,
     firstChunk.bytes,
   )
 
+  activeRangeTransport = rangeTransport
   let loadingTask = null
   const rangeError = new Promise((_, reject) => {
     rangeTransport.onError = reject
@@ -353,13 +459,24 @@ async function openPdf() {
     disableRange: false,
     disableStream: true,
     disableAutoFetch: true,
+    isEvalSupported: false,
   })
+  documentLoadingTask = loadingTask
   loadingTask.onProgress = ({ loaded, total }) => {
+    // 手册显示真实持久缓存比例，不用新阅读任务从0开始的引擎进度覆盖它。
+    if (manualPdfCache) return
     if (total) setProgress(`${Math.round((loaded / total) * 100)}%`)
     else setProgress(`${Math.round(loaded / 1024)} KB`)
   }
 
   pdfDocument = await Promise.race([loadingTask.promise, rangeError])
+  if (pagePreviewStore) {
+    pagePreparer = createPagePreparer({ store: pagePreviewStore, pageCount: pdfDocument.numPages, render: renderPagePreview,
+      shouldPause: () => document.hidden || readerClosed,
+      onProgress: state => { window.pdfPreviewState = state; renderCacheStatus() } })
+  } else if (manualPdfCache && 'manualPreviewBoot' in window) {
+    window.pdfPreviewState = { available: false, pageCount: pdfDocument.numPages, readyPages: 0, complete: false }
+  }
   await mountPdfPages()
 }
 
@@ -372,7 +489,8 @@ async function mountPdfPages() {
   for (let pageNumber = 1; pageNumber <= pdfDocument.numPages; pageNumber += 1) {
     createPageElement(pageNumber)
   }
-  setProgressMessage('pages', { count: pdfDocument.numPages })
+  if (manualPdfCache && window.pdfCacheState) updateCacheState(window.pdfCacheState)
+  else setProgressMessage('pages', { count: pdfDocument.numPages })
   observePages()
 }
 
@@ -396,6 +514,7 @@ if (new URLSearchParams(window.location.search).get('private') === '1') {
     }
   })
   if (window.parent !== window) window.parent.postMessage({ type: 'pdf-viewer-private-ready' }, window.location.origin)
+  else window.uni?.postMessage({ data: { type: 'pdf-viewer-private-ready' } })
 } else {
   openPdf().catch(showError)
 }

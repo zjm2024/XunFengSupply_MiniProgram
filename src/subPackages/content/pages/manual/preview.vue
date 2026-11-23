@@ -41,6 +41,7 @@ import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
 import AppProductImage from '@/shared/ui/AppProductImage/AppProductImage.vue'
 import { getManualDetail } from '../../api/manual.js'
 import { navigator } from '@/app/navigation/navigator.js'
+import { handoffManualPdfSource, discardManualPdfSource } from '@/shared/services/manualPdfSource.js'
 import { routes } from '@/app/config/routes.js'
 import { cacheRichTextImages } from '@/shared/utils/resourceCache.js'
 
@@ -99,7 +100,7 @@ async function cacheDetailResources(result) {
   }
 }
 
-/** 检查原手册附件和编号后沿用原 PDF 导航。 */
+/** 复用详情已取得的附件地址，再沿统一路由进入阅读器。 */
 async function openFile() {
   const url = detail.value?.fileUrl
   const id = detail.value?.id || manualId.value
@@ -112,9 +113,11 @@ async function openFile() {
     return
   }
 
+  handoffManualPdfSource(id, url)
   const target = routes.content.manualPdfPreview(id)
   const navigated = await navigator.navigateTo(target)
   if (!navigated) {
+    discardManualPdfSource(id)
     console.warn('[ManualDetail] PDF 预览页导航失败:', { id, target })
     uni.showToast({ title: t('content.manual.openFailed'), icon: 'none' })
   }

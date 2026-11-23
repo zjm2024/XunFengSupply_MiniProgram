@@ -177,6 +177,21 @@
     "relayout": "Adjusting to the current screen",
     "missingUrl": "The PDF URL is missing",
     "checkingRange": "Checking file access",
-    "pages": "{count} pages"
+    "pages": "{count} pages",
+    "cacheProgress": "{percent}% saved · App cache {local} MB / Resource fetches {requests} calls / {network} MB",
+    "cacheComplete": "Fully saved · App cache {local} MB / Resource fetches {requests} calls / {network} MB",
+    "cacheUnavailable": "Local cache unavailable · Resource fetches {requests} calls / {network} MB",
+    "cacheShortProgress": "{percent}% saved",
+    "cacheShortComplete": "Saved",
+    "cacheShortOnline": "Online",
+    "previewReadyShort": "Ready",
+    "previewReady": "All {count} pages ready. Reading local page previews.",
+    "previewOriginal": "High quality",
+    "previewPage": "Page {page}",
+    "previewPartial": "Saved {ready}/{count} pages. Reopen to continue preparation.",
+    "previewPrepared": "All {count} pages prepared for the next visit.",
+    "previewPreparing": "Preparing pages {ready}/{count}. Keep this reader open until ready.",
+    "previewPartialShort": "Partial",
+    "previewPreparingShort": "Ready {ready}/{count}"
   }
 }

@@ -8,6 +8,24 @@ const loadedImages = new Map()
 const MAX_LOADED_IMAGES = 256
 let webResourcePlatform
 const DEFAULT_MAX_AGE = 24 * 60 * 60 * 1000
+const FILE_MAX_AGE = 7 * DEFAULT_MAX_AGE
+const downloadQueue = []
+let activeDownloads = 0
+let cacheGeneration = 0
+let resourcesPruned = false
+const MAX_SAVED_RESOURCES = 500
+
+/** 图片和普通文件共用四个下载槽，避免列表/正文同时创建大量网络请求。 */
+function scheduleDownload(action) {
+  return new Promise(resolve => { downloadQueue.push({ action, resolve }); pumpDownloads() })
+}
+function pumpDownloads() {
+  while (activeDownloads < 4 && downloadQueue.length) {
+    const { action, resolve } = downloadQueue.shift()
+    activeDownloads += 1
+    Promise.resolve().then(action).then(resolve, () => resolve('')).finally(() => { activeDownloads -= 1; pumpDownloads() })
+  }
+}
 
 export const RESOURCE_CACHE_PREFIX = CACHE_PREFIX
 
@@ -84,10 +102,27 @@ function cacheKey(url, kind) {
   return `${CACHE_PREFIX}${kind}:${hash(canonicalUrl(url))}`
 }
 
+/** 只清理本工具登记的过期/最旧资源，不触碰会话与其他文件。 */
+function pruneSavedResources(protectedKey = '') {
+  try {
+    const records = (uni.getStorageInfoSync?.()?.keys || []).filter(key => key.startsWith(CACHE_PREFIX))
+      .map(key => ({ key, record: uni.getStorageSync(key) })).filter(entry => entry.record?.localPath)
+      .sort((a, b) => Number(a.record.expiresAt) - Number(b.record.expiresAt))
+    let count = records.length
+    for (const { key, record } of records) {
+      if (key === protectedKey || (Number(record.expiresAt) > Date.now() && count <= MAX_SAVED_RESOURCES)) continue
+      uni.removeStorageSync(key); count -= 1
+      void removeSavedFile(record.localPath)
+    }
+  } catch (error) { console.warn('[ResourceCache] 清理过期文件失败:', error) }
+}
+
 function readCachedPath(key) {
+  if (!resourcesPruned) { resourcesPruned = true; pruneSavedResources() }
   try {
     const record = uni.getStorageSync(key)
     if (record?.localPath && Number(record.expiresAt) > Date.now()) return record.localPath
+    if (record?.localPath) { uni.removeStorageSync(key); void removeSavedFile(record.localPath) }
   } catch (error) {
     console.warn('[ResourceCache] 读取缓存失败:', error)
   }
@@ -98,8 +133,9 @@ function saveCachedPath(key, localPath, maxAge) {
   try {
     uni.setStorageSync(key, {
       localPath,
-      expiresAt: Date.now() + Math.max(Number(maxAge) || DEFAULT_MAX_AGE, 60 * 1000),
+      expiresAt: Date.now() + Math.max(Number(maxAge) || FILE_MAX_AGE, 60 * 1000),
     })
+    pruneSavedResources(key)
   } catch (error) {
     console.warn('[ResourceCache] 保存缓存索引失败:', error)
   }
@@ -123,7 +159,9 @@ export function getCachedResource(url, options = {}) {
   if (cachedPath) return Promise.resolve(cachedPath)
   if (inflight.has(key)) return inflight.get(key)
 
-  const request = new Promise((resolve) => {
+  const generation = cacheGeneration
+  const request = scheduleDownload(() => new Promise((resolve) => {
+    if (generation !== cacheGeneration) { resolve(sourceUrl); return }
     uni.downloadFile({
       url: sourceUrl,
       success: (result) => {
@@ -136,6 +174,7 @@ export function getCachedResource(url, options = {}) {
           tempFilePath: result.tempFilePath,
           success: (saved) => {
             const localPath = saved?.savedFilePath || result.tempFilePath
+            if (generation !== cacheGeneration) { void removeSavedFile(localPath); resolve(sourceUrl); return }
             saveCachedPath(key, localPath, options.maxAge)
             resolve(localPath)
           },
@@ -144,7 +183,7 @@ export function getCachedResource(url, options = {}) {
       },
       fail: () => resolve(sourceUrl),
     })
-  }).finally(() => inflight.delete(key))
+  })).then(path => path || sourceUrl).finally(() => { if (inflight.get(key) === request) inflight.delete(key) })
 
   inflight.set(key, request)
   return request
@@ -199,6 +238,11 @@ function removeSavedFile(localPath) {
  * APP 端同时删除资源文件和缓存索引；H5 仅清理可识别的索引数据，浏览器缓存由浏览器管理。
  */
 export async function clearResourceCache() {
+  cacheGeneration += 1
+  inflight.clear()
+  // 原生阅读器是独立窗体，下次打开时按代际清掉它自己的PDF磁盘数据库。
+  try { uni.setStorageSync('manual-pdf-cache-epoch', String(Date.now())) }
+  catch (error) { console.warn('[ResourceCache] PDF清理标记保存失败:', error) }
   let keys = []
   try {
     keys = (uni.getStorageInfoSync()?.keys || []).filter(key => key.startsWith(CACHE_PREFIX))

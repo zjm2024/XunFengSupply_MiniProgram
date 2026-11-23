@@ -36,6 +36,7 @@ import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import { navigator } from '@/app/navigation/navigator.js'
 import { useResponsive } from '@/shared/composables/useResponsive.js'
 import { getManualDetail } from '../../api/manual.js'
+import { takeManualPdfSource } from '@/shared/services/manualPdfSource.js'
 import { getInvoiceDetail } from '@/shared/api/invoice.js'
 import { getWithdrawalReceipt } from '@/shared/api/withdrawal.js'
 
@@ -45,6 +46,7 @@ const pageTitle = computed(() => t(withdrawalId.value ? 'content.titles.withdraw
   : invoiceId.value ? 'content.titles.invoicePreview' : 'content.titles.manualPreview'))
 let receiptBase64 = ''
 let active = true
+let inheritedSourceInUse = false
 const manualId = ref('')
 const loading = ref(true)
 const loadFailure = ref(null)
@@ -59,7 +61,8 @@ nativeReader = true
 // 原生PDF自带同窗体导航；准备中或失败时仍由统一AppHeader提供返回。
 const showHostHeader = computed(() => !nativeReader || loading.value || !!errorText.value || !viewerUrl.value)
 const viewerMessageKeys = ['title', 'back', 'preparing', 'failed', 'previewFailed', 'rangeRequired',
-  'rangeInvalid', 'rangeLength', 'lazyPage', 'pageFailed', 'relayout', 'missingUrl', 'checkingRange', 'pages']
+  'rangeInvalid', 'rangeLength', 'lazyPage', 'pageFailed', 'relayout', 'missingUrl', 'checkingRange', 'pages',
+  'cacheProgress', 'cacheComplete', 'cacheUnavailable', 'cacheShortProgress', 'cacheShortComplete', 'cacheShortOnline', 'previewReadyShort', 'previewReady', 'previewOriginal', 'previewPage', 'previewPartial', 'previewPrepared', 'previewPreparing', 'previewPartialShort', 'previewPreparingShort']
 
 const { layout, safeArea } = useResponsive()
 
@@ -95,8 +98,8 @@ onReady(() => {
   scheduleNativePdfLayout()
 })
 
-/** 读取原 PDF 附件地址，保留原生布局与加载流程。 */
-async function loadDetail() {
+/** 优先使用本次详情导航交接的链接，直接进入/刷新时才查询附件接口。 */
+async function loadDetail(refreshSource = false) {
   if (!manualId.value && !invoiceId.value && !withdrawalId.value) {
     loadFailure.value = { messageKey: 'content.manual.missingId' }
     loading.value = false
@@ -127,15 +130,23 @@ async function loadDetail() {
       return
     }
 
+    const inheritedUrl = !invoiceId.value && refreshSource !== true ? takeManualPdfSource(manualId.value) : ''
+    inheritedSourceInUse = Boolean(inheritedUrl)
     const detail = invoiceId.value
       ? await getInvoiceDetail(invoiceId.value)
-      : await getManualDetail(manualId.value)
+      : inheritedUrl ? { fileUrl: inheritedUrl } : await getManualDetail(manualId.value)
+    if (!active) return
     if (!detail?.fileUrl || (invoiceId.value && detail.status !== 2)) {
       loadFailure.value = { messageKey: 'content.manual.noPdf' }
       return
     }
 
-    viewerUrl.value = `/subPackages/content/static/pdf-viewer/index.html?embedded=1&url=${encodeURIComponent(detail.fileUrl)}&ui=${encodeURIComponent(JSON.stringify(viewerLanguagePayload()))}${nativeViewerQuery()}`
+    // 只有产品手册启用持久文件缓存；发票/私有凭证仍按原权限及加载路径处理。
+    const cacheQuery = !invoiceId.value && manualId.value
+      ? '&cache=manual&manualId=' + encodeURIComponent(manualId.value)
+        + '&cacheEpoch=' + encodeURIComponent(typeof uni !== 'undefined' ? uni.getStorageSync?.('manual-pdf-cache-epoch') || '' : '') : ''
+    viewerUrl.value = '/subPackages/content/static/pdf-viewer/index.html?embedded=1&url=' + encodeURIComponent(detail.fileUrl)
+      + '&ui=' + encodeURIComponent(JSON.stringify(viewerLanguagePayload())) + nativeViewerQuery() + cacheQuery
   } catch (error) {
     console.error('[ManualPdfPreview] 加载 PDF 地址失败:', error)
     loadFailure.value = error?.message ? error : { messageKey: 'content.manual.pdfFailed' }
@@ -143,6 +154,13 @@ async function loadDetail() {
     loading.value = false
     scheduleNativePdfLayout()
   }
+}
+
+/** 继承地址被资源服务器拒绝时只刷新一次，禁止反复重建阅读器。 */
+function refreshInheritedSource() {
+  if (!active || !manualId.value || invoiceId.value || withdrawalId.value || !inheritedSourceInUse) return
+  inheritedSourceInUse = false
+  void loadDetail(true)
 }
 
 let navigatingBack = false
@@ -157,6 +175,8 @@ function handleViewerMessage(event) {
   if (!active) return
   const data = event.detail?.data
   const messages = Array.isArray(data) ? data : [data]
+  if (messages.some(message => message?.type === 'pdf-viewer-private-ready')) sendPrivateReceipt()
+  if (messages.some(message => message?.type === 'pdf-source-expired')) refreshInheritedSource()
   if (messages.some(message => message?.type === 'pdf-viewer-back')) void goBack()
 }
 
@@ -197,6 +217,7 @@ function viewerFrame() {
 /** 同源且来自当前阅读器的消息才能传递凭证或触发宿主返回。 */
 function handleViewerWindowMessage(event) {
   if (!active || event.origin !== window.location.origin || event.source !== viewerFrame()?.contentWindow) return
+  if (event.data?.type === 'pdf-source-expired') refreshInheritedSource()
   if (event.data?.type === 'pdf-viewer-private-ready') sendPrivateReceipt()
   if (event.data?.type === 'pdf-viewer-back') void goBack()
 }
