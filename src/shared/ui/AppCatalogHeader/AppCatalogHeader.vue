@@ -5,6 +5,8 @@
       'is-sticky': sticky,
       'is-transparent': transparent,
       'is-back-only': backOnly,
+      'has-scroll-tools': autoHideTools && showTools,
+      'are-tools-collapsed': autoHideTools && toolsCollapsed,
     }"
   >
     <AppStatusBarSpacer :extra="statusBarExtra" />
@@ -57,7 +59,7 @@
           </view>
         </view>
 
-        <view v-if="showTools" class="quick-sort-bar" :class="{'has-result-count':showResultCount}">
+        <view v-if="showTools" class="quick-sort-bar" :class="{'has-result-count':showResultCount}" :aria-hidden="autoHideTools && toolsCollapsed">
           <text v-if="showResultCount" class="catalog-result-count">{{ total }} 件商品</text>
           <view
             v-for="item in (showSort ? quickSortItems.filter(item => !sortKeys || sortKeys.includes(item.key)) : [])"
@@ -109,6 +111,9 @@ const props = defineProps({
   autoFocus: { type: Boolean, default: false },
   keywordCommitted: { type: Boolean, default: false },
   showTools: { type: Boolean, default: true },
+  /** 仅查询列表启用浮动筛选栏，其他头部调用保持原布局。 */
+  autoHideTools: { type: Boolean, default: false },
+  toolsCollapsed: { type: Boolean, default: false },
   showSort: { type: Boolean, default: true },
   sortKeys: { type: Array, default: null },
   showResultCount: { type: Boolean, default: false },
@@ -592,4 +597,41 @@ watch(() => props.theme, applyStatusBarStyle)
 }
 
 .has-result-count{justify-content:space-between}.catalog-result-count{margin-right:auto;font-size: var(--type-caption-size, 12px);line-height: 20px;color:var(--text-secondary,#737a84)}.has-result-count .filter-entry{flex:none;margin-left:16px}@media screen and (max-width: 599px) { .search-entry-placeholder { font-size: var(--input-placeholder-size, 13px); } }
+
+/* 筛选栏浮动在固定大小的列表视口上方，收起时不改变滚动容器高度。 */
+.app-catalog-header.has-scroll-tools {
+  flex-shrink: 0;
+}
+.has-scroll-tools .search-nav {
+  position: relative;
+  z-index: 2;
+  background: var(--surface-page, #F4F5F8);
+}
+.has-scroll-tools .quick-sort-bar {
+  position: absolute;
+  z-index: 1;
+  top: 100%;
+  left: 0;
+  right: 0;
+  height: var(--catalog-tools-height, 62px);
+  margin: 0;
+  padding: 8px var(--page-content-gutter, 16px);
+  box-sizing: border-box;
+  background: var(--surface-page, #F4F5F8);
+  transform: translateY(0);
+  opacity: 1;
+  visibility: visible;
+  transition: transform 180ms ease, opacity 180ms ease, visibility 0s;
+}
+.has-scroll-tools.are-tools-collapsed .quick-sort-bar {
+  transform: translateY(-100%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: transform 180ms ease, opacity 180ms ease, visibility 0s 180ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .has-scroll-tools .quick-sort-bar,
+  .has-scroll-tools.are-tools-collapsed .quick-sort-bar { transition: none; }
+}
 </style>

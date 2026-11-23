@@ -11,6 +11,8 @@
       :keyword-committed="keywordCommitted"
       :show-cart="!searchMode"
       :show-tools="showCatalogTools"
+      auto-hide-tools
+      :tools-collapsed="catalogToolsCollapsed"
       :category-label="activeCategoryPath.length ? activeCategoryPath[activeCategoryPath.length - 1].name : t('commerce.titles.category')"
       :category-active="activeCategoryPath.length > 0"
       :stock-filter-label="activeStockFilterLabel"
@@ -47,6 +49,7 @@
         enhanced
         enable-back-to-top
       >
+        <view v-if="showCatalogTools" class="catalog-tools-placeholder" aria-hidden="true" />
         <view class="scroll-inner">
       <ProductSearchLanding
         v-if="showSearchLanding"
@@ -193,6 +196,16 @@ const loadMoreError = ref(false)
 const listScrollTop = ref(0)
 const showBackToTop = ref(false)
 let currentListScrollTop = 0
+const catalogToolsCollapsed = ref(false)
+let lastToolsScrollTop = null
+let toolsScrollDirection = 0
+let toolsScrollDistance = 0
+let catalogScrollViewportHeight = 0
+let ignoreToolsScrollUntil = 0
+// 初始交互值，按目标设备手感复核；仅影响显示，不改变查询或分页。
+const TOOLS_HIDE_DISTANCE = 24
+const TOOLS_SHOW_DISTANCE = 12
+const TOOLS_HIDE_AFTER_TOP = 80
 let productRequestId = 0
 let categoryRequestId = 0
 const catalogInstance = getCurrentInstance()
@@ -213,6 +226,7 @@ async function visibleProductIds() {
     query.select('.page-scroll').boundingClientRect()
     query.selectAll('.app-product-card').fields({ rect: true, id: true })
     query.exec(([viewport, cards]) => {
+      if (viewport?.height > 0) catalogScrollViewportHeight = viewport.height
       if (!viewport || !Array.isArray(cards)) { resolve(fallback); return }
       resolve([...new Set([...cards.filter(card => card.bottom > viewport.top && card.top < viewport.bottom)
         .map(card => String(card.id || '').replace(/^catalog-product-/, '')), ...fallback])].filter(Boolean))
@@ -269,6 +283,8 @@ const showCatalogTools = computed(() => {
   if (!searchMode.value) return true
   return loading.value || products.value.length > 0
 })
+
+watch([showCatalogTools, filterDrawerVisible], () => resetCatalogTools())
 
 watch([showSearchLanding, activeCategoryId, stockFilter], async ([visible, categoryId, stock], _, onCleanup) => {
   if (!visible) return
@@ -339,6 +355,8 @@ onMounted(async () => {
 })
 
 onShow(() => {
+  resetCatalogTools()
+  ignoreToolsScrollUntil = 0
   catalogVisible = true
   void refreshVisibleProducts(true)
   loadCart({ silent: true }).catch(() => {})
@@ -493,7 +511,57 @@ async function handleSearch() {
   refreshProducts()
 }
 
+/** 程序滚动、页面重入和工具栏交互重设方向，不把恢复位置当成用户浏览。 */
+function resetCatalogTools(scrollTop = null) {
+  catalogToolsCollapsed.value = false
+  lastToolsScrollTop = scrollTop
+  toolsScrollDirection = 0
+  toolsScrollDistance = 0
+}
+
+/** 累计同向距离抑制轻微抖动；已知视口边界时夹住底部回弹。 */
+function updateCatalogTools(event) {
+  const rawTop = Number(event?.detail?.scrollTop) || 0
+  const scrollHeight = Number(event?.detail?.scrollHeight) || 0
+  const maxTop = catalogScrollViewportHeight > 0 && scrollHeight > 0
+    ? Math.max(0, scrollHeight - catalogScrollViewportHeight) : null
+  const top = Math.max(0, maxTop === null ? rawTop : Math.min(rawTop, maxTop))
+  if (top <= TOOLS_SHOW_DISTANCE) {
+    ignoreToolsScrollUntil = 0
+    resetCatalogTools(top)
+    return
+  }
+  if (!catalogVisible || !showCatalogTools.value || showSearchLanding.value || filterDrawerVisible.value
+    || isRefreshing.value || (loading.value && !products.value.length) || Date.now() < ignoreToolsScrollUntil) {
+    resetCatalogTools(top)
+    return
+  }
+  if (maxTop !== null && rawTop > maxTop) {
+    lastToolsScrollTop = top
+    toolsScrollDirection = 0
+    toolsScrollDistance = 0
+    return
+  }
+  if (lastToolsScrollTop === null) { lastToolsScrollTop = top; return }
+  const delta = top - lastToolsScrollTop
+  lastToolsScrollTop = top
+  if (!delta) return
+  const direction = Math.sign(delta)
+  if (direction !== toolsScrollDirection) {
+    toolsScrollDirection = direction
+    toolsScrollDistance = 0
+  }
+  toolsScrollDistance += Math.abs(delta)
+  if (direction > 0 && top >= TOOLS_HIDE_AFTER_TOP && toolsScrollDistance >= TOOLS_HIDE_DISTANCE) {
+    catalogToolsCollapsed.value = true
+    toolsScrollDistance = 0
+  } else if (direction < 0 && toolsScrollDistance >= TOOLS_SHOW_DISTANCE) {
+    catalogToolsCollapsed.value = false
+    toolsScrollDistance = 0
+  }
+}
 function handleListScroll(event) {
+  updateCatalogTools(event)
   const st = Number(event?.detail?.scrollTop) || 0
   currentListScrollTop = st
   showBackToTop.value = st > 300
@@ -501,6 +569,8 @@ function handleListScroll(event) {
 }
 
 function scrollToTop() {
+  resetCatalogTools()
+  ignoreToolsScrollUntil = Date.now() + 500
   listScrollTop.value = -1
   setTimeout(() => {
     listScrollTop.value = 0
@@ -611,6 +681,7 @@ function refreshProducts() {
 async function handleRefresh() {
   if (isRefreshing.value) return
   const startedAt = Date.now()
+  resetCatalogTools()
   isRefreshing.value = true
   try {
     if (!showSearchLanding.value) await refreshProducts()
@@ -663,6 +734,7 @@ function goToDetail(item) {
 
 <style lang="scss" scoped>
 .page {
+  --catalog-tools-height: 62px;
   height: 100vh;
   overflow: hidden;
   background: var(--surface-page, #F4F5F8);
@@ -682,6 +754,11 @@ function goToDetail(item) {
   margin: 0 auto;
   padding: 8px 12px 10px;
   box-sizing: border-box;
+}
+
+.catalog-tools-placeholder {
+  height: var(--catalog-tools-height, 62px);
+  flex-shrink: 0;
 }
 
 .product-content {
