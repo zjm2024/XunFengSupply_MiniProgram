@@ -4,7 +4,7 @@
     <template #content>
       <AppContent width-mode="standard">
         <view class="account-page profile-page">
-          <view v-if="loading && !loaded" class="feedback">{{ t('common.loading') }}</view>
+          <AppPageState v-if="loading && !loaded" state="loading" />
           <view v-else-if="!loaded" class="settings-card feedback"><text>{{ loadError || t('account.profile.loadFailed') }}</text><button class="secondary-button" @tap="loadProfile">{{ t('common.retry') }}</button></view>
           <template v-else>
             <view v-if="loadError" class="feedback error"><text>{{ loadError }}</text><button class="secondary-button" @tap="loadProfile">{{ t('common.retry') }}</button></view>
@@ -52,6 +52,7 @@
 </template>
 
 <script setup>
+import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import { computed, reactive, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { t, getLocale } from '@/shared/i18n/index.js'

@@ -60,11 +60,7 @@
                 @retry="handleLoadMore"
               />
             </view>
-            <template #skeleton>
-              <view class="manual-list">
-                <view v-for="item in 4" :key="item" class="manual-skeleton" />
-              </view>
-            </template>
+            
           </AppPageState>
         </view>
       </AppContent>
@@ -186,7 +182,7 @@ async function preview(item) {
 .list-status { padding: 8px 0; color: #9A9CA3; font-size: var(--type-caption-size, 12px); text-align: center; }
 .state-box { display: flex; min-height: 300px; align-items: center; justify-content: center; flex-direction: column; gap: 9px; color: #94979F; font-size: var(--type-caption-size, 12px); }
 .state-title { color: #454850; font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-bold, 700); }
-.manual-skeleton { height: 106px; border-radius: var(--radius-feature, 18px); background: linear-gradient(90deg, #F7F7F8 25%, #EFEFF1 50%, #F7F7F8 75%); background-size: 200% 100%; animation: manual-skeleton-shimmer 1.5s infinite; }
+
 .card--pressed { opacity: .9; transform: scale(.985); }
-@keyframes manual-skeleton-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+
 </style>

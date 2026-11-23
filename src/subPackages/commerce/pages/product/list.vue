@@ -57,10 +57,7 @@
       />
       <template v-else>
       <!-- 加载状态 -->
-      <view v-if="loading && products.length === 0" class="loading-state">
-        <view class="loading-spinner"></view>
-        <text class="loading-text">{{ t('commerce.catalog.loading') }}</text>
-      </view>
+      <AppPageState v-if="loading && products.length === 0" state="loading" />
 
       <!-- 空状态 -->
       <view v-else-if="!loading && products.length === 0" class="empty-state">
@@ -118,6 +115,7 @@
 </template>
 
 <script setup>
+import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
 
 import { t, getLocale } from '@/shared/i18n/index.js'
@@ -1058,7 +1056,6 @@ function goToDetail(item) {
   gap: 10px;
 }
 
-.loading-state,
 .empty-state {
   min-height: 48vh;
   display: flex;
@@ -1067,29 +1064,11 @@ function goToDetail(item) {
   justify-content: center;
 }
 
-.loading-spinner {
-  width: 24px;
-  height: 24px;
-  border: 2px solid #e5e7eb;
-  border-top-color: #d7192d;
-  border-radius: 50%;
-  animation: spin .8s linear infinite;
 
-  &.small {
-    width: 17px;
-    height: 17px;
-  }
-}
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
 
-.loading-text {
-  margin-top: 12px;
-  font-size: var(--type-body-size, 14px);
-  color: #7b8089;
-}
+
+
 
 .empty-state {
   width: 100%;

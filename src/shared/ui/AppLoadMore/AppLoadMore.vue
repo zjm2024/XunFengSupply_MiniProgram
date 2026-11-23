@@ -126,7 +126,7 @@ function handleRetry() {
 
   .loading-text {
     font-size: $font-size-caption;
-    color: $color-text-disabled;
+    color: $color-text-secondary;
   }
 
   // ==================== 没有更多 ====================

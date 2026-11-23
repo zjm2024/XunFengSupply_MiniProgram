@@ -26,9 +26,7 @@
             </view>
           </view>
 
-          <view v-if="loading" class="loading-card">
-            <text>{{ t('account.addressForm.loading') }}</text>
-          </view>
+          <AppPageState v-if="loading" state="loading" />
 
           <view v-else class="form-card">
             <view class="field-grid">
@@ -100,6 +98,7 @@
 </template>
 
 <script setup>
+import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/account/i18n/register.js'
 import { computed, onBeforeUnmount, reactive, ref } from 'vue'
@@ -336,8 +335,8 @@ async function saveAddress() {
 .parse-actions { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 10px; }
 .parse-message { flex: 1; min-width: 0; color: var(--type-secondary-color); font-size: var(--type-body-small-size); line-height: 18px; }
 .parse-actions :deep(.app-button) { flex-shrink: 0; margin: 0; }
-.parse-card, .loading-card, .form-card { border-radius: var(--radius-card); }
-.loading-card { padding: 48px 20px; color: var(--type-secondary-color); font-size: var(--type-body-size); text-align: center; }
+.parse-card, .form-card { border-radius: var(--radius-card); }
+
 .form-card { display: flex; flex-direction: column; gap: var(--spacing-base, 16px); padding: var(--module-padding, 16px); }
 .field-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
 .field-item { display: block; }
@@ -364,7 +363,7 @@ async function saveAddress() {
 }
 
 /* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
-.parse-card, .loading-card, .form-card {
+.parse-card, .form-card {
   border: 0 !important;
   background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));

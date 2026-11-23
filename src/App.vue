@@ -63,6 +63,7 @@ function ensureSurfaceRoute() {
 @use './shared/styles/variable.scss';
 @use './shared/styles/reset.scss';
 @use './shared/styles/responsive.scss';
+@use './shared/styles/brand-loading.scss';
 
 .empty-data-surface {
   border-color: transparent !important;

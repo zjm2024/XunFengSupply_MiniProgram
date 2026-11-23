@@ -1,9 +1,9 @@
-﻿﻿<template>
+﻿<template>
   <view class="page">
     <app-header :show-back="true" :title="t('content.titles.newsDetail')" @back="goBack" />
     <scroll-view class="page-scroll" scroll-y>
       <view class="content">
-        <view v-if="loading" class="article-state">{{ t('content.news.loading') }}</view>
+        <AppPageState page-loading v-if="loading" state="loading" />
         <view v-else-if="errorText" class="article-state article-state--error" @click="loadDetail">
           {{ errorText }} · {{ t('content.news.retry') }}
         </view>
@@ -42,6 +42,7 @@
 </template>
 
 <script setup>
+import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/content/i18n/register.js'
 import { computed, ref } from 'vue'

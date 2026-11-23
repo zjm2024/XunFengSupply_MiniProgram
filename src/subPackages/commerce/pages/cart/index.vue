@@ -33,24 +33,7 @@
           @retry="refreshCart"
           @action="goToProductList"
         >
-          <!-- 骨架屏插槽 -->
-          <template #skeleton>
-            <view class="cart-skeleton">
-              <view class="sk-bar skeleton-block" />
-              <view v-for="i in 3" :key="i" class="sk-card">
-                <view class="sk-check skeleton-block" />
-                <view class="sk-img skeleton-block" />
-                <view class="sk-info">
-                  <view class="sk-line skeleton-block" />
-                  <view class="sk-line short skeleton-block" />
-                  <view class="sk-line shorter skeleton-block" />
-                </view>
-              </view>
-            </view>
-          </template>
-
-
-          <!-- 正常内容 -->
+<!-- 正常内容 -->
           <template #default>
             <view class="cart-layout" :class="{ 'is-managing': isManaging }" @tap="closeItemActions">
               <!-- 主体区域 -->
@@ -725,7 +708,7 @@ function localError(messageKey) {
 @import "./product-rows.scss";
 
 /* 卡片表面统一：外轮廓无描边，状态继续由图标、文字和内容表达。 */
-.sk-card, .spu-card, .cart-card, .summary-card {
+.spu-card, .cart-card, .summary-card {
   border: 0 !important;
   background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
   box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));

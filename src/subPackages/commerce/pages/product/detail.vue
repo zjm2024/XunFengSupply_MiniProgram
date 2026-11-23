@@ -8,7 +8,7 @@
 
     <template #content>
       <AppContent padding="0" :no-max-width="true">
-        <app-page-state
+        <app-page-state page-loading
           :state="pageState"
           :title="t('commerce.product.loadFailedTitle')"
           :description="errorMessage"

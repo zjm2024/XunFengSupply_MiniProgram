@@ -1,0 +1,56 @@
+/* 首屏品牌反馈只改变展示，不延迟请求、结果提交或导航。 */
+.app-brand-loading {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  opacity: 0;
+  animation: brand-loading-reveal 0s 350ms forwards;
+}
+.app-brand-loading__image {
+  display: block;
+  width: 140px;
+  height: 136px;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.app-brand-loading__text {
+  color: #666;
+  font-size: 14px;
+  line-height: 22px;
+}
+@keyframes brand-loading-reveal { to { opacity: 1; } }
+@media (min-width: 768px) {
+  .app-brand-loading { min-height: 400px; gap: 16px; }
+  .app-brand-loading__image { width: 180px; height: 174px; }
+  .app-brand-loading__text { font-size: 16px; line-height: 24px; }
+}
+
+/* #ifdef H5 */
+/* 覆盖当前uni-h5异步页面组件，不能扩大到按钮/分页的uni-loading。 */
+.uni-async-loading {
+  min-height: 65vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.uni-async-loading > .uni-loading {
+  display: block;
+  width: 140px;
+  height: 136px;
+  border-radius: 16px;
+  background-image: url('/static/images/brand-loading.gif');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform: none;
+  opacity: 0;
+  animation: brand-loading-reveal 0s 350ms forwards;
+}
+@media (min-width: 768px) {
+  .uni-async-loading > .uni-loading { width: 180px; height: 174px; }
+}
+/* #endif */

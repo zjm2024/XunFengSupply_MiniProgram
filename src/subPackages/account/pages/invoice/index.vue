@@ -65,7 +65,7 @@
       </ConfirmPopup>
 
       <ConfirmPopup v-model="pdfVisible" :title="t('account.invoice.viewPdf')" :show-cancel="false" :show-confirm="false" class="invoice-pdf-popup">
-        <AppPageState v-if="pdfLoading" state="loading" compact />
+        <AppLoadMore v-if="pdfLoading" status="loading" />
         <AppPageState v-else-if="pdfError" state="error" :description="pdfError" :action-text="t('common.retry')" compact @retry="loadPdf" />
         <PdfDocument v-else-if="pdfSource" :src="pdfSource" :language="pdfLanguage" :title="t('account.invoice.viewPdf')" />
       </ConfirmPopup>

@@ -1,6 +1,6 @@
 <template>
   <view class="tab-page">
-    <view v-if="loading" class="state-box"><view class="loading-dot"></view><text>{{ t('main.news.loading') }}</text></view>
+    <AppPageState v-if="loading" state="loading" />
 
     <view v-else-if="newsItems.length" class="news-grid">
       <view v-for="item in newsItems" :key="item.id" class="large-news-card" hover-class="card--pressed" @click="openNews(item)">
@@ -37,6 +37,7 @@
 </template>
 
 <script setup>
+import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import { t } from '@/shared/i18n/index.js'
 import { ref, watch } from 'vue'
 import { navigator } from '@/app/navigation/navigator.js'
@@ -140,10 +141,10 @@ async function openNewsList() {
 .state-box { display: flex; min-height: 280px; align-items: center; justify-content: center; flex-direction: column; gap: 9px; color: #94979f; font-size: var(--type-caption-size, 12px); }
 .state-illustration { margin-bottom: 4px; }
 .state-title { color: #454850; font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-bold, 700); }
-.loading-dot { width: 24px; height: 24px; border: 3px solid rgba(215,25,45,.12); border-top-color: var(--color-brand, #d7192d); border-radius: 50%; animation: spin .9s linear infinite; }
+
 .full-page-link { width: fit-content; min-height: 44px; margin: 18px auto 0; padding: 0 20px; justify-content: center; gap: 7px; border: 1px solid rgba(215,25,45,.18); border-radius: var(--radius-card, 14px); color: var(--color-brand, #d7192d); font-size: var(--type-body-small-size, 13px); font-weight: var(--font-weight-bold, 700); background: rgba(255,255,255,.72); }
 .card--pressed { opacity: .9; transform: scale(.985); }
-@keyframes spin { to { transform: rotate(360deg); } }
+
 @media screen and (min-width: 800px) {
   .tab-page { padding-bottom: 18px; }
   .news-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }

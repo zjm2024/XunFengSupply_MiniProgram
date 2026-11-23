@@ -4,7 +4,7 @@
     <template #content>
       <AppContent width-mode="standard" padding="16px var(--page-padding-x,16px) 28px" :refresher-enabled="true" :refresher-triggered="refreshing" @refresherrefresh="refresh" @refresherrestore="restoreRefresh" @refresherabort="restoreRefresh">
         <view class="inventory-wrap">
-          <AppPageState :state="pageState" :action-text="pageState === PageStatus.ERROR ? t('account.inventory.reload') : ''" :title="pageState === PageStatus.ERROR ? t('account.inventory.readFailed') : t('account.inventory.detailEmpty')" :description="pageState === PageStatus.ERROR ? loadError : t('account.inventory.detailEmptyHint')" @retry="loadDetail" @action="loadDetail">
+          <AppPageState page-loading :state="pageState" :action-text="pageState === PageStatus.ERROR ? t('account.inventory.reload') : ''" :title="pageState === PageStatus.ERROR ? t('account.inventory.readFailed') : t('account.inventory.detailEmpty')" :description="pageState === PageStatus.ERROR ? loadError : t('account.inventory.detailEmptyHint')" @retry="loadDetail" @action="loadDetail">
             <view class="hero-card">
               <AppProductImage class="hero-image" :src="detail.imageUrl" mode="aspectFit" />
               <view class="stock-copy"><text class="product-name">{{ detail.productName }}</text><text class="spec-line">{{ [detail.colorName, detail.sizeName].filter(Boolean).join(' / ') || detail.skuName }}</text><text class="sku-code">{{ detail.skuCode || ('SKU ' + detail.skuId) }}</text><text v-if="detail.barcode" class="sku-code">{{ detail.barcode }}</text></view>

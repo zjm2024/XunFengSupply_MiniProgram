@@ -1,5 +1,6 @@
-<template><AppPageShell><template #header><AppHeader :title="t('common.homePage.announcement')" :show-back="true" /></template><template #content><AppContent><view class="article"><view v-if="loading" class="state">{{ t('common.homePage.loading') }}</view><view v-else-if="failed" class="state" @click="load">{{ t('common.homePage.retry') }}</view><view v-else-if="!detail" class="state">{{ t('common.homePage.notFound') }}</view><template v-else><text class="title">{{ detail.title }}</text><text v-if="publishedAt" class="publish-time">{{ publishedAt }}</text><rich-text :nodes="detail.content" /></template></view></AppContent></template></AppPageShell></template>
+<template><AppPageShell><template #header><AppHeader :title="t('common.homePage.announcement')" :show-back="true" /></template><template #content><AppContent><view class="article"><AppPageState page-loading v-if="loading" state="loading" /><view v-else-if="failed" class="state" @click="load">{{ t('common.homePage.retry') }}</view><view v-else-if="!detail" class="state">{{ t('common.homePage.notFound') }}</view><template v-else><text class="title">{{ detail.title }}</text><text v-if="publishedAt" class="publish-time">{{ publishedAt }}</text><rich-text :nodes="detail.content" /></template></view></AppContent></template></AppPageShell></template>
 <script setup>
+import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import {computed,ref,watch,onBeforeUnmount} from 'vue'
 import {onLoad} from '@dcloudio/uni-app'
 import {t,getLocale} from '@/shared/i18n/index.js'

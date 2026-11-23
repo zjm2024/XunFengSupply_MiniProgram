@@ -23,13 +23,7 @@
         <view
           class="after-sale-page"
         >
-          <view v-if="loading && afterSaleList.length === 0" class="skeleton-grid">
-            <view v-for="i in 3" :key="i" class="skeleton-card">
-              <view class="skeleton-line short" />
-              <view class="skeleton-main"><view class="skeleton-image" /><view class="skeleton-copy"><view class="skeleton-line" /><view class="skeleton-line medium" /></view></view>
-              <view class="skeleton-line tiny" />
-            </view>
-          </view>
+          <AppPageState v-if="loading && afterSaleList.length === 0" state="loading" />
 
           <AppPageState
             v-else-if="loadError && afterSaleList.length === 0"
@@ -309,7 +303,7 @@ async function confirmCancel(item) {
 .after-sale-header { background: var(--surface-page, #F4F5F8); }
 .after-sale-page { width: 100%; margin: 0 auto; }
 .filter-panel { padding: 7px var(--page-padding-x, 16px) 12px; background: var(--surface-page, #F4F5F8); }
-.after-sale-grid, .skeleton-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
+.after-sale-grid { display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 12px; }
 .after-sale-card { padding: var(--module-padding, 16px); border-radius: var(--radius-feature, 18px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
 .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .identify-copy { min-width: 0; }
@@ -339,10 +333,10 @@ async function confirmCancel(item) {
 .action-btn::after, .empty-action::after { border: 0; }
 .empty-action { border-color: #D7192D; color: #FFF; background: #D7192D; }
 .load-more { display: flex; min-height: 50px; align-items: center; justify-content: center; color: #969BA3; font-size: var(--type-caption-size, 12px); }
-.skeleton-card { padding: var(--module-padding, 16px); border-radius: var(--radius-feature, 18px); background: var(--glass-card-background, rgba(255,255,255,.74)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-.skeleton-main { display: flex; gap: 13px; margin: 16px 0; }.skeleton-image { width: 72px; height: 72px; flex: none; border-radius: var(--radius-card, 14px); background: #F0F1F3; }.skeleton-copy { flex: 1; padding-top: 7px; }
-.skeleton-line { height: 12px; margin-bottom: 10px; border-radius: var(--radius-xs, 6px); background: linear-gradient(90deg,#F2F3F4 25%,#E8EAEC 50%,#F2F3F4 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }.skeleton-line.short { width: 42%; }.skeleton-line.medium { width: 65%; }.skeleton-line.tiny { width: 28%; margin: 0; }
-@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+
+
+
 @media screen and (max-width: 380px) {
   .filter-panel { padding-right: 10px; padding-left: 10px; }
 }

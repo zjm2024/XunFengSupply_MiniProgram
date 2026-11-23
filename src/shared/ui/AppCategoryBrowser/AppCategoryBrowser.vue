@@ -59,7 +59,7 @@
                 </view>
               </view>
 
-              <AppPageState v-if="isSectionLoading(section) && !getSectionProducts(section).length" state="loading" compact />
+              <AppListSkeleton v-if="isSectionLoading(section) && !getSectionProducts(section).length" :count="2" compact />
 
               <view v-else-if="getSectionProducts(section).length" class="product-preview-grid">
                 <AppProductCard
@@ -98,6 +98,7 @@
   </view>
 </template>
 <script setup>
+import AppListSkeleton from '@/shared/ui/AppListSkeleton/AppListSkeleton.vue'
 /** H5自定义刷新头，原生App/小程序使用原生指示器以兼容编译。 */
 let refreshIndicatorStyle = 'black'
 // #ifdef H5

@@ -18,23 +18,14 @@
 -->
 <template>
   <view class="app-page-state" :class="[`state-${state}`, { 'is-fullscreen': fullscreen, 'is-compact': compact }]">
-    <!-- 首屏加载：骨架屏 -->
+    <!-- 列表数据加载默认统一骨架；只有明确声明整页加载才展示品牌动画 -->
     <view v-if="state === 'loading'" class="state-loading">
       <slot name="skeleton">
-        <view class="default-skeleton">
-          <view class="skeleton-line skeleton-title" />
-          <view class="skeleton-line skeleton-subtitle" />
-          <view class="skeleton-cards">
-            <view v-for="i in 3" :key="i" class="skeleton-card">
-              <view class="skeleton-block skeleton-img" />
-              <view class="skeleton-lines">
-                <view class="skeleton-line skeleton-text" />
-                <view class="skeleton-line skeleton-text short" />
-                <view class="skeleton-line skeleton-text long" />
-              </view>
-            </view>
-          </view>
+        <view v-if="pageLoading" class="app-brand-loading" role="status" aria-live="polite">
+          <image class="app-brand-loading__image" src="/static/images/brand-loading.gif" mode="aspectFit" />
+          <text class="app-brand-loading__text">{{ t('common.loading') }}</text>
         </view>
+        <AppListSkeleton v-else />
       </slot>
     </view>
 
@@ -115,8 +106,14 @@ import { computed } from 'vue'
 import { t } from '@/shared/i18n/index.js'
 import { PageStatus, DEFAULT_MESSAGES, EmptyType } from '../../model/pageState.js'
 import AppSvgIllustration from '../AppSvgIllustration/AppSvgIllustration.vue'
+import AppListSkeleton from '../AppListSkeleton/AppListSkeleton.vue'
 
 const props = defineProps({
+  /** 明确的整页加载；列表/筛选/局部加载保持默认false，不能靠compact或空数组推断。 */
+  pageLoading: {
+    type: Boolean,
+    default: false,
+  },
   /** 当前页面状态 */
   state: {
     type: String,
@@ -232,67 +229,6 @@ export default {
   // ==================== 骨架屏样式 ====================
   .state-loading {
     padding: $space-4;
-  }
-
-  .default-skeleton {
-    .skeleton-line {
-      height: 32rpx;
-      background: linear-gradient(90deg, #F7F7F8 25%, #EFEFF1 50%, #F7F7F8 75%);
-      background-size: 200% 100%;
-      animation: skeleton-shimmer 1.5s infinite;
-      border-radius: $radius-tag;
-      margin-bottom: $space-2;
-
-      &.skeleton-title {
-        width: 40%;
-        height: 48rpx;
-        margin-bottom: $space-4;
-      }
-
-      &.skeleton-subtitle {
-        width: 25%;
-        height: 28rpx;
-        margin-bottom: $space-6;
-      }
-
-      &.skeleton-text {
-        width: 100%;
-
-        &.short { width: 60%; }
-        &.long { width: 85%; }
-      }
-    }
-
-    .skeleton-cards {
-      display: flex;
-      flex-direction: column;
-      gap: $space-4;
-    }
-
-    .skeleton-card {
-      display: flex;
-      gap: $space-3;
-      padding: $space-3;
-      background: $color-bg-card;
-      border-radius: $radius-card;
-    }
-
-    .skeleton-block {
-      &.skeleton-img {
-        width: 180rpx;
-        height: 180rpx;
-        flex-shrink: 0;
-        border-radius: $radius-control;
-      }
-    }
-
-    .skeleton-lines {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: $space-2;
-    }
   }
 
   // ==================== 空状态/错误/离线通用布局 ====================

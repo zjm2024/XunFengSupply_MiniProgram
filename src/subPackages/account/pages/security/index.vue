@@ -5,7 +5,7 @@
       <AppContent width-mode="standard">
         <view class="account-page">
           <text v-if="!editing" class="section-hint">{{ t('account.security.intro') }}</text>
-          <view v-if="profileLoading && !profileReady" class="feedback">{{ t('common.loading') }}</view>
+          <AppPageState v-if="profileLoading && !profileReady" state="loading" />
           <view v-if="profileError" class="settings-card feedback error"><text>{{ profileError }}</text><button class="secondary-button" @tap="loadProfile">{{ t('common.retry') }}</button></view>
           <view v-if="profileReady && !editing" class="settings-card">
             <text class="section-title">{{ t('account.security.account') }}</text>
@@ -47,6 +47,7 @@
 </template>
 
 <script setup>
+import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import { computed, reactive, ref } from 'vue'
 import { onHide, onShow, onUnload } from '@dcloudio/uni-app'
 import { t } from '@/shared/i18n/index.js'

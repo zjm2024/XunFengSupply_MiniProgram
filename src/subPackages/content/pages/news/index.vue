@@ -56,21 +56,7 @@
                 @retry="handleLoadMore"
               />
             </view>
-
-            <!-- 骨架屏（loading 状态时显示） -->
-            <template #skeleton>
-              <view class="news-skeleton">
-                <view v-for="i in 4" :key="i" class="skeleton-news-item">
-                  <view class="skeleton-thumb" />
-                  <view class="skeleton-info">
-                    <view class="skeleton-line skeleton-type" />
-                    <view class="skeleton-line skeleton-title-sm" />
-                    <view class="skeleton-line skeleton-date" />
-                  </view>
-                </view>
-              </view>
-            </template>
-          </app-page-state>
+</app-page-state>
 
           <view class="bottom-spacer"></view>
         </view>
@@ -271,50 +257,9 @@ function goToDetail(item) {
 .bottom-spacer { height: 24px; }
 
 /* 新闻骨架屏 */
-.news-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 12px 0;
-}
 
-.skeleton-news-item {
-  display: block;
-  overflow: hidden;
-  background: var(--glass-card-background, rgba(255,255,255,.74));
-  border-radius: 20px;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
 
-  .skeleton-thumb {
-    width: 100%;
-    height: 190px;
-    background: linear-gradient(90deg, #F7F7F8 25%, #EFEFF1 50%, #F7F7F8 75%);
-    background-size: 200% 100%;
-    animation: skeleton-shimmer 1.5s infinite;
-    border-radius: var(--radius-small, 8px);
-  }
 
-  .skeleton-info {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 14px 16px 16px;
-
-    .skeleton-line {
-      height: 14px;
-      background: linear-gradient(90deg, #F7F7F8 25%, #EFEFF1 50%, #F7F7F8 75%);
-      background-size: 200% 100%;
-      animation: skeleton-shimmer 1.5s infinite;
-      border-radius: 4px;
-
-      &.skeleton-type { width: 30%; }
-      &.skeleton-title-sm { width: 85%; }
-      &.skeleton-date { width: 45%; }
-    }
-  }
-}
 
 @media screen and (min-width: 700px) {
   .news-item {
@@ -323,7 +268,7 @@ function goToDetail(item) {
     gap: 16px;
     padding: 16px;
   }
-  .item-thumb, .skeleton-thumb {
+  .item-thumb {
     width: 200px;
     height: 120px;
     flex: 0 0 200px;

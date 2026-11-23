@@ -6,7 +6,7 @@
     <template #content>
       <AppContent padding="0" :scroll-top="scrollTopCommand" @scroll="onPageScroll">
         <view class="allocation-page">
-          <view v-if="loading" class="state-card">{{ t('order.split.loading') }}</view>
+          <AppPageState v-if="loading" state="loading" />
           <template v-else-if="context">
             <view class="order-meta">
               <text class="eyebrow">{{ t('order.split.order', { number: orderNo }) }}</text>
@@ -186,6 +186,7 @@
 </template>
 
 <script setup>
+import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/order/i18n/register.js'

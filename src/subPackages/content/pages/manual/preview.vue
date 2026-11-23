@@ -2,7 +2,7 @@
   <view class="page">
     <app-header :show-back="true" :title="t('content.titles.manualDetail')" @back="goBack" />
     <scroll-view class="page-scroll" scroll-y>
-      <view v-if="loading" class="state-box"><text>{{ t('content.manual.loading') }}</text></view>
+      <AppPageState page-loading v-if="loading" state="loading" />
       <view v-else-if="errorText" class="state-box" @click="loadDetail">
         <text class="state-title">{{ errorText }}</text>
         <text>{{ t('content.manual.retry') }}</text>
@@ -32,6 +32,7 @@
 </template>
 
 <script setup>
+import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/content/i18n/register.js'
 import { computed, ref } from 'vue'

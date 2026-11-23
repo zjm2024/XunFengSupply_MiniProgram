@@ -5,7 +5,7 @@
       <AppContent width-mode="standard" padding="16px var(--page-padding-x, 16px) 28px"
         :refresher-enabled="!saving" :refresher-triggered="isRefreshing"
         @refresherrefresh="handleRefresh" @refresherrestore="handleRefresherRestore" @refresherabort="handleRefresherRestore">
-    <AppPageState v-if="loading && !detail" state="loading" :title="t('common.loading')" compact />
+    <AppPageState page-loading v-if="loading && !detail" state="loading" :title="t('common.loading')" compact />
     <AppPageState v-else-if="error && !detail" state="error" :title="t('order.afterSaleDetail.loadFailed')" :description="error" :action-text="t('common.retry')" compact @retry="loadDetail" />
     <view v-else-if="detail" class="detail-body">
       <AppPageState v-if="error" state="error" :title="t('order.afterSaleDetail.loadFailed')" :description="error" :action-text="t('common.retry')" compact @retry="loadDetail" />

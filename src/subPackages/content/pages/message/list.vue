@@ -24,15 +24,7 @@
         <view class="message-page">
           <view class="message-inbox">
 
-            <view v-if="loading && !messageList.length" class="message-skeleton" role="status" :aria-label="t('content.messages.loadingList')">
-              <view v-for="index in 3" :key="index" class="skeleton-row">
-                <view class="skeleton-icon" />
-                <view class="skeleton-lines">
-                  <view class="skeleton-line skeleton-line--title" />
-                  <view class="skeleton-line skeleton-line--meta" />
-                </view>
-              </view>
-            </view>
+            <AppPageState v-if="loading && !messageList.length" state="loading" />
 
             <view v-else-if="messageList.length" class="message-list">
               <button
@@ -311,15 +303,13 @@ async function handleMarkAllRead() {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
-.message-list,
-.message-skeleton {
+.message-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.message-item,
-.skeleton-row {
+.message-item {
   width: 100%;
   border-radius: var(--radius-card, 14px);
   background: var(--surface-card);
@@ -434,12 +424,12 @@ async function handleMarkAllRead() {
   line-height: var(--type-body-small-line-height);
 }
 
-.skeleton-row { display: flex; gap: 12px; min-height: 124px; padding: 16px; }
-.skeleton-icon, .skeleton-line { border-radius: 6px; background: rgba(27, 29, 32, .06); }
-.skeleton-icon { width: 24px; height: 24px; }
-.skeleton-lines { flex: 1; display: grid; align-content: start; gap: 12px; }
-.skeleton-line--title { width: 65%; height: 16px; }
-.skeleton-line--meta { width: 36%; height: 12px; }
+
+
+
+
+
+
 
 .mark-all-read-icon {
   display: flex;
@@ -456,6 +446,6 @@ async function handleMarkAllRead() {
 .mark-all-read-icon[disabled] { color: var(--color-text-disabled, #b8bbc2); background: transparent; }
 
 @media (min-width: 768px) {
-  .message-card-body, .skeleton-row { padding-inline: 24px; }
+  .message-card-body { padding-inline: 24px; }
 }
 </style>

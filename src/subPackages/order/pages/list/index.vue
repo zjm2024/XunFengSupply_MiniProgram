@@ -44,13 +44,7 @@
             :action-text="t('common.retry')"
             @action="orderRead.localeChanged()"
           />
-          <view v-if="loading && orderList.length === 0" class="skeleton-grid">
-            <view v-for="i in 4" :key="i" class="skeleton-card">
-              <view class="skeleton-line short" />
-              <view class="skeleton-product"><view class="skeleton-image" /><view class="skeleton-copy"><view class="skeleton-line" /><view class="skeleton-line medium" /></view></view>
-              <view class="skeleton-line tiny" />
-            </view>
-          </view>
+          <AppPageState v-if="loading && orderList.length === 0" state="loading" />
 
           <AppPageState
             v-else-if="loadError && orderList.length === 0"
@@ -473,7 +467,7 @@ async function handleAction(key, order) {
 .filter-panel { background: var(--surface-page, #F4F5F8); }
 .filter-frame { padding: 7px var(--page-padding-x, 16px) 12px; }
 .order-filter-content { width: 100%; max-width: var(--content-max-width, 1120px); margin: 0 auto; box-sizing: border-box; }
-.order-grid, .skeleton-grid { display: grid; grid-template-columns: 1fr; gap: var(--module-gap, 12px); margin-top: var(--spacing-md, 12px); }
+.order-grid { display: grid; grid-template-columns: 1fr; gap: var(--module-gap, 12px); margin-top: var(--spacing-md, 12px); }
 .order-card { overflow: hidden; padding: 0; border-radius: var(--radius-card, 16px); background: var(--surface-card, #FFF); box-shadow: var(--shadow-sm); transition: transform .16s ease, opacity .16s ease, box-shadow .16s ease; }
 .order-card:hover { box-shadow: 0 12px 28px rgba(25,30,37,.075); }
 .order-card--pressed { opacity: .7; transform: scale(.992); }
@@ -507,13 +501,13 @@ async function handleAction(key, order) {
 .action-btn::after, .empty-action::after { border: 0; }
 .action-btn.primary, .empty-action { border-color: #D7192D; color: #FFF; background: #D7192D; }
 .load-more { display: flex; min-height: 50px; align-items: center; justify-content: center; color: #969BA3; font-size: var(--type-caption-size, 12px); }
-.skeleton-card { padding: var(--module-padding, 16px); border-radius: var(--radius-feature, 18px); background: var(--glass-card-background, rgba(255,255,255,.74)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-.skeleton-product { display: flex; gap: 13px; margin: 16px 0; }
-.skeleton-image { width: 76px; height: 76px; flex: none; border-radius: var(--radius-card, 14px); background: #F0F1F3; }
-.skeleton-copy { flex: 1; padding-top: 7px; }
-.skeleton-line { height: 12px; margin-bottom: 10px; border-radius: var(--radius-xs, 6px); background: linear-gradient(90deg,#F2F3F4 25%,#E8EAEC 50%,#F2F3F4 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
-.skeleton-line.short { width: 42%; }.skeleton-line.medium { width: 68%; }.skeleton-line.tiny { width: 28%; margin: 0; }
-@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+
+
+
+
+
+
 @media screen and (min-width: 720px) {
   .filter-frame { padding-top: 9px; padding-bottom: 14px; }
   .card-header { padding: 16px 18px 11px; }
@@ -524,7 +518,7 @@ async function handleAction(key, order) {
 
 
 @media screen and (min-width: 1024px) {
-  .order-grid, .skeleton-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .order-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
 }
 
 /* 金额按实际可用宽度缩字，父布局允许收缩。 */

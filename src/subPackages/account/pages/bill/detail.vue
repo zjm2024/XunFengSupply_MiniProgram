@@ -7,7 +7,7 @@
     <template #content>
       <AppContent padding="16px var(--page-padding-x, 16px) 30px">
         <view class="detail-page">
-          <AppPageState
+          <AppPageState page-loading
             :state="pageState"
             :title="t('account.billing.unavailable')"
             :description="loadError || t('account.billing.retryHint')"
