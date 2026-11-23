@@ -31,12 +31,13 @@ import { computed, ref, watch, onBeforeUnmount } from 'vue'
 import { t } from '@/shared/i18n/index.js'
 import { isProductOutOfStock } from '@/shared/utils/productAvailability.js'
 import AppIcon from '../AppIcon/AppIcon.vue'
-import { getCachedResource, getCachedResourcePath, isWebResourcePlatform, hasLoadedImage, markImageLoaded, invalidateCachedResource } from '@/shared/utils/resourceCache.js'
+import { useImageVisibility } from '@/shared/composables/useImageVisibility.js'
+import { requestCachedResource, getCachedResourcePath, isWebResourcePlatform, hasLoadedImage, markImageLoaded, invalidateCachedResource } from '@/shared/utils/resourceCache.js'
 
 const props = defineProps({
   src: { type: String, default: '' },
   mode: { type: String, default: 'aspectFit' },
-  lazyLoad: { type: Boolean, default: false },
+  lazyLoad: { type: Boolean, default: true },
   stock: { type: [Number, String], default: undefined },
   unavailable: { type: Boolean, default: false },
   showStockBadge: { type: Boolean, default: true },
@@ -48,11 +49,17 @@ const isLoading = ref(false)
 const displaySrc = ref('')
 let cacheRequestId = 0
 let alternateSource = null
+let resourceRequest = null
+const canRequest = useImageVisibility(() => props.lazyLoad !== false, '.app-product-image')
 const hasImageSource = computed(() => Boolean(displaySrc.value?.trim()))
 const hasImageRequest = computed(() => Boolean(String(props.src || '').trim()))
 const isUnavailable = computed(() => props.unavailable || isProductOutOfStock({ stock: props.stock }))
 
-watch(() => props.src, (source) => {
+watch(() => canRequest.priority?.value, value => resourceRequest?.setPriority(value ?? 0))
+
+watch([() => props.src, () => canRequest.value], ([source, visible]) => {
+  resourceRequest?.release()
+  resourceRequest = null
   const requestId = ++cacheRequestId
   const remoteUrl = String(source || '').trim()
   const cachedPath = getCachedResourcePath(remoteUrl, { kind: 'image' })
@@ -62,15 +69,17 @@ watch(() => props.src, (source) => {
   isLoading.value = isRemote && !cachedPath && (!isWeb || !hasLoadedImage(remoteUrl))
   displaySrc.value = cachedPath || (isRemote && !isWeb ? '' : remoteUrl)
   alternateSource = cachedPath ? remoteUrl : null
+  if (isRemote && !cachedPath && !visible) { displaySrc.value = ''; isLoading.value = false; return }
   if (remoteUrl && !cachedPath) {
-    const pending = getCachedResource(remoteUrl, { kind: 'image' }).catch(() => remoteUrl)
+    resourceRequest = requestCachedResource(remoteUrl, { kind: 'image', priority: canRequest.priority?.value ?? 0 })
+    const pending = resourceRequest.promise.catch(() => remoteUrl)
     alternateSource = pending
     void pending.then(path => {
       if (requestId === cacheRequestId && !displaySrc.value) displaySrc.value = path
     })
   }
 }, { immediate: true })
-onBeforeUnmount(() => { cacheRequestId += 1 })
+onBeforeUnmount(() => { cacheRequestId += 1; resourceRequest?.release() })
 
 /** 图片加载成功。 */
 function handleImageLoad() {

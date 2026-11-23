@@ -1,3 +1,4 @@
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
 import { computed, ref } from 'vue'
 import { t } from '@/shared/i18n/index.js'
 import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
@@ -22,7 +23,7 @@ export function useWithdrawalList(request) {
     loading.value = true
     error.value = ''
     try {
-      const result = await request({ pageNum })
+      const result = await waitForPaginationResult(request({ pageNum }), !reset)
       if (current !== sequence) return
       items.value = reset ? result.items : [...items.value, ...result.items]
       total.value = result.totalCount

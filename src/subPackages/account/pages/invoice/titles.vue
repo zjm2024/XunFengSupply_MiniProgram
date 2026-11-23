@@ -43,6 +43,8 @@
 </template>
 
 <script setup>
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
+
 import { computed, getCurrentInstance, ref } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { t } from '@/shared/i18n/index.js'
@@ -112,7 +114,7 @@ async function loadTitles(reset = true) {
   loading.value = true
   error.value = ''
   try {
-    const result = await getInvoiceTitles({ pageNum: next })
+    const result = await waitForPaginationResult(getInvoiceTitles({ pageNum: next }), !reset)
     if (current !== sequence) return
     items.value = reset ? result.items : [...items.value, ...result.items]
     total.value = result.totalCount

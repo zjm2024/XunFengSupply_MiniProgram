@@ -74,6 +74,8 @@
 </template>
 
 <script setup>
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
+
 import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import { computed, ref, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
@@ -264,7 +266,7 @@ async function loadRecords(reset = true) {
   loading.value = true
   listError.value = ''
   try {
-    const result = await getInvoiceList({ pageNum: nextPage, status: activeTab.value === 'archive' ? 2 : undefined })
+    const result = await waitForPaginationResult(getInvoiceList({ pageNum: nextPage, status: activeTab.value === 'archive' ? 2 : undefined }), !reset)
     if (sequence !== requestSequence) return
     records.value = reset ? result.items : [...records.value, ...result.items]
     total.value = result.totalCount

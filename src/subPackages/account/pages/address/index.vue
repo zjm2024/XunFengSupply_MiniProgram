@@ -104,9 +104,11 @@
 </template>
 
 <script setup>
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
+
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/account/i18n/register.js'
-import { computed, ref } from 'vue'
+import { computed, ref, onBeforeUnmount } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import ConfirmPopup from '@/shared/ui/ConfirmPopup/ConfirmPopup.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -141,8 +143,8 @@ const hasMore = ref(true)
 const loadingMore = ref(false)
 const loadMoreError = ref(false)
 const loadMoreStatus = computed(() => {
-  if (loadMoreError.value) return 'error'
   if (loadingMore.value) return 'loading'
+  if (loadMoreError.value) return 'error'
   if (!hasMore.value) return 'no-more'
   return 'idle'
 })
@@ -166,8 +168,13 @@ onShow(async () => {
   if (saved) await emitSelectedAddress(saved)
 })
 
+let paginationRequestId = 0
+onBeforeUnmount(() => { paginationRequestId++ })
+
 /** 按原分页参数加载地址，保留错误对象供展示重新取词。 */
 async function loadAddresses() {
+  const requestId = ++paginationRequestId
+  loadingMore.value = false
   pageState.value = PageStatus.LOADING
   loadError.value = null
   pageNum.value = 1
@@ -176,11 +183,13 @@ async function loadAddresses() {
   loadMoreError.value = false
   try {
     const result = await getAddressList({ pageNum: 1, pageSize })
+    if (requestId !== paginationRequestId) return
     addressList.value = result.items
     totalCount.value = result.totalCount
     hasMore.value = addressList.value.length < totalCount.value
     pageState.value = addressList.value.length ? PageStatus.CONTENT : PageStatus.EMPTY
   } catch (error) {
+    if (requestId !== paginationRequestId) return
     loadError.value = error
     pageState.value = PageStatus.ERROR
   }
@@ -188,19 +197,22 @@ async function loadAddresses() {
 
 async function loadMore() {
   if (loadingMore.value || pageState.value === PageStatus.LOADING || !hasMore.value) return
+  const requestId = ++paginationRequestId
   loadingMore.value = true
   loadMoreError.value = false
   const nextPage = pageNum.value + 1
   try {
-    const result = await getAddressList({ pageNum: nextPage, pageSize })
+    const result = await waitForPaginationResult(getAddressList({ pageNum: nextPage, pageSize }), true)
+    if (requestId !== paginationRequestId) return
     addressList.value = [...addressList.value, ...result.items]
     pageNum.value = nextPage
     totalCount.value = result.totalCount
     hasMore.value = addressList.value.length < totalCount.value
   } catch (error) {
+    if (requestId !== paginationRequestId) return
     loadMoreError.value = true
   } finally {
-    loadingMore.value = false
+    if (requestId === paginationRequestId) loadingMore.value = false
   }
 }
 

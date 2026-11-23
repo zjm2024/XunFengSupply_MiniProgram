@@ -7,7 +7,9 @@ const CACHE_KEY_PREFIXES = Object.freeze([
 ])
 
 function isClearableKey(key) {
-  return key === SEARCH_HISTORY_KEY
+  return key === 'xf_b2b_home_layout_cache'
+    || key === 'xf_b2b_product_query_snapshot'
+    || key === SEARCH_HISTORY_KEY
     || key.startsWith(SEARCH_HISTORY_KEY + '.')
     || key.startsWith(RESOURCE_CACHE_PREFIX)
     || CACHE_KEY_PREFIXES.some(prefix => key.startsWith(prefix))
@@ -38,6 +40,7 @@ export function getCacheSummary() {
 export async function clearAppCache() {
   const resourceResult = await clearResourceCache()
   let removedCount = Number(resourceResult?.count || 0)
+  let failedCount = Number(resourceResult?.failedCount || 0) + Number(resourceResult?.pendingCount || 0)
 
   getClearableStorageKeys().forEach((key) => {
     if (key.startsWith(RESOURCE_CACHE_PREFIX)) return
@@ -45,9 +48,11 @@ export async function clearAppCache() {
       uni.removeStorageSync(key)
       removedCount += 1
     } catch (error) {
+      failedCount++
       console.warn('[CacheManager] 清理缓存失败:', key, error)
     }
   })
 
+  if (failedCount) throw new Error('部分缓存清理失败，请重试（' + failedCount + '项）')
   return { count: removedCount }
 }

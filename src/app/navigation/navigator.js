@@ -23,6 +23,7 @@ import {
   APPLY_SIGN,
   ACCOUNT_STATUS,
   routes,
+  buildQuery,
 } from '../config/routes.js'
 import { canAccess, isPublicRoute } from './routeGuard.js'
 import { APP_SURFACE } from '../config/shareSurface.js'
@@ -33,6 +34,8 @@ import { t } from '@/shared/i18n/index.js'
 // ==================== 内部实现 ====================
 
 let _isHandlingAuth = false
+// 同一目标的连续点击共享在途导航；完成后允许重试。
+const pendingNavigations = new Map()
 
 /**
  * 获取并缓存用户快照，供 routeGuard 判定使用。
@@ -74,7 +77,7 @@ function guardedNavigate(method, url, options = {}) {
 
 /**
  * 执行 UniApp 导航，并统一返回 Promise<boolean>。
- * navigateTo 失败时会降级到 redirectTo。
+ * 普通导航失败保留当前页面并返回 false。
  */
 function doUniNavigate(method, url, options = {}) {
   // 分离 UniApp 原生选项：白名单保留字段
@@ -88,15 +91,11 @@ function doUniNavigate(method, url, options = {}) {
         ...uniOptions,
         success: () => resolve(true),
         fail: (err) => {
-          console.error('[Navigator] navigateTo 失败，降级到 redirectTo:', url, err)
-          uni.redirectTo({
-            url,
-            success: () => resolve(true),
-            fail: (err2) => {
-              console.error('[Navigator] redirectTo 也失败:', url, err2)
-              resolve(false)
-            },
-          })
+          const message = String(err?.errMsg || '')
+          const reason = /limit|stack|webview.*count/i.test(message) ? 'PAGE_STACK_LIMIT'
+            : /not found|not exist/i.test(message) ? 'PAGE_NOT_FOUND' : 'RUNTIME_FAILURE'
+          console.error('[Navigator] 页面打开失败，保留当前页面:', { reason, error: message })
+          resolve(false)
         },
       })
     })
@@ -224,17 +223,21 @@ function doNavigateBack(delta = 1) {
         delta,
         success: () => resolve(true),
         fail: () => {
-          // navigateBack 失败时，尝试重定向到上一页面
           const targetPage = pages[pages.length - 1 - delta]
-          if (targetPage) {
-            const targetUrl = `/${targetPage.route}`
-            uni.redirectTo({
-              url: targetUrl,
-              success: () => resolve(true),
-              fail: () => safeBackOrHome().then(resolve),
-            })
-          } else {
-            safeBackOrHome().then(resolve)
+          try {
+            if (!targetPage?.route || targetPage.route.includes('?')) throw new Error('上一页面路由无法可靠恢复')
+            const options = targetPage.options ?? targetPage.$page?.options
+            if (!options || Object.getPrototypeOf(options) !== Object.prototype) throw new Error('上一页面参数缺失或格式无效')
+            // options 是已解码的页面参数，按现有路由工厂编码一次，禁止猜测性再次解码。
+            for (const value of Object.values(options).flat()) {
+              if (typeof value === 'function' || typeof value === 'symbol' || typeof value === 'bigint') throw new Error('上一页面包含不支持的参数类型')
+            }
+            const query = buildQuery(options)
+            const targetUrl = '/' + targetPage.route + (query ? '?' + query : '')
+            guardedNavigate('redirectTo', targetUrl).then(resolve)
+          } catch (error) {
+            console.error('[Navigator] 返回参数无法恢复，保留当前页面:', error.message)
+            resolve(false)
           }
         },
       })
@@ -290,7 +293,12 @@ export const navigator = {
    * @returns {Promise<boolean>}
    */
   navigateTo(url, options) {
-    return guardedNavigate('navigateTo', url, options)
+    if (pendingNavigations.has(url)) return pendingNavigations.get(url)
+    const request = guardedNavigate('navigateTo', url, options).finally(() => {
+      if (pendingNavigations.get(url) === request) pendingNavigations.delete(url)
+    })
+    pendingNavigations.set(url, request)
+    return request
   },
 
   /**

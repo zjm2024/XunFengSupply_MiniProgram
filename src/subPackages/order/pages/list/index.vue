@@ -136,6 +136,8 @@
 </template>
 
 <script setup>
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
+
 import { useSystemFeatures } from '@/shared/composables/useSystemFeatures.js'
 const { afterSaleEnabled } = useSystemFeatures()
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
@@ -206,8 +208,8 @@ const actionMenu = ref(null)
 const reorderingOrderId = ref(null)
 const swipeStart = ref(null)
 const loadMoreStatus = computed(() => {
-  if (loadMoreError.value) return 'error'
   if (loading.value) return 'loading'
+  if (loadMoreError.value) return 'error'
   if (!hasMore.value) return 'no-more'
   return 'idle'
 })
@@ -323,7 +325,7 @@ async function readOrderListSnapshot(context) {
   const results = []
   for (let pageNum = firstPage; pageNum <= lastPage; pageNum++) {
     if (!context.isCurrent()) break
-    results.push(await getOrderList({ ...query, pageNum }))
+    results.push(await waitForPaginationResult(getOrderList({ ...query, pageNum }), firstPage > 1 && !refreshWindow))
   }
   return { results, firstPage, lastPage, refreshWindow }
 }
@@ -378,7 +380,7 @@ function formatMoney(value) {
 }
 /** 订单列表只展示服务端允许的动作，并把本地再来一单置于首屏。 */
 function getOrderActions(order) {
-  const actions = getOrderActionButtons(order?.allowedActions, userStore.hasPermission('ORDER_CREATE'), afterSaleEnabled.value)
+  const actions = getOrderActionButtons(order?.allowedActions, userStore.hasPermission('ORDER_CREATE'), afterSaleEnabled.value).filter(action => action.key !== 'afterSale')
   if (userStore.hasPermission('ORDER_CREATE') && order?.salesScene !== 1 && Number(order?.itemCount || 0) > 0) {
     actions.push({
       key: 'reorder',

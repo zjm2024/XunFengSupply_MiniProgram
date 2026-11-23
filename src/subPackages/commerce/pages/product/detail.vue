@@ -204,15 +204,16 @@
 
 <script setup>
 import { normalizeDetailHtml } from '@/shared/utils/productRichText.js'
-import { t } from '@/shared/i18n/index.js'
+import { t, getLocale } from '@/shared/i18n/index.js'
 import '@/subPackages/commerce/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import { getPriceDisplay } from '@/shared/utils/priceDisplay.js'
 import { AppError, ErrorKind } from '@/shared/api/appError.js'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { onBackPress, onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import { getGoodsDetail } from '../../api/productApi.js'
 import { useCart } from '@/shared/composables/useCart.js'
+import { useUserStore } from '@/shared/session/userStore.js'
 import { navigator } from '../../../../app/navigation/navigator.js'
 import { routes } from '../../../../app/config/routes.js'
 import { PageStatus } from '../../../../shared/model/pageState.js'
@@ -295,6 +296,23 @@ const productParams = computed(() => product.value ? [
 
 // ==================== 行为 ====================
 let openFromHome = false
+let productLoadedAt = 0
+let productGeneration = 0
+let productRequest = null
+let detailDisposed = false
+const PRODUCT_MAX_AGE = 60 * 1000
+const detailUser = useUserStore()
+const detailScope = computed(() => JSON.stringify([detailUser.userId, detailUser.dealerId,
+  detailUser.permissions, detailUser.accountStatus, detailUser.dealerStatus, getLocale()]))
+watch(detailScope, () => {
+  productGeneration++
+  productRequest = null
+  productLoadedAt = 0
+  product.value = null
+  selectedSkuId.value = null
+  purchaseSheetVisible.value = false
+  if (detailUser.userId && detailUser.dealerId && routeProductId()) void loadProduct()
+})
 onLoad(options => {
   openFromHome = options?.openPurchase === '1'
   productId.value = Number(options?.id || options?.productId || 0)
@@ -302,6 +320,7 @@ onLoad(options => {
 })
 
 onShow(() => {
+  if (product.value && Date.now() - productLoadedAt >= PRODUCT_MAX_AGE) void loadProduct(true)
   loadCart({ silent: true }).catch(() => {})
 })
 
@@ -321,32 +340,47 @@ onHide(async () => {
 
 // ⚠️ 调度器是单例，页面卸载时只 flush，不 dispose
 onUnload(async () => {
+  detailDisposed = true
+  productGeneration++
   await flush()
 })
 
 /** 按原商品 ID 读取资料及初始 SKU，仅本地化页面错误。 */
-async function loadProduct() {
+async function loadProduct(silent = false) {
+  if (detailDisposed) return
+  if (productRequest) return productRequest
   if (!routeProductId()) {
     pageState.value = PageStatus.ERROR
     pageFailure.value = localError('commerce.product.missingId')
     return
   }
-  pageState.value = PageStatus.LOADING
-  try {
-    const result = await getGoodsDetail(routeProductId())
-    if (!result) throw localError('commerce.product.missing')
-    product.value = result
-    currentImage.value = 0
-    // 默认选中首个可用 SKU
-    const firstAvailable = result.skus?.find(s => s.canPurchase)
-    const initialSku = firstAvailable || result.skus?.[0]
-    selectedSkuId.value = initialSku?.skuId ?? null
-    pageState.value = PageStatus.CONTENT
-    if (openFromHome) { openFromHome = false; openPurchaseSheet() }
-  } catch (error) {
-    pageFailure.value = error?.message ? error : localError('commerce.product.loadFailed')
-    pageState.value = PageStatus.ERROR
-  }
+  if (!silent || !product.value) pageState.value = PageStatus.LOADING
+  const ticket = ++productGeneration
+  const task = (async () => {
+    try {
+      const result = await getGoodsDetail(routeProductId())
+      if (ticket !== productGeneration || detailDisposed) return
+      if (!result) throw localError('commerce.product.missing')
+      product.value = result
+      productLoadedAt = Date.now()
+      if (!silent) currentImage.value = 0
+      // 默认选中首个可用 SKU
+      const firstAvailable = result.skus?.find(s => s.canPurchase)
+      const initialSku = firstAvailable || result.skus?.[0]
+      if (!silent || !result.skus?.some(sku => String(sku.skuId) === String(selectedSkuId.value))) {
+        selectedSkuId.value = initialSku?.skuId ?? null
+      }
+      pageState.value = PageStatus.CONTENT
+      if (openFromHome) { openFromHome = false; openPurchaseSheet() }
+    } catch (error) {
+      if (ticket !== productGeneration || detailDisposed) return
+      if (silent && product.value) { console.warn('[ProductDetail] 商品校验失败，保留当前展示'); return }
+      pageFailure.value = error?.message ? error : localError('commerce.product.loadFailed')
+      pageState.value = PageStatus.ERROR
+    }
+    })().finally(() => { if (productRequest === task) productRequest = null })
+  productRequest = task
+  return task
 }
 
 function formatMoney(value) {

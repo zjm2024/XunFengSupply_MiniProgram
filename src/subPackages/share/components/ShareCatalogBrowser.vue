@@ -1,6 +1,6 @@
 <template>
   <view class="catalog-browser" :class="{ 'category-mode': mode === 'categories' }">
-    <AppCategoryBrowser v-if="mode === 'categories'" :categories="navigation" :loading="loading" :failed="failed" :empty-title="!failed && !navigation.length ? t('share.retail.empty') : ''" :refreshing="refreshing" :show-price="showPrice" :load-products="loadProducts" @refresh="emit('refresh')" @product="emit('product', $event)" @category="emit('results', $event)" />
+    <AppCategoryBrowser ref="categoryBrowser" v-if="mode === 'categories'" :categories="navigation" :loading="loading" :failed="failed" :empty-title="!failed && !navigation.length ? t('share.retail.empty') : ''" :refreshing="refreshing || previewRefreshing" :show-price="showPrice" :load-products="loadProducts" @refresh="emit('refresh')" @product="emit('product', $event)" @category="emit('results', $event)" />
     <AppContent v-else padding="16px var(--page-padding-x,16px) 28px" :scroll-top="scrollTop" :refresher-enabled="true" :refresher-triggered="refreshing" @refresherrefresh="emit('refresh')" @scrolltolower="emit('more')">
       <ProductSearchLanding v-if="mode === 'search'" :recommendations="SEARCH_RECOMMENDATIONS" @search="emit('search', $event)" />
       <view v-else class="results-content">
@@ -13,7 +13,7 @@
   </view>
 </template>
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch, onBeforeUnmount } from 'vue'
 import AppCategoryBrowser from '@/shared/ui/AppCategoryBrowser/AppCategoryBrowser.vue'
 import { categoryTree } from '@/shared/model/categoryTree.js'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
@@ -27,6 +27,22 @@ import { t } from '@/shared/i18n/index.js'
 /** 共享分类及查询展示，只接收安全商品字段，不读取经销商会话或调用接口。 */
 const props = defineProps({ mode: { type: String, default: 'categories' }, categories: { type: Array, default: () => [] }, products: { type: Array, default: () => [] }, categoryId: { type: [String, Number], default: null }, keyword: { type: String, default: '' }, total: { type: Number, default: 0 }, loading: Boolean, refreshing: Boolean, hasMore: Boolean, hasImage: Boolean, failed: Boolean, showPrice: Boolean, loadProducts: { type: Function, required: true } })
 const emit = defineEmits(['category', 'product', 'more', 'refresh', 'search', 'results'])
+const categoryBrowser = ref(null)
+const previewRefreshing = ref(false)
+let refreshTree = null
+let refreshVersion = 0
+/** 分享入口刷新完成后重试同一分类预览，等待期间继续显示刷新动作。 */
+watch(() => props.refreshing, async (active, previous) => {
+  if (active) { refreshVersion++; previewRefreshing.value = false; refreshTree = navigation.value; return }
+  if (!previous || props.mode !== 'categories' || props.failed) return
+  const version = refreshVersion
+  previewRefreshing.value = true
+  try {
+    await nextTick()
+    if (version === refreshVersion) await categoryBrowser.value?.refreshPreviews(refreshTree === navigation.value)
+  } finally { if (version === refreshVersion) previewRefreshing.value = false }
+})
+onBeforeUnmount(() => { refreshVersion++; previewRefreshing.value = false })
 const navigation = computed(() => categoryTree(props.categories))
 const categoryName = computed(() => props.categories.find(item => String(item.categoryId) === String(props.categoryId))?.name || '全部分类')
 const cards = computed(() => props.products.map(item => ({ ...item, name: item.productName, code: item.productCode, image: item.imageUrl, price: item.fromPrice, hasPriceRange: false })))

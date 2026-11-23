@@ -108,6 +108,8 @@
 </template>
 
 <script setup>
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
+
 import { t, getLocale } from '@/shared/i18n/index.js'
 import '@/subPackages/order/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
@@ -154,8 +156,8 @@ const totalCount = ref(0)
 const loadMoreError = ref(false)
 const page = reactive({ current: 1, pageSize: 10 })
 const loadMoreStatus = computed(() => {
-  if (loadMoreError.value) return 'error'
   if (loading.value) return 'loading'
+  if (loadMoreError.value) return 'error'
   if (!hasMore.value) return 'no-more'
   return 'idle'
 })
@@ -211,7 +213,7 @@ async function loadRecords(revision = listRevision) {
   loadError.value = ''
   if (page.current > 1) loadMoreError.value = false
   try {
-    const result = await getAfterSaleList({ status: currentStatus.value, pageNum: page.current, pageSize: page.pageSize })
+    const result = await waitForPaginationResult(getAfterSaleList({ status: currentStatus.value, pageNum: page.current, pageSize: page.pageSize }), page.current > 1)
     if (revision !== listRevision) return
     afterSaleList.value = page.current === 1 ? result.items : [...afterSaleList.value, ...result.items]
     totalCount.value = Number(result.totalCount || afterSaleList.value.length)

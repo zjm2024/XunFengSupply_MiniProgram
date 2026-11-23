@@ -129,9 +129,11 @@
 </template>
 
 <script setup>
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
+
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/account/i18n/register.js'
-import { ref, computed } from 'vue'
+import { ref, computed, onBeforeUnmount } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
@@ -161,8 +163,8 @@ const hasMore = ref(true)
 const loadingMore = ref(false)
 const loadMoreError = ref(false)
 const loadMoreStatus = computed(() => {
-  if (loadMoreError.value) return 'error'
   if (loadingMore.value) return 'loading'
+  if (loadMoreError.value) return 'error'
   if (!hasMore.value) return 'no-more'
   return 'idle'
 })
@@ -171,12 +173,16 @@ onShow(() => {
   loadSubAccounts()
 })
 
+let paginationRequestId = 0
+onBeforeUnmount(() => { paginationRequestId++ })
+
 /**
  * 加载子账号列表
  */
 async function loadSubAccounts({ reset = true } = {}) {
   if (reset) {
     loading.value = true
+    loadingMore.value = false
     pageNum.value = 1
     accountList.value = []
     totalCount.value = 0
@@ -188,14 +194,17 @@ async function loadSubAccounts({ reset = true } = {}) {
     pageNum.value += 1
     loadMoreError.value = false
   }
+  const requestId = ++paginationRequestId
   try {
-    const result = await getSubAccountList({ pageNum: pageNum.value, pageSize })
+    const result = await waitForPaginationResult(getSubAccountList({ pageNum: pageNum.value, pageSize }), !reset)
+    if (requestId !== paginationRequestId) return
     const items = result.items || []
     accountList.value = reset ? items : [...accountList.value, ...items]
     totalCount.value = Number(result.totalCount || accountList.value.length)
     hasMore.value = accountList.value.length < totalCount.value
     loadMoreError.value = false
   } catch (err) {
+    if (requestId !== paginationRequestId) return
     if (!reset) {
       pageNum.value = Math.max(1, pageNum.value - 1)
       loadMoreError.value = true
@@ -203,8 +212,10 @@ async function loadSubAccounts({ reset = true } = {}) {
     console.error('[SubAccount] 加载子账号列表失败:', err)
     if (reset) uni.showToast({ title: t('account.subAccounts.loadFailed'), icon: 'none' })
   } finally {
-    if (reset) loading.value = false
-    else loadingMore.value = false
+    if (requestId === paginationRequestId) {
+      if (reset) loading.value = false
+      else loadingMore.value = false
+    }
   }
 }
 

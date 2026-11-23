@@ -37,7 +37,7 @@ registerShareLocales()
 const activeTab = ref('all'), actionMenu = ref(null)
 const { user, controller, state, isRefreshing, historyErrorMessage, actionErrorMessage, handleRefresh, handleRefresherRestore, reloadRecords } = useDealerSharePage({ loadCapabilities: false, recordFilter: () => activeTab.value })
 const tabs = computed(() => ['all', 'active', 'ordered', 'paid', 'closed'].map(value => ({ value, label: t('share.dealer.tabs.' + value) })))
-const loadMoreStatus = computed(() => state.historyFailed ? 'error' : state.loading ? 'loading' : state.page * 20 < state.total ? 'idle' : 'no-more')
+const loadMoreStatus = computed(() => state.loading ? 'loading' : state.historyFailed ? 'error' : state.page * 20 < state.total ? 'idle' : 'no-more')
 const menuActions = computed(() => (actionMenu.value?.keys || []).map(key => ({ key, label: t('share.dealer.' + (key === 'reveal' ? 'showQr' : 'revoke')), disabled: state.busy })))
 /** 每个筛选由服务端独立分页，不在已加载的20条里假筛选。 */
 watch(activeTab, () => { actionMenu.value = null; reloadRecords() })

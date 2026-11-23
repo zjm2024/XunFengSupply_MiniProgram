@@ -10,22 +10,29 @@
     />
 -->
 <template>
-  <view class="app-load-more" :class="[status, { 'is-hidden': status === 'idle' }]">
+  <view class="app-load-more" :class="[displayStatus, { 'is-hidden': displayStatus === 'idle' }]">
     <!-- 加载中 -->
-    <view v-if="status === 'loading'" class="load-more-loading">
-      <view class="loading-spinner" />
+    <view v-if="displayStatus === 'loading'" class="load-more-loading">
+      <view class="loading-spinner" aria-hidden="true">
+        <view
+          v-for="blade in 12"
+          :key="blade"
+          class="loading-spinner__blade"
+          :style="{ transform: 'rotate(' + ((blade - 1) * 30) + 'deg)', animationDelay: ((blade - 1) / 12 - 1) + 's' }"
+        />
+      </view>
       <text class="loading-text">{{ t('common.ui.loadingMore') }}</text>
     </view>
 
     <!-- 没有更多了 -->
-    <view v-else-if="status === 'no-more'" class="load-more-nomore">
+    <view v-else-if="displayStatus === 'no-more'" class="load-more-nomore">
       <view class="nomore-line" />
       <text class="nomore-text">{{ t('common.ui.noMore') }}</text>
       <view class="nomore-line" />
     </view>
 
     <!-- 加载失败，可重试 -->
-    <view v-else-if="status === 'error'" class="load-more-error" @tap="handleRetry">
+    <view v-else-if="displayStatus === 'error'" class="load-more-error" @tap="handleRetry">
       <text class="error-text">{{ t('common.ui.loadMoreFailed') }}</text>
       <text class="retry-icon">↻</text>
     </view>
@@ -35,8 +42,10 @@
 </template>
 
 <script setup>
+import { PAGINATION_FEEDBACK_MIN_MS } from '@/shared/utils/refreshAnimation.js'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import { t } from '@/shared/i18n/index.js'
-defineProps({
+const props = defineProps({
   /** 加载更多状态: idle | loading | error | no-more */
   status: {
     type: String,
@@ -46,9 +55,25 @@ defineProps({
 })
 
 const emit = defineEmits(['retry'])
+const displayStatus = ref(props.status)
+let loadingStartedAt = Date.now()
+let feedbackTimer = null
+/** 分页结果由统一等待入口发布；底部反馈使用同一最短时长，不增加第二轮等待。 */
+watch(() => props.status, status => {
+  if (feedbackTimer) clearTimeout(feedbackTimer)
+  if (status === 'loading') {
+    if (displayStatus.value !== 'loading') loadingStartedAt = Date.now()
+    displayStatus.value = status
+    return
+  }
+  const remaining = displayStatus.value === 'loading' ? Math.max(0, PAGINATION_FEEDBACK_MIN_MS - (Date.now() - loadingStartedAt)) : 0
+  if (remaining) feedbackTimer = setTimeout(() => { displayStatus.value = props.status; feedbackTimer = null }, remaining)
+  else displayStatus.value = status
+}, { immediate: true, flush: 'sync' })
+onBeforeUnmount(() => { if (feedbackTimer) clearTimeout(feedbackTimer) })
 
 function handleRetry() {
-  emit('retry')
+  if (displayStatus.value === 'error') emit('retry')
 }
 </script>
 
@@ -59,11 +84,15 @@ function handleRetry() {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: $space-6 $space-4;
-  min-height: 88rpx;
+  // 提前预留底部空间，触底时不再突然增高，把加载图标推到可视区外。
+  flex-shrink: 0;
+  box-sizing: border-box;
+  padding: 10px $space-4;
+  min-height: 64px;
 
   &.is-hidden {
-    display: none;
+    visibility: hidden;
+    pointer-events: none;
   }
 
   // ==================== 加载中 ====================
@@ -74,13 +103,25 @@ function handleRetry() {
     gap: $space-2;
   }
 
+  // 固定视觉尺寸，花瓣逐次明暗变化，不随平板宽度放大。
   .loading-spinner {
-    width: 36rpx;
-    height: 36rpx;
-    border: 3rpx solid $color-gray-200;
-    border-top-color: $color-brand-500;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
+    position: relative;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+  }
+
+  .loading-spinner__blade {
+    position: absolute;
+    top: 1px;
+    left: 9px;
+    width: 2px;
+    height: 5px;
+    border-radius: 1px;
+    background: #8C9199;
+    transform-origin: 1px 9px;
+    opacity: 0.16;
+    animation: loading-petal-fade 0.8s linear infinite;
   }
 
   .loading-text {
@@ -110,6 +151,7 @@ function handleRetry() {
 
   // ==================== 错误重试 ====================
   .load-more-error {
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -137,7 +179,8 @@ function handleRetry() {
   }
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@keyframes loading-petal-fade {
+  0% { opacity: 1; }
+  100% { opacity: 0.16; }
 }
 </style>

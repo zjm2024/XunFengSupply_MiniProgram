@@ -1,3 +1,4 @@
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
 import { reactive } from 'vue'
 import * as api from '../api/dealerShareApi.js'
 import { createShareIntentStore, newShareRequestId } from '../model/dealerShareIntent.js'
@@ -51,7 +52,7 @@ export function useDealerSharing(getIdentity, options = {}) {
         try {
           const query = { pageNum: append ? state.page + 1 : 1 }
           if (options.recordFilter) query.filter = options.recordFilter()
-          const page = await remote.getDealerShareRecords(query)
+          const page = await waitForPaginationResult(remote.getDealerShareRecords(query), append)
           if (!current(c)) return
           state.records = append ? [...state.records, ...page.items].filter((row, index, rows) => rows.findIndex(other => other.shareLinkId === row.shareLinkId) === index) : page.items
           state.page = page.pageNum; state.total = page.totalCount

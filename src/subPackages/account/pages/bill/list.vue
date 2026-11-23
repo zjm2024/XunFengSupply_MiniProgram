@@ -106,11 +106,13 @@
 </template>
 
 <script setup>
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
+
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/account/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
 import AppMonthPicker from '@/shared/ui/AppMonthPicker/AppMonthPicker.vue'
-import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref, onBeforeUnmount } from 'vue'
 import { onLoad, onShow } from '@dcloudio/uni-app'
 import { getBillList } from '../../api/settlement.js'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -156,8 +158,8 @@ const visibleBills = computed(() => {
   return status === undefined ? bills.value : bills.value.filter(bill => bill.status === status)
 })
 const loadMoreStatus = computed(() => {
-  if (loadMoreError.value) return 'error'
   if (loadingMore.value) return 'loading'
+  if (loadMoreError.value) return 'error'
   if (!hasMore.value) return 'no-more'
   return 'idle'
 })
@@ -169,8 +171,12 @@ onLoad((options = {}) => {
 })
 onShow(loadBillList)
 
+let paginationRequestId = 0
+onBeforeUnmount(() => { paginationRequestId++ })
+
 /** 按原账期与状态重载账单，只保留可重新取词的错误。 */
 async function loadBillList() {
+  loadingMore.value = false
   pageNum.value = 1
   bills.value = []
   totalCount.value = 0
@@ -183,15 +189,17 @@ async function loadBillList() {
 
 /** 沿用原账期、状态、分页与金额汇总规则。 */
 async function fetchBillPage(append) {
+  const requestId = ++paginationRequestId
   if (append) loadingMore.value = true
   try {
     const status = statusTabs.find(tab => tab.key === activeStatus.value)?.status
-    const result = await getBillList({
+    const result = await waitForPaginationResult(getBillList({
       billPeriod: currentMonth.value,
       pageNum: pageNum.value,
       pageSize,
       status,
-    })
+    }), append)
+    if (requestId !== paginationRequestId) return
     bills.value = append ? [...bills.value, ...result.items] : result.items
     totalCount.value = result.totalCount
     hasMore.value = bills.value.length < result.totalCount
@@ -201,6 +209,7 @@ async function fetchBillPage(append) {
     pageState.value = bills.value.length ? PageStatus.CONTENT : PageStatus.EMPTY
     loadMoreError.value = false
   } catch (error) {
+    if (requestId !== paginationRequestId) return
     if (append) {
       pageNum.value = Math.max(1, pageNum.value - 1)
       loadMoreError.value = true
@@ -208,7 +217,7 @@ async function fetchBillPage(append) {
     loadFailure.value = error?.message ? error : { messageKey: 'account.billing.loadFailed' }
     if (!append) pageState.value = PageStatus.ERROR
   } finally {
-    loadingMore.value = false
+    if (requestId === paginationRequestId) loadingMore.value = false
   }
 }
 

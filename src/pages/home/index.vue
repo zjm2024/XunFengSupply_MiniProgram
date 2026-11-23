@@ -43,6 +43,8 @@
           :scroll-y="activeTab !== 'category'"
           :show-scrollbar="false"
           :enable-back-to-top="true"
+          :scroll-top="tabScrollTop"
+          @scroll="recordTabScroll"
         >
           <HomeTopBar
             v-if="currentTabLayout.topBarFollowsScroll"
@@ -82,7 +84,7 @@
 <script setup>
 import { useSystemFeatures } from '@/shared/composables/useSystemFeatures.js'
 useSystemFeatures()
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, nextTick } from 'vue'
 import { onShow, onResize } from '@dcloudio/uni-app'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
@@ -134,8 +136,28 @@ function checkScreenSize() {
   // #endif
 }
 
+const tabScrollPositions = { home: 0, category: 0, news: 0, cart: 0, account: 0 }
+const tabScrollTop = ref(0)
+let scrollGeneration = 0
+let restoringScroll = false
+
+function recordTabScroll(event) {
+  if (restoringScroll || activeTab.value === 'category') return
+  tabScrollPositions[activeTab.value] = Math.max(0, Number(event?.detail?.scrollTop) || 0)
+}
+
+/** 共享容器同步当前值后驱动目标值，代际阻止快速切换的旧恢复覆盖新Tab。 */
 async function selectTab(tabKey) {
+  if (!(tabKey in tabScrollPositions) || tabKey === activeTab.value) return
+  const generation = ++scrollGeneration
+  restoringScroll = true
+  tabScrollTop.value = tabScrollPositions[activeTab.value]
   activeTab.value = tabKey
+  await nextTick()
+  if (generation !== scrollGeneration) return
+  tabScrollTop.value = tabScrollPositions[tabKey]
+  await nextTick()
+  if (generation === scrollGeneration) restoringScroll = false
 }
 
 async function goToMessages() {

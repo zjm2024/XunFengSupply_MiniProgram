@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <view class="page">
     <AppCatalogHeader
       v-model:keyword="keyword"
@@ -78,6 +78,7 @@
         <AppProductCard
           v-for="item in products"
           :key="item.productId"
+          :id="'catalog-product-' + item.productId"
           :product="item"
           :show-image-stock-badge="false"
           @click="goToDetail(item)"
@@ -117,16 +118,18 @@
 </template>
 
 <script setup>
-import { t } from '@/shared/i18n/index.js'
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
+
+import { t, getLocale } from '@/shared/i18n/index.js'
 import '@/subPackages/commerce/i18n/register.js'
-import { ref, computed, watch, onMounted } from 'vue'
-import { onLoad, onShow } from '@dcloudio/uni-app'
+import { ref, computed, watch, onMounted, getCurrentInstance } from 'vue'
+import { onLoad, onShow, onHide, onUnload } from '@dcloudio/uni-app'
 import { useCart } from '@/shared/composables/useCart.js'
 import { useUserStore } from '@/shared/session/userStore.js'
 import { navigator } from '../../../../app/navigation/navigator.js'
 import { routes } from '../../../../app/config/routes.js'
 import { getEmptyProductScope } from '@/shared/api/product.js'
-import { getCategoryList, getGoodsList } from '../../api/productApi.js'
+import { getCategoryList, getGoodsList, getGoodsDetail } from '../../api/productApi.js'
 import AppIcon from '../../../../shared/ui/AppIcon/AppIcon.vue'
 import AppCatalogHeader from '../../../../shared/ui/AppCatalogHeader/AppCatalogHeader.vue'
 import AppProductCard from '../../../../shared/ui/AppProductCard/AppProductCard.vue'
@@ -136,6 +139,7 @@ import AppSvgIllustration from '../../../../shared/ui/AppSvgIllustration/AppSvgI
 import AppLoadMore from '../../../../shared/ui/AppLoadMore/AppLoadMore.vue'
 import noSearchResultSvg from '../../../../shared/assets/illustrations/no-search-result.svg?raw'
 import { waitForRefreshAnimation } from '../../../../shared/utils/refreshAnimation.js'
+import storage from '@/shared/utils/storage.js'
 
 const SORT_QUERY = Object.freeze({
   default: { field: '', order: '', /** 仅翻译排序显示名。 */ get label() { return t('commerce.catalog.default') } },
@@ -152,6 +156,8 @@ const STOCK_FILTER_LABELS = Object.freeze({
   /** 仅翻译筛选显示名。 */ get outOfStock() { return t('commerce.catalog.outOfStock') },
 })
 
+const QUERY_SNAPSHOT_KEY = 'product_query_snapshot'
+const QUERY_SNAPSHOT_MAX_AGE = 30 * 60 * 1000
 const SEARCH_HISTORY_KEY = 'commerce.product.search.history'
 const SEARCH_HISTORY_LIMIT = 10
 
@@ -159,6 +165,9 @@ const SEARCH_HISTORY_LIMIT = 10
 const { cartStore, loadCart } = useCart()
 const user = useUserStore()
 const catalogPrincipal = computed(() => `${user.dealerId || ''}.${user.userId || ''}`)
+
+const catalogScope = computed(() => JSON.stringify([String(user.dealerId || ''), String(user.userId || ''),
+  [...(user.permissions || [])].sort(), user.isMainAccount, user.accountStatus, user.dealerStatus, getLocale()]))
 
 const keyword = ref('')
 const searchMode = ref(false)
@@ -188,6 +197,59 @@ const showBackToTop = ref(false)
 let currentListScrollTop = 0
 let productRequestId = 0
 let categoryRequestId = 0
+const catalogInstance = getCurrentInstance()
+const PRODUCT_MAX_AGE = 60 * 1000
+const verifiedProducts = new Map()
+let freshnessRequest = null
+let freshnessGeneration = 0
+let catalogVisible = true
+let lastViewedProductId = null
+let nextFreshnessCheck = 0
+
+/** 按实际卡片与滚动容器交集选取当前屏，查询能力不可用时仅校验刚访问的商品。 */
+async function visibleProductIds() {
+  const fallback = lastViewedProductId == null ? [] : [String(lastViewedProductId)]
+  if (!catalogInstance?.proxy || typeof uni?.createSelectorQuery !== 'function') return fallback
+  return new Promise(resolve => {
+    const query = uni.createSelectorQuery().in(catalogInstance.proxy)
+    query.select('.page-scroll').boundingClientRect()
+    query.selectAll('.app-product-card').fields({ rect: true, id: true })
+    query.exec(([viewport, cards]) => {
+      if (!viewport || !Array.isArray(cards)) { resolve(fallback); return }
+      resolve([...new Set([...cards.filter(card => card.bottom > viewport.top && card.top < viewport.bottom)
+        .map(card => String(card.id || '').replace(/^catalog-product-/, '')), ...fallback])].filter(Boolean))
+    })
+  })
+}
+
+/** 可见商品按ID静默校验，保留原数组顺序、筛选、分页及滚动位置。 */
+async function refreshVisibleProducts(force = false) {
+  if (!catalogVisible || loading.value || freshnessRequest || !products.value.length) return freshnessRequest
+  if (!force && Date.now() < nextFreshnessCheck) return
+  nextFreshnessCheck = Date.now() + 5000
+  const ticket = freshnessGeneration
+  const queryTicket = productRequestId
+  const task = (async () => {
+    const ids = await visibleProductIds()
+    for (const id of ids) {
+      if (ticket !== freshnessGeneration || queryTicket !== productRequestId || !catalogVisible) return
+      if (Date.now() - (verifiedProducts.get(id) ?? 0) < PRODUCT_MAX_AGE) continue
+      try {
+        const result = await getGoodsDetail(id)
+        if (ticket !== freshnessGeneration || queryTicket !== productRequestId || !catalogVisible) return
+        if (!result || String(result.productId) !== id) continue
+        const index = products.value.findIndex(item => String(item.productId) === id)
+        if (index >= 0) products.value[index] = result
+        verifiedProducts.set(id, Date.now())
+      } catch (error) {
+        if (ticket !== freshnessGeneration || queryTicket !== productRequestId) return
+        console.warn('[ProductList] 可见商品校验失败，保留当前展示')
+      }
+    }
+  })().catch(() => { console.warn('[ProductList] 无法读取可见商品，等待下次校验') }).finally(() => { if (freshnessRequest === task) freshnessRequest = null })
+  freshnessRequest = task
+  return task
+}
 
 // 购物车数量
 const cartCount = computed(() => cartStore.cartBadgeCount)
@@ -243,8 +305,32 @@ onLoad((options = {}) => {
   hasSearched.value = !searchMode.value || Boolean(keyword.value.trim())
   keywordCommitted.value = Boolean(keyword.value.trim())
   activeCategoryId.value = options.categoryId ?? null
+  // 显式搜索/分类入口优先；普通目录重建时恢复短时筛选，重新读取第一页。
+  if (Object.keys(options).length === 0 && user.userId && user.dealerId) {
+    const saved = storage.getSnapshot(QUERY_SNAPSHOT_KEY, catalogScope.value, QUERY_SNAPSHOT_MAX_AGE)
+    if (saved && typeof saved.keyword === 'string' && saved.keyword.length <= 200
+      && ['string', 'number'].includes(typeof saved.categoryId) && SORT_QUERY[saved.sortKey]
+      && ['', 'inStock', 'lowStock', 'outOfStock'].includes(saved.stockFilter)) {
+      keyword.value = saved.keyword
+      activeCategoryId.value = saved.categoryId || null
+      sortKey.value = saved.sortKey
+      stockFilter.value = saved.stockFilter
+      keywordCommitted.value = Boolean(saved.keyword)
+    }
+  }
   loadSearchHistory()
 })
+
+/** 只保存筛选意图，不保存报价、库存、权限、分页数组或已失效主体的数据。 */
+function saveQuerySnapshot() {
+  if (!user.userId || !user.dealerId || loading.value || !hasSearched.value || searchMode.value) return
+  storage.setSnapshot(QUERY_SNAPSHOT_KEY, catalogScope.value, {
+    keyword: keyword.value.trim().slice(0, 200), categoryId: activeCategoryId.value ?? '',
+    sortKey: sortKey.value, stockFilter: stockFilter.value,
+  })
+}
+onHide(() => { saveQuerySnapshot(); catalogVisible = false; freshnessGeneration++ })
+onUnload(() => { catalogVisible = false; freshnessGeneration++; saveQuerySnapshot(); productRequestId++; categoryRequestId++ })
 
 onMounted(async () => {
   if (showSearchLanding.value) return
@@ -255,14 +341,21 @@ onMounted(async () => {
 })
 
 onShow(() => {
+  catalogVisible = true
+  void refreshVisibleProducts(true)
   loadCart({ silent: true }).catch(() => {})
 })
 
-watch(catalogPrincipal, () => {
+watch(catalogScope, () => {
+  freshnessGeneration++
+  verifiedProducts.clear()
   productRequestId += 1
   categoryRequestId += 1
   products.value = []
   categoryTree.value = []
+  stockFilter.value = ''
+  sortKey.value = 'default'
+  scrollToTop()
   activeCategoryId.value = null
   activeCategoryPath.value = []
   keyword.value = ''
@@ -330,11 +423,12 @@ async function loadProducts(isLoadMore = false) {
       params.sortOrder = activeSort.value.order
     }
 
-    const res = await getGoodsList(params)
+    const res = await waitForPaginationResult(getGoodsList(params), isLoadMore)
     if (requestId !== productRequestId) return
 
     if (res) {
       const { items, totalCount } = res
+      for (const item of items || []) verifiedProducts.set(String(item.productId), Date.now())
 
       if (isLoadMore) {
         products.value = [...products.value, ...(items || [])]
@@ -405,6 +499,7 @@ function handleListScroll(event) {
   const st = Number(event?.detail?.scrollTop) || 0
   currentListScrollTop = st
   showBackToTop.value = st > 300
+  if (!freshnessRequest) void refreshVisibleProducts()
 }
 
 function scrollToTop() {
@@ -561,6 +656,7 @@ function goToCart() {
 }
 
 function goToDetail(item) {
+  lastViewedProductId = item.productId
   if (item && item.productId) {
     navigator.navigateTo(routes.commerce.productDetail(item.productId))
   }

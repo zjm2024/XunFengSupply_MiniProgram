@@ -1,3 +1,4 @@
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
 import { createSharePayment } from './createSharePayment.js'
 import { createShareCheckout } from './createShareCheckout.js'
 import { prepareShareOrder, createShareOrder, getCurrentShareOrder, cancelCurrentShareOrder } from '../api/shareOrderApi.js'
@@ -123,7 +124,7 @@ export function createShareRetail({ landing, enabled, queryOnly = false, checkou
     const next = append ? state.page + 1 : 1, filter = append ? state.query : { keyword: query.keyword || '', categoryId: query.categoryId || null, ...(query.hasImage === true ? {hasImage:true} : {}) }
     try {
       const [categories, page] = await Promise.all([append ? Promise.resolve(state.categories) : api.getShareCatalogCategories(access),
-        api.getShareCatalogList({ ...access, ...filter, pageNum: next })])
+        waitForPaginationResult(api.getShareCatalogList({ ...access, ...filter, pageNum: next }), append)])
       if (!current(version)) return false
       state.categories = categories; state.products = append ? [...state.products, ...page.items] : page.items
       state.page = next; state.total = page.totalCount; state.query = filter; state.view = 'catalog'; state.busy = false; emit(); return true
@@ -135,7 +136,7 @@ export function createShareRetail({ landing, enabled, queryOnly = false, checkou
     const version = generation; state.busy = true; state.error = ''; if (!append) { state.detail = null; state.view = 'detail' } emit()
     try {
       const next = append && state.detail ? state.detail.skus.pageNum + 1 : 1
-      const result = await api.getShareCatalogDetail({ ...access, productId, pageNum: next })
+      const result = await waitForPaginationResult(api.getShareCatalogDetail({ ...access, productId, pageNum: next }), append)
       if (!current(version)) return false
       if (append) result.skus.items = [...state.detail.skus.items, ...result.skus.items]
       state.detail = result; state.view = 'detail'; state.busy = false; emit(); return true
@@ -195,7 +196,7 @@ export function createShareRetail({ landing, enabled, queryOnly = false, checkou
   async function preview(query) {
     if (!active || !access || expired || disposed) return { items: [] }
     const version = generation
-    try { const result = await api.getShareCatalogList({ categoryId: query.categoryId, pageNum: query.pageNum, pageSize: query.pageSize, hasImage: query.hasImage, ...access }); return current(version) ? result : { items: [] } }
+    try { const result = await waitForPaginationResult(api.getShareCatalogList({ categoryId: query.categoryId, pageNum: query.pageNum, pageSize: query.pageSize, hasImage: query.hasImage, ...access }), query.pageNum > 1); return current(version) ? result : { items: [] } }
     catch (error) { if (current(version)) fail(error); throw error }
   }
   /** 仅输出浏览器URL已有的公开定位，不输出Cookie、CSRF或原码。 */

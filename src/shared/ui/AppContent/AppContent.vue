@@ -29,19 +29,19 @@
         :scroll-top="scrollTop"
         :scroll-with-animation="scrollWithAnimation"
         :refresher-enabled="refresherEnabled"
-        :refresher-triggered="refresherTriggered"
+        :refresher-triggered="refreshVisual"
         :refresher-background="refresherBackground"
         :refresher-default-style="refreshIndicatorStyle"
         :refresher-threshold="48"
         @scroll="handleScroll"
-        @scrolltolower="emit('scrolltolower')"
-        @refresherrefresh="emit('refresherrefresh')"
+        @scrolltolower="handleLoadMore"
+        @refresherrefresh="handleRefresh"
         @refresherrestore="emit('refresherrestore')"
         @refresherabort="emit('refresherabort')"
         ref="scrollViewRef"
       >
         <!-- #ifdef H5 -->
-          <template #refresher><view class="compact-refresher"><view class="compact-refresher-icon" :class="{ 'is-refreshing': refresherTriggered }"><AppIcon name="refresh" :size="20" color="#737A84" /></view></view></template>
+          <template #refresher><view class="compact-refresher"><view class="compact-refresher-icon" :class="{ 'is-refreshing': refreshVisual }"><AppIcon name="refresh" :size="20" color="#737A84" /></view></view></template>
           <!-- #endif -->
         <view class="content-body" :style="{ padding: padding }">
           <view v-if="widthMode === 'standard' && !noMaxWidth" class="page-content-frame"><slot></slot></view>
@@ -53,12 +53,13 @@
 </template>
 
 <script setup>
+import { PAGINATION_FEEDBACK_MIN_MS } from '@/shared/utils/refreshAnimation.js'
 /** H5自定义刷新头，原生App/小程序使用原生指示器以兼容编译。 */
 let refreshIndicatorStyle = 'black'
 // #ifdef H5
 refreshIndicatorStyle = 'none'
 // #endif
-import { computed } from 'vue'
+import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useResponsive } from '../../composables/useResponsive.js'
 import AppIcon from '../AppIcon/AppIcon.vue'
 
@@ -103,6 +104,48 @@ const props = defineProps({
 const emit = defineEmits(['scroll', 'scrolltolower', 'refresherrefresh', 'refresherrestore', 'refresherabort'])
 
 const { layout, contentMaxWidth } = useResponsive()
+
+const refreshVisual = ref(false)
+let refreshStartedAt = 0
+let refreshTimer = null
+let disposed = false
+let nextPageAllowedAt = 0
+function beginRefreshFeedback() {
+  if (refreshTimer) clearTimeout(refreshTimer)
+  refreshTimer = null
+  if (!refreshVisual.value) refreshStartedAt = Date.now()
+  refreshVisual.value = true
+}
+function endRefreshFeedback() {
+  if (refreshTimer) clearTimeout(refreshTimer)
+  const remaining = Math.max(0, 560 - (Date.now() - refreshStartedAt))
+  refreshTimer = setTimeout(() => {
+    refreshTimer = null
+    if (!disposed && !props.refresherTriggered) refreshVisual.value = false
+  }, remaining)
+}
+watch(() => props.refresherTriggered, active => {
+  if (active) beginRefreshFeedback()
+  else if (refreshVisual.value) endRefreshFeedback()
+}, { immediate: true, flush: 'sync' })
+/** 下拉先把true送到视图，再调用业务；业务忽略重复操作时也保证控件能复位。 */
+async function handleRefresh() {
+  if (!props.refresherEnabled || refreshVisual.value) return
+  beginRefreshFeedback()
+  await nextTick()
+  if (disposed) return
+  emit('refresherrefresh')
+  await nextTick()
+  if (!disposed && !props.refresherTriggered) endRefreshFeedback()
+}
+/** 公共容器限制快接口造成的连续触底，业务请求锁和页码仍由原页面负责。 */
+function handleLoadMore() {
+  const now = Date.now()
+  if (refreshVisual.value || props.refresherTriggered || now < nextPageAllowedAt) return
+  nextPageAllowedAt = now + PAGINATION_FEEDBACK_MIN_MS
+  emit('scrolltolower')
+}
+onBeforeUnmount(() => { disposed = true; if (refreshTimer) clearTimeout(refreshTimer) })
 
 /** 容器样式：最大宽度 + 居中 */
 const containerStyle = computed(() => {

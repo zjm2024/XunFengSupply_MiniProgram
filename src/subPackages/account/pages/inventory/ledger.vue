@@ -41,6 +41,8 @@
   </AppPageShell>
 </template>
 <script setup>
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
+
 import { computed, ref } from 'vue'
 import { onLoad, onShow, onUnload } from '@dcloudio/uni-app'
 import { t } from '@/shared/i18n/index.js'
@@ -81,7 +83,7 @@ const startPickerVisible = ref(false), endPickerVisible = ref(false)
 const selectedTypeLabel = computed(() => typeOptions.value.find(item => item.value === businessType.value)?.label || t('account.inventory.allTypes'))
 const hasFilters = computed(() => Boolean(keyword.value || businessType.value || startDate.value || endDate.value))
 const loadError = computed(() => loadFailure.value?.message || (loadFailure.value ? t('account.inventory.loadFailed') : ''))
-const loadMoreStatus = computed(() => moreError.value ? 'error' : loadingMore.value ? 'loading' : pageNum.value * pageSize < totalCount.value ? 'idle' : 'no-more')
+const loadMoreStatus = computed(() => loadingMore.value ? 'loading' : moreError.value ? 'error' : pageNum.value * pageSize < totalCount.value ? 'idle' : 'no-more')
 let generation = 0, disposed = false, reading = false, invalidSku = false
 onLoad(options => {
   if (options?.skuId != null) { const value = Number(options.skuId); invalidSku = !Number.isSafeInteger(value) || value <= 0; if (!invalidSku) skuId.value = value }
@@ -111,7 +113,7 @@ async function loadMore() {
   if (loadingMore.value || pageState.value !== PageStatus.CONTENT || pageNum.value * pageSize >= totalCount.value) return
   const token = generation, next = pageNum.value + 1; loadingMore.value = true
   try {
-    const result = await getDealerInventoryTransactions(query(next)); if (disposed || token !== generation) return
+    const result = await waitForPaginationResult(getDealerInventoryTransactions(query(next)), true); if (disposed || token !== generation) return
     items.value = [...new Map([...items.value, ...result.items].map(item => [item.transactionId, item])).values()]
     pageNum.value = next; totalCount.value = result.totalCount; moreError.value = false
   } catch (error) { if (!disposed && token === generation) moreError.value = true }

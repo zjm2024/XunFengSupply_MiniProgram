@@ -5,12 +5,14 @@
       <view class="section-page">
         <template v-if="!unavailable"><view class="section-search"><input :placeholder-style="$inputPlaceholderStyle" v-model="keyword" :placeholder="t('common.homePage.search')" maxlength="64" confirm-type="search" @confirm="reload()" /><button @click="reload()"><AppIcon name="search" :size="18" /></button></view><view class="section-sort"><text v-for="option in [2,0,1]" :key="option" :class="{selected:sort===option}" @click="changeSort(option)">{{ t(option===2?'common.search.sortDefault':option===0?'common.homePage.configured':'common.homePage.latest') }}</text></view></template>
         <view v-if="unavailable" class="section-state">{{ t('common.homePage.unavailable') }}<button @click="returnHome">{{ t('common.homePage.home') }}</button></view>
-        <template v-else><view class="section-grid"><HomeProductTile v-for="product in items" :key="product.productId" :product="product" :can-purchase="canPurchase" @detail="openProduct($event,false)" @buy="openProduct($event,true)" /></view><view v-if="loading" class="section-state">{{ t('common.homePage.loading') }}</view><view v-else-if="failed" class="section-state" @click="loadMore">{{ t('common.homePage.retry') }}</view><view v-else-if="!items.length" class="section-state">{{ t('common.homePage.empty') }}</view><view v-else-if="!hasMore" class="section-state">{{ t('common.homePage.end') }}</view></template>
+        <template v-else><view class="section-grid"><HomeProductTile v-for="product in items" :key="product.productId" :product="product" :can-purchase="canPurchase" @detail="openProduct($event,false)" @buy="openProduct($event,true)" /></view><AppLoadMore v-if="items.length" :status="loading ? 'loading' : failed ? 'error' : hasMore ? 'idle' : 'no-more'" @retry="loadMore" /><view v-else class="section-state" @click="loadMore">{{ t(loading ? 'common.homePage.loading' : failed ? 'common.homePage.retry' : 'common.homePage.empty') }}</view></template>
       </view>
     </AppContent></template>
   </AppPageShell>
 </template>
 <script setup>
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
+
 import { ref,watch,onBeforeUnmount } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import { getHomeSection } from '@/shared/api/homePage.js'
@@ -22,14 +24,37 @@ import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppContent from '@/shared/ui/AppContent/AppContent.vue'
 import AppIcon from '@/shared/ui/AppIcon/AppIcon.vue'
+import AppLoadMore from '@/shared/ui/AppLoadMore/AppLoadMore.vue'
 import HomeProductTile from '@/shared/ui/HomeProductTile/HomeProductTile.vue'
 const user=useUserStore(),items=ref([]),title=ref(''),keyword=ref(''),sort=ref(2),loading=ref(false),failed=ref(false),unavailable=ref(false),hasMore=ref(true),canPurchase=ref(false),refreshing=ref(false)
 let scope=null,page=1,epoch=0,disposed=false,appliedKeyword=''
-onLoad(options=>{scope={homePageId:String(options?.homePageId||''),componentId:String(options?.componentId||''),configStamp:options?.configStamp||''};if(!/^\d+$/.test(scope.homePageId)||!/^\d+$/.test(scope.componentId)||!scope.configStamp){unavailable.value=true;return}reload()})
+/** APP导航会再次编码query；仅恢复一次并校验服务端的页ID:版本契约。 */
+function normalizeConfigStamp(value) {
+  if (typeof value !== 'string') return ''
+  let stamp = value
+  if (!/^\d+:\d+$/.test(stamp)) {
+    try { stamp = decodeURIComponent(stamp) }
+    catch { return '' }
+  }
+  return /^\d+:\d+$/.test(stamp) ? stamp : ''
+}
+
+onLoad(options => {
+  scope = {
+    homePageId: String(options?.homePageId || ''),
+    componentId: String(options?.componentId || ''),
+    configStamp: normalizeConfigStamp(options?.configStamp),
+  }
+  if (!/^\d+$/.test(scope.homePageId) || !/^\d+$/.test(scope.componentId) || !scope.configStamp) {
+    unavailable.value = true
+    return
+  }
+  reload()
+})
 /** 搜索/排序/语言变化从同一楼层第一页重新读取，不扩大商品范围。 */
 function reload(pull=false){if(!scope||unavailable.value)return;epoch++;items.value=[];page=1;hasMore.value=true;loading.value=false;failed.value=false;appliedKeyword=keyword.value.trim();refreshing.value=pull;loadMore()}
 /** 仅提交已成功页的下一页；旧请求不能混入新筛选结果。 */
-async function loadMore(){if(loading.value||!hasMore.value||!scope||unavailable.value)return;const requestEpoch=epoch;loading.value=true;failed.value=false;try{const result=await getHomeSection({...scope,keyword:appliedKeyword,sort:sort.value,pageNum:page});if(disposed||epoch!==requestEpoch)return;title.value=result.title;canPurchase.value=result.canPurchase;const old=new Set(items.value.map(p=>p.productId));items.value.push(...result.items.filter(p=>!old.has(p.productId)));hasMore.value=result.hasMore;page++}catch(error){if(disposed||epoch!==requestEpoch)return;if(/HOME_(SCOPE_CHANGED|SECTION_UNAVAILABLE)/.test(error.errorCode||'')){unavailable.value=true;items.value=[];canPurchase.value=false}else failed.value=true}finally{if(epoch===requestEpoch){loading.value=false;refreshing.value=false}}}
+async function loadMore(){if(loading.value||!hasMore.value||!scope||unavailable.value)return;const requestEpoch=epoch;loading.value=true;failed.value=false;try{const result=await waitForPaginationResult(getHomeSection({...scope,keyword:appliedKeyword,sort:sort.value,pageNum:page}), page > 1);if(disposed||epoch!==requestEpoch)return;title.value=result.title;canPurchase.value=result.canPurchase;const old=new Set(items.value.map(p=>p.productId));items.value.push(...result.items.filter(p=>!old.has(p.productId)));hasMore.value=result.hasMore;page++}catch(error){if(disposed||epoch!==requestEpoch)return;if(/HOME_(SCOPE_CHANGED|SECTION_UNAVAILABLE)/.test(error.errorCode||'')){unavailable.value=true;items.value=[];canPurchase.value=false}else failed.value=true}finally{if(epoch===requestEpoch){loading.value=false;refreshing.value=false}}}
 /** 改变受支持排序后重置页码。 */
 function changeSort(value){if(sort.value===value)return;sort.value=value;reload()}
 /** 保持列表实例和滚动位置，详情页复用原规格与加购规则。 */

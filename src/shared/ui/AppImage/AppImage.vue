@@ -37,7 +37,8 @@
 <script setup>
 import { ref, computed, onBeforeUnmount, watch } from 'vue'
 import AppIcon from '../AppIcon/AppIcon.vue'
-import { getCachedResource, getCachedResourcePath, isWebResourcePlatform, hasLoadedImage, markImageLoaded, invalidateCachedResource } from '@/shared/utils/resourceCache.js'
+import { useImageVisibility } from '@/shared/composables/useImageVisibility.js'
+import { requestCachedResource, getCachedResourcePath, isWebResourcePlatform, hasLoadedImage, markImageLoaded, invalidateCachedResource } from '@/shared/utils/resourceCache.js'
 
 const props = defineProps({
   // 图片地址
@@ -89,6 +90,8 @@ const hasError = ref(false)
 const displaySrc = ref('')
 let sourceVersion = 0
 let alternateSource = null
+let resourceRequest = null
+const canRequest = useImageVisibility(() => props.lazyLoad !== false, '.app-image-wrapper')
 const hasSource = computed(() => Boolean(String(props.src || '').trim()))
 
 // 规范化尺寸单位
@@ -144,7 +147,11 @@ async function handleError(event) {
   emit('error', event)
 }
 
-watch(() => props.src, (source) => {
+watch(() => canRequest.priority?.value, value => resourceRequest?.setPriority(value ?? 0))
+
+watch([() => props.src, () => canRequest.value], ([source, visible]) => {
+  resourceRequest?.release()
+  resourceRequest = null
   const version = ++sourceVersion
   const original = String(source || '').trim()
   const cached = getCachedResourcePath(original, { kind: 'image' })
@@ -155,15 +162,17 @@ watch(() => props.src, (source) => {
   hasError.value = false
   displaySrc.value = cached || (remote && !isWeb ? '' : original)
   alternateSource = cached ? original : null
+  if (remote && !cached && !visible) { displaySrc.value = ''; isLoading.value = false; return }
   if (original && !cached) {
-    const pending = getCachedResource(original, { kind: 'image' }).catch(() => original)
+    resourceRequest = requestCachedResource(original, { kind: 'image', priority: canRequest.priority?.value ?? 0 })
+    const pending = resourceRequest.promise.catch(() => original)
     alternateSource = pending
     void pending.then(path => {
       if (version === sourceVersion && !displaySrc.value) displaySrc.value = path
     })
   }
 }, { immediate: true })
-onBeforeUnmount(() => { sourceVersion += 1 })
+onBeforeUnmount(() => { sourceVersion += 1; resourceRequest?.release() })
 </script>
 
 <style lang="scss" scoped>

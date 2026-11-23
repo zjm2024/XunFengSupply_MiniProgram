@@ -78,6 +78,8 @@
 </template>
 
 <script setup>
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
+
 import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import { t } from '@/shared/i18n/index.js'
 import { formatFinanceAmount as money } from '../../model/financeDisplay.js'
@@ -111,8 +113,8 @@ const loadFailure = ref(null)
 const loadError = computed(() => loadFailure.value?.message
   || (loadFailure.value?.messageKey ? t(loadFailure.value.messageKey) : ''))
 const loadMoreStatus = computed(() => {
-  if (loadMoreError.value) return 'error'
   if (loadingMore.value) return 'loading'
+  if (loadMoreError.value) return 'error'
   if (!hasMore.value) return 'no-more'
   return 'idle'
 })
@@ -159,7 +161,7 @@ async function fetchPage(append) {
   if (append) loadingMore.value = true
   loadFailure.value = null
   try {
-    const result = await getRechargeList({ pageNum: pageNum.value, pageSize })
+    const result = await waitForPaginationResult(getRechargeList({ pageNum: pageNum.value, pageSize }), append)
     if (sequence !== requestSequence) return
     records.value = append ? [...records.value, ...result.items] : result.items
     totalCount.value = result.totalCount

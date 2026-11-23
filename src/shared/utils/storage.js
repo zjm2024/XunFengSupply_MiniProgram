@@ -18,7 +18,7 @@ const USER_KEYS = [
   'isAdmin', 'roleIds', 'permissions', 'dealerInfo', 'creditScore',
   'dealerId', 'dealerStatus', 'accountStatus', 'signStatus', 'isMainAccount', 'financeContext'
 ]
-const BUSINESS_KEYS = ['cart_items', 'order_pending', 'order_detail_cache', 'home_layout_cache']
+const BUSINESS_KEYS = ['cart_items', 'order_pending', 'order_detail_cache', 'home_layout_cache', 'product_query_snapshot']
 
 /** 登出清理完整清单 */
 const LOGOUT_CLEAR_KEYS = [...AUTH_KEYS, ...USER_KEYS, ...BUSINESS_KEYS]
@@ -64,6 +64,27 @@ class Storage {
     } catch (e) {
       return defaultValue
     }
+  }
+
+  /** 保存单条轻量恢复信息，调用方提供主体范围；限制大小避免页面数据误入Storage。 */
+  setSnapshot(key, scope, value) {
+    try {
+      if (!scope || JSON.stringify(value).length > 8192) return false
+      return this.set(key, { version: 1, scope, savedAt: Date.now(), value })
+    } catch (_) { return false }
+  }
+
+  /** 只恢复版本、主体和有效期均匹配的记录，损坏或过期记录就地移除。 */
+  getSnapshot(key, scope, maxAge) {
+    const record = this.get(key)
+    if (!record) return null
+    const age = Date.now() - record.savedAt
+    if (record.version !== 1 || record.scope !== scope || !Number.isFinite(age) || age < 0
+      || age >= maxAge || JSON.stringify(record.value ?? null).length > 8192) {
+      this.remove(key)
+      return null
+    }
+    return record.value
   }
 
   /**

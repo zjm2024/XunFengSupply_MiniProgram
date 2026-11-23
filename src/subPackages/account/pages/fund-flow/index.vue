@@ -62,11 +62,13 @@
 </template>
 
 <script setup>
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
+
 import StatusTag from '@/shared/ui/StatusTag/StatusTag.vue'
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/account/i18n/register.js'
 import AmountText from '@/shared/ui/AmountText/AmountText.vue'
-import { computed, ref } from 'vue'
+import { computed, ref, onBeforeUnmount } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
@@ -109,16 +111,20 @@ const isRefreshing = ref(false)
 const loadMoreError = ref(false)
 const hasMore = computed(() => flows.value.length < totalCount.value)
 const loadMoreStatus = computed(() => {
-  if (loadMoreError.value) return 'error'
   if (loadingMore.value) return 'loading'
+  if (loadMoreError.value) return 'error'
   if (!hasMore.value) return 'no-more'
   return 'idle'
 })
 
 onLoad(resetAndLoad)
 
+let paginationRequestId = 0
+onBeforeUnmount(() => { paginationRequestId++ })
+
 /** 重置原分页并读取资金流水，语言切换不调用本方法。 */
 async function resetAndLoad() {
+  loadingMore.value = false
   pageNum.value = 1
   flows.value = []
   pageState.value = PageStatus.LOADING
@@ -145,18 +151,21 @@ function handleRefresherRestore() {
 
 /** 沿用原资金类型与页码，只本地化错误显示。 */
 async function fetchPage(append) {
+  const requestId = ++paginationRequestId
   try {
-    const result = await getFundFlowList({
+    const result = await waitForPaginationResult(getFundFlowList({
       pageNum: pageNum.value,
       pageSize,
       businessType: currentType.value,
-    })
+    }), append)
+    if (requestId !== paginationRequestId) return
     const items = result.items
     flows.value = append ? [...flows.value, ...items] : items
     totalCount.value = result.totalCount
     pageState.value = flows.value.length ? PageStatus.CONTENT : PageStatus.EMPTY
     loadMoreError.value = false
   } catch (error) {
+    if (requestId !== paginationRequestId) return
     if (append) pageNum.value = Math.max(1, pageNum.value - 1)
     loadMoreError.value = Boolean(append)
     loadFailure.value = error?.message ? error : { messageKey: 'account.fundFlow.loadFailed' }
@@ -165,10 +174,11 @@ async function fetchPage(append) {
 }
 
 async function loadMore() {
-  if (!hasMore.value || loadingMore.value) return
+  if (!hasMore.value || loadingMore.value || pageState.value === PageStatus.LOADING) return
   loadingMore.value = true
   pageNum.value += 1
-  try { await fetchPage(true) } finally { loadingMore.value = false }
+  const requestId = paginationRequestId + 1
+  try { await fetchPage(true) } finally { if (requestId === paginationRequestId) loadingMore.value = false }
 }
 
 function changeFilter(value) {

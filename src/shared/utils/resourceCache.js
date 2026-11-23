@@ -10,20 +10,87 @@ let webResourcePlatform
 const DEFAULT_MAX_AGE = 24 * 60 * 60 * 1000
 const FILE_MAX_AGE = 7 * DEFAULT_MAX_AGE
 const downloadQueue = []
+const downloadJobs = new Map()
+const ACTIVE_DOWNLOAD_GRACE_MS = 120
 let activeDownloads = 0
+let activeSaves = 0
 let cacheGeneration = 0
-let resourcesPruned = false
+const resourceIndex = new Map()
+let resourceIndexLoaded = false
+let maintenanceTimer = null
+let maintenanceRunning = false
+let maintenanceRequested = false
+let clearing = null
+const pendingDeletes = new Map()
+const MAX_FILE_BYTES = 32 * 1024 * 1024
+const MAX_CACHE_BYTES = 128 * 1024 * 1024
 const MAX_SAVED_RESOURCES = 500
 
-/** 图片和普通文件共用四个下载槽，避免列表/正文同时创建大量网络请求。 */
-function scheduleDownload(action) {
-  return new Promise(resolve => { downloadQueue.push({ action, resolve }); pumpDownloads() })
+/** 图片和普通文件共用四个下载槽；消费者共同持有，最后一个离开时才撤销。 */
+function scheduleDownload(action, key, consumer) {
+  return new Promise(resolve => {
+    const job = { action, key, resolve, consumers: new Set(), persistent: !consumer, state: 'queued', cancelled: false }
+    if (consumer) job.consumers.add(consumer)
+    downloadJobs.set(key, job)
+    downloadQueue.push(job)
+    pumpDownloads()
+  })
 }
+
+function jobPriority(job) {
+  return Math.min(job.persistent ? 2 : Infinity, ...[...job.consumers].map(owner => owner.priority))
+}
+
 function pumpDownloads() {
+  // 当前屏任务等待时，优先释放已无使用者的宽限任务，避免复用窗口阻塞新视口。
+  if (activeDownloads >= 4 && downloadQueue.some(job => jobPriority(job) === 0)) {
+    for (const job of downloadJobs.values()) {
+      if (job.state !== 'downloading' || job.cancelled || job.persistent || job.consumers.size || !job.abort) continue
+      clearTimeout(job.abortTimer)
+      job.cancelled = true
+      job.abort()
+    }
+  }
   while (activeDownloads < 4 && downloadQueue.length) {
-    const { action, resolve } = downloadQueue.shift()
-    activeDownloads += 1
-    Promise.resolve().then(action).then(resolve, () => resolve('')).finally(() => { activeDownloads -= 1; pumpDownloads() })
+    let index = 0
+    for (let candidate = 1; candidate < downloadQueue.length; candidate++) {
+      if (jobPriority(downloadQueue[candidate]) < jobPriority(downloadQueue[index])) index = candidate
+    }
+    const job = downloadQueue.splice(index, 1)[0]
+    job.state = 'downloading'
+    activeDownloads++
+    Promise.resolve().then(() => job.cancelled ? null : job.action(job)).then(job.resolve, () => job.resolve(null))
+      .finally(() => { clearTimeout(job.abortTimer); activeDownloads--; job.state = 'saving'; pumpDownloads() })
+  }
+}
+
+/** 组件持有可释放的订阅；原getCachedResource调用仍按原Promise契约执行。 */
+export function requestCachedResource(url, options = {}) {
+  const consumer = { priority: Number(options.priority) || 0, released: false }
+  const key = cacheKey(String(url || '').trim(), options.kind || 'resource')
+  const promise = getCachedResource(url, { ...options, consumer })
+  return {
+    promise,
+    setPriority(priority) { consumer.priority = priority; pumpDownloads() },
+    release() {
+      if (consumer.released) return
+      consumer.released = true
+      const job = downloadJobs.get(key)
+      if (!job || !job.consumers.delete(consumer) || job.persistent || job.consumers.size) return
+      if (job.state === 'queued') {
+        const index = downloadQueue.indexOf(job)
+        if (index >= 0) downloadQueue.splice(index, 1)
+        job.cancelled = true
+        job.resolve(null)
+      } else if (job.state === 'downloading' && job.abort) {
+        // 已开始的下载给短暂反向滚动留复用机会，排队任务仍立即撤销。
+        job.abortTimer = setTimeout(() => {
+          if (job.persistent || job.consumers.size || job.state !== 'downloading') return
+          job.cancelled = true
+          job.abort()
+        }, ACTIVE_DOWNLOAD_GRACE_MS)
+      }
+    },
   }
 }
 
@@ -71,8 +138,7 @@ export function invalidateCachedResource(url, { kind = 'image', localPath } = {}
   try {
     const record = uni.getStorageSync(key)
     if (record?.localPath === localPath) {
-      uni.removeStorageSync(key)
-      void removeSavedFile(localPath)
+      void deleteCacheRecord(key, record)
     }
   } catch (error) { console.warn('[ResourceCache] 移除失效缓存索引失败:', error) }
 }
@@ -102,42 +168,94 @@ function cacheKey(url, kind) {
   return `${CACHE_PREFIX}${kind}:${hash(canonicalUrl(url))}`
 }
 
-/** 只清理本工具登记的过期/最旧资源，不触碰会话与其他文件。 */
-function pruneSavedResources(protectedKey = '') {
+/** 缓存维护放在下载/保存结束后，分批读旧索引；不在每张图显示前扫描全库。 */
+function scheduleResourceMaintenance() {
+  maintenanceRequested = true
+  if (clearing || maintenanceTimer || maintenanceRunning) return
+  maintenanceTimer = setTimeout(() => { maintenanceTimer = null; void maintainResourceCache() }, 100)
+}
+
+async function maintainResourceCache() {
+  if (clearing || inflight.size || activeDownloads || downloadQueue.length) { scheduleResourceMaintenance(); return }
+  maintenanceRunning = true; maintenanceRequested = false
+  const generation = cacheGeneration
   try {
-    const records = (uni.getStorageInfoSync?.()?.keys || []).filter(key => key.startsWith(CACHE_PREFIX))
-      .map(key => ({ key, record: uni.getStorageSync(key) })).filter(entry => entry.record?.localPath)
-      .sort((a, b) => Number(a.record.expiresAt) - Number(b.record.expiresAt))
-    let count = records.length
-    for (const { key, record } of records) {
-      if (key === protectedKey || (Number(record.expiresAt) > Date.now() && count <= MAX_SAVED_RESOURCES)) continue
-      uni.removeStorageSync(key); count -= 1
-      void removeSavedFile(record.localPath)
+    if (!resourceIndexLoaded) {
+      const keys = (uni.getStorageInfoSync?.()?.keys || []).filter(key => key.startsWith(CACHE_PREFIX))
+      for (let index = 0; index < keys.length; index += 1) {
+        while (inflight.size && generation === cacheGeneration) await new Promise(resolve => setTimeout(resolve, 100))
+        if (generation !== cacheGeneration) return
+        if (!resourceIndex.has(keys[index])) {
+          const record = uni.getStorageSync(keys[index])
+          if (record?.localPath) resourceIndex.set(keys[index], record)
+        }
+        if (index % 16 === 15) await new Promise(resolve => setTimeout(resolve, 0))
+      }
+      if (generation !== cacheGeneration) return
+      resourceIndexLoaded = true
+    }
+    if (generation !== cacheGeneration) return
+    const entries = [...resourceIndex.entries()].sort((a, b) =>
+      (Number(a[1].savedAt) || Number(a[1].expiresAt) - FILE_MAX_AGE) - (Number(b[1].savedAt) || Number(b[1].expiresAt) - FILE_MAX_AGE))
+    let totalBytes = entries.reduce((sum, [, record]) => sum + (Number(record.size) || 0), 0)
+    let removed = 0
+    for (const [key, record] of entries) {
+      if (generation !== cacheGeneration) return
+      if (inflight.size || activeDownloads) { maintenanceRequested = true; break }
+      if (inflight.has(key)) continue
+      if (!Number.isFinite(record.size) || record.size < 0) {
+        record.size = await getFileSize(record.localPath, true)
+        if (generation !== cacheGeneration) return
+        if (record.size != null) {
+          if (uni.getStorageSync(key)?.localPath !== record.localPath || inflight.has(key)) { maintenanceRequested = true; continue }
+          totalBytes += record.size
+          uni.setStorageSync(key, record)
+        }
+      }
+      if (record.size != null && !record.deletePending && Number(record.expiresAt) > Date.now()
+        && resourceIndex.size <= MAX_SAVED_RESOURCES && totalBytes <= MAX_CACHE_BYTES && record.size <= MAX_FILE_BYTES) continue
+      // 只删仍属于旧索引的文件，其他实例已经换路径时保留新结果。
+      const current = uni.getStorageSync(key)
+      if (current?.localPath && current.localPath !== record.localPath) { resourceIndex.set(key, current); continue }
+      if (await deleteCacheRecord(key, current || record)) totalBytes -= Number(record.size) || 0
+      removed += 1
+      if (removed % 16 === 0) await new Promise(resolve => setTimeout(resolve, 0))
     }
   } catch (error) { console.warn('[ResourceCache] 清理过期文件失败:', error) }
+  finally {
+    maintenanceRunning = false
+    if (maintenanceRequested) scheduleResourceMaintenance()
+  }
 }
 
 function readCachedPath(key) {
-  if (!resourcesPruned) { resourcesPruned = true; pruneSavedResources() }
+  if (clearing) return ''
+  if (!resourceIndexLoaded) scheduleResourceMaintenance()
   try {
     const record = uni.getStorageSync(key)
-    if (record?.localPath && Number(record.expiresAt) > Date.now()) return record.localPath
-    if (record?.localPath) { uni.removeStorageSync(key); void removeSavedFile(record.localPath) }
+    if (record?.localPath && !record.deletePending && Number(record.expiresAt) > Date.now()) return record.localPath
+    if (record?.localPath) void deleteCacheRecord(key, record)
   } catch (error) {
     console.warn('[ResourceCache] 读取缓存失败:', error)
   }
   return ''
 }
 
-function saveCachedPath(key, localPath, maxAge) {
+function saveCachedPath(key, localPath, maxAge, size) {
   try {
-    uni.setStorageSync(key, {
+    const record = {
       localPath,
+      size,
+      savedAt: Date.now(),
       expiresAt: Date.now() + Math.max(Number(maxAge) || FILE_MAX_AGE, 60 * 1000),
-    })
-    pruneSavedResources(key)
+    }
+    uni.setStorageSync(key, record)
+    resourceIndex.set(key, record)
+    scheduleResourceMaintenance()
+    return true
   } catch (error) {
     console.warn('[ResourceCache] 保存缓存索引失败:', error)
+    return false
   }
 }
 
@@ -153,37 +271,70 @@ export function getCachedResource(url, options = {}) {
   const sourceUrl = String(url || '').trim()
   if (!sourceUrl || !isRemoteUrl(sourceUrl) || isWebResourcePlatform()) return Promise.resolve(sourceUrl)
 
+  if (options.consumer?.released) return Promise.resolve('')
+  if (clearing) return clearing.then(() => getCachedResource(sourceUrl, options))
   const kind = options.kind || 'resource'
   const key = cacheKey(sourceUrl, kind)
   const cachedPath = readCachedPath(key)
   if (cachedPath) return Promise.resolve(cachedPath)
-  if (inflight.has(key)) return inflight.get(key)
+  if (inflight.has(key)) {
+    const job = downloadJobs.get(key)
+    if (job?.cancelled) return inflight.get(key).then(() => getCachedResource(sourceUrl, options))
+    if (job) {
+      clearTimeout(job.abortTimer)
+      if (options.consumer) job.consumers.add(options.consumer)
+      else job.persistent = true
+    }
+    return inflight.get(key)
+  }
 
   const generation = cacheGeneration
-  const request = scheduleDownload(() => new Promise((resolve) => {
-    if (generation !== cacheGeneration) { resolve(sourceUrl); return }
-    uni.downloadFile({
-      url: sourceUrl,
-      success: (result) => {
-        if (Number(result?.statusCode) < 200 || Number(result?.statusCode) >= 300 || !result?.tempFilePath) {
-          resolve(sourceUrl)
-          return
-        }
-
-        uni.saveFile({
-          tempFilePath: result.tempFilePath,
-          success: (saved) => {
-            const localPath = saved?.savedFilePath || result.tempFilePath
-            if (generation !== cacheGeneration) { void removeSavedFile(localPath); resolve(sourceUrl); return }
-            saveCachedPath(key, localPath, options.maxAge)
-            resolve(localPath)
-          },
-          fail: () => resolve(result.tempFilePath),
-        })
-      },
-      fail: () => resolve(sourceUrl),
+  const deletion = pendingDeletes.get(key)
+  if (deletion) return deletion.then(success => success ? getCachedResource(sourceUrl, options) : sourceUrl)
+  // 网络槽在下载完成后释放，持久保存不再阻塞下一张图片的下载。
+  const request = scheduleDownload(job => new Promise(resolve => {
+    if (generation !== cacheGeneration) { resolve(null); return }
+    let settled = false
+    const finish = result => { if (!settled) { settled = true; resolve(result) } }
+    const task = uni.downloadFile({ url: sourceUrl, success: finish, fail: () => finish(null) })
+    if (typeof task?.abort === 'function') job.abort = () => {
+      try { task.abort(); finish(null) }
+      catch (_) { job.cancelled = false } // 原生取消不可用时继续占用原槽，等待真实完成。
+    }
+  }), key, options.consumer).then(async result => {
+    if (generation !== cacheGeneration || !result?.tempFilePath || Number(result.statusCode) < 200 || Number(result.statusCode) >= 300) return sourceUrl
+    const size = await getFileSize(result.tempFilePath)
+    if (generation !== cacheGeneration) return sourceUrl
+    // 大文件或无法确认容量时使用临时文件，本次仍可展示，不写不可控的持久缓存。
+    if (size == null || size > MAX_FILE_BYTES) return result.tempFilePath
+    return new Promise(resolve => {
+      activeSaves++
+      const finish = value => { activeSaves--; resolve(value) }
+      try { uni.saveFile({
+        tempFilePath: result.tempFilePath,
+        success: async saved => {
+          const localPath = saved?.savedFilePath || result.tempFilePath
+          if (generation !== cacheGeneration) {
+            await deleteCacheRecord(CACHE_PREFIX + 'cleanup:' + hash(localPath), { localPath, size, expiresAt: 0 })
+            finish(sourceUrl)
+            return
+          }
+          if (!saveCachedPath(key, localPath, options.maxAge, size)) {
+            // 索引写入失败不把未登记文件当作缓存成功，清理失败保留内存中的精确归属。
+            resourceIndex.set(key, { localPath, size, expiresAt: 0, deletePending: true })
+            if (!await removeSavedFile(localPath)) scheduleResourceMaintenance()
+            else resourceIndex.delete(key)
+            finish(sourceUrl)
+            return
+          }
+          finish(localPath)
+        },
+        fail: () => finish(result.tempFilePath),
+      }) } catch (_) { finish(result.tempFilePath) }
     })
-  })).then(path => path || sourceUrl).finally(() => { if (inflight.get(key) === request) inflight.delete(key) })
+  }).then(value => value || sourceUrl).finally(() => {
+    if (inflight.get(key) === request) { inflight.delete(key); downloadJobs.delete(key) }
+  })
 
   inflight.set(key, request)
   return request
@@ -226,46 +377,75 @@ export async function cacheRichTextImages(content, options = {}) {
   ))
 }
 
-function removeSavedFile(localPath) {
-  if (!localPath || typeof uni === 'undefined' || typeof uni.removeSavedFile !== 'function') return Promise.resolve()
-  return new Promise((resolve) => {
-    uni.removeSavedFile({ filePath: localPath, complete: resolve })
+/** 仅查询单个文件元数据；旧索引补齐放在空闲维护中。 */
+function getFileSize(filePath, saved = false) {
+  const method = saved ? uni.getSavedFileInfo : uni.getFileInfo
+  if (typeof method !== 'function') return Promise.resolve(null)
+  return new Promise(resolve => {
+    try {
+      method.call(uni, { filePath,
+        success: result => resolve(Number.isFinite(result?.size) && result.size >= 0 ? result.size : null),
+        fail: () => resolve(null),
+      })
+    } catch (_) { resolve(null) }
   })
 }
 
-/**
- * 清理远程资源缓存，不触碰登录态、购物车、待付款订单或用户资料。
- * APP 端同时删除资源文件和缓存索引；H5 仅清理可识别的索引数据，浏览器缓存由浏览器管理。
- */
-export async function clearResourceCache() {
-  cacheGeneration += 1
-  inflight.clear()
-  // 原生阅读器是独立窗体，下次打开时按代际清掉它自己的PDF磁盘数据库。
-  try { uni.setStorageSync('manual-pdf-cache-epoch', String(Date.now())) }
-  catch (error) { console.warn('[ResourceCache] PDF清理标记保存失败:', error) }
-  let keys = []
-  try {
-    keys = (uni.getStorageInfoSync()?.keys || []).filter(key => key.startsWith(CACHE_PREFIX))
-  } catch (error) {
-    console.warn('[ResourceCache] 获取缓存索引失败:', error)
-  }
+function removeSavedFile(localPath) {
+  if (!localPath || typeof uni?.removeSavedFile !== 'function') return Promise.resolve(false)
+  return new Promise(resolve => {
+    try { uni.removeSavedFile({ filePath: localPath, success: () => resolve(true), fail: () => resolve(false) }) }
+    catch (_) { resolve(false) }
+  })
+}
 
-  const localPaths = new Set()
-  keys.forEach((key) => {
+/** 删除前登记不可读状态，失败保留精确路径供下次重试，成功只移除仍匹配的索引。 */
+function deleteCacheRecord(key, record) {
+  if (pendingDeletes.has(key)) return pendingDeletes.get(key)
+  const tombstone = { ...record, deletePending: true }
+  try { uni.setStorageSync(key, tombstone); resourceIndex.set(key, tombstone) }
+  catch (_) { return Promise.resolve(false) }
+  const task = removeSavedFile(record.localPath).then(success => {
+    if (!success) return false
     try {
-      const record = uni.getStorageSync(key)
-      if (record?.localPath) localPaths.add(record.localPath)
-    } catch (_) {
-      // 单条索引异常不影响其余缓存清理。
-    }
-  })
+      if (uni.getStorageSync(key)?.localPath === record.localPath) {
+        uni.removeStorageSync(key)
+        resourceIndex.delete(key)
+      }
+      return true
+    } catch (_) { return false }
+  }).finally(() => { if (pendingDeletes.get(key) === task) pendingDeletes.delete(key) })
+  pendingDeletes.set(key, task)
+  return task
+}
 
-  await Promise.all([...localPaths].map(removeSavedFile))
-  keys.forEach((key) => {
-    try { uni.removeStorageSync(key) } catch (_) { /* ignore */ }
-  })
+/** 合并同时清理；新请求等待清理结束，旧代际下载和保存不能写回。 */
+export function clearResourceCache() {
+  if (clearing) return clearing
+  cacheGeneration += 1
+  if (maintenanceTimer) clearTimeout(maintenanceTimer)
+  maintenanceTimer = null; maintenanceRequested = false
+  resourceIndexLoaded = false
   inflight.clear()
   loadedImages.clear()
-
-  return { count: keys.length }
+  const task = Promise.resolve().then(async () => {
+    let count = 0, failedCount = 0
+    try {
+      uni.setStorageSync('manual-pdf-cache-epoch', String(Date.now()))
+      const keys = [...new Set([...(uni.getStorageInfoSync()?.keys || []).filter(key => key.startsWith(CACHE_PREFIX)), ...resourceIndex.keys()])]
+      for (let index = 0; index < keys.length; index++) {
+        const key = keys[index]
+        try {
+          const record = uni.getStorageSync(key) || resourceIndex.get(key)
+          if (!record?.localPath) { uni.removeStorageSync(key); resourceIndex.delete(key); count++ }
+          else if (await deleteCacheRecord(key, record)) count++
+          else failedCount++
+        } catch (_) { failedCount++ }
+        if (index % 16 === 15) await new Promise(resolve => setTimeout(resolve, 0))
+      }
+    } catch (_) { failedCount++ }
+    return { count, failedCount, pendingCount: activeSaves, success: failedCount === 0 && activeSaves === 0 }
+  }).finally(() => { if (clearing === task) clearing = null })
+  clearing = task
+  return task
 }

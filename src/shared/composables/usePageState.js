@@ -1,3 +1,4 @@
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
 /**
  * @file usePageState - 页面状态管理组合式函数
  * @description
@@ -29,7 +30,7 @@
  * )
  */
 
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, getCurrentScope, onScopeDispose } from 'vue'
 import { PageStatus } from '../model/pageState.js'
 import { isAppError } from '../api/appError.js'
 
@@ -66,6 +67,8 @@ const DEFAULT_OPTIONS = {
  */
 export function usePageState(fetchFn, options = {}) {
   const opts = { ...DEFAULT_OPTIONS, ...options }
+  let requestVersion = 0
+  if (getCurrentScope()) onScopeDispose(() => { requestVersion++ })
 
   // ==================== 响应式状态 ====================
 
@@ -212,6 +215,8 @@ export function usePageState(fetchFn, options = {}) {
    * @returns {Promise<boolean>} 是否成功
    */
   async function refresh() {
+    const version = ++requestVersion
+    isLoadingMore.value = false
     hasMore.value = true
     // 如果已有数据，标记为 stale
     if (hasData.value) {
@@ -223,14 +228,16 @@ export function usePageState(fetchFn, options = {}) {
 
     try {
       const result = await executeFetch()
+      if (version !== requestVersion) return false
       setContent(result, false)
       currentPage.value = 1
       return true
     } catch (err) {
+      if (version !== requestVersion) return false
       setError(err)
       return false
     } finally {
-      isRefreshing.value = false
+      if (version === requestVersion) isRefreshing.value = false
     }
   }
 
@@ -239,13 +246,15 @@ export function usePageState(fetchFn, options = {}) {
    * @returns {Promise<boolean>} 是否成功且有数据
    */
   async function loadMore() {
-    if (!hasMore.value || isLoadingMore.value) return false
+    if (!hasMore.value || isLoadingMore.value || isRefreshing.value || isLoading.value) return false
+    const version = ++requestVersion
 
     isLoadingMore.value = true
     const nextPage = currentPage.value + 1
 
     try {
-      const result = await executeFetch(nextPage)
+      const result = await waitForPaginationResult(executeFetch(nextPage), true)
+      if (version !== requestVersion) return false
 
       if (Array.isArray(result) && result.length < opts.pageSize) {
         hasMore.value = false
@@ -262,10 +271,11 @@ export function usePageState(fetchFn, options = {}) {
       currentPage.value = nextPage
       return true
     } catch (err) {
+      if (version !== requestVersion) return false
       setError(err)
       return false
     } finally {
-      isLoadingMore.value = false
+      if (version === requestVersion) isLoadingMore.value = false
     }
   }
 
@@ -292,6 +302,7 @@ export function usePageState(fetchFn, options = {}) {
    * 重置所有状态到初始值
    */
   function reset() {
+    requestVersion++
     status.value = PageStatus.IDLE
     data.value = null
     error.value = null

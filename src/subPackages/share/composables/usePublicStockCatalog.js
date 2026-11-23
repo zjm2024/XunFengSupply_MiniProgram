@@ -1,3 +1,4 @@
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
 import { computed, ref } from 'vue'
 import { getPublicStockCategories, getPublicStockList } from '../api/publicStockApi.js'
 
@@ -27,7 +28,7 @@ export function usePublicStockCatalog() {
     if (!append) { items.value = []; totalCount.value = 0; currentPage.value = 0 }
     try {
       const [result, nextCategories] = await Promise.all([
-        getPublicStockList({ ...query, pageNum, pageSize: 20 }),
+        waitForPaginationResult(getPublicStockList({ ...query, pageNum, pageSize: 20 }), append),
         refreshCategories ? getPublicStockCategories() : Promise.resolve(null),
       ])
       if (epoch !== generation) return false

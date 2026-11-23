@@ -85,6 +85,8 @@
 </template>
 
 <script setup>
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
+
 import { t } from '@/shared/i18n/index.js'
 import '@/subPackages/content/i18n/register.js'
 import { computed, ref } from 'vue'
@@ -144,8 +146,8 @@ let listRequestId = 0
 let summaryRequestId = 0
 
 const loadMoreStatus = computed(() => {
-  if (loadMoreError.value) return 'error'
   if (loadingMore.value) return 'loading'
+  if (loadMoreError.value) return 'error'
   if (!hasMore.value) return 'no-more'
   return 'idle'
 })
@@ -205,7 +207,7 @@ async function loadMessages(append = false) {
   loading.value = !append
   loadingMore.value = append
   try {
-    const result = await requestPage(pageNum.value)
+    const result = await waitForPaginationResult(requestPage(pageNum.value), append)
     if (!isCurrent()) return
     messageList.value = append ? [...messageList.value, ...result.items.filter(item => !messageList.value.some(old => old.messageId === item.messageId))] : result.items
     totalCount.value = result.totalCount

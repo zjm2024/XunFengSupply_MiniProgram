@@ -87,7 +87,6 @@ import { usePageState } from '@/shared/composables/usePageState.js'
 import { getManualCategories, getManualList } from '../../api/manual.js'
 import { navigator } from '@/app/navigation/navigator.js'
 import { routes } from '@/app/config/routes.js'
-import { getCachedResource } from '@/shared/utils/resourceCache.js'
 import { waitForRefreshAnimation } from '@/shared/utils/refreshAnimation.js'
 
 const ROOT_CATEGORY_ID = 'd244l5QtSn'
@@ -107,7 +106,6 @@ const pageStatus = usePageState(async ({ page = 1, pageSize = 10 } = {}) => {
     pageSize,
   })
   const items = Array.isArray(result?.items) ? result.items : []
-  void cacheManualCovers(items, selectedCategoryId.value)
   return items
 }, { autoLoad: false, pageSize: 10 })
 
@@ -132,18 +130,7 @@ async function loadPage() {
   }
 }
 
-/** 后台缓存封面，不阻塞列表首屏显示。 */
-async function cacheManualCovers(items, categoryId) {
-  const cached = await Promise.all(items.map(async (item) => ({
-    id: item.id,
-    coverUrl: await getCachedResource(item.coverUrl, { kind: 'image' }),
-  })))
-  const cachedMap = new Map(cached.map(item => [item.id, item.coverUrl]))
-  if (selectedCategoryId.value !== categoryId) return
-  pageStatus.data.value = manuals.value.map(item => cachedMap.has(item.id)
-    ? { ...item, coverUrl: cachedMap.get(item.id) }
-    : item)
-}
+// 封面由公共图片组件按可见区下载和缓存，不再提前排入整页图片。
 
 async function selectCategory(categoryId) {
   if (categoryId === selectedCategoryId.value) return

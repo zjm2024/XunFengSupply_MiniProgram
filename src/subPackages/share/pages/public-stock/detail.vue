@@ -17,6 +17,8 @@
 </template>
 
 <script setup>
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
+
 import AppPageState from '@/shared/ui/AppPageState/AppPageState.vue'
 import AppPageShell from '@/shared/ui/AppPageShell/AppPageShell.vue'
 import AppHeader from '@/shared/ui/AppHeader/AppHeader.vue'
@@ -61,7 +63,7 @@ async function load(append = false) {
   loading.value = true
   if (!append) { product.value = null; skus.value = []; currentPage.value = 0; totalCount.value = 0 }
   try {
-    const result = await getPublicStockDetail({ productId, pageNum, pageSize: 20 })
+    const result = await waitForPaginationResult(getPublicStockDetail({ productId, pageNum, pageSize: 20 }), append)
     if (epoch !== generation) return
     product.value = result.product
     skus.value = append ? [...skus.value, ...result.skus.items.filter(row => !skus.value.some(old => old.skuId === row.skuId))] : result.skus.items

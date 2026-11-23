@@ -41,6 +41,7 @@
           scroll-with-animation
           :show-scrollbar="false"
           :scroll-top="contentScrollTop"
+          @scroll="recordContentScroll"
         >
           <!-- #ifdef H5 -->
           <template #refresher><view class="compact-refresher"><view class="compact-refresher-icon" :class="{ 'is-refreshing': refreshing }"><AppIcon name="refresh" :size="20" color="#737A84" /></view></view></template>
@@ -58,7 +59,7 @@
                 </view>
               </view>
 
-              <AppPageState v-if="isSectionLoading(section)" state="loading" compact />
+              <AppPageState v-if="isSectionLoading(section) && !getSectionProducts(section).length" state="loading" compact />
 
               <view v-else-if="getSectionProducts(section).length" class="product-preview-grid">
                 <AppProductCard
@@ -114,6 +115,7 @@ import noSearchResultSvg from '@/shared/assets/illustrations/no-search-result.sv
 const props = defineProps({ categories: { type: Array, default: () => [] }, active: { type: Boolean, default: true }, loading: Boolean, failed: Boolean, refreshing: Boolean, emptyTitle: { type: String, default: '' }, showPrice: { type: Boolean, default: true }, loadProducts: { type: Function, required: true } })
 const emit = defineEmits(['product', 'category', 'refresh'])
 let generation = 0
+const previewRequests = new Map()
 /** 重新读取分类由所属入口授权，展示层不调用业务API。 */
 function refreshCategories() { emit('refresh') }
 const activeRootId = ref(null)
@@ -122,6 +124,11 @@ const productsByCategory = ref({})
 const loadingByCategory = ref({})
 const loadedCategoryIds = ref({})
 const contentScrollTop = ref(0)
+let lastContentScrollTop = 0
+let restoringContentScroll = false
+function recordContentScroll(event) {
+  if (props.active && !restoringContentScroll) lastContentScrollTop = Number(event?.detail?.scrollTop) || 0
+}
 
 
 const activeRoot = computed(() => (
@@ -179,6 +186,7 @@ function selectSecondary(category) {
 
 /** 分类切换复位内容滚动。 */
 async function resetContentScroll() {
+  lastContentScrollTop = 0
   contentScrollTop.value = 1
   await nextTick()
   contentScrollTop.value = 0
@@ -189,38 +197,50 @@ async function loadProductPreviews(sections) {
   const version = generation
   const pendingSections = sections.filter(section => !loadedCategoryIds.value[categoryKey(section)])
   for (let index = 0; index < pendingSections.length; index += 3) {
-    if (version !== generation) return
+    if (version !== generation || !props.active) return
     await Promise.all(pendingSections.slice(index, index + 3).map(loadSectionProducts))
   }
 }
 
 /** 读取九个有图商品并丢弃过期预览响应。 */
-async function loadSectionProducts(section) {
+function loadSectionProducts(section) {
   const key = categoryKey(section)
-  if (!key || loadingByCategory.value[key] || loadedCategoryIds.value[key]) return
-
+  if (previewRequests.has(key)) return previewRequests.get(key)
+  if (!key || loadedCategoryIds.value[key]) return Promise.resolve()
   const ticket = generation
   loadingByCategory.value = { ...loadingByCategory.value, [key]: true }
-  try {
-    const result = await props.loadProducts({
-      pageNum: 1,
-      pageSize: 9,
-      categoryId: section.id,
-    })
-    if (ticket !== generation) return
-    productsByCategory.value = {
-      ...productsByCategory.value,
-      [key]: Array.isArray(result?.items) ? result.items : [],
+  const task = (async () => {
+    let success = false
+    try {
+      const result = await props.loadProducts({ pageNum: 1, pageSize: 9, categoryId: section.id })
+      if (ticket !== generation) return
+      productsByCategory.value = { ...productsByCategory.value, [key]: Array.isArray(result?.items) ? result.items : [] }
+      success = true
+    } catch (error) {
+      if (ticket !== generation) return
+      console.warn('[HomeCategory] 商品预览刷新失败，保留已有内容:', error)
+    } finally {
+      if (ticket === generation) {
+        loadingByCategory.value = { ...loadingByCategory.value, [key]: false }
+        loadedCategoryIds.value = { ...loadedCategoryIds.value, [key]: success }
+      }
     }
-  } catch (error) {
-    productsByCategory.value = { ...productsByCategory.value, [key]: [] }
-    console.warn(`[HomeCategory] 分类 ${section.name} 商品预览加载失败:`, error)
-  } finally {
-    if (ticket !== generation) return
-    loadingByCategory.value = { ...loadingByCategory.value, [key]: false }
-    loadedCategoryIds.value = { ...loadedCategoryIds.value, [key]: true }
-  }
+  })().finally(() => { if (previewRequests.get(key) === task) previewRequests.delete(key) })
+  previewRequests.set(key, task)
+  return task
 }
+
+/** 父入口完成授权分类刷新后调用；相同树强制重试，变化树等待已启动的同组请求。 */
+function refreshPreviews(force = true) {
+  if (force) {
+    generation++
+    previewRequests.clear()
+    loadingByCategory.value = {}
+    loadedCategoryIds.value = {}
+  }
+  return loadProductPreviews(categorySections.value)
+}
+defineExpose({ refreshPreviews })
 
 /** 读取分组加载状态。 */
 function isSectionLoading(section) {
@@ -251,15 +271,31 @@ function openCategoryProducts(category) {
   emit('category', category.id)
 }
 
-/** 分类或活跃状态变化时清理旧预览，迟到报价不能重新出现。 */
-watch(() => [props.categories, props.active], () => {
- generation++; productsByCategory.value = {}; loadingByCategory.value = {}; loadedCategoryIds.value = {}
- if (!props.categories.length) return
- const secondary = activeSecondaryId.value
- setActiveRoot(props.categories.find(item => isSameId(item.id, activeRootId.value)) || props.categories[0])
- if (secondaryCategories.value.some(item => isSameId(item.id, secondary))) activeSecondaryId.value = secondary
- if (props.active) loadProductPreviews(categorySections.value)
+/** 分类树更换时使旧授权预览失效，仍存在的选中分类保留。 */
+watch(() => props.categories, () => {
+  generation++
+  previewRequests.clear()
+  productsByCategory.value = {}; loadingByCategory.value = {}; loadedCategoryIds.value = {}
+  const root = props.categories.find(item => isSameId(item.id, activeRootId.value))
+  if (!root) setActiveRoot(props.categories[0])
+  else if (!secondaryCategories.value.some(item => isSameId(item.id, activeSecondaryId.value))) {
+    activeSecondaryId.value = secondaryCategories.value[0]?.id ?? root.id
+    resetContentScroll()
+  }
+  if (props.active) loadProductPreviews(categorySections.value)
 }, { immediate: true })
+/** 隐藏暂停后续批次；已受理请求可以完成，重新激活复用成功结果。 */
+watch(() => props.active, async active => {
+  if (!active) return
+  const version = generation
+  const target = lastContentScrollTop
+  restoringContentScroll = true
+  contentScrollTop.value = target === 0 ? 1 : 0
+  await nextTick()
+  if (props.active && version === generation) contentScrollTop.value = target
+  restoringContentScroll = false
+  if (props.active) loadProductPreviews(categorySections.value)
+})
 watch(categorySections, sections => { if (props.active) loadProductPreviews(sections) }, { flush: 'post' })
 onBeforeUnmount(() => { generation++ })
 </script>

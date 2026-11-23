@@ -7,26 +7,26 @@
     <template #content>
       <AppContent width-mode="standard" padding="16px var(--page-padding-x,16px) 28px" :refresher-enabled="true" :refresher-triggered="isRefreshing" @refresherrefresh="handleRefresh" @refresherrestore="handleRefresherRestore" @refresherabort="handleRefresherRestore" @scrolltolower="loadMore">
         <view class="inventory-wrap">
-          <view class="result-head"><text>{{ t('account.inventory.productTotalLabel', { count: totalCount }) }}</text><AppButton v-if="canApplyAfterSale" size="sm" variant="ghost" class="batch-toggle" @tap="toggleSelecting">{{ t(selecting ? 'account.inventory.finishSelection' : 'account.inventory.batchReturn') }}</AppButton></view>
-          <text v-if="selecting" class="selection-hint">{{ t('account.inventory.selectHint') }}</text>
+          <view class="result-head"><text>{{ t('account.inventory.productTotalLabel', { count: totalCount }) }}</text><AppButton v-if="showAfterSaleEntry && canApplyAfterSale" size="sm" variant="ghost" class="batch-toggle" @tap="toggleSelecting">{{ t(selectionVisible ? 'account.inventory.finishSelection' : 'account.inventory.batchReturn') }}</AppButton></view>
+          <text v-if="selectionVisible" class="selection-hint">{{ t('account.inventory.selectHint') }}</text>
           <AppPageState :state="pageState" :action-text="pageState === PageStatus.ERROR ? t('account.inventory.reload') : ''" :title="pageState === PageStatus.ERROR ? t('account.inventory.readFailed') : t('account.inventory.empty')" :description="pageState === PageStatus.ERROR ? loadError : t('account.inventory.emptyHint')" @retry="reload" @action="reload">
             <view class="spu-list">
               <view v-for="product in items" :key="product.productId" class="spu-card">
                 <view class="spu-main" role="button" tabindex="0" :aria-expanded="Boolean(variants[product.productId]?.expanded)" hover-class="inventory-pressed" @tap="toggleProduct(product)" @keydown.enter="toggleProduct(product)">
                   <AppProductImage class="spu-image" :src="product.imageUrl" mode="aspectFit" />
-                  <view class="stock-copy"><text class="spu-name">{{ product.productName || t('account.inventory.unnamed') }}</text><text class="sku-code">{{ t('account.inventory.variantCount', { count: product.skuCount }) }}</text><text v-if="selectedFor(product.productId)" class="selected-mark">{{ t('account.inventory.selected') }} {{ selectedFor(product.productId) }}</text></view>
+                  <view class="stock-copy"><text class="spu-name">{{ product.productName || t('account.inventory.unnamed') }}</text><text class="sku-code">{{ t('account.inventory.variantCount', { count: product.skuCount }) }}</text><text v-if="selectionVisible && selectedFor(product.productId)" class="selected-mark">{{ t('account.inventory.selected') }} {{ selectedFor(product.productId) }}</text></view>
                   <view class="spu-quantity"><text>{{ t('account.inventory.currentAvailable') }}</text><text>{{ formatQty(product.availableQuantity) }}</text><text>{{ product.unit }}</text></view>
                 </view>
                 <view class="spu-bottom"><view class="spu-facts"><text>{{ t('account.inventory.physicalStock') }} <text>{{ formatQty(product.onHandQuantity) }}</text></text><text>{{ t('account.inventory.reserved') }} <text>{{ formatQty(product.reservedQuantity) }}</text></text></view><button class="expand-control" :aria-expanded="Boolean(variants[product.productId]?.expanded)" @tap="toggleProduct(product)"><text>{{ t(variants[product.productId]?.expanded ? 'account.inventory.collapse' : 'account.inventory.expand') }}</text><AppIcon :name="variants[product.productId]?.expanded ? 'chevron-up' : 'chevron-down'" :size="14" /></button></view>
                 <view v-if="variants[product.productId]?.expanded" class="sku-panel">
                   <view v-for="sku in variants[product.productId].items" :key="sku.skuId" class="variant-row">
-                    <view class="variant-main" hover-class="inventory-pressed" :role="selecting ? 'checkbox' : 'button'" :aria-checked="selecting ? isSelected(sku.skuId) : undefined" tabindex="0" @keydown.enter="selecting ? toggleSku(sku) : openDetail(sku.skuId)" @tap="selecting ? toggleSku(sku) : openDetail(sku.skuId)">
-                      <view v-if="selecting" class="select-circle" :class="{ checked: isSelected(sku.skuId), disabled: sku.availableQuantity <= 0 }"><AppIcon v-if="isSelected(sku.skuId)" name="check" :size="14" color="#fff" /></view>
+                    <view class="variant-main" hover-class="inventory-pressed" :role="selectionVisible ? 'checkbox' : 'button'" :aria-checked="selectionVisible ? isSelected(sku.skuId) : undefined" tabindex="0" @keydown.enter="selectionVisible ? toggleSku(sku) : openDetail(sku.skuId)" @tap="selectionVisible ? toggleSku(sku) : openDetail(sku.skuId)">
+                      <view v-if="selectionVisible" class="select-circle" :class="{ checked: isSelected(sku.skuId), disabled: sku.availableQuantity <= 0 }"><AppIcon v-if="isSelected(sku.skuId)" name="check" :size="14" color="#fff" /></view>
                       <view class="variant-copy"><text class="variant-name">{{ [sku.colorName, sku.sizeName].filter(Boolean).join(' / ') || sku.skuName }}</text><text class="sku-code">{{ sku.skuCode || ('SKU ' + sku.skuId) }}</text></view>
                       <view class="variant-stock"><text>{{ t('account.inventory.currentAvailable') }}</text><text>{{ formatQty(sku.availableQuantity) }} {{ sku.unit }}</text></view>
-                      <AppIcon v-if="!selecting" name="chevron-right" :size="14" color="#9BA3AE" />
+                      <AppIcon v-if="!selectionVisible" name="chevron-right" :size="14" color="#9BA3AE" />
                     </view>
-                    <view v-if="selecting && isSelected(sku.skuId)" class="variant-edit"><text>{{ t('account.inventory.returnQuantity') }}</text><view class="quantity-control"><button class="step-button" :disabled="draft.state.pendingIntent || selectedQuantity(sku.skuId) <= 1" @tap="setQuantity(sku, selectedQuantity(sku.skuId)-1)">−</button><input type="number" class="quantity-input" :disabled="Boolean(draft.state.pendingIntent)" :value="selectedQuantity(sku.skuId)" @input="setQuantity(sku, $event.detail.value)" /><button class="step-button" :disabled="selectedQuantity(sku.skuId) >= sku.availableQuantity" @tap="setQuantity(sku, selectedQuantity(sku.skuId)+1)">＋</button></view></view>
+                    <view v-if="selectionVisible && isSelected(sku.skuId)" class="variant-edit"><text>{{ t('account.inventory.returnQuantity') }}</text><view class="quantity-control"><button class="step-button" :disabled="draft.state.pendingIntent || selectedQuantity(sku.skuId) <= 1" @tap="setQuantity(sku, selectedQuantity(sku.skuId)-1)">−</button><input type="number" class="quantity-input" :disabled="Boolean(draft.state.pendingIntent)" :value="selectedQuantity(sku.skuId)" @input="setQuantity(sku, $event.detail.value)" /><button class="step-button" :disabled="selectedQuantity(sku.skuId) >= sku.availableQuantity" @tap="setQuantity(sku, selectedQuantity(sku.skuId)+1)">＋</button></view></view>
                   </view>
                   <AppLoadMore v-if="variants[product.productId].loading || variants[product.productId].error || variants[product.productId].items.length < variants[product.productId].total" :status="variants[product.productId].error ? 'error' : variants[product.productId].loading ? 'loading' : 'idle'" @retry="loadVariants(product)" />
                   <button v-if="!variants[product.productId].loading && !variants[product.productId].error && variants[product.productId].items.length < variants[product.productId].total" class="more-variants" @tap="loadVariants(product)">{{ t('account.inventory.moreVariants') }}</button>
@@ -38,12 +38,14 @@
         </view>
       </AppContent>
     </template>
-    <template v-if="canApplyAfterSale && (selecting || draft.state.items.length)" #footer>
+    <template v-if="showAfterSaleEntry && canApplyAfterSale && (selectionVisible || draft.state.items.length)" #footer>
       <FixedActionBar><view class="selection-total"><text>{{ selectedSummary }}</text><text v-if="draft.state.items.length && !draft.state.pendingIntent" class="link-text" @tap="draft.clear()">{{ t('account.inventory.clearSelection') }}</text></view><AppButton class="review-selection" :disabled="!draft.state.items.length" @tap="reviewSelection">{{ t('account.inventory.reviewSelection') }}</AppButton></FixedActionBar>
     </template>
   </AppPageShell>
 </template>
 <script setup>
+import { waitForPaginationResult } from '@/shared/utils/refreshAnimation.js'
+
 import { useSystemFeatures } from '@/shared/composables/useSystemFeatures.js'
 const { afterSaleEnabled } = useSystemFeatures()
 import { computed, reactive, ref } from 'vue'
@@ -74,6 +76,9 @@ const owner = () => String(userStore.dealerId || '') + ':' + String(userStore.us
 let draft = useInventoryReturnDraft(owner())
 const tabs = computed(() => [{ key:'all',label:t('account.inventory.all') },{ key:'available',label:t('account.inventory.availableSku') },{ key:'low',label:t('account.inventory.low') },{ key:'out',label:t('account.inventory.outSku') }])
 const items=ref([]), totalCount=ref(0), pageNum=ref(1), pageSize=16, variants=reactive({}), selecting=ref(false)
+// 当前只隐藏库存售后申请入口，权限、申请页和既有草稿逻辑保持。
+const showAfterSaleEntry = false
+const selectionVisible = computed(() => showAfterSaleEntry && selecting.value)
 const keywordInput=ref(''),keyword=ref(''),activeTab=ref('all'),pageState=ref(PageStatus.LOADING),loadFailure=ref(null)
 const loadingMore=ref(false),loadMoreError=ref(false),isRefreshing=ref(false),hasMore=ref(false)
 const activeTabLabel=computed(()=>tabs.value.find(item=>item.key===activeTab.value)?.label || '')
@@ -97,7 +102,7 @@ async function reload(){
 async function loadMore(){
  if(!hasMore.value||loadingMore.value||pageState.value!==PageStatus.CONTENT)return
  const token=generation,next=pageNum.value+1;loadingMore.value=true
- try{const result=await getDealerInventoryProducts({pageNum:next,pageSize,keyword:keyword.value,stockStatus:activeTab.value});if(disposed||token!==generation)return;pageNum.value=next;applyResult(result,true);loadMoreError.value=false}
+ try{const result=await waitForPaginationResult(getDealerInventoryProducts({pageNum:next,pageSize,keyword:keyword.value,stockStatus:activeTab.value}), true);if(disposed||token!==generation)return;pageNum.value=next;applyResult(result,true);loadMoreError.value=false}
  catch(error){if(!disposed&&token===generation)loadMoreError.value=true}
  finally{if(token===generation)loadingMore.value=false}
 }
@@ -115,7 +120,7 @@ async function loadVariants(product){
  const group=variants[product.productId];if(!group||group.loading)return
  const token=generation,next=group.page+1;group.loading=true;group.error=false
  try{
-  const result=await getDealerInventoryList({productId:product.productId,pageNum:next,pageSize:20,keyword:keyword.value,stockStatus:activeTab.value})
+  const result=await waitForPaginationResult(getDealerInventoryList({productId:product.productId,pageNum:next,pageSize:20,keyword:keyword.value,stockStatus:activeTab.value}), next > 1)
   if(disposed||token!==generation||variants[product.productId]!==group)return
   group.items=[...new Map([...group.items,...result.items].map(item=>[item.skuId,item])).values()];group.page=next;group.total=result.totalCount
  }catch(error){if(!disposed&&token===generation)group.error=true}finally{if(token===generation)group.loading=false}
