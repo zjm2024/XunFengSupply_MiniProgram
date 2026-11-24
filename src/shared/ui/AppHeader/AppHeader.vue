@@ -211,6 +211,16 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  /** 自定义背景纯色，支持rgba；不设置时保持既有默认背景。 */
+  backgroundColor: { type: String, default: '' },
+  /** 完整CSS背景，支持渐变；优先于backgroundColor，transparent开启时两者均隐藏。 */
+  background: { type: String, default: '' },
+  /** 标题、图标和操作文字的自定义前景色；不设置时沿用theme。 */
+  foregroundColor: { type: String, default: '' },
+  /** 返回与右侧图标按钮的背景，支持透明色。 */
+  buttonBackgroundColor: { type: String, default: '' },
+  /** 开启showShadow时的底部分隔色。 */
+  dividerColor: { type: String, default: '' },
   /** 显示底部阴影 */
   showShadow: {
     type: Boolean,
@@ -299,7 +309,16 @@ const titleStyle = computed(() => {
 // ==================== 样式对象 ====================
 
 const headerStyle = computed(() => ({
-  backgroundColor: props.transparent ? 'transparent' : 'var(--surface-page, #F4F5F8)',
+  background: props.transparent ? 'transparent' : (props.background || props.backgroundColor || 'var(--surface-page, #F4F5F8)'),
+  ...(props.foregroundColor ? { '--app-header-foreground': props.foregroundColor } : {}),
+  ...(props.buttonBackgroundColor ? { '--app-header-button-background': props.buttonBackgroundColor } : {}),
+  ...(props.dividerColor ? { '--app-header-divider': props.dividerColor } : {}),
+}))
+
+/** 返回按钮也应用自定义颜色，不能只改变标题而留下白色按钮底。 */
+const backButtonStyle = computed(() => ({
+  ...(props.foregroundColor ? { color: props.foregroundColor } : {}),
+  ...(props.buttonBackgroundColor ? { backgroundColor: props.buttonBackgroundColor, boxShadow: 'none' } : {}),
 }))
 
 const navBarStyle = computed(() => ({
@@ -384,17 +403,17 @@ onUnmounted(() => {
 .app-header {
   position: relative;
   z-index: 100;
-  color: #4f545c;
+  color: var(--app-header-foreground, #4f545c);
   background: var(--surface-page, #F4F5F8);
   flex-shrink: 0;
 
   &.theme-light {
-    color: #FFFFFF;
+    color: var(--app-header-foreground, #FFFFFF);
 
     .title-text,
     .supplier-text,
     .lang-text {
-      color: #FFFFFF;
+      color: var(--app-header-foreground, #FFFFFF);
       text-shadow: 0 1px 4px rgba(17, 18, 22, 0.28);
     }
   }
@@ -404,7 +423,7 @@ onUnmounted(() => {
   }
 
   &.has-shadow {
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: 1px solid var(--app-header-divider, rgba(0, 0, 0, 0.06));
   }
 
   // 宽屏时居中并限制最大宽度
@@ -519,7 +538,7 @@ onUnmounted(() => {
 .logo-text {
   font-size: var(--type-section-title-size, 18px);
   font-weight: var(--font-weight-bold, 700);
-  color: var(--primary-color, #D7192D);
+  color: var(--app-header-foreground, var(--primary-color, #D7192D));
   letter-spacing: -1px;
 }
 
@@ -540,7 +559,7 @@ onUnmounted(() => {
   font-size: var(--type-header-title-size, 17px);
   font-weight: var(--font-weight-semibold, 600);
   line-height: var(--type-header-title-line-height, 24px);
-  color: var(--text-primary, #1B1C20);
+  color: var(--app-header-foreground, var(--text-primary, #1B1C20));
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
@@ -558,8 +577,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  color: #4f545c;
-  background: rgba(231, 232, 235, 0.78);
+  color: var(--app-header-foreground, #4f545c);
+  background: var(--app-header-button-background, rgba(231, 232, 235, 0.78));
 }
 
 .header-button--pressed {
@@ -588,7 +607,7 @@ onUnmounted(() => {
 .supplier-text {
   font-size: var(--type-body-small-size, 13px);
   font-weight: var(--font-weight-medium, 500);
-  color: #4f545c;
+  color: var(--app-header-foreground, #4f545c);
 }
 
 // ==================== 语言切换 ====================
@@ -596,7 +615,7 @@ onUnmounted(() => {
 .lang-text {
   font-size: var(--type-body-small-size, 13px);
   font-weight: var(--font-weight-semibold, 600);
-  color: #4f545c;
+  color: var(--app-header-foreground, #4f545c);
 }
 
 // ==================== 购物车数量徽章 ====================
@@ -637,7 +656,7 @@ onUnmounted(() => {
   padding: 0 8px;
   border: 0;
   border-radius: var(--radius-control, 10px);
-  color: var(--color-text-primary, #1B1C20);
+  color: var(--app-header-foreground, var(--color-text-primary, #1B1C20));
   background: transparent;
   font-size: var(--type-body-size, 14px);
   font-weight: var(--font-weight-semibold, 600);
@@ -649,6 +668,13 @@ onUnmounted(() => {
 .header-action[disabled] {
   color: var(--color-text-disabled, #B8BBC2);
 }
+
+.app-header.theme-light .icon-btn {
+  color: var(--app-header-foreground, #fff);
+  background: var(--app-header-button-background, rgba(255, 255, 255, .1));
+}
+.app-header.theme-light .header-action { color: var(--app-header-foreground, #fff); }
+.app-header.theme-light .header-action[disabled] { color: var(--color-text-disabled, #B8BBC2); }
 
 // ==================== 响应式适配 ====================
 

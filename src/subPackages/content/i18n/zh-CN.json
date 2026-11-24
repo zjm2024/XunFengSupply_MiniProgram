@@ -1,6 +1,7 @@
 {
   "titles": {
-    "about": "关于我们",
+    "company": "关于我们",
+    "about": "关于 App",
     "help": "帮助中心",
     "manual": "产品手册",
     "manualPreview": "产品手册预览",
@@ -153,6 +154,8 @@
     "openFeedback": "打开：{name}"
   },
   "about": {
+    "loadFailed": "公司介绍加载失败，请重试",
+    "empty": "暂无公司介绍",
     "slogan": "专业 · 品质 · 创新",
     "version": "当前版本",
     "company": "公司简介",
@@ -196,5 +199,25 @@
     "previewPreparing": "正在准备页面 {ready}/{count}，请保持阅读器打开直到页面就绪",
     "previewPartialShort": "部分就绪",
     "previewPreparingShort": "准备 {ready}/{count}"
+  },
+  "appAbout": {
+    "brandName": "薰风",
+    "slogan": "专业 · 品质 · 创新",
+    "appName": "薰风经销商采购平台",
+    "checkUpdates": "检查更新",
+    "currentVersion": "当前版本 {version}",
+    "checking": "正在检查更新…",
+    "upToDate": "当前已是最新版本",
+    "nativeOnly": "请在 Android 或 iOS App 内检查更新",
+    "checkFailed": "检查更新失败，请重试",
+    "invalidVersion": "无法读取有效的应用版本",
+    "invalidResponse": "更新服务返回的版本信息无效",
+    "available": "发现新版本 {version}",
+    "install": "立即更新",
+    "company": "公司介绍",
+    "agreement": "用户协议",
+    "privacy": "隐私政策",
+    "copyright": "© {year} 广州市速波体育用品有限公司",
+    "rights": "All Rights Reserved."
   }
 }

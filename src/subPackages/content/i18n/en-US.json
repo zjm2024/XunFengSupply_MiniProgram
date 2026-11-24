@@ -1,6 +1,7 @@
 {
   "titles": {
-    "about": "About us",
+    "company": "About us",
+    "about": "About App",
     "help": "Help center",
     "manual": "Product manuals",
     "manualPreview": "Manual preview",
@@ -153,6 +154,8 @@
     "openFeedback": "Open: {name}"
   },
   "about": {
+    "loadFailed": "Unable to load company information. Please retry.",
+    "empty": "No company information available",
     "slogan": "Expertise · Quality · Innovation",
     "version": "Current version",
     "company": "About the company",
@@ -196,5 +199,25 @@
     "previewPreparing": "Preparing pages {ready}/{count}. Keep this reader open until ready.",
     "previewPartialShort": "Partial",
     "previewPreparingShort": "Ready {ready}/{count}"
+  },
+  "appAbout": {
+    "brandName": "KUMPOO",
+    "slogan": "Professional · Quality · Innovation",
+    "appName": "KUMPOO Dealer Purchasing Platform",
+    "checkUpdates": "Check for updates",
+    "currentVersion": "Current version {version}",
+    "checking": "Checking for updates…",
+    "upToDate": "You are on the latest version",
+    "nativeOnly": "Check for updates in the Android or iOS app",
+    "checkFailed": "Unable to check for updates. Please try again.",
+    "invalidVersion": "Unable to read a valid app version",
+    "invalidResponse": "The update service returned invalid version information",
+    "available": "Version {version} is available",
+    "install": "Update now",
+    "company": "Company introduction",
+    "agreement": "User agreement",
+    "privacy": "Privacy policy",
+    "copyright": "© {year} 广州市速波体育用品有限公司",
+    "rights": "All Rights Reserved."
   }
 }

@@ -458,6 +458,10 @@
                     }
                 },
                 {
+                    "path": "pages/company/index",
+                    "style": { "navigationBarTitleText": "" }
+                },
+                {
                     "path": "pages/about/index",
                     "style": {
                         "navigationStyle": "custom",

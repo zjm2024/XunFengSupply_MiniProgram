@@ -97,6 +97,7 @@ export const MESSAGE = '/subPackages/content/pages/message/index'
 export const MESSAGE_LIST = '/subPackages/content/pages/message/list'
 export const MESSAGE_DETAIL = '/subPackages/content/pages/message/detail'
 export const HELP = '/subPackages/content/pages/help/index'
+export const COMPANY = '/subPackages/content/pages/company/index'
 export const ABOUT = '/subPackages/content/pages/about/index'
 
 // ==================== share：独立公开H5/分享分包 ====================
@@ -119,7 +120,7 @@ export const REGISTERED_ROUTES = Object.freeze([
   ACCOUNT_CENTER, ACCOUNT_PROFILE, ADDRESS, ADDRESS_FORM, SUB_ACCOUNT, SUB_ACCOUNT_FORM,
   DEALER_INVENTORY, DEALER_INVENTORY_DETAIL, DEALER_INVENTORY_OVERVIEW, DEALER_INVENTORY_LEDGER, SECURITY,
   FUND_CENTER, RECHARGE, RECHARGE_RECORDS, FUND_FLOW, CREDIT_FLOW, BILL_LIST, BILL_DETAIL, INVOICE, INVOICE_TITLES, WITHDRAWAL, WITHDRAWAL_BANK_CARDS, VOUCHER, LANGUAGE, SETTINGS, NOTIFICATION_SETTINGS,
-  NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MANUAL_PDF_PREVIEW, MESSAGE, MESSAGE_LIST, MESSAGE_DETAIL, HELP, ABOUT,
+  NEWS, NEWS_DETAIL, MANUAL, MANUAL_PREVIEW, MANUAL_PDF_PREVIEW, MESSAGE, MESSAGE_LIST, MESSAGE_DETAIL, HELP, ABOUT, COMPANY,
 ])
 
 // ==================== 内部集合（用于高效查询）====================
@@ -531,10 +532,17 @@ export const ROUTE_META = Object.freeze({
     owner: null,
   },
   [ABOUT]: {
-    title: '关于我们',
+    title: '关于 App',
     requireAuth: true,
     requireSign: false,
     allowFrozen: true,
+    owner: null,
+  },
+  [COMPANY]: {
+    title: '关于我们',
+    requireAuth: true,
+    requireSign: false,
+    allowFrozen: false,
     owner: null,
   },
 })
@@ -864,6 +872,7 @@ export const routes = {
     },
     help: () => HELP,
     about: () => ABOUT,
+    company: () => COMPANY,
   },
 }
 

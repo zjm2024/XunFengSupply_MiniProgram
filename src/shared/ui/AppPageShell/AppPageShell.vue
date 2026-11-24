@@ -10,7 +10,7 @@
   - 底部安全区
 -->
 <template>
-  <view class="app-page-shell" :class="[`breakpoint-${layout.breakpoint}`, { 'is-landscape': layout.isLandscape }]">
+  <view class="app-page-shell" :class="[`breakpoint-${layout.breakpoint}`, { 'is-landscape': layout.isLandscape, 'has-overlay-header': headerOverlay }]" :style="shellStyle">
     <!-- 标题栏插槽 -->
     <view class="shell-header">
       <slot name="header"></slot>
@@ -40,9 +40,17 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import { useResponsive } from '../../composables/useResponsive.js'
 import ConfirmHost from '../ConfirmPopup/ConfirmHost.vue'
 
+const props = defineProps({
+  /** 标题悬浮在内容独立上层；默认保留标题占位和现有业务页布局。 */
+  headerOverlay: { type: Boolean, default: false },
+  /** 页面底色同时覆盖顶部/底部安全区，透明标题栏可透出页面底色。 */
+  backgroundColor: { type: String, default: '' },
+})
+const shellStyle = computed(() => props.backgroundColor ? { backgroundColor: props.backgroundColor } : {})
 const { layout, safeArea } = useResponsive()
 </script>
 
@@ -73,10 +81,19 @@ const { layout, safeArea } = useResponsive()
 }
 
 .shell-content-wrapper {
+  z-index: 0;
+  isolation: isolate;
   flex: 1;
   min-height: 0;
   overflow: hidden;
   position: relative;
+}
+
+.has-overlay-header > .shell-header {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
 }
 
 .shell-footer {

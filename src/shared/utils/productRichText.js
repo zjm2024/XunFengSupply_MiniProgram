@@ -26,7 +26,9 @@ export function normalizeDetailHtml(value) {
     .replace(/javascript\s*:/gi, '')
 
   return html.replace(/<img\b([^>]*)\/?\s*>/gi, (_tag, attributes = '') => {
+    // 自闭合标记只能放在全部属性之后，不能跟随原属性一起拼到新style前。
     const safeAttributes = attributes
+      .replace(/\/\s*$/, '')
       .replace(/\s(?:style|width|height)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
       .trim()
     const prefix = safeAttributes ? ` ${safeAttributes}` : ''

@@ -96,7 +96,7 @@ async function openNews(item) {
 
 /** 资讯品牌入口复用现有关于我们路由和导航守卫。 */
 async function openAbout() {
-  await navigator.navigateTo(routes.content.about())
+  await navigator.navigateTo(routes.content.company())
 }
 
 async function openNewsList() {
