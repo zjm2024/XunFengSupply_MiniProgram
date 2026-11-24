@@ -1,5 +1,12 @@
 <template>
-  <view class="app-product-image" :class="{ 'is-out-of-stock': isUnavailable }">
+  <view
+    class="app-product-image"
+    :class="{
+      'is-out-of-stock': isUnavailable,
+      'is-width-fix': mode === 'widthFix',
+      'is-width-fix-pending': mode === 'widthFix' && (!hasImageSource || imageFailed || isLoading),
+    }"
+  >
     <image
       v-if="hasImageSource && !imageFailed"
       :key="displaySrc"
@@ -133,6 +140,11 @@ async function handleImageError() {
   }
 }
 
+/* 自然比例封面不继承商品格的满高；仅未就绪时保留可见占位。 */
+.app-product-image.is-width-fix .app-product-image__source { height: auto; }
+.app-product-image.is-width-fix-pending { min-height: 160px; }
+.app-product-image.is-width-fix .app-product-image__fallback { min-height: 160px; }
+
 .app-product-image__loading {
   position: absolute;
   top: 0;
@@ -172,23 +184,24 @@ async function handleImageError() {
   to { transform: rotate(360deg); }
 }
 
+/* 参考用户截图：图片淡化但保留原色，状态条仅位于图片底部。 */
 .app-product-image__stock-badge {
   position: absolute;
   z-index: 2;
   bottom: 0;
   left: 0;
   right: 0;
-  padding: 5px 3px;
-  text-align: center;
+  padding: 4px 3px;
   box-sizing: border-box;
-  color: #fff;
+  color: rgba(255, 255, 255, 0.96);
+  background: rgba(28, 30, 34, 0.62);
   font-size: var(--type-caption-size, 12px);
   font-weight: var(--font-weight-semibold, 600);
-  line-height: 1;
-  background: rgba(65, 68, 75, 0.72);
+  line-height: 16px;
+  text-align: center;
+  overflow-wrap: break-word;
 }
-.app-product-image.is-out-of-stock .app-product-image__source {
-  filter: grayscale(1);
-  opacity: 0.55;
+.app-product-image.is-out-of-stock .app-product-image__source:not(.is-loading) {
+  opacity: 0.60;
 }
 </style>

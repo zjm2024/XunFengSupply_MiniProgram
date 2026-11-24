@@ -134,7 +134,7 @@ onBeforeUnmount(()=>{clearTimeout(saveTimer);persistAddress();alive=false;revisi
 .section-card, .fulfillment-card, .products-card, .options-card, .detail-card, .summary-card {
   border: 0 !important;
   background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  box-shadow: none;
   -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
   backdrop-filter: var(--glass-card-blur, blur(16px));
 }

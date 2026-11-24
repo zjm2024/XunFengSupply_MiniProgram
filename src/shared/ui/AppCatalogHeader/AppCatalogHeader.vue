@@ -40,6 +40,7 @@
               :placeholder="placeholder ?? t('common.search.placeholder')"
 
               :focus="autoFocus"
+              :maxlength="keywordMaxlength"
               confirm-type="search"
               @input="handleKeywordInput"
               @confirm="$emit('search')"
@@ -77,6 +78,7 @@
           </view>
 
           <view
+            v-if="showFilter"
             class="quick-sort-item filter-entry"
             :class="{ 'is-active': filterCount > 0 }"
             hover-class="quick-sort-item--pressed"
@@ -94,7 +96,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { t } from '@/shared/i18n/index.js'
 import AppBackButton from '../AppBackButton/AppBackButton.vue'
 import AppIcon from '../AppIcon/AppIcon.vue'
@@ -116,6 +118,10 @@ const props = defineProps({
   toolsCollapsed: { type: Boolean, default: false },
   showSort: { type: Boolean, default: true },
   sortKeys: { type: Array, default: null },
+  /** 专区仅提供其接口支持的排序，不扩大查询范围。 */
+  sortItems: { type: Array, default: null },
+  showFilter: { type: Boolean, default: true },
+  keywordMaxlength: { type: Number, default: undefined },
   showResultCount: { type: Boolean, default: false },
   showCart: { type: Boolean, default: true },
   cartCount: { type: Number, default: 0 },
@@ -151,12 +157,14 @@ watch(() => props.keyword, value => {
   editingKeyword.value = value || ''
 })
 
-const quickSortItems = Object.freeze([
+const DEFAULT_QUICK_SORT_ITEMS = Object.freeze([
   { key: 'default', labelKey: 'common.search.sortDefault' },
   { key: 'latest', labelKey: 'common.search.sortLatest' },
   { key: 'price', labelKey: 'common.search.sortPrice', directional: true },
   { key: 'stock', labelKey: 'common.search.sortStock', directional: true },
 ])
+
+const quickSortItems = computed(() => props.sortItems || DEFAULT_QUICK_SORT_ITEMS)
 
 function handleKeywordInput(event) {
   const value = event?.detail?.value ?? ''

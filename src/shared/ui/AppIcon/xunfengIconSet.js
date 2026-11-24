@@ -95,6 +95,7 @@ const coreIconPaths = Object.freeze({
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.5h.01"/>',
   clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
   lock: '<rect x="4" y="10" width="16" height="11" rx="2.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14.5v2"/>',
+  'book-open': '<path d="M12 5.5C9 3.5 5.5 3 2 4v15c3.5-1 7-.5 10 1.5 3-2 6.5-2.5 10-1.5V4c-3.5-1-7-.5-10 1.5zM12 5.5v15"/>',
   download: '<path d="M12 3v11M8 10l4 4 4-4M4 17v3h16v-3"/>',
   check: '<path d="m5 12.5 4.2 4.2L19 7"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',

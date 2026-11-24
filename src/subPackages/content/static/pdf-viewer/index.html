@@ -8,10 +8,12 @@
   </head>
   <body>
     <header class="viewer-header">
-      <button id="backButton" type="button" aria-label="返回">‹</button>
+      <button id="backButton" type="button" aria-label="返回">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><polyline points="15 18 9 12 15 6" /></svg>
+      </button>
       <div class="viewer-title">产品手册</div>
-      <div id="progressText" class="viewer-progress">准备中</div>
     </header>
+    <div id="progressText" class="viewer-progress" role="status" aria-live="polite">准备中</div>
     <div id="cacheStatus" class="cache-status" role="status" aria-live="polite" hidden></div>
     <nav id="zoomToolbar" class="zoom-toolbar" hidden>
       <button id="zoomOut" type="button">−</button>

@@ -1,5 +1,14 @@
 <template>
   <view class="tab-page">
+    <view class="about-banner" hover-class="about-banner--pressed" role="button" tabindex="0" :aria-label="t('main.news.aboutTitle')" @click="openAbout" @keydown.enter="openAbout" @keydown.space.prevent="openAbout">
+      <text class="about-banner-watermark" aria-hidden="true">KUMPOO</text>
+      <view class="about-banner-copy">
+        <view class="about-banner-eyebrow"><view class="about-banner-accent" /><text class="about-banner-kicker">BRAND STORY</text></view>
+        <text class="about-banner-title">TEAM KUMPOO</text>
+        <text class="about-banner-description">{{ t('main.news.aboutDescription') }}</text>
+      </view>
+      <view class="about-banner-button" aria-hidden="true"><text>{{ t('main.news.aboutAction') }}</text><text class="about-banner-arrow">↗</text></view>
+    </view>
     <AppPageState v-if="loading" state="loading" />
 
     <view v-else-if="newsItems.length" class="news-grid">
@@ -70,9 +79,9 @@ async function loadNews() {
   try {
     const result = await getNewsList({
       pageNum: 1,
-      pageSize: 7,
+      pageSize: 8,
     })
-    newsItems.value = Array.isArray(result?.items) ? result.items.slice(0, 7) : []
+    newsItems.value = Array.isArray(result?.items) ? result.items : []
   } catch (error) {
     newsItems.value = []
     console.warn('[HomeNews] 资讯加载失败:', error)
@@ -85,12 +94,49 @@ async function openNews(item) {
   if (item?.id) await navigator.navigateTo(routes.content.newsDetail(item.id))
 }
 
+/** 资讯品牌入口复用现有关于我们路由和导航守卫。 */
+async function openAbout() {
+  await navigator.navigateTo(routes.content.about())
+}
+
 async function openNewsList() {
   await navigator.navigateTo(routes.content.news())
 }
 </script>
 
 <style lang="scss" scoped>
+.about-banner {
+  position: relative;
+  overflow: hidden;
+  min-height: 144px;
+  box-sizing: border-box;
+  margin-bottom: 20px;
+  padding: 22px 24px;
+  border-radius: 16px;
+  background: #191a1c;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .045), inset 0 -1px 0 rgba(0, 0, 0, .2);
+  color: #fff;
+  cursor: pointer;
+}
+.about-banner--pressed { opacity: .9; }
+.about-banner:focus-visible { outline: 2px solid var(--color-brand, #d7192d); outline-offset: 3px; }
+.about-banner-watermark { position: absolute; right: -10px; top: 12px; color: #fff; opacity: .04; font-family: 'Arial Black', 'Helvetica Neue', Arial, sans-serif; font-size: 100px; font-weight: 900; font-style: italic; letter-spacing: -6px; line-height: 1; pointer-events: none; }
+.about-banner-copy { position: relative; width: calc(100% - 164px); max-width: 500px; }
+.about-banner-eyebrow { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; }
+.about-banner-accent { width: 4px; height: 4px; flex: none; border-radius: 50%; background: var(--color-brand, #d7192d); }
+.about-banner-kicker { color: #a4a7ad; font-size: 10px; line-height: 1.4; letter-spacing: 1.8px; }
+.about-banner-title { display: block; font-family: 'Arial Black', 'Helvetica Neue', Arial, sans-serif; font-size: 30px; font-weight: 900; letter-spacing: -.7px; line-height: 1.1; }
+.about-banner-description { display: block; margin-top: 8px; font-size: 12px; line-height: 1.6; color: #b8bbc1; }
+.about-banner-button { position: absolute; right: 24px; bottom: 22px; display: flex; align-items: center; gap: 10px; min-height: 28px; color: #eeeff1; font-size: 12px; letter-spacing: .4px; }
+.about-banner-arrow { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; box-sizing: border-box; border: 1px solid rgba(255, 255, 255, .25); border-radius: 50%; font-size: 17px; font-weight: 400; line-height: 1; }
+@media screen and (max-width: 599px) {
+  .about-banner { min-height: 160px; padding: 18px 24px; }
+  .about-banner-copy { width: 100%; max-width: none; padding-bottom: 36px; }
+  .about-banner-title { font-size: 28px; }
+  .about-banner-watermark { top: 38px; right: -24px; font-size: 84px; }
+  .about-banner-button { bottom: 16px; }
+}
+
 .tab-page { width: 100%; min-height: 100%; margin: 0 auto; padding: 18px var(--page-content-gutter, 16px) 0; box-sizing: border-box; }
 .news-intro { display: flex; flex-direction: column; padding: 8px 2px 10px; }
 .news-kicker { color: var(--color-brand, #d7192d); font-size: var(--type-caption-size, 12px); font-weight: var(--font-weight-bold, 700); letter-spacing: 1.8px; }

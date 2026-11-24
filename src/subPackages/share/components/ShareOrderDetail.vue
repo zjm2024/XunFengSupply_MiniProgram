@@ -62,7 +62,7 @@ const statusDescription = computed(() => props.detail.order.orderStatus === 90 ?
 .payment-card { order: 1; }
 .goods-card { order: 2; }
 .order-info-card { order: 3; }
-.detail-card { min-width: 0; padding: var(--module-padding, 16px); border-radius: var(--radius-card, 14px); box-sizing: border-box; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); backdrop-filter: var(--glass-card-blur, blur(16px)); }
+.detail-card { min-width: 0; padding: var(--module-padding, 16px); border-radius: var(--radius-card, 14px); box-sizing: border-box; background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: none; backdrop-filter: var(--glass-card-blur, blur(16px)); }
 .card-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 10px; }
 .card-title { display: flex; align-items: center; gap: 8px; color: var(--type-title-color); font-size: var(--type-card-title-size, 16px); line-height: 24px; font-weight: var(--font-weight-semibold, 600); }
 .card-title::before { width: 3px; height: 16px; flex: 0 0 3px; border-radius: 2px; background: var(--color-brand, #D7192D); content: ''; }

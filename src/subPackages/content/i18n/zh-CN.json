@@ -91,7 +91,10 @@
     "preparingPdf": "正在准备 PDF 预览...",
     "pdfHint": "首次打开会按页面分片加载",
     "pdfFailed": "PDF 预览准备失败",
-    "updated": "更新于 {date}"
+    "updated": "更新于 {date}",
+    "updatedLabel": "更新日期",
+    "previewModeLabel": "查看方式",
+    "pdfPreviewMode": "PDF 预览"
   },
   "news": {
     "reload": "重新加载",

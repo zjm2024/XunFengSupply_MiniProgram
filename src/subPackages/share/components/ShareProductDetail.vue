@@ -69,8 +69,10 @@ function stockType(state) { return state === 'IN_STOCK' ? 'success' : state === 
 .media-card, .info-card, .size-recommendation-card, .section-card {
   border: 0 !important;
   background: var(--glass-card-background, rgba(255,255,255,.74)) !important;
-  box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07));
+  box-shadow: none;
   -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
   backdrop-filter: var(--glass-card-blur, blur(16px));
 }
+/* 导入的购买入口/促销卡也沿分享内容卡无投影。 */
+.single-purchase-entry, .promotion-card { box-shadow: none; }
 </style>

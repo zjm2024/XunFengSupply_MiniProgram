@@ -7,7 +7,7 @@
     <template #content>
       <AppContent width-mode="standard" padding="16px var(--page-padding-x,16px) 28px" :refresher-enabled="true" :refresher-triggered="isRefreshing" @refresherrefresh="handleRefresh" @refresherrestore="handleRefresherRestore" @refresherabort="handleRefresherRestore" @scrolltolower="loadMore">
         <view class="inventory-wrap">
-          <view class="result-head"><text>{{ t('account.inventory.productTotalLabel', { count: totalCount }) }}</text><AppButton v-if="showAfterSaleEntry && canApplyAfterSale" size="sm" variant="ghost" class="batch-toggle" @tap="toggleSelecting">{{ t(selectionVisible ? 'account.inventory.finishSelection' : 'account.inventory.batchReturn') }}</AppButton></view>
+          <view class="result-head"><text>{{ t('account.inventory.productTotalLabel', { count: totalCount }) }}</text><AppButton v-if="canApplyAfterSale" size="sm" variant="ghost" class="batch-toggle" @tap="toggleSelecting">{{ t(selectionVisible ? 'account.inventory.finishSelection' : 'account.inventory.batchReturn') }}</AppButton></view>
           <text v-if="selectionVisible" class="selection-hint">{{ t('account.inventory.selectHint') }}</text>
           <AppPageState :state="pageState" :action-text="pageState === PageStatus.ERROR ? t('account.inventory.reload') : ''" :title="pageState === PageStatus.ERROR ? t('account.inventory.readFailed') : t('account.inventory.empty')" :description="pageState === PageStatus.ERROR ? loadError : t('account.inventory.emptyHint')" @retry="reload" @action="reload">
             <view class="spu-list">
@@ -38,7 +38,7 @@
         </view>
       </AppContent>
     </template>
-    <template v-if="showAfterSaleEntry && canApplyAfterSale && (selectionVisible || draft.state.items.length)" #footer>
+    <template v-if="canApplyAfterSale && (selectionVisible || draft.state.items.length)" #footer>
       <FixedActionBar><view class="selection-total"><text>{{ selectedSummary }}</text><text v-if="draft.state.items.length && !draft.state.pendingIntent" class="link-text" @tap="draft.clear()">{{ t('account.inventory.clearSelection') }}</text></view><AppButton class="review-selection" :disabled="!draft.state.items.length" @tap="reviewSelection">{{ t('account.inventory.reviewSelection') }}</AppButton></FixedActionBar>
     </template>
   </AppPageShell>
@@ -76,9 +76,8 @@ const owner = () => String(userStore.dealerId || '') + ':' + String(userStore.us
 let draft = useInventoryReturnDraft(owner())
 const tabs = computed(() => [{ key:'all',label:t('account.inventory.all') },{ key:'available',label:t('account.inventory.availableSku') },{ key:'low',label:t('account.inventory.low') },{ key:'out',label:t('account.inventory.outSku') }])
 const items=ref([]), totalCount=ref(0), pageNum=ref(1), pageSize=16, variants=reactive({}), selecting=ref(false)
-// 当前只隐藏库存售后申请入口，权限、申请页和既有草稿逻辑保持。
-const showAfterSaleEntry = false
-const selectionVisible = computed(() => showAfterSaleEntry && selecting.value)
+// 开关或权限关闭后立即隐藏选择态，保留草稿供重新开放后核对。
+const selectionVisible = computed(() => canApplyAfterSale.value && selecting.value)
 const keywordInput=ref(''),keyword=ref(''),activeTab=ref('all'),pageState=ref(PageStatus.LOADING),loadFailure=ref(null)
 const loadingMore=ref(false),loadMoreError=ref(false),isRefreshing=ref(false),hasMore=ref(false)
 const activeTabLabel=computed(()=>tabs.value.find(item=>item.key===activeTab.value)?.label || '')

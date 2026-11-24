@@ -1,4 +1,7 @@
 :root {
+  /* 与AppHeader/AppBackButton的当前标准保持一致；独立窗体不继承宿主CSS变量。 */
+  --viewer-nav-height: 48px;
+  --viewer-nav-gutter: 16px;
   color-scheme: light;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   background: #f2f3f5;
@@ -6,7 +9,7 @@
 
 * { box-sizing: border-box; }
 html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: #f2f3f5; }
-body { display: flex; flex-direction: column; padding-top: calc(50px + env(safe-area-inset-top)); }
+body { --viewer-safe-top-effective: max(var(--viewer-safe-top, 0px), env(safe-area-inset-top, 0px)); display: flex; flex-direction: column; padding-top: calc(var(--viewer-nav-height) + var(--viewer-safe-top-effective)); }
 body.is-embedded { padding-top: 0; }
 body.is-embedded .viewer-header { display: none; }
 
@@ -17,32 +20,57 @@ body.is-embedded .viewer-header { display: none; }
   left: 0;
   right: 0;
   display: flex;
-  height: calc(50px + env(safe-area-inset-top));
-  align-items: flex-end;
-  justify-content: space-between;
-  padding: 0 12px env(safe-area-inset-top);
-  background: rgba(255, 255, 255, .96);
-  border-bottom: 1px solid #e5e7eb;
-  backdrop-filter: blur(10px);
+  height: calc(var(--viewer-nav-height) + var(--viewer-safe-top-effective));
+  align-items: center;
+  padding: var(--viewer-safe-top-effective) var(--viewer-nav-gutter) 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', 'HarmonyOS Sans SC', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Noto Sans SC', sans-serif;
+  padding-left: calc(var(--viewer-nav-gutter) + max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)));
+  color: var(--text-primary, #1B1C20);
+  background: var(--surface-page, #F2F3F5);
 }
 
 .viewer-header button {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  margin-bottom: 7px;
-  border: 0;
-  border-radius: 18px;
-  color: #24272d;
-  background: #f0f1f3;
-  font-size: 30px;
-  line-height: 30px;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  color: var(--type-title-color, #1B1C20);
+  background: var(--surface-card, #FFF);
+  box-shadow: var(--shadow-sm, 0 2px 10px rgba(17, 18, 22, .045));
+  cursor: pointer;
+  transition: opacity .16s ease, transform .16s ease, background-color .16s ease;
 }
+.viewer-header button svg { display: block; flex-shrink: 0; }
+.viewer-header button:active { opacity: .68; transform: scale(.95); }
+.viewer-title {
+  position: absolute;
+  top: calc(var(--viewer-safe-top-effective) + var(--viewer-nav-height) / 2);
+  left: 50%;
+  max-width: calc(100% - 120px);
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+  color: var(--text-primary, #1B1C20);
+  font-size: var(--type-header-title-size, 17px);
+  font-weight: var(--font-weight-semibold, 600);
+  line-height: var(--type-header-title-line-height, 24px);
+  text-align: center;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+/* 进度不占导航左右空间，长标题与缓存状态互不挤压。 */
+.viewer-progress { flex-shrink: 0; padding: 4px 12px; color: #8a919c; font-size: 11px; line-height: 16px; text-align: center; }
+body.is-embedded .viewer-progress { display: none; }
+body.is-embedded.is-native:not(.is-document) .viewer-progress { display: block; }
+@media (min-width: 600px) { :root { --viewer-nav-height: 52px; --viewer-nav-gutter: 24px; } }
 
-.viewer-title { padding-bottom: 15px; color: #22252a; font-size: 16px; font-weight: 700; }
-.viewer-progress { min-width: 36px; padding-bottom: 16px; color: #8a919c; font-size: 11px; text-align: right; }
 .pdf-pages { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; scroll-behavior: auto; display: flex; align-items: center; flex-direction: column; gap: 12px; padding: 12px 8px 28px; }
 .pdf-page { display: flex; width: 100%; flex-shrink: 0; min-height: 180px; align-items: center; justify-content: center; padding: 16px; background: #fff; box-shadow: 0 2px 10px rgba(40, 44, 52, .08); }
 .pdf-page canvas { display: block; max-width: 100%; height: auto; }
@@ -65,22 +93,10 @@ button:focus-visible { outline: 2px solid #d7192d; outline-offset: 3px; }
 
 /* APP原生子窗体不能由外层Vue覆盖；导航与PDF放在同一窗体，H5仍用宿主AppHeader。 */
 body.is-embedded.is-native:not(.is-document) {
-  padding-top: calc(52px + max(var(--viewer-safe-top, 0px), env(safe-area-inset-top, 0px)));
+  padding-top: calc(var(--viewer-nav-height) + var(--viewer-safe-top-effective));
   padding-bottom: max(var(--viewer-safe-bottom, 0px), env(safe-area-inset-bottom, 0px));
 }
-body.is-embedded.is-native:not(.is-document) .viewer-header {
-  display: flex;
-  align-items: center;
-  height: calc(52px + max(var(--viewer-safe-top, 0px), env(safe-area-inset-top, 0px)));
-  padding: max(var(--viewer-safe-top, 0px), env(safe-area-inset-top, 0px)) 12px 0;
-}
-.is-native .viewer-header button { margin-bottom: 0; flex-shrink: 0; }
-.is-native .viewer-title {
-  position: absolute; left: 64px; right: 64px;
-  padding-bottom: 0; text-align: center;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.is-native .viewer-progress { padding-bottom: 0; margin-left: auto; }
+body.is-embedded.is-native:not(.is-document) .viewer-header { display: flex; }
 .is-embedded.is-native:not(.is-document) .embedded-back { display: none; }
 .is-embedded.is-native:not(.is-document) .pdf-pages { padding-bottom: 28px; }
 

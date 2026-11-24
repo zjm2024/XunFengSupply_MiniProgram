@@ -374,7 +374,7 @@ function formatMoney(value) {
 }
 /** 订单列表只展示服务端允许的动作，并把本地再来一单置于首屏。 */
 function getOrderActions(order) {
-  const actions = getOrderActionButtons(order?.allowedActions, userStore.hasPermission('ORDER_CREATE'), afterSaleEnabled.value).filter(action => action.key !== 'afterSale')
+  const actions = getOrderActionButtons(order?.allowedActions, userStore.hasPermission('ORDER_CREATE'), afterSaleEnabled.value)
   if (userStore.hasPermission('ORDER_CREATE') && order?.salesScene !== 1 && Number(order?.itemCount || 0) > 0) {
     actions.push({
       key: 'reorder',

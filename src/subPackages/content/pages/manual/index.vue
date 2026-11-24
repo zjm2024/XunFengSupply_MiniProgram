@@ -42,7 +42,7 @@
                 hover-class="card--pressed"
                 @click="preview(item)"
               >
-                <AppProductImage class="manual-cover" :src="item.coverUrl" mode="aspectFit" lazy-load :fallback-icon-size="28" />
+                <AppProductImage class="manual-cover" :src="item.coverUrl" mode="aspectFill" lazy-load :fallback-icon-size="28" />
                 <view class="manual-copy">
                   <text class="manual-title">{{ item.title }}</text>
                   <text class="manual-meta">{{ item.date ? t('content.manual.updated', { date: item.date }) : t('content.manual.noDate') }}</text>
@@ -51,6 +51,7 @@
                 <AppIcon name="chevron-right" :size="18" class="manual-arrow" />
               </view>
               <AppLoadMore
+                class="manual-pagination"
                 v-if="manuals.length"
                 :status="pageStatus.isLoadingMore.value
                   ? 'loading'
@@ -165,15 +166,15 @@ async function preview(item) {
 </script>
 
 <style lang="scss" scoped>
-.manual-page { width: 100%; max-width: 1120px; padding: 12px 0 calc(30px + env(safe-area-inset-bottom)); box-sizing: border-box; }
+.manual-page { width: 100%; max-width: 1120px; margin: 0 auto; padding: 12px 0 calc(30px + env(safe-area-inset-bottom)); box-sizing: border-box; }
 .category-tabs { width: 100%; margin-bottom: 14px; white-space: nowrap; }
 .category-tabs-inner { display: flex; gap: 8px; width: max-content; }
 .category-btn { min-height:var(--list-action-height,32px);padding:0 12px;border:1px solid #E5E6EB;border-radius:var(--list-action-radius,8px); color: #666A73; background: #FFF; font-size:var(--list-action-font-size,12px);line-height: 30px; }
 .category-btn::after { border: 0; }
 .category-btn.is-active { border-color: #D7192D; color: #FFF; background: #D7192D; font-weight: var(--font-weight-bold, 700); }
 .manual-list { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
-.manual-item { display: flex; min-width: 0; min-height: 92px; align-items: center; gap: 12px; padding: 12px; border-radius: var(--radius-feature, 18px); background: var(--glass-card-background, rgba(255,255,255,.74)); box-shadow: var(--glass-card-shadow, 0 10px 28px rgba(55,65,80,.07)); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
-.manual-cover { width: 70px; height: 82px; flex: 0 0 70px; border-radius: var(--radius-control, 10px); background: #F1F3F6; }
+.manual-item { display: flex; min-width: 0; align-items: center; gap: 16px; padding: 14px; border-radius: var(--radius-feature, 18px); background: var(--surface-card, #FFF); }
+.manual-cover { width: 84px; height: 114px; flex: 0 0 84px; overflow: hidden; border-radius: var(--radius-control, 10px); background: #F1F3F6; }
 .manual-copy { display: flex; min-width: 0; flex: 1; flex-direction: column; }
 .manual-title { display: -webkit-box; overflow: hidden; color: #17191E; font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-bold, 700); line-height: 1.45; overflow-wrap: anywhere; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .manual-meta, .manual-file-hint { margin-top: 7px; color: #9699A1; font-size: var(--type-caption-size, 12px); }
@@ -183,6 +184,12 @@ async function preview(item) {
 .state-box { display: flex; min-height: 300px; align-items: center; justify-content: center; flex-direction: column; gap: 9px; color: #94979F; font-size: var(--type-caption-size, 12px); }
 .state-title { color: #454850; font-size: var(--type-card-title-size, 16px); font-weight: var(--font-weight-bold, 700); }
 
-.card--pressed { opacity: .9; transform: scale(.985); }
+.manual-pagination { grid-column: 1 / -1; }
+@media (min-width: 700px) { .manual-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; } }
+@media (max-width: 699px) {
+  .manual-item { gap: 14px; padding: 12px; }
+  .manual-cover { width: 72px; height: 98px; flex-basis: 72px; }
+}
+.card--pressed { opacity: .9; }
 
 </style>

@@ -91,7 +91,10 @@
     "preparingPdf": "Preparing PDF preview…",
     "pdfHint": "Pages load in sections when first opened",
     "pdfFailed": "Unable to prepare the PDF preview",
-    "updated": "Updated {date}"
+    "updated": "Updated {date}",
+    "updatedLabel": "Updated",
+    "previewModeLabel": "View as",
+    "pdfPreviewMode": "PDF preview"
   },
   "news": {
     "reload": "Reload",

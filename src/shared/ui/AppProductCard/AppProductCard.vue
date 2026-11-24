@@ -296,11 +296,15 @@ const stockText = computed(() => {
   line-height: var(--type-price-compact-line-height, 20px);
 }
 
+/* 分类紧凑图只显示底部状态条，不能同时设置top/bottom拉满整张图。 */
 .app-product-card--compact :deep(.app-product-image__stock-badge) {
-  top: 2px;
-  right: 2px;
-  padding: 3px 5px;
-  font-size: var(--type-caption-size, 12px);
+  top: auto;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 2px;
+  font-size: var(--type-micro-size, 11px);
+  line-height: 14px;
 }
 
 .app-product-card--tile .app-product-card__unit {
@@ -358,10 +362,20 @@ const stockText = computed(() => {
   -webkit-backdrop-filter: var(--glass-card-blur, blur(16px));
   backdrop-filter: var(--glass-card-blur, blur(16px));
 }
+
+/* 保持原白色卡片，不覆盖整卡蒙层；图淡、文字浅灰表达缺货。 */
 .app-product-card.is-out-of-stock {
   .app-product-card__name, .app-product-card__code, .app-product-card__price,
   .app-product-card__unit, .app-product-card__stock, .app-product-card__list-price {
-    color: var(--color-text-secondary, #737a84);
+    color: #858B94;
   }
+}
+
+/* 分类/分享的紧凑及行式商品卡始终无投影，覆盖公共表面与按压态规则。 */
+.app-product-card.app-product-card--compact,
+.app-product-card.app-product-card--row,
+.app-product-card.app-product-card--compact.app-product-card--pressed,
+.app-product-card.app-product-card--row.app-product-card--pressed {
+  box-shadow: none;
 }
 </style>
