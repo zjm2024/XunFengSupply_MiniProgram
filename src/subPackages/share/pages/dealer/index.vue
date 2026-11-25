@@ -1,6 +1,6 @@
 <template>
   <AppPageShell class="share-issuer-page" :class="{ 'share-overlay-open': !!state.qr }">
-    <template #header><AppHeader :title="t('share.dealer.title')" :show-back="true" /></template>
+    <template #header><AppHeader class="share-center-header" foreground-color="#000000" back-icon="profile-chevron-left" :title="t('share.dealer.title')" :show-back="true" /></template>
     <template #content>
       <AppContent padding="16px var(--page-padding-x, 16px) 28px" :refresher-enabled="true" :refresher-triggered="isRefreshing" @refresherrefresh="handleRefresh" @refresherrestore="handleRefresherRestore" @refresherabort="handleRefresherRestore">
         <view class="share-center">
@@ -11,17 +11,17 @@
             <AppCard v-if="sharedReason" padding="none"><ShareAvailability :message="sharedReason" /></AppCard>
             <view class="share-entry-grid">
               <AppListGroup>
-                <AppListItem :label="t('share.dealer.stockTitle')" icon="box" :clickable="false" :show-arrow="false"><template #value><StatusTag :type="state.capabilities?.canSharePublicStock ? 'success' : 'default'" :text="t(state.capabilities?.canSharePublicStock ? 'share.dealer.available' : 'share.dealer.unavailable')" /></template></AppListItem>
+                <AppListItem :label="t('share.dealer.stockTitle')" icon="profile-inventory" :clickable="false" :show-arrow="false"><template #value><StatusTag :type="state.capabilities?.canSharePublicStock ? 'success' : 'default'" :text="t(state.capabilities?.canSharePublicStock ? 'share.dealer.available' : 'share.dealer.unavailable')" /></template></AppListItem>
                 <view class="share-actions"><AppButton size="sm" variant="secondary" :disabled="blockedStock" :loading="state.busy" @tap="copyPublicLink">{{ t('share.dealer.copy') }}</AppButton><AppButton size="sm" variant="secondary" :disabled="blockedStock" @tap="controller.publicStock()">{{ t('share.dealer.showQr') }}</AppButton></view>
                 <ShareAvailability v-if="!sharedReason && state.capabilities && !state.capabilities.canSharePublicStock" :message="reason(state.capabilities.publicStockDisabledReasons)" />
               </AppListGroup>
               <AppListGroup>
-                <AppListItem :label="t('share.dealer.retailTitle')" icon="cart" :clickable="false" :show-arrow="false"><template #value><StatusTag :type="state.capabilities?.canCreateRetailShare ? 'success' : 'default'" :text="t(state.capabilities?.canCreateRetailShare ? 'share.dealer.available' : 'share.dealer.unavailable')" /></template></AppListItem>
+                <AppListItem :label="t('share.dealer.retailTitle')" icon="profile-sharing" :clickable="false" :show-arrow="false"><template #value><StatusTag :type="state.capabilities?.canCreateRetailShare ? 'success' : 'default'" :text="t(state.capabilities?.canCreateRetailShare ? 'share.dealer.available' : 'share.dealer.unavailable')" /></template></AppListItem>
                 <view class="retail-body"><view class="quota-line"><text>{{ t('share.dealer.quotaLabel') }}</text><text><text class="quota-used">{{ state.capabilities?.todayCreatedCount ?? '—' }}</text> / {{ state.capabilities?.dailyCreateLimit ?? '—' }}</text></view><view class="quota-track"><view :style="{ width: quotaPercent + '%' }" /></view><AppButton block :disabled="state.loading || state.busy || (!state.pendingCreate && !state.capabilities?.canCreateRetailShare)" @tap="openGenerate">{{ t('share.dealer.create') }}</AppButton></view>
                 <ShareAvailability v-if="!sharedReason && state.capabilities && !state.capabilities.canCreateRetailShare" :message="reason(state.capabilities.retailDisabledReasons)" />
               </AppListGroup>
             </view>
-            <AppListGroup><AppListItem :label="t('share.dealer.history')" icon="receipt" @tap="openRecords" /></AppListGroup>
+            <AppListGroup><AppListItem :label="t('share.dealer.history')" icon="profile-orders" arrow-icon="profile-chevron-right" @tap="openRecords" /></AppListGroup>
           </template>
           <ShareAvailability v-if="state.actionFailed" :message="actionErrorMessage" />
         </view>
@@ -72,7 +72,8 @@ async function copyPublicLink() { await controller.publicStock(); if (!state.act
 function invalidQr() { state.qr = null; state.actionFailed = true }
 </script>
 <style scoped lang="scss">
+.share-center-header :deep(.app-back-button) { color: #000000; }
 @import "../../styles/dealerSharingScroll.scss";
-.share-center{--glass-card-shadow:none}
+.share-center{--glass-card-shadow:none;--icon-secondary:#000000;--icon-muted:#000000}
 .share-center{display:flex;flex-direction:column;gap:16px;width:100%;max-width:1120px;margin:0 auto}.share-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;text-align:center}.stat-value,.stat-label{display:block}.stat-value{color:var(--text-primary);font-size: var(--type-heading-size, 24px);font-weight: var(--font-weight-bold, 700);line-height: 32px;font-variant-numeric:tabular-nums}.stat-label{margin-top:4px;color:var(--text-secondary);font-size:var(--font-size-caption,12px);line-height: 20px}.share-entry-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}.share-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:4px 16px 16px}.share-actions :deep(.app-button){min-width:0;width:100%;padding:0 8px}.retail-body{padding:4px 16px 16px}.quota-line{display:flex;justify-content:space-between;gap:12px;color:var(--text-secondary);font-size:var(--font-size-caption,12px);line-height: 24px}.quota-used{color:var(--text-primary);font-size: var(--type-card-title-size, 16px);font-weight: var(--font-weight-semibold, 600)}.quota-track{height:4px;overflow:hidden;margin:8px 0 16px;border-radius: 4px;background:var(--divider-color)}.quota-track>view{height:100%;background:var(--primary-color)}@media(min-width:600px){.share-entry-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>

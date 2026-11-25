@@ -1,7 +1,7 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader :title="t('account.titles.notifications')" :show-back="true" />
+      <AppHeader class="account-icons-header" foreground-color="#000000" back-icon="profile-chevron-left" :title="t('account.titles.notifications')" :show-back="true" />
     </template>
 
     <template #content>
@@ -9,7 +9,7 @@
         <view class="notification-page">
           <view class="notification-hero">
             <view class="hero-icon">
-              <AppIcon name="bell" :size="28" :stroke-width="1.8" />
+              <AppIcon name="profile-notifications" :size="24" color="#000000" :stroke-width="1.8" />
             </view>
             <view class="hero-copy">
               <text class="hero-title">{{ t('account.notifications.title') }}</text>
@@ -18,14 +18,14 @@
           </view>
 
           <AppListGroup v-if="nativeApp" :title="t('account.notifications.systemTitle')">
-            <AppListItem :label="systemPermission ? t('account.notifications.systemEnabled') : t('account.notifications.systemDisabled')" icon="bell" @tap="openSystemSettings" />
+            <AppListItem arrow-icon="profile-chevron-right" :label="systemPermission ? t('account.notifications.systemEnabled') : t('account.notifications.systemDisabled')" icon="notify-receive" @tap="openSystemSettings" />
           </AppListGroup>
-          <AppListItem v-if="!loaded && !loadingSettings" :label="t('common.retry')" icon="refresh" @tap="loadSettings" />
+          <AppListItem arrow-icon="profile-chevron-right" v-if="!loaded && !loadingSettings" :label="t('common.retry')" icon="about-check-updates" @tap="loadSettings" />
           <AppListGroup :title="t('account.notifications.receive')" :description="t('account.notifications.master')">
-            <AppListItem
+            <AppListItem arrow-icon="profile-chevron-right"
               :label="t('account.notifications.enabled')"
               :description="t('account.notifications.enabledHint')"
-              icon="bell"
+              icon="notify-receive"
               :clickable="false"
               :show-arrow="false"
             >
@@ -36,7 +36,7 @@
           </AppListGroup>
 
           <AppListGroup :title="t('account.notifications.business')" :description="t('account.notifications.businessHint')">
-            <AppListItem
+            <AppListItem arrow-icon="profile-chevron-right"
               v-for="item in businessItems"
               :key="item.key"
               :label="item.label"
@@ -58,10 +58,10 @@
           </AppListGroup>
 
           <AppListGroup :title="t('account.notifications.platform')" :description="t('account.notifications.platformHint')">
-            <AppListItem
+            <AppListItem arrow-icon="profile-chevron-right"
               :label="t('account.notifications.announcement')"
               :description="t('account.notifications.announcementHint')"
-              icon="announcement"
+              icon="notify-announcement"
               :clickable="false"
               :show-arrow="false"
               :disabled="!settings.enabled"
@@ -73,7 +73,7 @@
           </AppListGroup>
 
           <view class="notification-note">
-            <AppIcon name="info" :size="16" :stroke-width="1.8" />
+            <AppIcon name="notify-info" color="#000000" :size="16" :stroke-width="1.8" />
             <text>{{ t('account.notifications.note') }}</text>
           </view>
         </view>
@@ -107,10 +107,10 @@ nativeApp.value = true
 const loaded = ref(false)
 
 const businessItems = computed(() => [
-  { key: 'order', label: t('account.notifications.order'), description: t('account.notifications.orderHint'), icon: 'order' },
-  { key: 'audit', label: t('account.notifications.audit'), description: t('account.notifications.auditHint'), icon: 'check' },
-  { key: 'bill', label: t('account.notifications.bill'), description: t('account.notifications.billHint'), icon: 'invoice' },
-  { key: 'afterSale', label: t('account.notifications.afterSale'), description: t('account.notifications.afterSaleHint'), icon: 'refresh' },
+  { key: 'order', label: t('account.notifications.order'), description: t('account.notifications.orderHint'), icon: 'notify-order' },
+  { key: 'audit', label: t('account.notifications.audit'), description: t('account.notifications.auditHint'), icon: 'notify-approval' },
+  { key: 'bill', label: t('account.notifications.bill'), description: t('account.notifications.billHint'), icon: 'notify-credit' },
+  { key: 'afterSale', label: t('account.notifications.afterSale'), description: t('account.notifications.afterSaleHint'), icon: 'notify-after-sales' },
 ])
 
 onShow(() => { systemPermission.value = getSystemNotificationPermission(); return loadSettings() })
@@ -138,7 +138,10 @@ async function toggle(key, event) {
 </script>
 
 <style lang="scss" scoped>
+.account-icons-header :deep(.app-back-button) { color: #000000; }
 .notification-page {
+  --icon-secondary: #000000;
+  --icon-muted: #000000;
   display: grid;
   gap: 18px;
   padding: 10px 0 calc(28px + env(safe-area-inset-bottom));

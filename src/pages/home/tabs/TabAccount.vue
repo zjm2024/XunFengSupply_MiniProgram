@@ -19,7 +19,7 @@
         <view class="profile-copy">
           <view class="name-row">
             <text class="profile-name">{{ displayName }}</text>
-            <AppIcon name="chevron-right" :size="18" color="#63666D" />
+            <AppIcon name="profile-chevron-right" :size="20" color="#000000" />
           </view>
           <view class="identity-row">
             <text class="level-tag">{{ dealerLevel }}</text>
@@ -29,7 +29,7 @@
       </view>
 
       <view v-if="!userStore.isAccountNormal || finance.credit?.isFrozen" class="account-notice">
-        <AppIcon name="alert-circle" :size="16" color="#B31227" />
+        <AppIcon name="alert-circle" :size="16" color="#000000" />
         <text>{{ accountNoticeText }}</text>
       </view>
 
@@ -47,7 +47,7 @@
           <view>
             <text class="card-title">{{ accountCopy.sections.orders }}</text>
           </view>
-          <view class="heading-link"><text>{{ accountCopy.actions.allOrders }}</text><AppIcon name="chevron-right" :size="16" /></view>
+          <view class="heading-link"><text>{{ accountCopy.actions.allOrders }}</text><AppIcon name="profile-chevron-right" :size="20" color="#000000" /></view>
         </view>
         <view class="order-status-grid">
           <view
@@ -59,7 +59,7 @@
             @tap="item.action"
           >
             <view class="status-icon-wrap">
-              <AppIcon :name="item.icon" :size="24" />
+              <AppIcon :name="item.icon" :size="24" color="#000000" />
               <!-- <text v-if="item.count > 0" class="status-badge">{{ formatCount(item.count) }}</text> -->
             </view>
             <text>{{ item.label }}</text>
@@ -73,7 +73,7 @@
         </view>
         <view class="function-grid">
           <button v-for="item in functionEntries" :key="item.key" class="function-item" hover-class="item--pressed" @tap="item.action">
-            <view class="function-icon"><AppIcon :name="item.icon" :size="24" /></view>
+            <view class="function-icon"><AppIcon :name="item.icon" :size="24" color="#000000" /></view>
             <text>{{ item.label }}</text>
           </button>
         </view>
@@ -164,7 +164,7 @@ const serviceEntries = computed(() => [
     icon: 'profile-after-sales',
     action: goToAfterSales,
   },
-  ...(['PUBLIC_STOCK_SHARE', 'RETAIL_SHARE_CREATE', 'RETAIL_SHARE_VIEW', 'RETAIL_SHARE_REVOKE'].some(code => userStore.hasPermission(code)) ? [{ key: 'share', label: t('main.accountPanel.share'), description: t('main.accountPanel.shareDescription'), icon: 'globe', action: goToShare }] : []),
+  ...(['PUBLIC_STOCK_SHARE', 'RETAIL_SHARE_CREATE', 'RETAIL_SHARE_VIEW', 'RETAIL_SHARE_REVOKE'].some(code => userStore.hasPermission(code)) ? [{ key: 'share', label: t('main.accountPanel.share'), description: t('main.accountPanel.shareDescription'), icon: 'profile-sharing', action: goToShare }] : []),
   { key: 'help', label: accountCopy.value.services.help, description: accountCopy.value.services.helpDescription, icon: 'profile-help', action: goToHelp },
 ])
 
@@ -239,13 +239,13 @@ function goToHelp() { return navigator.navigateTo(routes.content.help()) }
 
 const orderShortcuts = computed(() => [
   { key: 'all', label: t('main.accountPanel.all'), count: orderCounts.allCount, icon: 'profile-orders', action: () => goToOrders() },
-  { key: 'pending-payment', label: t('main.accountPanel.orderFilters.pendingPayment'), count: orderCounts.pendingPaymentCount, icon: 'order-pending-payment', action: () => goToOrders(ORDER_STATUS.PENDING_PAYMENT) },
-  { key: 'processing', label: t('main.accountPanel.orderFilters.processing'), count: orderCounts.processingCount, icon: 'order-shipped', action: () => goToOrders(ORDER_STATUS.PROCESSING) },
-  { key: 'completed', label: t('main.accountPanel.orderFilters.completed'), count: orderCounts.completedCount, icon: 'order-signed', action: () => goToOrders(ORDER_STATUS.COMPLETED) },
+  { key: 'pending-payment', label: t('main.accountPanel.orderFilters.pendingPayment'), count: orderCounts.pendingPaymentCount, icon: 'profile-order-payment', action: () => goToOrders(ORDER_STATUS.PENDING_PAYMENT) },
+  { key: 'processing', label: t('main.accountPanel.orderFilters.processing'), count: orderCounts.processingCount, icon: 'profile-order-fulfilling', action: () => goToOrders(ORDER_STATUS.PROCESSING) },
+  { key: 'completed', label: t('main.accountPanel.orderFilters.completed'), count: orderCounts.completedCount, icon: 'profile-order-completed', action: () => goToOrders(ORDER_STATUS.COMPLETED) },
 ])
 
 const functionEntries = computed(() => [
-  ...(userStore.hasPermission('BALANCE_VIEW') ? [{ key: 'fund-center', label: t('main.accountPanel.fundCenter'), icon: 'profile-fund-flow', action: goToFundCenter }] : []),
+  ...(userStore.hasPermission('BALANCE_VIEW') ? [{ key: 'fund-center', label: t('main.accountPanel.fundCenter'), icon: 'profile-finance-center', action: goToFundCenter }] : []),
   ...(userStore.hasPermission('INVENTORY_VIEW') ? [{ key: 'inventory', label: t('main.accountPanel.inventoryManagement'), icon: 'profile-inventory', tone: 'primary', action: goToInventory }] : []),
   ...(userStore.hasPermission('BALANCE_VIEW') ? [
     { key: 'bill', label: t('main.accountPanel.bill'), icon: 'profile-bill', action: goToBill },

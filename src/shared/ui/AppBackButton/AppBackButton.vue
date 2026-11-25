@@ -10,7 +10,7 @@
     :hover-stay-time="80"
     @tap="$emit('click')"
   >
-    <AppIcon name="chevron-left" :size="24" :stroke-width="2.2" />
+    <AppIcon :name="iconName" :size="24" :stroke-width="2.2" />
   </view>
 </template>
 
@@ -18,6 +18,8 @@
 import AppIcon from '../AppIcon/AppIcon.vue'
 
 defineProps({
+  // 默认返回图标保持，业务页通过公共标题栏选择同风格素材。
+  iconName: { type: String, default: 'chevron-left' },
   transparent: {
     type: Boolean,
     default: false,

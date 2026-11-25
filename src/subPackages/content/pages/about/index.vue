@@ -1,6 +1,6 @@
 <template>
   <AppPageShell>
-    <template #header><AppHeader :title="t('content.titles.about')" :show-back="true" /></template>
+    <template #header><AppHeader class="account-icons-header" foreground-color="#000000" back-icon="profile-chevron-left" :title="t('content.titles.about')" :show-back="true" /></template>
     <template #content>
       <AppContent width-mode="standard">
         <view class="about-app-content">
@@ -11,8 +11,8 @@
           </view>
 
           <AppListGroup>
-            <AppListItem :label="t('content.appAbout.checkUpdates')" :description="t('content.appAbout.currentVersion', { version })"
-              icon="refresh" :disabled="updateBusy" @tap="checkUpdates" />
+            <AppListItem arrow-icon="profile-chevron-right" :label="t('content.appAbout.checkUpdates')" :description="t('content.appAbout.currentVersion', { version })"
+              icon="about-check-updates" :disabled="updateBusy" @tap="checkUpdates" />
             <view v-if="updateMessage" class="update-result" role="status" aria-live="polite">
               <text>{{ updateMessage }}</text>
               <text v-if="availableUpdate?.releaseNotes" class="release-notes">{{ availableUpdate.releaseNotes }}</text>
@@ -21,12 +21,12 @@
           </AppListGroup>
 
           <AppListGroup>
-            <AppListItem :label="t('content.appAbout.company')" icon="info" @tap="openCompany" />
+            <AppListItem arrow-icon="profile-chevron-right" :label="t('content.appAbout.company')" icon="about-company" @tap="openCompany" />
           </AppListGroup>
 
           <AppListGroup>
-            <AppListItem :label="t('content.appAbout.agreement')" icon="shield" @tap="openAgreement('user')" />
-            <AppListItem :label="t('content.appAbout.privacy')" icon="shield" @tap="openAgreement('privacy')" />
+            <AppListItem arrow-icon="profile-chevron-right" :label="t('content.appAbout.agreement')" icon="about-user-agreement" @tap="openAgreement('user')" />
+            <AppListItem arrow-icon="profile-chevron-right" :label="t('content.appAbout.privacy')" icon="about-privacy-policy" @tap="openAgreement('privacy')" />
           </AppListGroup>
 
           <view class="app-copyright">
@@ -106,7 +106,10 @@ onUnload(() => { disposed = true; generation++; updater.dispose() })
 </script>
 
 <style lang="scss" scoped>
-.about-app-content { display: grid; gap: 16px; padding: 8px 0 24px; }
+.account-icons-header :deep(.app-back-button) { color: #000000; }
+.about-app-content {
+  --icon-secondary: #000000;
+  --icon-muted: #000000; display: grid; gap: 16px; padding: 8px 0 24px; }
 .app-brand { display: flex; align-items: center; flex-direction: column; padding: 24px 16px 28px; }
 .app-brand-logo { width: 80px; height: 80px; background: url("@/static/images/logo.png") center / contain no-repeat; }
 .app-brand-name { margin-top: 14px; color: var(--type-title-color, #1b1c20); font-size: var(--type-page-title-size, 20px); line-height: 1.5; font-weight: 600; }

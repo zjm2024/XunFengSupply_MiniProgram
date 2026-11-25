@@ -51,7 +51,7 @@
         :aria-label="t('main.nav.settings')"
         @click="$emit('settings')"
       >
-        <AppIcon name="settings" :size="20" :stroke-width="1.8" />
+        <AppIcon name="profile-settings" :size="24" :stroke-width="1.8" color="#000000" />
       </view>
       <view
         class="header-action glass-btn"
@@ -60,7 +60,7 @@
         :aria-label="t('main.nav.messages')"
         @click="$emit('messages')"
       >
-        <view class="message-icon-anchor"><AppIcon name="bell" :size="20" :stroke-width="1.8" />
+        <view class="message-icon-anchor"><AppIcon name="profile-notifications" :size="24" :stroke-width="1.8" color="#000000" />
         <view v-if="hasUnread" class="unread-dot" /></view>
       </view>
     </view>

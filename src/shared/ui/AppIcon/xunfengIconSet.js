@@ -1,3 +1,45 @@
+import orderMessagesPageSvg from '../../assets/icon/personal-center/order_messages.svg?raw'
+import approvalMessagesPageSvg from '../../assets/icon/personal-center/approval_messages.svg?raw'
+import accountCreditMessagesPageSvg from '../../assets/icon/personal-center/account_credit_messages.svg?raw'
+import afterSalesMessagesPageSvg from '../../assets/icon/personal-center/after_sales_messages.svg?raw'
+import receiveNotificationsPageSvg from '../../assets/icon/personal-center/receive_notifications.svg?raw'
+import systemAnnouncementsPageSvg from '../../assets/icon/personal-center/system_announcements.svg?raw'
+import infoNoticePageSvg from '../../assets/icon/personal-center/info_notice.svg?raw'
+import checkUpdatesPageSvg from '../../assets/icon/personal-center/check_updates.svg?raw'
+import companyIntroPageSvg from '../../assets/icon/personal-center/company_intro.svg?raw'
+import userAgreementPageSvg from '../../assets/icon/personal-center/user_agreement.svg?raw'
+import privacyPolicyPageSvg from '../../assets/icon/personal-center/privacy_policy.svg?raw'
+import withdrawApplyPageSvg from '../../assets/icon/personal-center/withdraw_apply.svg?raw'
+import rechargeCenterPageSvg from '../../assets/icon/personal-center/recharge_center.svg?raw'
+import bankCardPageSvg from '../../assets/icon/personal-center/bank_card.svg?raw'
+import balanceDetailsPageSvg from '../../assets/icon/personal-center/balance_details.svg?raw'
+import creditDetailsPageSvg from '../../assets/icon/personal-center/credit_details.svg?raw'
+import withdrawalRecordsPageSvg from '../../assets/icon/personal-center/withdrawal_records.svg?raw'
+import rechargeRecordsPageSvg from '../../assets/icon/personal-center/recharge_records.svg?raw'
+import eyeVisibilityPageSvg from '../../assets/icon/personal-center/eye_visibility.svg?raw'
+import languagePersonalSvg from '../../assets/icon/personal-center/language.svg?raw'
+import clearCachePersonalSvg from '../../assets/icon/personal-center/clear_cache.svg?raw'
+import accountProfilePersonalSvg from '../../assets/icon/personal-center/account_profile.svg?raw'
+import securitySettingsPersonalSvg from '../../assets/icon/personal-center/security_settings.svg?raw'
+import aboutAppPersonalSvg from '../../assets/icon/personal-center/about_app.svg?raw'
+import chevronLeftPersonalSvg from '../../assets/icon/personal-center/chevron_left.svg?raw'
+import markAllReadPersonalSvg from '../../assets/icon/personal-center/mark_all_read.svg?raw'
+import orderAllPersonalSvg from '../../assets/icon/personal-center/order_all.svg?raw'
+import orderPendingPaymentPersonalSvg from '../../assets/icon/personal-center/order_pending_payment.svg?raw'
+import orderFulfillingPersonalSvg from '../../assets/icon/personal-center/order_fulfilling.svg?raw'
+import orderCompletedPersonalSvg from '../../assets/icon/personal-center/order_completed.svg?raw'
+import financeCenterPersonalSvg from '../../assets/icon/personal-center/finance_center.svg?raw'
+import inventoryManagementPersonalSvg from '../../assets/icon/personal-center/inventory_management.svg?raw'
+import reconciliationStatementPersonalSvg from '../../assets/icon/personal-center/reconciliation_statement.svg?raw'
+import invoiceCenterPersonalSvg from '../../assets/icon/personal-center/invoice_center.svg?raw'
+import shippingAddressPersonalSvg from '../../assets/icon/personal-center/shipping_address.svg?raw'
+import subAccountsPersonalSvg from '../../assets/icon/personal-center/sub_accounts.svg?raw'
+import afterSalesServicePersonalSvg from '../../assets/icon/personal-center/after_sales_service.svg?raw'
+import sharingCenterPersonalSvg from '../../assets/icon/personal-center/sharing_center.svg?raw'
+import helpCenterPersonalSvg from '../../assets/icon/personal-center/help_center.svg?raw'
+import settingsPersonalSvg from '../../assets/icon/personal-center/settings.svg?raw'
+import notificationsPersonalSvg from '../../assets/icon/personal-center/notifications.svg?raw'
+import chevronRightPersonalSvg from '../../assets/icon/personal-center/chevron_right.svg?raw'
 import tabHomeSvg from '../../assets/illustrations/tab-home.svg?raw'
 import tabHomeActiveSvg from '../../assets/illustrations/tab-home-active.svg?raw'
 import tabCategorySvg from '../../assets/illustrations/tab-category.svg?raw'
@@ -53,10 +95,8 @@ import shippedSvg from '../../assets/icon/shipped.svg?raw'
 import signedSvg from '../../assets/icon/signed.svg?raw'
 import transactionFailedSvg from '../../assets/icon/transaction-failed.svg?raw'
 import transactionSuccessSvg from '../../assets/icon/transaction-success.svg?raw'
-import allOrderSvg from '../../assets/icon/all-order.svg?raw'
 import investMoneySvg from '../../assets/icon/invest-money.svg?raw'
 import reconciliationSvg from '../../assets/icon/reconciliation.svg?raw'
-import helpSvg from '../../assets/icon/help.svg?raw'
 
 /**
  * 薰风商城图标集。
@@ -173,16 +213,75 @@ const paymentIconPaths = Object.freeze({
   'pay-wechat': createSvgAssetIcon(paymentWechatPaySvg),
 })
 
+/** 保留线性素材的根级绘制属性，避免旧填色素材转换器把轮廓变成实心。 */
+function createPersonalCenterIcon(svg) {
+  const viewBox = svg.match(/\bviewBox=["']([^"']+)["']/i)?.[1] || '0 0 24 24'
+  const attributes = svg.match(/<svg\b([^>]*)>/i)?.[1] || ''
+  const drawingAttributes = attributes.replace(/\s+(?:xmlns|width|height|viewBox|role)=["'][^"']*["']/gi, '')
+  const body = svg.match(/<svg\b[^>]*>([\s\S]*?)<\/svg>/i)?.[1]?.trim() || ''
+  const content = `<g${drawingAttributes}>${body}</g>`
+  return Object.freeze({ viewBox, content, originalContent: content })
+}
+
+// 用户提供的16个个人中心图标；专用名称使其他业务页保持原有语义映射。
+const personalCenterIconPaths = Object.freeze({
+  'profile-orders': createPersonalCenterIcon(orderAllPersonalSvg),
+  'profile-order-payment': createPersonalCenterIcon(orderPendingPaymentPersonalSvg),
+  'profile-order-fulfilling': createPersonalCenterIcon(orderFulfillingPersonalSvg),
+  'profile-order-completed': createPersonalCenterIcon(orderCompletedPersonalSvg),
+  'profile-finance-center': createPersonalCenterIcon(financeCenterPersonalSvg),
+  'profile-inventory': createPersonalCenterIcon(inventoryManagementPersonalSvg),
+  'profile-bill': createPersonalCenterIcon(reconciliationStatementPersonalSvg),
+  'profile-invoice': createPersonalCenterIcon(invoiceCenterPersonalSvg),
+  'profile-address': createPersonalCenterIcon(shippingAddressPersonalSvg),
+  'profile-sub-account': createPersonalCenterIcon(subAccountsPersonalSvg),
+  'profile-after-sales': createPersonalCenterIcon(afterSalesServicePersonalSvg),
+  'profile-sharing': createPersonalCenterIcon(sharingCenterPersonalSvg),
+  'profile-help': createPersonalCenterIcon(helpCenterPersonalSvg),
+  'profile-settings': createPersonalCenterIcon(settingsPersonalSvg),
+  'profile-notifications': createPersonalCenterIcon(notificationsPersonalSvg),
+  'profile-chevron-right': createPersonalCenterIcon(chevronRightPersonalSvg),
+  'profile-language': createPersonalCenterIcon(languagePersonalSvg),
+  'profile-clear-cache': createPersonalCenterIcon(clearCachePersonalSvg),
+  'profile-account': createPersonalCenterIcon(accountProfilePersonalSvg),
+  'profile-security-settings': createPersonalCenterIcon(securitySettingsPersonalSvg),
+  'profile-about-app': createPersonalCenterIcon(aboutAppPersonalSvg),
+  'profile-chevron-left': createPersonalCenterIcon(chevronLeftPersonalSvg),
+  'message-mark-all-read': createPersonalCenterIcon(markAllReadPersonalSvg),
+})
+
+// 三个账户相关页面按功能引用用户素材，保留每份SVG的原始画布与线宽。
+const accountPageIconPaths = Object.freeze({
+  'notify-order': createPersonalCenterIcon(orderMessagesPageSvg),
+  'notify-approval': createPersonalCenterIcon(approvalMessagesPageSvg),
+  'notify-credit': createPersonalCenterIcon(accountCreditMessagesPageSvg),
+  'notify-after-sales': createPersonalCenterIcon(afterSalesMessagesPageSvg),
+  'notify-receive': createPersonalCenterIcon(receiveNotificationsPageSvg),
+  'notify-announcement': createPersonalCenterIcon(systemAnnouncementsPageSvg),
+  'notify-info': createPersonalCenterIcon(infoNoticePageSvg),
+  'about-check-updates': createPersonalCenterIcon(checkUpdatesPageSvg),
+  'about-company': createPersonalCenterIcon(companyIntroPageSvg),
+  'about-user-agreement': createPersonalCenterIcon(userAgreementPageSvg),
+  'about-privacy-policy': createPersonalCenterIcon(privacyPolicyPageSvg),
+  'finance-withdraw-apply': createPersonalCenterIcon(withdrawApplyPageSvg),
+  'finance-recharge-center': createPersonalCenterIcon(rechargeCenterPageSvg),
+  'finance-bank-card': createPersonalCenterIcon(bankCardPageSvg),
+  'finance-balance-details': createPersonalCenterIcon(balanceDetailsPageSvg),
+  'finance-credit-details': createPersonalCenterIcon(creditDetailsPageSvg),
+  'finance-withdrawal-records': createPersonalCenterIcon(withdrawalRecordsPageSvg),
+  'finance-recharge-records': createPersonalCenterIcon(rechargeRecordsPageSvg),
+  'finance-eye-visible': createPersonalCenterIcon(eyeVisibilityPageSvg),
+  // 隐藏金额时沿用同一眼睛轮廓，加斜线区分状态。
+  'finance-eye-hidden': createPersonalCenterIcon(eyeVisibilityPageSvg.replace('</svg>', '<path d="M5 5L27 27"/></svg>')),
+})
+
 export const xunfengIconMap = Object.freeze({
   ...coreIconPaths,
   ...tabIconPaths,
   ...accountIconPaths,
   ...paymentIconPaths,
-  // 个人中心专用图标占位：后续补充高品质 SVG 时只替换这里的映射即可。
-  'profile-orders': createSvgAssetIcon(allOrderSvg),
-  'profile-sub-account': coreIconPaths.users,
-  'profile-help': createSvgAssetIcon(helpSvg),
-  'profile-address': coreIconPaths.address,
+  ...personalCenterIconPaths,
+  ...accountPageIconPaths,
   package: coreIconPaths.product,
   box: coreIconPaths.product,
   user: coreIconPaths.account,

@@ -4,7 +4,7 @@
       <AppHeader :title="listTitle" :show-back="true" :transparent="true" :action-text="t('content.messages.settingsAction')" @action="goToNotificationSettings">
         <template #before-action>
           <button class="mark-all-read-icon" hover-class="none" :disabled="markingAll || unreadCount <= 0" :aria-busy="markingAll" :aria-label="t(markingAll ? 'content.messages.markingAll' : 'content.messages.markAll')" @tap="handleMarkAllRead">
-            <AppIcon name="broom" :size="20" />
+            <AppIcon name="message-mark-all-read" :size="24" />
           </button>
         </template>
       </AppHeader>

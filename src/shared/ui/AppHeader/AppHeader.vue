@@ -52,6 +52,7 @@
           v-if="showBack"
           :transparent="transparent"
           :theme="theme"
+          :icon-name="backIcon"
           @click="handleBack"
         />
         <!-- Logo（首页） -->
@@ -137,6 +138,8 @@ import AppStatusBarSpacer from '../AppStatusBarSpacer/AppStatusBarSpacer.vue'
 import AppIcon from '../AppIcon/AppIcon.vue'
 
 const props = defineProps({
+  /** 传给统一返回按钮的图标名称；不改变返回行为。 */
+  backIcon: { type: String, default: 'chevron-left' },
   /** 当前页自行处理返回，例如同链接内的详情/视图切换。 */
   customBack: { type: Boolean, default: false },
   /** 页面标题 */

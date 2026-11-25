@@ -1,6 +1,6 @@
 <template>
   <AppPageShell>
-    <template #header><AppHeader :title="t('account.fundCenter.title')" :show-back="true" /></template>
+    <template #header><AppHeader class="account-icons-header" foreground-color="#000000" back-icon="profile-chevron-left" :title="t('account.fundCenter.title')" :show-back="true" /></template>
     <template #content>
       <AppContent width-mode="standard" padding="12px var(--page-padding-x, 16px) 28px"
         :refresher-enabled="true" :refresher-triggered="refreshing"
@@ -14,7 +14,7 @@
                   <text>{{ t('account.fundCenter.availableBalance') }}</text>
                   <button class="balance-visibility" :aria-label="t(balanceVisible ? 'account.fundCenter.hideBalance' : 'account.fundCenter.showBalance')"
                     @tap="balanceVisible = !balanceVisible">
-                    <AppIcon :name="balanceVisible ? 'eye' : 'eye-off'" :size="19" color="#fff" />
+                    <AppIcon :name="balanceVisible ? 'finance-eye-visible' : 'finance-eye-hidden'" :size="24" color="#fff" />
                   </button>
                 </view>
                 <AmountText class="balance-amount" :text="balanceVisible && finance?.canViewBalance ? money(finance.subjectAvailableBalance) : '••••••'" />
@@ -39,16 +39,16 @@
             <view class="quick-grid" :class="{ 'single-action': quickActions.length === 1 }">
               <button v-for="item in quickActions" :key="item.label" class="quick-tile" hover-class="tile-pressed"
                 @tap="open(item.url)">
-                <AppIcon :name="item.icon" :size="24" />
+                <AppIcon :name="item.icon" :size="24" color="#000000" />
                 <text>{{ item.label }}</text>
-                <AppIcon v-if="quickActions.length === 1" name="chevron-right" :size="16" color="#696D75" />
+                <AppIcon v-if="quickActions.length === 1" name="profile-chevron-right" :size="20" color="#000000" />
               </button>
             </view>
             <view class="finance-panel hub-links">
               <button v-for="item in links" :key="item.label" class="hub-link" hover-class="tile-pressed" @tap="open(item.url)">
-                <AppIcon :name="item.icon" :size="21" />
+                <AppIcon :name="item.icon" :size="24" color="#000000" />
                 <text>{{ item.label }}</text>
-                <AppIcon name="chevron-right" :size="16" color="#696D75" />
+                <AppIcon name="profile-chevron-right" :size="20" color="#000000" />
               </button>
             </view>
           </view>
@@ -84,15 +84,15 @@ const loading = ref(false)
 const balanceVisible = ref(true)
 
 const quickActions = computed(() => [
-  ...(user.isMainAccount ? [{ label: t('account.withdrawal.apply'), icon: 'profile-fund-flow', url: routes.account.withdrawal({ mode: 'apply' }) }] : []),
-  { label: t('account.titles.recharge'), icon: 'profile-recharge', url: routes.account.recharge() },
-  ...(user.isMainAccount ? [{ label: t('account.fundCenter.bankCards'), icon: 'bank', url: routes.account.withdrawalBankCards() }] : []),
+  ...(user.isMainAccount ? [{ label: t('account.withdrawal.apply'), icon: 'finance-withdraw-apply', url: routes.account.withdrawal({ mode: 'apply' }) }] : []),
+  { label: t('account.titles.recharge'), icon: 'finance-recharge-center', url: routes.account.recharge() },
+  ...(user.isMainAccount ? [{ label: t('account.fundCenter.bankCards'), icon: 'finance-bank-card', url: routes.account.withdrawalBankCards() }] : []),
 ])
 const links = computed(() => [
-  { label: t('account.fundCenter.balanceDetails'), icon: 'profile-fund-flow', url: routes.account.fundFlow() },
-  { label: t('account.fundCenter.creditDetails'), icon: 'profile-credit-flow', url: routes.account.creditFlow() },
-  ...(user.isMainAccount ? [{ label: t('account.withdrawal.records'), icon: 'wallet', url: routes.account.withdrawal() }] : []),
-  { label: t('account.titles.rechargeRecords'), icon: 'history', url: routes.account.rechargeRecords() },
+  { label: t('account.fundCenter.balanceDetails'), icon: 'finance-balance-details', url: routes.account.fundFlow() },
+  { label: t('account.fundCenter.creditDetails'), icon: 'finance-credit-details', url: routes.account.creditFlow() },
+  ...(user.isMainAccount ? [{ label: t('account.withdrawal.records'), icon: 'finance-withdrawal-records', url: routes.account.withdrawal() }] : []),
+  { label: t('account.titles.rechargeRecords'), icon: 'finance-recharge-records', url: routes.account.rechargeRecords() },
 ])
 
 onShow(load)
@@ -123,6 +123,7 @@ function open(url) { return navigator.navigateTo(url) }
 </script>
 
 <style lang="scss" scoped>
+.account-icons-header :deep(.app-back-button) { color: #000000; }
 @import '../finance-ui.scss';
 
 .finance-hub, .hub-overview, .hub-navigation { display: grid; gap: 12px; min-width: 0; align-content: start; }

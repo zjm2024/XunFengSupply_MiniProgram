@@ -1,7 +1,7 @@
 <template>
   <AppPageShell>
     <template #header>
-      <AppHeader :title="t('account.settings.title')" :show-back="true" :show-shadow="true" />
+      <AppHeader class="settings-header" foreground-color="#000000" :title="t('account.settings.title')" :show-back="true" back-icon="profile-chevron-left" :show-shadow="true" />
     </template>
 
     <template #content>
@@ -10,12 +10,14 @@
           <AppListGroup :title="t('account.settings.general')">
             <AppListItem
               :label="t('account.settings.language')"
-              icon="settings"
+              icon="profile-language"
+              arrow-icon="profile-chevron-right"
               @tap="goToLanguage"
             />
             <AppListItem
               :label="t('account.settings.clearCache')"
-              icon="trash"
+              icon="profile-clear-cache"
+              arrow-icon="profile-chevron-right"
               @tap="handleClearCache"
             />
           </AppListGroup>
@@ -23,12 +25,14 @@
           <AppListGroup :title="t('account.settings.accountSecurity')">
             <AppListItem
               :label="t('account.settings.profile')"
-              icon="user"
+              icon="profile-account"
+              arrow-icon="profile-chevron-right"
               @tap="goToProfile"
             />
             <AppListItem
               :label="t('account.settings.security')"
-              icon="shield"
+              icon="profile-security-settings"
+              arrow-icon="profile-chevron-right"
               @tap="goToSecurity"
             />
           </AppListGroup>
@@ -36,17 +40,20 @@
           <AppListGroup :title="t('account.settings.support')">
             <AppListItem
               :label="t('account.settings.notifications')"
-              icon="bell"
+              icon="profile-notifications"
+              arrow-icon="profile-chevron-right"
               @tap="goToNotificationSettings"
             />
             <AppListItem
               :label="t('account.settings.help')"
-              icon="help"
+              icon="profile-help"
+              arrow-icon="profile-chevron-right"
               @tap="goToHelp"
             />
             <AppListItem
               :label="t('account.settings.about')"
-              icon="info"
+              icon="profile-about-app"
+              arrow-icon="profile-chevron-right"
               @tap="goToAbout"
             />
           </AppListGroup>
@@ -133,7 +140,10 @@ async function handleLogout() {
 </script>
 
 <style lang="scss" scoped>
+.settings-header :deep(.app-back-button) { color: #000000; }
 .settings-content {
+  --icon-secondary: #000000;
+  --icon-muted: #000000;
   display: grid;
   gap: 18px;
   padding-top: 10px;

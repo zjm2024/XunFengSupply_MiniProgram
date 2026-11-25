@@ -2,8 +2,8 @@
     "name" : "薰风经销商采购平台（测试版）",
     "appid" : "__UNI__C336BB6",
     "description" : "薰风羽毛球B2B经销商签约采购对账售后全流程平台",
-    "versionName" : "1.0.5",
-    "versionCode" : 105,
+    "versionName" : "1.0.6",
+    "versionCode" : 106,
     "transformPx" : false,
     "app-plus" : {
         "usingComponents" : true,

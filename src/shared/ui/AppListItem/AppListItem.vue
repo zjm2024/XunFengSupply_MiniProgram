@@ -26,7 +26,7 @@
     <AppIcon
       v-if="showArrow && clickable"
       class="item-arrow"
-      name="chevron-right"
+      :name="arrowIcon"
       :size="20"
       :stroke-width="2"
       aria-hidden="true"
@@ -44,6 +44,8 @@ const props = defineProps({
   icon: { type: String, default: '' },
   clickable: { type: Boolean, default: true },
   showArrow: { type: Boolean, default: true },
+  // 页面可选箭头素材，默认保持其他列表既有图标。
+  arrowIcon: { type: String, default: 'chevron-right' },
   disabled: { type: Boolean, default: false },
   danger: { type: Boolean, default: false },
 })
