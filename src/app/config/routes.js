@@ -467,14 +467,14 @@ export const ROUTE_META = Object.freeze({
 
   // ===== content 分包 =====
   [NEWS]: {
-    title: '新闻资讯',
+    title: '资讯',
     requireAuth: true,
     requireSign: false,
     allowFrozen: false,
     owner: null,
   },
   [NEWS_DETAIL]: {
-    title: '新闻详情',
+    title: '内容详情',
     requireAuth: true,
     requireSign: false,
     allowFrozen: false,

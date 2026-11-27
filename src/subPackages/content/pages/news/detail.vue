@@ -14,12 +14,12 @@
             <text>{{ detail.date || detail.publishedAt || t('content.news.latest') }}</text>
             <text v-if="detail.id">{{ t('content.news.reference', { id: detail.id }) }}</text>
           </view>
-          <AppProductImage
+          <!-- <AppProductImage
             class="article-cover"
             :src="detail.coverUrl || detail.imageUrl"
             mode="aspectFill"
             :fallback-icon-size="46"
-          />
+          /> -->
           <text v-if="detail.summary || detail.desc" class="article-summary">
             {{ detail.summary || detail.desc }}
           </text>
